@@ -19,11 +19,15 @@ Open `index.html` through a server (ES modules don't load from `file://`) and cl
 | Fireball | Left mouse |
 | Flame stream (hold) | Right mouse |
 | Ground slam, a ring of fire | E |
+| Phoenix · Meteor Storm · Inferno Wall | F · G · V |
+| Flame Dash (dodge, brief invulnerability) | Shift |
 | Restore the glade · time of day · hide help | R · T · H |
 
 - **The character** (`src/mage/mage.js`): 36 parametric parts (superquadric torso and head, tube sleeves, capsule fingers, cone hat, lathe skirt) bound to a humanoid skeleton with two-joint fingers. Idle, Walk and Run come from the engine's gait synthesizer (`synthesizeIdle`, `synthesizeLocomotion`); Fireball, Flamethrower, Slam and Jump are `keyPoseClip` actions with events (`fireball` when the hand opens, `slam` when the fists land). Locomotion is a `BlendSpace1D` on speed, the casts play on a masked upper-body `AnimLayer` so you can throw while running, and the slam plays as a full-body layer.
 - **The glade** (`src/mage/world.js`): flagstone plaza with a brazier, standing stones, a timber hut, a fenced hay yard, trees, straw dummies, a pond, and crates and barrels that are physics bodies. Everything wooden is a `FireSystem` burnable: it heats its neighbours (downwind first), catches, chars, then burns out to embers and smoke, so one hay bale can take the whole glade.
 - **Phoenix** (`src/mage/phoenix.js`, F): a bird of living flame built from shapes with flapping wings. It arcs to the crosshair scorching its path, bursts on impact, then swoops home and refills some ember.
+- **Destructible world** (`src/mage/destruct.js`): stones, boulders, the hut, ice pillars and barricades have hit points; blasts wear them down and they shatter into rigid-body chunks that tumble under the physics engine and fade. Barrels explode when they burn. The black scorch decals are gone.
+- **Boss fight** (menu: *Boss fight · Ice Mage*, `boss.js`, `arena.js`, `colossus.js`, `cutscene.js`): an animated intro cutscene (skip with Enter), then the Ice Mage with five telegraphed, dodgeable attacks (ice bolts, frost nova ring, chasing spikes, blizzard beam, blink). At half health a second cutscene turns him into the Ice Colossus (smash, boulder, icicle rain, pillar-wrecking charge, frost breath), and a victory cutscene ends the fight. Player health, a retry screen and touch buttons for every move are included.
 - **Spread**: burning things start grass fires around them and throw embers downwind, fireballs stop at foliage, and burning props shrink, glow and char as their fuel runs out.
 - **The powers** (`src/mage/game.js`): fireballs are ballistic projectiles with a light and a flame trail that explode on impact (`igniteAt`, `world.explode`, scorch decals, screen shake); the flame stream is a particle jet that ignites everything along the aimed cone; the slam sends a ring of fire outward. Powers cost ember, which refills slowly, and fast next to the brazier.
 
