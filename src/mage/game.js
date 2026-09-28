@@ -743,6 +743,7 @@ function step(dt) {
   world.step(dt);
   destruct.update(dt);
   updateFireballs(dt); updateMeteors(dt); updateWalls(dt); updateSpikes(dt); updateTitan(dt);
+  scene.updateWorld?.(); // the fire system reads world positions, which the renderer would otherwise only refresh at draw time
   fire.update(dt, camera);
   if (level === 'glade') { updateSpread(dt); updateBurnVisuals(); updateExplosives(dt); }
   if (phoenix) phoenix.update(dt);
