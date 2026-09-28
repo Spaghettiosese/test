@@ -1,0 +1,11 @@
+{
+  "name": "shapeforge-range",
+  "version": "1.0.0",
+  "description": "A tiny first-person shooting range built on the ShapeForge Engine, with an M4A1, a .338 sniper rifle and a pump shotgun modelled and animated in the engine.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "start": "npx --yes http-server -p 8080 -c-1 .",
+    "test": "node tools/test-weapons.mjs"
+  }
+}

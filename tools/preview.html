@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Weapon Preview</title>
+<style>html,body{margin:0;height:100%;background:#222;overflow:hidden}canvas{width:100%;height:100%;display:block}#lbl{position:fixed;left:10px;top:8px;color:#fff;font:14px monospace;text-shadow:0 1px 2px #000}</style></head>
+<body><canvas id="c"></canvas><div id="lbl"></div>
+<script type="module">
+import * as E from '../engine/index.js';
+import { WEAPONS } from '../src/weapons/index.js';
+import { RIGHT_SHOULDER } from '../src/weapons/rig.js';
+import { compose } from '../engine/choreo.js';
+const renderer = new E.Renderer(document.getElementById('c'));
+renderer.settings.volumetrics = false;
+const scene = new E.Scene(), env = scene.environment;
+E.applyTimeOfDay(env, 14);
+env.shadowRadius = 2; env.fogDensity = 0.004;
+const ground = new E.Mesh(E.plane({ width: 60, depth: 60 }), new E.Material({ color: '#8a7456', roughness: 0.95, pattern: 'dirt', patternScale: 2 }));
+scene.add(ground);
+const camera = new E.Camera(); camera.near = 0.01;
+const rigs = {};
+for (const w of WEAPONS) { const c = w.create(); c.visible = false; scene.add(c); rigs[w.id] = { c, w }; }
+let cur = null;
+window.show = ({ gun = 'm4a1', clip = 'Idle', t = 0, view = 'fp', yaw = 0, pitch = 0, tgt = [-0.1, 1.5, 0.3], dir = null, dist = 1.6, fov = 30, hands = {} }) => {
+  for (const r of Object.values(rigs)) r.c.visible = false;
+  const { c, w } = rigs[gun]; c.visible = true; cur = c;
+  c.position.set([0, 1.62, 0]); E.quat.fromEuler(c.rotation, pitch, yaw, 0);
+  c.autoAnimate = false; c.springs = false;
+  const cl = c.mixer.clips.get(clip);
+  E.sampleClip(cl, c.skeleton, Math.min(t, cl.duration), c.mixer.pose); c.skeleton.copyPose(c.mixer.pose); c.skeleton.update();
+  // live override of a hand target (weapon space) for posing experiments
+  const sk = c.skeleton, idx = (n) => sk.boneIndex(n);
+  for (const [side, h] of Object.entries(hands)) {
+    const wi = idx('weapon'), weapon = { p: sk.worldHead(wi), q: sk.worldRotation(wi) };
+    const x = compose(weapon, h.p, E.quat.fromEuler(E.quat.create(), ...h.r));
+    E.twoBoneIK(sk, idx('upperArm.' + side), idx('foreArm.' + side), idx('hand.' + side), x.p, h.pole || (side === 'R' ? [-1.8, -0.9, -0.1] : [1.4, -1, -0.2]));
+    E.setWorldRotation(sk, idx('hand.' + side), x.q);
+    if (h.pose) E.applyHandPose(sk, side, h.pose);
+    sk.update();
+  }
+  c.updateWorld(null);
+  if (view === 'fp') { camera.fov = (w.gun.firstPerson.fov) * E.DEG; camera.position.set([0, 1.62, 0]); E.vec3.transformMat4(camera.target, [0, 0, 1], c.world); E.vec3.transformMat4(camera.position, [0, 0, 0], c.world); }
+  else {
+    camera.fov = fov * E.DEG;
+    const D = dir || (view === 'side' ? [-1, 0.06, 0.12] : view === 'left' ? [1, 0.12, 0.2] : view === 'top' ? [-0.2, 1, 0.06] : view === 'front' ? [-0.2, 0.16, 1] : view === 'under' ? [0.5, -0.6, 0.4] : [-0.8, 0.3, -0.6]);
+    const l = Math.hypot(...D), d = D.map((v) => (v / l) * dist);
+    camera.position.set([tgt[0] + d[0], tgt[1] + d[1], tgt[2] + d[2]]); camera.target.set(tgt);
+  }
+  env.shadowCenter = [0, 1.4, 0.3];
+  renderer.render(scene, camera, { background: 'sky' });
+  document.getElementById('lbl').textContent = `${gun} ${clip} t=${t} ${view}`;
+  return true;
+};
+window.ready = true;
+</script></body></html>

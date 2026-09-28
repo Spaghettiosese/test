@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ShapeForge Range</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --ink: #0e110f; --panel: rgba(14, 17, 15, .72); --line: rgba(236, 230, 214, .16);
+    --bone: #ece6d6; --bone-2: #b9b3a3; --orange: #e0662a; --brass: #d3a54f; --olive: #7d8466; --red: #d63a2a;
+    --display: 'Saira Stencil One', 'Arial Narrow', Impact, sans-serif;
+    --body: 'Barlow Semi Condensed', 'Arial Narrow', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: var(--ink); color: var(--bone); font: 500 15px/1.4 var(--body); }
+  canvas.stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
+  kbd { display: inline-block; min-width: 1.5em; padding: 0 .35em; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; font: 700 12px/1.6 var(--mono); text-align: center; color: var(--bone); background: rgba(236, 230, 214, .06); }
+  .hud { position: fixed; pointer-events: none; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; backdrop-filter: blur(6px); }
+
+  /* crosshair and hit marker */
+  .xhair { left: 50%; top: 50%; width: 30px; height: 30px; transform: translate(-50%, -50%); transition: width .08s, height .08s, opacity .15s; }
+  .xhair i { position: absolute; background: var(--bone); box-shadow: 0 0 2px #000; }
+  .xhair i:nth-child(1) { left: 50%; top: 0; width: 2px; height: 28%; margin-left: -1px; }
+  .xhair i:nth-child(2) { left: 50%; bottom: 0; width: 2px; height: 28%; margin-left: -1px; }
+  .xhair i:nth-child(3) { top: 50%; left: 0; height: 2px; width: 28%; margin-top: -1px; }
+  .xhair i:nth-child(4) { top: 50%; right: 0; height: 2px; width: 28%; margin-top: -1px; }
+  .xhair b { position: absolute; left: 50%; top: 50%; width: 2px; height: 2px; margin: -1px; background: var(--orange); }
+  .hitmark { left: 50%; top: 50%; width: 24px; height: 24px; transform: translate(-50%, -50%) rotate(45deg); opacity: 0; }
+  .hitmark i { position: absolute; background: var(--bone); }
+  .hitmark i:nth-child(1) { left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px; }
+  .hitmark i:nth-child(2) { top: 50%; left: 0; right: 0; height: 2px; margin-top: -1px; }
+  .hitmark.big i { background: var(--orange); }
+
+  /* score card, feed */
+  .score { left: 16px; top: calc(14px + env(safe-area-inset-top, 0px)); display: flex; gap: 18px; padding: 8px 14px; align-items: baseline; }
+  .score div { display: grid; }
+  .score small { font: 600 11px var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--bone-2); }
+  .score b { font: 700 24px var(--mono); font-variant-numeric: tabular-nums; color: var(--bone); }
+  .score b#score { color: var(--orange); }
+  .feed { right: 16px; top: calc(14px + env(safe-area-inset-top, 0px)); display: grid; gap: 4px; justify-items: end; font: 600 14px var(--body); }
+  .feed div { background: var(--panel); border-left: 3px solid var(--orange); padding: 3px 10px; border-radius: 3px; animation: fade 3.2s forwards; }
+  @keyframes fade { 0%, 75% { opacity: 1 } 100% { opacity: 0 } }
+
+  /* ammo block: stamped like an ammo-can label */
+  .ammo { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); padding: 10px 16px 12px; display: grid; gap: 4px; justify-items: end; min-width: 170px; }
+  .ammo .name { font: 400 20px var(--display); letter-spacing: .04em; color: var(--bone); }
+  .ammo .count { display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
+  .ammo .count b { font: 700 44px/1 var(--mono); color: var(--brass); }
+  .ammo .count span { font: 500 16px var(--mono); color: var(--bone-2); }
+  .ammo .hint { font: 600 12px var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--orange); min-height: 1.2em; }
+  .pips { display: flex; gap: 3px; }
+  .pips i { width: 6px; height: 18px; border-radius: 3px 3px 1px 1px; background: var(--brass); }
+  .pips i.shotgun { width: 9px; background: #b0261d; box-shadow: inset 0 -5px 0 var(--brass); border-radius: 2px; }
+  .pips i.spent { background: rgba(236, 230, 214, .12); box-shadow: none; }
+
+  /* weapon bar */
+  .weapons { left: 50%; transform: translateX(-50%); top: calc(14px + env(safe-area-inset-top, 0px)); display: flex; gap: 6px; pointer-events: auto; }
+  .slot { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; color: var(--bone-2); font: 600 14px var(--body); }
+  .slot.on { color: var(--bone); border-color: var(--orange); box-shadow: inset 0 -2px 0 var(--orange); }
+  .help { left: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); padding: 10px 14px; font-size: 13px; line-height: 1.9; color: var(--bone-2); }
+  .help b { color: var(--bone); font-weight: 600; }
+
+  /* scope */
+  .scope { inset: 0; }
+  .scope svg { width: 100%; height: 100%; display: block; }
+  .rangefinder { position: absolute; left: 50%; top: calc(50% + 70px); transform: translateX(-50%); font: 700 14px var(--mono); color: var(--red); letter-spacing: .08em; text-shadow: 0 0 4px rgba(0,0,0,.8); }
+  body.ads .help { opacity: .25; }
+
+  /* menu: a range safety card */
+  .menu { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: radial-gradient(ellipse at 50% 40%, rgba(14,17,15,.35), rgba(14,17,15,.88)); z-index: 5; overflow: auto; }
+  .card { width: min(620px, 100%); display: grid; gap: 16px; padding: 26px 26px 22px; background: rgba(14, 17, 15, .9); border: 1px solid var(--line); border-radius: 8px; }
+  .card header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .card h1 { margin: 0; font: 400 clamp(38px, 8vw, 60px)/.95 var(--display); letter-spacing: .02em; text-wrap: balance; }
+  .card h1 span { color: var(--orange); }
+  .stamp { font: 700 12px var(--mono); letter-spacing: .14em; color: var(--red); border: 2px solid var(--red); padding: 4px 8px; transform: rotate(-4deg); border-radius: 3px; white-space: nowrap; }
+  .card p { margin: 0; color: var(--bone-2); max-width: 60ch; font-size: 16px; }
+  .guns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .gun { padding: 10px 12px; border: 1px solid var(--line); border-radius: 5px; display: grid; gap: 2px; }
+  .gun b { font: 400 17px var(--display); letter-spacing: .03em; }
+  .gun span { font-size: 13px; color: var(--bone-2); }
+  .gun em { font: 500 11px var(--mono); font-style: normal; color: var(--brass); }
+  .controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 18px; font-size: 14px; color: var(--bone-2); }
+  .controls div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dashed var(--line); padding-bottom: 4px; }
+  .controls div span:last-child { color: var(--bone); text-align: right; }
+  .row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+  button.go { font: 400 22px var(--display); letter-spacing: .06em; color: var(--ink); background: var(--orange); border: 0; border-radius: 5px; padding: 10px 26px; cursor: pointer; }
+  button.go:hover { filter: brightness(1.1); }
+  button.go:focus-visible, .slot:focus-visible, input:focus-visible { outline: 2px solid var(--bone); outline-offset: 2px; }
+  label.sens { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--bone-2); }
+  label.sens input { accent-color: var(--orange); width: 120px; }
+  .fatal { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: var(--ink); color: var(--bone); font-size: 18px; text-align: center; z-index: 9; }
+  @media (max-width: 640px) {
+    .guns, .controls { grid-template-columns: 1fr; }
+    .help { display: none; }
+    .weapons { top: calc(70px + env(safe-area-inset-top, 0px)); }
+    .slot span { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .feed div { animation: none; } }
+</style>
+</head>
+<body>
+<canvas class="stage" id="stage" aria-label="First-person shooting range"></canvas>
+<div class="hud xhair" id="xhair"><i></i><i></i><i></i><i></i><b></b></div>
+<div class="hud hitmark" id="hitmark"><i></i><i></i></div>
+<div class="hud scope" id="scope" hidden>
+  <svg viewBox="-100 -100 200 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs><mask id="lens"><rect x="-400" y="-400" width="800" height="800" fill="#fff"/><circle r="78" fill="#000"/></mask>
+      <radialGradient id="edge"><stop offset="85%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".75"/></radialGradient></defs>
+    <circle r="78" fill="url(#edge)"/>
+    <rect x="-400" y="-400" width="800" height="800" fill="#050605" mask="url(#lens)"/>
+    <g stroke="#000" stroke-width=".35" fill="none">
+      <line x1="-78" y1="0" x2="-4" y2="0"/><line x1="4" y1="0" x2="78" y2="0"/><line x1="0" y1="-78" x2="0" y2="-4"/><line x1="0" y1="4" x2="0" y2="78"/>
+      <line x1="-78" y1="0" x2="-40" y2="0" stroke-width="1.6"/><line x1="40" y1="0" x2="78" y2="0" stroke-width="1.6"/><line x1="0" y1="40" x2="0" y2="78" stroke-width="1.6"/>
+    </g>
+    <g fill="#000">
+      <circle cx="-8" cy="0" r=".6"/><circle cx="-16" cy="0" r=".6"/><circle cx="-24" cy="0" r=".6"/><circle cx="-32" cy="0" r=".6"/>
+      <circle cx="8" cy="0" r=".6"/><circle cx="16" cy="0" r=".6"/><circle cx="24" cy="0" r=".6"/><circle cx="32" cy="0" r=".6"/>
+      <circle cx="0" cy="8" r=".6"/><circle cx="0" cy="16" r=".6"/><circle cx="0" cy="24" r=".6"/><circle cx="0" cy="32" r=".6"/>
+      <circle cx="0" cy="-8" r=".6"/><circle cx="0" cy="-16" r=".6"/><circle cx="0" cy="-24" r=".6"/><circle cx="0" cy="-32" r=".6"/>
+    </g>
+    <circle r=".7" fill="#d63a2a"/>
+  </svg>
+  <div class="rangefinder" id="rangefinder">– – –</div>
+</div>
+<div class="hud panel score"><div><small>Score</small><b id="score">0</b></div><div><small>Accuracy</small><b id="acc">–</b></div></div>
+<div class="hud feed" id="feed"></div>
+<div class="hud panel help" id="help"><b>WASD</b> move · <b>Shift</b> sprint · <b>Space</b> jump<br><b>Click</b> fire · <b>Right-click</b> aim · <kbd>R</kbd> reload · <kbd>F</kbd> inspect<br><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> or wheel: weapons · <kbd>T</kbd> reset targets · <kbd>H</kbd> hide</div>
+<div class="hud weapons" id="weapons"></div>
+<div class="hud panel ammo"><div class="name" id="wname">M4A1</div><div class="pips" id="pips"></div><div class="count"><b id="ammo">30</b><span id="ammoMax">/ 30</span></div><div class="hint" id="whint"></div></div>
+<div class="menu" id="menu">
+  <div class="card">
+    <header><h1>ShapeForge <span>Range</span></h1><div class="stamp">RANGE IS HOT</div></header>
+    <p>A covered firing line with paper at 10, 25 and 50 m, swinging steel at 15 m, bottles and cans at 12 m, a runner at 35 m and gongs out to 200 m. Every gun, hand and animation is built from ShapeForge shapes.</p>
+    <div class="guns">
+      <div class="gun"><b>1 · M4A1</b><span>Full auto, holographic sight</span><em>30 rds · 5.56</em></div>
+      <div class="gun"><b>2 · .338 Sniper</b><span>Bolt action, 6.5° scope</span><em>5 rds · .338</em></div>
+      <div class="gun"><b>3 · Pump 12 ga</b><span>9 pellets, loads by hand</span><em>6 shells · 12 ga</em></div>
+    </div>
+    <div class="controls">
+      <div><span>Move · sprint · jump</span><span>WASD · Shift · Space</span></div>
+      <div><span>Fire · aim</span><span>Left · right mouse (E toggles)</span></div>
+      <div><span>Reload · inspect</span><span>R · F</span></div>
+      <div><span>Switch weapon</span><span>1 2 3 · wheel · Q</span></div>
+      <div><span>Reset targets</span><span>T</span></div>
+      <div><span>Release mouse</span><span>Esc</span></div>
+    </div>
+    <div class="row"><label class="sens" for="sens">Mouse sensitivity <input id="sens" type="range" min="0.3" max="2.5" step="0.1" value="1"></label><button class="go" id="play" type="button">Step up to the line</button></div>
+  </div>
+</div>
+<div class="fatal" id="fatal" hidden></div>
+<script type="module" src="src/game.js"></script>
+</body>
+</html>
