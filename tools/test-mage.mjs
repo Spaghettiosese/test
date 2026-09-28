@@ -12,7 +12,7 @@ const sk = mage.skeleton;
 for (const n of ['hips', 'spine', 'chest', 'neck', 'head', 'shoulder.L', 'shoulder.R', 'upperArm.R', 'foreArm.L', 'hand.R', 'thigh.L', 'shin.R', 'foot.L', 'toe.R', 'index1.L', 'pinky2.R', 'thumb2.R']) check(sk.boneIndex(n) >= 0, `bone ${n}`);
 check(mage.parts.length > 30 && mage.triangleCount > 5000, `${mage.parts.length} parts, ${mage.triangleCount} triangles`);
 const names = def.clips.map((c) => c.name);
-for (const n of ['Idle', 'Walk', 'Run', 'Fireball', 'Flamethrower', 'Slam', 'Phoenix', 'Jump']) check(names.includes(n), `clip ${n}`);
+for (const n of ['Idle', 'Walk', 'Run', 'Fireball', 'Flamethrower', 'Slam', 'Phoenix', 'Meteor', 'Sweep', 'Dash', 'Point', 'Roar', 'Stagger', 'Hit', 'Jump']) check(names.includes(n), `clip ${n}`);
 check(mage.mixer.clips.get('Fireball').events.some((e) => e.name === 'fireball') && mage.mixer.clips.get('Slam').events.some((e) => e.name === 'slam'), 'cast clips carry their events');
 check(mage.mixer.clips.get('Run').rootMotion[2] > mage.mixer.clips.get('Walk').rootMotion[2], 'run is faster than walk');
 
@@ -72,5 +72,60 @@ import { Phoenix, createPhoenixModel } from '../src/mage/phoenix.js';
   fire.ignite(patches[0], 0.3);
   for (let t = 0; t < 30; t += 1 / 30) fire.update(1 / 30);
   check(patches.filter((b) => b.state !== 'fresh').length >= 5, 'a row of grass fires passes the flame along');
+}
+
+// destructible environment: a blast wears a stone down until it shatters into rigid-body chunks
+import { Destructibles } from '../src/mage/destruct.js';
+import { buildArena } from '../src/mage/arena.js';
+import { IceBoss } from '../src/mage/boss.js';
+import { Cutscene } from '../src/mage/cutscene.js';
+import { createColossus } from '../src/mage/colossus.js';
+{
+  const scene = new E.Scene(), world = new E.PhysicsWorld({ iterations: 4 }), fire = new E.FireSystem(scene);
+  const g = buildGlade(scene, world, fire), d = new Destructibles(scene, world);
+  g.destructibles.forEach((x) => d.add(x));
+  const stones = g.destructibles.filter((x) => x.name === 'Stone').length, before = world.bodies.length;
+  const target = g.destructibles.find((x) => x.name === 'Stone');
+  check(d.damage(target.center, 3, 20) === 0 && target.hp < target.maxHp, `${stones} stones and the hut are destructible; a light blast only cracks a stone (${target.hp.toFixed(0)}/${target.maxHp} hp)`);
+  const broke = d.damage(target.center, 3, 200);
+  check(broke >= 1 && d.chunks.length >= 12 && world.bodies.length > before, `a heavy blast shatters it into ${d.chunks.length} rigid-body chunks`);
+  for (let t = 0; t < 3; t += 1 / 60) { world.step(1 / 60); d.update(1 / 60); }
+  check(d.chunks.every((c) => c.body.position[1] > -1) && d.chunks.some((c) => c.body.position[1] < target.center[1]), 'the chunks fall and settle under physics');
+  for (let t = 0; t < 12; t += 1 / 30) { world.step(1 / 30); d.update(1 / 30); }
+  check(d.chunks.length === 0, 'debris fades out and its bodies are removed');
+  const hutD = g.destructibles.find((x) => x.name === 'Hut'), hutBurn = fire.burnables.length;
+  d.shatter(hutD, hutD.center, 100);
+  check(!hutD.alive && fire.burnables.length === hutBurn - 1, 'destroying the hut also removes it from the fire system');
+}
+
+// the Ice Mage boss fight: every attack of both phases runs, hurts a player who stands still, and half health triggers the transformation
+globalThis.document = { getElementById: () => null, body: { classList: { add() {}, remove() {} } } };
+{
+  const scene = new E.Scene(), world = new E.PhysicsWorld({ iterations: 4 }), fire = new E.FireSystem(scene);
+  const arena = buildArena(scene, world, fire), destruct = new Destructibles(scene, world);
+  arena.destructibles.forEach((x) => destruct.add(x));
+  check(arena.destructibles.length === 12 && arena.braziers.length === 3, `arena: ${arena.destructibles.length} destructible pillars and barricades, ${arena.braziers.length} braziers`);
+  const P = [0, 0, -10], log = { hurt: 0, hp: 0 }, cutscene = new Cutscene();
+  const G = { scene, world, fire, sparks: new E.Particles(500, { additive: true }), destruct, sfx: {}, feed() {}, shake() {}, cutscene, ray: () => null, onVictory() { log.won = true; },
+    hud: { show() {}, boss() {}, banner() {} }, player: { pos: () => [...P], vel: () => [0, 0, 0], y: () => 0, hurt: (n) => { log.hurt++; log.hp += n; return true; }, freeze() {}, teleport() {}, puppet() {}, flare() {}, heal() {}, refill() {} } };
+  const boss = new IceBoss(G); boss.active = true; boss.hidden = false; boss.mage.visible = true; boss.pos = [0, 0, 6];
+  const ran = new Set();
+  const start = boss.startAttack.bind(boss); boss.startAttack = () => { start(); ran.add(boss.last); };
+  for (let t = 0; t < 400 && boss.phase === 1 && ran.size < 5; t += 1 / 30) { boss.update(1 / 30); world.step(1 / 30); fire.update(1 / 30); destruct.update(1 / 30); }
+  check(ran.size === 5 && log.hurt > 0, `phase 1 ran ${[...ran].join(', ')} and landed ${log.hurt} hits on a player who never dodged`);
+  check(boss.hp === boss.maxHp, 'the player has not damaged him yet');
+  boss.hurt(boss.maxHp / 2 + 1, [0, 1, 6]);
+  check(cutscene.active && boss.hp === boss.maxHp / 2 && !boss.active, 'half health pauses the fight for the transformation cutscene');
+  cutscene.skip(); boss.flush();
+  check(boss.phase === 2 && boss.active && boss.colossus.root.visible && !boss.mage.visible, 'the Ice Mage is now the Ice Colossus');
+  ran.clear(); log.hurt = 0;
+  for (let t = 0; t < 700 && ran.size < 5; t += 1 / 30) { P[0] = Math.sin(t * 0.3) * 8; boss.update(1 / 30); world.step(1 / 30); fire.update(1 / 30); destruct.update(1 / 30); }
+  check(ran.size === 5 && log.hurt > 0, `phase 2 ran ${[...ran].join(', ')} and landed ${log.hurt} hits`);
+  check(destruct.broke > 0 || destruct.items.length < arena.destructibles.length, 'the Colossus destroyed part of the arena');
+  boss.hurt(9999, [0, 1, 0]);
+  check(cutscene.active && boss.dead, 'defeating the Colossus starts the victory cutscene');
+  cutscene.skip(); check(log.won, 'the victory cutscene ends with the win callback');
+  const c = createColossus(); c.st.walk = 1; c.st.armR = [-160, 0]; c.pose(1);
+  check(c.meshes.length > 40, `Colossus model: ${c.meshes.length} meshes`);
 }
 process.exit(fail ? 1 : 0);

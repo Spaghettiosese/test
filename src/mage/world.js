@@ -25,7 +25,7 @@ export function buildGlade(scene, world, fire) {
   };
   const staticBox = (c, size, kind = 'static') => { const b = world.add(new E.Body({ shape: new E.Box(size.map((s) => s / 2)), type: 'static', position: c })); b.userData.kind = kind; return b; };
   const root = new E.Node('Glade'); scene.add(root);
-  const burnables = [];
+  const burnables = [], destructibles = [];
 
   // ---- ground: meadow, a dirt path and a flagstone plaza
   world.add(new E.Body({ shape: new E.Plane(), friction: 0.8 })).userData.kind = 'ground';
@@ -35,17 +35,22 @@ export function buildGlade(scene, world, fire) {
   staticBox([0, 0.07, 0], [12.5, 0.14, 12.5]);
 
   const kit = new E.Kit(pal);
-  // ring of standing stones around the plaza and a low kerb
+  // each stone is its own node and body so a blast can shatter it into rigid-body chunks
+  const stoneAt = (pos, size, rotY, hp, grid, build) => {
+    const k = new E.Kit(pal); build(k);
+    const n = k.toNode('Stone'); n.position.set(pos); n.setEuler(0, rotY, 0); root.add(n);
+    const body = world.add(new E.Body({ shape: new E.Box(size.map((v) => v / 2)), type: 'static', position: pos, rotation: E.quat.fromEuler(E.quat.create(), 0, rotY, 0) })); body.userData.kind = 'static';
+    destructibles.push({ node: n, body, hp, size, grid, material: M.stone, center: [...pos], name: 'Stone' });
+  };
   for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2, r = 8.6, x = Math.sin(a) * r, z = Math.cos(a) * r, h = 1.1 + rnd() * 1.1;
-    kit.box(M.stone, [x, h / 2, z], [0.7 + rnd() * 0.3, h, 0.6], [rnd() * 6 - 3, (a * 180) / Math.PI, rnd() * 6 - 3], 0.1);
-    staticBox([x, h / 2, z], [0.8, h, 0.7]);
+    const a = (i / 12) * Math.PI * 2, r = 8.6, x = Math.sin(a) * r, z = Math.cos(a) * r, h = 1.1 + rnd() * 1.1, w = 0.7 + rnd() * 0.3;
+    stoneAt([x, h / 2, z], [w, h, 0.6], (a * 180) / Math.PI, 70, [2, 3, 2], (k) => k.box(M.stone, [0, 0, 0], [w, h, 0.6], [0, 0, 0], 0.1));
   }
   // scattered boulders
   for (let i = 0; i < 16; i++) {
-    const a = rnd() * Math.PI * 2, r = 16 + rnd() * 20, s = 0.5 + rnd() * 0.9;
-    kit.shape(M.stone, { type: 'superquadric', rx: s, ry: s * 0.6, rz: s * 0.8, e1: 0.7, e2: 0.8, widthSegments: 14, heightSegments: 9, phiStart: 0, phiLength: 360, thetaStart: 0, thetaLength: 180, taperTop: 1, taperBottom: 1 }, [], [Math.sin(a) * r, s * 0.35, Math.cos(a) * r], [0, rnd() * 360, 0]);
-    staticBox([Math.sin(a) * r, s * 0.4, Math.cos(a) * r], [s * 1.4, s * 0.9, s * 1.2]);
+    const a = rnd() * Math.PI * 2, r = 16 + rnd() * 20, s2 = 0.5 + rnd() * 0.9;
+    stoneAt([Math.sin(a) * r, s2 * 0.4, Math.cos(a) * r], [s2 * 1.4, s2 * 0.9, s2 * 1.2], rnd() * 360, 45, [2, 2, 2],
+      (k) => k.shape(M.stone, { type: 'superquadric', rx: s2 * 0.7, ry: s2 * 0.45, rz: s2 * 0.6, e1: 0.7, e2: 0.8, widthSegments: 14, heightSegments: 9, phiStart: 0, phiLength: 360, thetaStart: 0, thetaLength: 180, taperTop: 1, taperBottom: 1 }, [], [0, 0, 0], [0, 0, 0]));
   }
   // pond
   const pond = new E.Mesh(E.cylinder({ radiusTop: 4.2, radiusBottom: 4.2, height: 0.02, radialSegments: 40 }), M.water, 'Pond'); pond.position.set([-19, 0.02, 12]); pond.castShadow = false; root.add(pond);
@@ -78,7 +83,9 @@ export function buildGlade(scene, world, fire) {
     k.box(M.stone, [-2.0, 3.6, -1.0], [0.5, 2.6, 0.5]); // chimney
     k.light([0, 1.5, 2.6], { color: '#ffb35a', intensity: 3, range: 6, flicker: 0.3 });
   }, hutPos, { radius: 2.3, fuel: 70, height: 3, ignition: 1.4, collapse: false, at: [0, 1.2, 0] });
-  staticBox([hutPos[0], 1.3, hutPos[2]], [5.2, 2.6, 4.2], 'wood');
+  const hutBody = staticBox([hutPos[0], 1.3, hutPos[2]], [5.2, 2.6, 4.2], 'wood');
+  const hutB = burnables.find((b) => b.userData.name === 'Hut');
+  destructibles.push({ node: hutB.userData.node, body: hutBody, hp: 330, size: [5.2, 2.6, 4.2], grid: [5, 3, 4], material: M.siding, center: [hutPos[0], 1.3, hutPos[2]], name: 'Hut', onBreak: () => { fire.remove(hutB); burnables.splice(burnables.indexOf(hutB), 1); } });
 
   // ---- fenced hay yard
   const yard = [-14, 0, -12];
@@ -120,7 +127,7 @@ export function buildGlade(scene, world, fire) {
     }
     n.position.set(pos); n.setEuler(0, rotY, 0); root.add(n);
     const f = fire.add(n, { radius: 0.55, fuel: kind === 'Crate' ? 14 : 20, flammability: 1.2, ignition: 0.9 });
-    f.userData = { name: kind, prop: props[props.length - 1] };
+    f.userData = { name: kind, prop: props[props.length - 1], explosive: kind === 'Barrel' };
     return f;
   };
   const buildProps = () => {
@@ -158,5 +165,5 @@ export function buildGlade(scene, world, fire) {
     return fire.addSource([x, 1.95, z], { radius: 0.16, strength: 0.9 });
   });
 
-  return { root, props, burnables, dummies, brazier, torches, hut: burnables.find((b) => b.userData.name === 'Hut'), buildProps, spawnProp, materials: M, hutPos };
+  return { root, props, burnables, destructibles, dummies, brazier, torches, hut: burnables.find((b) => b.userData.name === 'Hut'), buildProps, spawnProp, materials: M, hutPos };
 }

@@ -22,5 +22,15 @@ export class FireSfx extends Sfx {
     if (!this.ctx) return; const t = this.ctx.currentTime;
     for (let i = 0; i < 3; i++) this._noise(t + Math.random() * 0.25, { dur: 0.03, gain: gain * (0.4 + Math.random() * 0.6), type: 'highpass', freq: 2500 + Math.random() * 3000, decay: 0.025 });
   }
+  ice(size = 1) {
+    if (!this.ctx) return; const t = this.ctx.currentTime;
+    for (const [f, g] of [[2400, 0.16], [3700, 0.1], [5900, 0.06]]) this._tone(t, { freq: f * (0.9 + Math.random() * 0.2), dur: 0.5, gain: g * size, decay: 0.45 });
+    this._noise(t, { dur: 0.3, gain: 0.3 * size, type: 'highpass', freq: 3500, decay: 0.22 });
+  }
+  roar() {
+    if (!this.ctx) return; const t = this.ctx.currentTime;
+    this._noise(t, { dur: 1.4, gain: 0.7, freq: 300, freqEnd: 90, q: 2, type: 'bandpass', attack: 0.2, decay: 1.2 });
+    this._tone(t, { freq: 70, freqEnd: 38, dur: 1.2, gain: 0.55, decay: 1.2, type: 'sawtooth' });
+  }
   thump() { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 90, freqEnd: 40, dur: 0.15, gain: 0.3, decay: 0.15 }); }
 }

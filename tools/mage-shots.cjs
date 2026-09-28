@@ -9,7 +9,7 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright');
   const logs = [];
   page.on('console', (m) => logs.push(m.type() + ': ' + m.text()));
   page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message));
-  page.setDefaultTimeout(300000);
+  page.setDefaultTimeout(400000);
   await page.goto('http://localhost:8089/mage.html');
   await page.waitForFunction('!!window.__mage', null, { timeout: 300000 }).catch((e) => logs.push('no __mage ' + e.message));
   let i = 0;

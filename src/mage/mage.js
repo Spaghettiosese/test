@@ -60,7 +60,7 @@ const MATERIALS = {
 const bind1 = (bone) => ({ bone });
 const bindN = (...bones) => ({ bones, falloff: 8 });
 
-function parts() {
+function parts(variant = 'fire') {
   const L = [];
   // ---- body: robe skirt, tunic, belt, shoulders
   L.push(P('Robe Skirt', cyl(0.2, 0.36, 0.62, 28, false), 'robe', bindN('hips', 'thigh.L', 'thigh.R'), { position: [0, 0.66, 0] }));
@@ -101,11 +101,35 @@ function parts() {
   L.push(P('Boot Cuff', cyl(0.068, 0.062, 0.05, 16, false), 'trim', bind1('shin.L'), { position: [0.1, 0.36, 0.005], mirror: true }));
   L.push(P('Boot Foot', rbox(0.095, 0.06, 0.24, 0.02), 'leather', bindN('foot.L', 'toe.L'), { position: [0.1, 0.045, 0.05], mirror: true }));
   L.push(P('Leg', cyl(0.058, 0.05, 0.46, 14, false), 'robeDark', bindN('thigh.L', 'shin.L'), { position: [0.098, 0.6, 0.02], mirror: true }));
+  if (variant === 'ice') { // the Ice Mage: a staff topped with a crystal, shoulder spikes and an icicle crown
+    L.push(P('Staff', cyl(0.022, 0.026, 1.9, 10), 'staffWood', bind1('hand.R'), { position: [-0.225, 0.86, 0.06], rotation: [0, 0, 0] }));
+    L.push(P('Staff Crystal', { type: 'cone', radius: 0.09, height: 0.36, radialSegments: 6, heightSegments: 1, capBottom: true, arc: 360 }, 'crystal', bind1('hand.R'), { position: [-0.225, 1.98, 0.06] }));
+    L.push(P('Staff Crystal Low', { type: 'cone', radius: 0.09, height: 0.2, radialSegments: 6, heightSegments: 1, capBottom: true, arc: 360 }, 'crystal', bind1('hand.R'), { position: [-0.225, 1.72, 0.06], rotation: [180, 0, 0] }));
+    for (let i = 0; i < 5; i++) L.push(P('Crown Spike', { type: 'cone', radius: 0.03, height: 0.2 + (i % 2) * 0.08, radialSegments: 5, heightSegments: 1, capBottom: true, arc: 360 }, 'crystal', bind1('head'), { position: [Math.sin(i * 1.26) * 0.11, 1.8 + (i % 2) * 0.04, Math.cos(i * 1.26) * 0.11 - 0.02] }));
+    L.push(P('Shoulder Spike', { type: 'cone', radius: 0.06, height: 0.32, radialSegments: 6, heightSegments: 1, capBottom: true, arc: 360 }, 'crystal', bind1('shoulder.L'), { position: [0.2, 1.56, 0], rotation: [0, 0, -25], mirror: true }));
+    L.push(P('Frost Mantle', cyl(0.24, 0.3, 0.16, 20, false), 'frost', bindN('chest', 'spine'), { position: [0, 1.36, 0] }));
+  }
   return L;
 }
 
-export function mageDefinition({ clips = true } = {}) {
-  const def = { name: 'Ember Mage', skeleton: SKELETON, materials: MATERIALS, parts: parts(), clips: [] };
+const ICE_MATERIALS = {
+  ...MATERIALS,
+  robe: { color: '#2b5f9e', roughness: 0.7, pattern: 'fabric', patternScale: 200, patternColor: '#173a66', patternStrength: 0.5, sheen: 0.6 },
+  robeDark: { color: '#183a68', roughness: 0.75, pattern: 'fabric', patternScale: 160, patternStrength: 0.4 },
+  trim: { color: '#d8f2ff', roughness: 0.25, metallic: 0.8 },
+  leather: { color: '#26364a', roughness: 0.6, pattern: 'leather', patternScale: 260, patternColor: '#121b26' },
+  skin: { color: '#c9d6e0', roughness: 0.5 },
+  hair: { color: '#f4fbff', roughness: 0.85, pattern: 'hair', patternScale: 30 },
+  eye: { color: '#9be8ff', roughness: 0.3, emissive: '#5ad0ff', emissiveStrength: 7 },
+  ember: { color: '#9be8ff', roughness: 0.3, emissive: '#4ac0ff', emissiveStrength: 6 },
+  glove: { color: '#1b2a3d', roughness: 0.55, pattern: 'leather', patternScale: 320, patternColor: '#0c141f' },
+  crystal: { color: '#a5e6ff', roughness: 0.08, metallic: 0.2, emissive: '#3aa8e8', emissiveStrength: 2.2 },
+  frost: { color: '#eaf8ff', roughness: 0.7, pattern: 'fabric', patternScale: 60 },
+  staffWood: { color: '#3a4a5a', roughness: 0.5, metallic: 0.4 },
+};
+
+export function mageDefinition({ clips = true, variant = 'fire' } = {}) {
+  const def = { name: variant === 'ice' ? 'Ice Mage' : 'Ember Mage', skeleton: SKELETON, materials: variant === 'ice' ? ICE_MATERIALS : MATERIALS, parts: parts(variant), clips: [] };
   if (clips) def.clips = mageClips();
   return JSON.parse(JSON.stringify(def));
 }
@@ -160,6 +184,60 @@ function clipDefs(sk) {
     { t: 1.5, hips: [0, 0.955, 0], bones: { spine: [0, 0, 0], chest: [0, 0, 0], head: [0, 0, 0] }, arms: { R: { target: [-0.22, 1.05, 0.2], pole: [-1, -0.4, -0.3] }, L: { target: [0.22, 1.05, 0.2], pole: [1, -0.4, -0.3] } }, hands: { R: 'relaxed', L: 'relaxed' } },
   ], { events: [{ t: 0.72, name: 'phoenix' }] }));
 
+  // Meteor Storm: both hands to the sky, palms up, then a hard downward pull.
+  out.push(keyPoseClip(sk, 'Meteor', [
+    { t: 0, hips: [0, 0.955, 0], arms: { R: { target: [-0.22, 1.05, 0.2], pole: [-1, -0.4, -0.3] }, L: { target: [0.22, 1.05, 0.2], pole: [1, -0.4, -0.3] } }, legs: { L: 'plant', R: 'plant' }, hands: { R: 'relaxed', L: 'relaxed' } },
+    { t: 0.35, hips: [0, 0.98, 0], bones: { spine: [-8, 0, 0], chest: [-8, 0, 0], head: [-22, 0, 0] }, arms: { R: { target: [-0.3, 1.95, 0.05], pole: [-1, 0, -0.4] }, L: { target: [0.3, 1.95, 0.05], pole: [1, 0, -0.4] } }, hands: { R: 'claw', L: 'claw' } },
+    { t: 0.85, hips: [0, 0.985, 0], bones: { spine: [-14, 0, 0], chest: [-12, 0, 0], head: [-28, 0, 0] }, arms: { R: { target: [-0.34, 2.05, 0.08], pole: [-1, 0, -0.4] }, L: { target: [0.34, 2.05, 0.08], pole: [1, 0, -0.4] } }, hands: { R: 'spread', L: 'spread' } },
+    { t: 1.15, hips: [0, 0.9, 0.06], bones: { spine: [26, 0, 0], chest: [10, 0, 0], head: [8, 0, 0] }, arms: { R: { target: [-0.2, 1.05, 0.5], pole: [-1, -0.2, 0.3] }, L: { target: [0.2, 1.05, 0.5], pole: [1, -0.2, 0.3] } }, hands: { R: 'fist', L: 'fist' } },
+    { t: 1.7, hips: [0, 0.955, 0], bones: { spine: [0, 0, 0], chest: [0, 0, 0], head: [0, 0, 0] }, arms: { R: { target: [-0.22, 1.05, 0.2], pole: [-1, -0.4, -0.3] }, L: { target: [0.22, 1.05, 0.2], pole: [1, -0.4, -0.3] } }, hands: { R: 'relaxed', L: 'relaxed' } },
+  ], { events: [{ t: 0.85, name: 'meteors' }] }));
+
+  // Inferno Wall: cross the arms, then sweep them wide and low to send a line of fire outward.
+  out.push(keyPoseClip(sk, 'Sweep', [
+    { t: 0, hips: [0, 0.955, 0], arms: { R: { target: [-0.22, 1.05, 0.2], pole: [-1, -0.4, -0.3] }, L: { target: [0.22, 1.05, 0.2], pole: [1, -0.4, -0.3] } }, legs: { L: 'plant', R: 'plant' }, hands: { R: 'relaxed', L: 'relaxed' } },
+    { t: 0.3, hips: [0, 0.92, 0], bones: { spine: [10, 0, 0], chest: [6, 0, 0] }, arms: { R: { target: [0.12, 1.15, 0.4], pole: [-1, -0.4, 0.2] }, L: { target: [-0.12, 1.15, 0.4], pole: [1, -0.4, 0.2] } }, hands: { R: 'claw', L: 'claw' } },
+    { t: 0.6, hips: [0, 0.9, 0.05], bones: { spine: [14, 0, 0], chest: [8, 0, 0] }, arms: { R: { target: [-0.8, 0.75, 0.5], pole: [-1, -0.2, 0.2] }, L: { target: [0.8, 0.75, 0.5], pole: [1, -0.2, 0.2] } }, hands: { R: 'open', L: 'open' } },
+    { t: 1.1, hips: [0, 0.955, 0], bones: { spine: [0, 0, 0], chest: [0, 0, 0] }, arms: { R: { target: [-0.22, 1.05, 0.2], pole: [-1, -0.4, -0.3] }, L: { target: [0.22, 1.05, 0.2], pole: [1, -0.4, -0.3] } }, hands: { R: 'relaxed', L: 'relaxed' } },
+  ], { events: [{ t: 0.55, name: 'wall' }] }));
+
+  // Flame Dash: a low forward lunge with the arms swept back.
+  out.push(keyPoseClip(sk, 'Dash', [
+    { t: 0, hips: [0, 0.955, 0], legs: { L: 'plant', R: 'plant' }, arms: { R: null, L: null }, hands: { R: 'relaxed', L: 'relaxed' } },
+    { t: 0.12, hips: [0, 0.78, 0.18], bones: { spine: [34, 0, 0], chest: [14, 0, 0], head: [-16, 0, 0] }, arms: { R: { target: [-0.26, 1.0, -0.42], pole: [-1, -0.2, -0.8] }, L: { target: [0.26, 1.0, -0.42], pole: [1, -0.2, -0.8] } }, legs: { L: { target: [0.14, 0.085, 0.42], pole: [0.1, 0, 1] }, R: { target: [-0.14, 0.085, -0.34], pole: [-0.1, 0, 1] } }, hands: { R: 'fist', L: 'fist' } },
+    { t: 0.34, hips: [0, 0.8, 0.16], bones: { spine: [30, 0, 0] }, hands: { R: 'open', L: 'open' } },
+    { t: 0.5, hips: [0, 0.955, 0], bones: { spine: [0, 0, 0], chest: [0, 0, 0], head: [0, 0, 0] }, legs: { L: 'plant', R: 'plant' }, arms: { R: { target: [-0.22, 1.05, 0.2], pole: [-1, -0.4, -0.3] }, L: { target: [0.22, 1.05, 0.2], pole: [1, -0.4, -0.3] } }, hands: { R: 'relaxed', L: 'relaxed' } },
+  ]));
+
+  // Point: the right arm straight at the enemy, the left hand on the hip.
+  out.push(keyPoseClip(sk, 'Point', [
+    { t: 0, hips: [0, 0.955, 0], arms: { R: { target: [-0.22, 1.05, 0.2], pole: [-1, -0.4, -0.3] }, L: { target: [0.22, 1.05, 0.2], pole: [1, -0.4, -0.3] } }, legs: { L: 'plant', R: 'plant' }, hands: { R: 'relaxed', L: 'relaxed' } },
+    { t: 0.4, hips: [0, 0.95, 0], bones: { spine: [-4, -8, 0], chest: [-2, -6, 0], head: [-6, 6, 0] }, arms: { R: { target: [-0.2, 1.45, 0.72], pole: [-1, 0, 0] }, L: { target: [0.26, 1.02, -0.02], pole: [1, -0.2, -1] } }, hands: { R: 'point', L: 'fist' } },
+    { t: 1.6, hips: [0, 0.95, 0], bones: { spine: [-4, -8, 0], chest: [-2, -6, 0], head: [-6, 6, 0] } },
+    { t: 2.0, hips: [0, 0.955, 0], bones: { spine: [0, 0, 0], chest: [0, 0, 0], head: [0, 0, 0] }, arms: { R: { target: [-0.22, 1.05, 0.2], pole: [-1, -0.4, -0.3] }, L: { target: [0.22, 1.05, 0.2], pole: [1, -0.4, -0.3] } }, hands: { R: 'relaxed', L: 'relaxed' } },
+  ]));
+
+  // Roar: chest out, head thrown back, arms flung wide, then held.
+  out.push(keyPoseClip(sk, 'Roar', [
+    { t: 0, hips: [0, 0.94, 0], bones: { spine: [10, 0, 0], head: [8, 0, 0] }, arms: { R: { target: [-0.24, 1.0, 0.2], pole: [-1, -0.4, -0.3] }, L: { target: [0.24, 1.0, 0.2], pole: [1, -0.4, -0.3] } }, legs: { L: 'plant', R: 'plant' }, hands: { R: 'fist', L: 'fist' } },
+    { t: 0.6, hips: [0, 0.99, -0.03], bones: { spine: [-14, 0, 0], chest: [-12, 0, 0], head: [-30, 0, 0] }, arms: { R: { target: [-0.9, 1.55, 0.1], pole: [-1, 0, -0.5] }, L: { target: [0.9, 1.55, 0.1], pole: [1, 0, -0.5] } }, hands: { R: 'claw', L: 'claw' } },
+    { t: 3.0, hips: [0, 0.99, -0.03], bones: { spine: [-16, 0, 0], chest: [-12, 0, 0], head: [-32, 0, 0] }, arms: { R: { target: [-0.95, 1.6, 0.1], pole: [-1, 0, -0.5] }, L: { target: [0.95, 1.6, 0.1], pole: [1, 0, -0.5] } } },
+  ]));
+
+  // Stagger: doubled over, arms hanging, head down.
+  out.push(keyPoseClip(sk, 'Stagger', [
+    { t: 0, hips: [0, 0.955, 0], arms: { R: null, L: null }, legs: { L: 'plant', R: 'plant' }, hands: { R: 'relaxed', L: 'relaxed' } },
+    { t: 0.5, hips: [0, 0.72, 0.05], bones: { spine: [38, 0, 0], chest: [22, 0, 0], head: [22, 0, 0] }, arms: { R: { target: [-0.3, 0.55, 0.3], pole: [-1, -0.3, 0.3] }, L: { target: [0.3, 0.55, 0.3], pole: [1, -0.3, 0.3] } }, legs: { L: { target: [0.15, 0.085, 0.14], pole: [0.1, 0, 1] }, R: { target: [-0.15, 0.085, -0.2], pole: [-0.1, 0, 1] } }, hands: { R: 'claw', L: 'claw' } },
+    { t: 3.0, hips: [0, 0.72, 0.05], bones: { spine: [40, 0, 0], chest: [24, 0, 0], head: [24, 0, 0] } },
+  ]));
+
+  // Hit: a quick flinch of the upper body.
+  out.push(keyPoseClip(sk, 'Hit', [
+    { t: 0, hips: [0, 0.955, 0], arms: { R: null, L: null }, legs: { L: 'plant', R: 'plant' }, hands: { R: 'relaxed', L: 'relaxed' } },
+    { t: 0.1, hips: [0, 0.93, -0.06], bones: { spine: [-12, 0, 0], chest: [-8, 0, 0], head: [-14, 8, 0] }, arms: { R: { target: [-0.38, 1.2, 0.05], pole: [-1, 0, -0.5] }, L: { target: [0.38, 1.2, 0.05], pole: [1, 0, -0.5] } }, hands: { R: 'claw', L: 'claw' } },
+    { t: 0.4, hips: [0, 0.955, 0], bones: { spine: [0, 0, 0], chest: [0, 0, 0], head: [0, 0, 0] } },
+  ]));
+
   // Jump: crouch, launch with the arms up, tuck, land.
   out.push(keyPoseClip(sk, 'Jump', [
     { t: 0, hips: [0, 0.955, 0], arms: { R: null, L: null }, legs: { L: 'plant', R: 'plant' }, hands: { R: 'relaxed', L: 'relaxed' } },
@@ -175,9 +253,9 @@ export function mageClips() {
   return clipDefs(sk);
 }
 
-export function createMage(opts = {}) {
-  const c = new Character(mageDefinition(), opts);
-  c.name = 'Ember Mage';
+export function createMage(opts = {}, variant = 'fire') {
+  const c = new Character(mageDefinition({ variant }), opts);
+  c.name = variant === 'ice' ? 'Ice Mage' : 'Ember Mage';
   c.springs = false;
   c.play('Idle', { fade: 0 });
   return c;
