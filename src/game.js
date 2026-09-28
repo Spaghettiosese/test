@@ -3,7 +3,7 @@
 // is a ShapeForge character (shapes + skeleton + baked choreography clips); the game drives
 // its clips, aligns the sights for aim-down-sights, and turns shots into physics hitscans.
 import * as E from '../engine/index.js';
-import { WEAPONS } from './weapons/index.js';
+import { WEAPONS, makeWeaponProp } from './weapons/index.js';
 import { weaponPoint, weaponPointWorld } from './weapons/rig.js';
 import { buildRange } from './range.js';
 import { Sfx } from './audio.js';
@@ -53,17 +53,16 @@ const vm = WEAPONS.map((w) => {
   rig.play('Idle', { fade: 0 });
   return s;
 });
-// display copies of the guns lying on their left sides on the shooting counters
+// display copies of the guns lying on their left sides on the shooting counters: each is the
+// gun as a V5 mechanism Prop (rig parts, MechClips, grip and sockets), like the engine's makeGun()
+const displays = [];
 for (const [i, w] of WEAPONS.entries()) {
-  const parts = w.gun.parts.filter((p) => !['flash', 'shell', 'loader', 'loaderRounds', 'pair'].includes(p.bind.bone)); // no flash, no loose ammo
-  const c = new E.Character({ name: w.gun.name + ' (display)', skeleton: [{ name: 'root', parent: null, head: [0, 0, 0], tail: [0, 0.1, 0] }], materials: w.gun.materials, parts });
-  c.autoAnimate = false; c.springs = false;
+  const c = makeWeaponProp(w.id, { detail: 0.7 });
+  c.name = w.gun.name + ' (display)';
   const q = E.quat.multiply(E.quat.create(), E.quat.fromEuler(E.quat.create(), 0, 62 + i * 8, 0), E.quat.fromEuler(E.quat.create(), 0, 0, 90));
   const [sx, sz] = { m4a1: [-6.4, 0.5], sniper: [-0.3, 0.5], shotgun: [6.3, 0.5], revolver: [-4.7, 0.5], smg: [4.5, 0.5], double: [5.2, 0.76], garand: [-5.4, 0.78], mp7: [1.1, 0.52] }[w.id] ?? [0, 0.5];
-  const spot = [sx, 0.935 + 0.03, sz];
-  const w0 = E.vec3.transformQuat([0, 0, 0], w.gun.W0, q);
-  c.rotation.set(q); c.position.set([spot[0] - w0[0], spot[1] - w0[1], spot[2] - w0[2]]);
-  scene.add(c);
+  c.rotation.set(q); c.position.set([sx, 0.935 + 0.03, sz]);
+  scene.add(c); displays.push(c);
 }
 
 // ---------------------------------------------------------------- player
@@ -533,6 +532,13 @@ function step(dt) {
   updateViewmodel(dt);
   if (P.flashT > 0) { P.flashT -= dt; if (P.flashT <= 0) flashLight.intensity = 0; }
   particles.update(dt); sparks.update(dt);
+  // walk up to a counter and its gun works its action once (V5 MechClips on the Prop's rig)
+  for (const d of displays) {
+    const near = Math.hypot(d.position[0] - cc.position[0], d.position[2] - cc.position[2]) < 1.3;
+    if (near && !d.userData.shown && !d.rig.playing) { d.userData.shown = true; d.play(d.clips.has('Reload') ? 'Reload' : 'Pump'); }
+    if (!near) d.userData.shown = false;
+    d.update(dt);
+  }
 }
 function render(dt) {
   const eye = eyePos(), { f, up } = camBasis();
@@ -560,5 +566,5 @@ window.__range = {
   start, P, vm, input, cc, world, camera, renderer, fire: () => { P.triggerHeld = true; step(1 / 60); P.triggerHeld = false; },
   simulate(sec) { for (let t = 0; t < sec; t += 1 / 60) step(1 / 60); render(1 / 60); },
   set: (o) => Object.assign(P, o), look(yaw, pitch) { input.yaw = yaw; input.pitch = pitch; },
-  reload, inspect, switchTo, keys: input.keys,
+  reload, inspect, switchTo, keys: input.keys, displays,
 };

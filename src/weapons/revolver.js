@@ -231,6 +231,7 @@ export const REVOLVER = {
   propsDefault: { loader: HIDDEN },
   slides: { latch: 'z', ejector: 'z' },
   spins: { crane: 'z', cyl: 'z', hammer: 'x', trigger: 'x' },
+  spinPeriod: { cyl: 60 }, // six chambers: a turn of 60 degrees looks like none
   toggles: ['flash', 'rounds', 'loaderRounds'],
   toggleDefault: { flash: 0, rounds: 1, loaderRounds: 1 },
   materials: MATERIALS, parts: GUN, actions: ACTIONS,

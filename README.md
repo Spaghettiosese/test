@@ -51,6 +51,16 @@ Every gun is a ShapeForge character: parametric shapes (extruded side profiles, 
 | **MP7** (`mp7.js`) | Compact polymer PDW: full-length top rail with flip-up sights and a tritium front dot, slotted flash hider, folding vertical foregrip, retractable stock, T charging handle, and the 40-round magazine inside the pistol grip | Idle, Fire (one round of ~950 rpm auto), Reload (strip the mag down out of the grip, push a new one up, palm it home, rack the T handle), Inspect |
 | **MP5** (`smg.js`) | Stamped receiver with its side rib, cocking tube with a hooded front sight, rotary drum rear sight, slim handguard, three-lug barrel, polymer grip, retractable two-rod stock, curved 30-round 9mm magazine | Idle, Fire (one round of ~800 rpm auto), Reload (charging handle back and locked up, mag change, then the "HK slap" sends the bolt home), Inspect (both sides, press check) |
 
+### V5 props
+
+Every gun is also a ShapeForge Engine V5 mechanism **Prop**, built the way the engine's own armory builds its guns (`src/weapons/prop.js`, `makeWeaponProp(id)` in `src/weapons/index.js`):
+
+- the parts become Kit meshes on nodes, one node per moving part (the double barrel's barrels swing on their hinge node, the Garand's operating rod and the MP7's charging handle slide);
+- the moving parts are V5 `Rig` parts (hinges and slides with springs), and every action is a `MechClip` with the same events (`shot`, `magIn`, `ping`...);
+- each Prop has `grip`, `support` and `sockets` (muzzle, ejection port, sights), so `Character.equip(prop)` can hold it, and tracks its ammunition like `makeGun()`: `fire()`, `reload()`, `ammo()`.
+
+The guns lying on the shooting counters are these Props: walk up to one and it works its reload. The first-person viewmodels keep their baked arm choreography, since V5 props carry no arms. `npm test` checks every Prop fires until empty, reloads to full and ends with its parts home.
+
 `tools/preview.html` renders any clip at any time from the eye or from outside; `tools/shots.cjs` and `tools/game-shots.cjs` take headless screenshots of it and of the game.
 
 ## The range
