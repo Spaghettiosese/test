@@ -56,6 +56,8 @@
   .pips { display: flex; gap: 3px; }
   .pips i { width: 6px; height: 18px; border-radius: 3px 3px 1px 1px; background: var(--brass); }
   .pips i.shotgun { width: 9px; background: #b0261d; box-shadow: inset 0 -5px 0 var(--brass); border-radius: 2px; }
+  .pips i.double { width: 9px; background: #1f4f8c; box-shadow: inset 0 -5px 0 var(--brass); border-radius: 2px; }
+  .pips i.garand { width: 5px; }
   .pips i.spent { background: rgba(236, 230, 214, .12); box-shadow: none; }
 
   /* weapon bar */
@@ -101,6 +103,34 @@
     .weapons { top: calc(70px + env(safe-area-inset-top, 0px)); }
     .slot span { display: none; }
   }
+  /* touch controls: a move stick on the left, drag anywhere else to look, buttons on the right */
+  .tctl { position: fixed; inset: 0; pointer-events: none; z-index: 2; user-select: none; -webkit-user-select: none; }
+  .tctl button { pointer-events: auto; touch-action: none; -webkit-tap-highlight-color: transparent; }
+  .stick { position: absolute; left: calc(28px + env(safe-area-inset-left, 0px)); bottom: calc(28px + env(safe-area-inset-bottom, 0px)); width: 132px; height: 132px; border-radius: 50%; background: rgba(14, 17, 15, .38); border: 1.5px solid var(--line); pointer-events: auto; touch-action: none; }
+  .stick i { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px; border-radius: 50%; background: rgba(236, 230, 214, .22); border: 1.5px solid rgba(236, 230, 214, .45); }
+  .stick.run { border-color: var(--orange); }
+  .tbtn { position: absolute; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid var(--line); background: rgba(14, 17, 15, .45); color: var(--bone); font: 700 11px var(--body); letter-spacing: .08em; text-transform: uppercase; padding: 0; }
+  .tbtn.on, .tbtn:active { background: rgba(224, 102, 42, .55); border-color: var(--orange); }
+  .tbtn.fire { width: 84px; height: 84px; right: calc(26px + env(safe-area-inset-right, 0px)); bottom: calc(118px + env(safe-area-inset-bottom, 0px)); font-size: 13px; border-color: rgba(224, 102, 42, .7); }
+  .tbtn.aim { width: 60px; height: 60px; right: calc(122px + env(safe-area-inset-right, 0px)); bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+  .tbtn.reload { width: 54px; height: 54px; right: calc(128px + env(safe-area-inset-right, 0px)); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+  .tbtn.jump { width: 54px; height: 54px; right: calc(64px + env(safe-area-inset-right, 0px)); bottom: calc(40px + env(safe-area-inset-bottom, 0px)); }
+  .tbtn.next { width: 50px; height: 50px; right: calc(26px + env(safe-area-inset-right, 0px)); bottom: calc(214px + env(safe-area-inset-bottom, 0px)); }
+  .tbtn.inspect { width: 44px; height: 44px; right: calc(84px + env(safe-area-inset-right, 0px)); bottom: calc(222px + env(safe-area-inset-bottom, 0px)); }
+  .tbtn.reset { width: 44px; height: 44px; left: calc(172px + env(safe-area-inset-left, 0px)); bottom: calc(118px + env(safe-area-inset-bottom, 0px)); }
+  .tbtn.fire2 { width: 64px; height: 64px; left: calc(180px + env(safe-area-inset-left, 0px)); bottom: calc(40px + env(safe-area-inset-bottom, 0px)); border-color: rgba(224, 102, 42, .7); }
+  body.touch .help { display: none; }
+  body.touch .ammo { bottom: auto; right: auto; left: calc(16px + env(safe-area-inset-left, 0px)); top: calc(62px + env(safe-area-inset-top, 0px)); padding: 4px 12px 6px; min-width: 0; justify-items: start; }
+  body.touch .ammo .name { font-size: 16px; }
+  body.touch .ammo .count b { font-size: 26px; }
+  body.touch .feed { right: auto; left: 50%; transform: translateX(-50%); top: calc(62px + env(safe-area-inset-top, 0px)); justify-items: center; }
+  body.touch .score { padding: 5px 10px; gap: 12px; }
+  body.touch .score b { font-size: 18px; }
+  body.touch .weapons { top: calc(10px + env(safe-area-inset-top, 0px)); gap: 4px; }
+  body.touch .slot { padding: 7px 9px; }
+  body.touch .slot span { display: none; }
+  body.touch .desk-only { display: none; }
+  body:not(.touch) .touch-only { display: none; }
   @media (prefers-reduced-motion: reduce) { .feed div { animation: none; } }
 </style>
 </head>
@@ -130,29 +160,51 @@
 </div>
 <div class="hud panel score"><div><small>Score</small><b id="score">0</b></div><div><small>Accuracy</small><b id="acc">–</b></div></div>
 <div class="hud feed" id="feed"></div>
-<div class="hud panel help" id="help"><b>WASD</b> move · <b>Shift</b> sprint · <b>Space</b> jump<br><b>Click</b> fire · <b>Right-click</b> aim · <kbd>R</kbd> reload · <kbd>F</kbd> inspect<br><kbd>1</kbd>–<kbd>5</kbd> or wheel: weapons · <kbd>T</kbd> reset targets · <kbd>H</kbd> hide</div>
+<div class="hud panel help" id="help"><b>WASD</b> move · <b>Shift</b> sprint · <b>Space</b> jump<br><b>Click</b> fire · <b>Right-click</b> aim · <kbd>R</kbd> reload · <kbd>F</kbd> inspect<br><kbd>1</kbd>–<kbd>8</kbd> or wheel: weapons · <kbd>T</kbd> reset targets · <kbd>H</kbd> hide</div>
 <div class="hud weapons" id="weapons"></div>
 <div class="hud panel ammo"><div class="name" id="wname">M4A1</div><div class="pips" id="pips"></div><div class="count"><b id="ammo">30</b><span id="ammoMax">/ 30</span></div><div class="hint" id="whint"></div></div>
+<div class="tctl" id="touch" hidden>
+  <div class="stick" id="stick"><i></i></div>
+  <button class="tbtn fire" id="tFire" type="button" aria-label="Fire">Fire</button>
+  <button class="tbtn fire2" id="tFire2" type="button" aria-label="Fire (left thumb)">Fire</button>
+  <button class="tbtn aim" id="tAim" type="button" aria-label="Aim down sights">Aim</button>
+  <button class="tbtn reload" id="tReload" type="button" aria-label="Reload">Reload</button>
+  <button class="tbtn jump" id="tJump" type="button" aria-label="Jump">Jump</button>
+  <button class="tbtn next" id="tNext" type="button" aria-label="Next weapon">Swap</button>
+  <button class="tbtn inspect" id="tInspect" type="button" aria-label="Inspect">Look</button>
+  <button class="tbtn reset" id="tReset" type="button" aria-label="Reset targets">Reset</button>
+</div>
 <div class="menu" id="menu">
   <div class="card">
     <header><h1>ShapeForge <span>Range</span></h1><div class="stamp">RANGE IS HOT</div></header>
-    <p>Five guns on a covered firing line: paper at 10, 25 and 50 m, swinging steel at 15 m, bottles and cans at 12 m, a runner at 35 m and gongs out to 200 m. Every gun, hand and animation is built from ShapeForge shapes.</p>
+    <p>Eight guns on a covered firing line: paper at 10, 25 and 50 m, swinging steel at 15 m, bottles and cans at 12 m, a runner at 35 m and gongs out to 200 m. Every gun, hand and animation is built from ShapeForge shapes.</p>
     <div class="guns">
       <div class="gun"><b>1 · M4A1</b><span>Full auto, holographic sight</span><em>30 rds · 5.56</em></div>
       <div class="gun"><b>2 · .338 Sniper</b><span>Bolt action, 6.5° scope</span><em>5 rds · .338</em></div>
       <div class="gun"><b>3 · Pump 12 ga</b><span>9 pellets, loads by hand</span><em>6 shells · 12 ga</em></div>
       <div class="gun"><b>4 · .44 Magnum</b><span>Double action, speedloader</span><em>6 rds · .44</em></div>
       <div class="gun"><b>5 · MP5</b><span>800 rpm, the HK slap</span><em>30 rds · 9mm</em></div>
+      <div class="gun"><b>6 · Double Barrel</b><span>Break action, two triggers</span><em>2 shells · 12 ga</em></div>
+      <div class="gun"><b>7 · M1 Garand</b><span>Semi-auto, en-bloc ping</span><em>8 rds · .30-06</em></div>
+      <div class="gun"><b>8 · MP7</b><span>950 rpm, mag in the grip</span><em>40 rds · 4.6mm</em></div>
     </div>
-    <div class="controls">
+    <div class="controls touch-only">
+      <div><span>Move · run</span><span>Left stick (push to the rim)</span></div>
+      <div><span>Look</span><span>Drag anywhere</span></div>
+      <div><span>Fire · aim</span><span>Fire (either side) · Aim toggles</span></div>
+      <div><span>Reload · inspect</span><span>Reload · Look</span></div>
+      <div><span>Switch weapon</span><span>Swap · tap the top bar</span></div>
+      <div><span>Best played</span><span>In landscape</span></div>
+    </div>
+    <div class="controls desk-only">
       <div><span>Move · sprint · jump</span><span>WASD · Shift · Space</span></div>
       <div><span>Fire · aim</span><span>Left · right mouse (E toggles)</span></div>
       <div><span>Reload · inspect</span><span>R · F</span></div>
-      <div><span>Switch weapon</span><span>1–5 · wheel · Q</span></div>
+      <div><span>Switch weapon</span><span>1–8 · wheel · Q</span></div>
       <div><span>Reset targets</span><span>T</span></div>
       <div><span>Release mouse</span><span>Esc</span></div>
     </div>
-    <div class="row"><label class="sens" for="sens">Mouse sensitivity <input id="sens" type="range" min="0.3" max="2.5" step="0.1" value="1"></label><button class="go" id="play" type="button">Step up to the line</button></div>
+    <div class="row"><label class="sens" for="sens"><span class="desk-only">Mouse sensitivity</span><span class="touch-only">Look sensitivity</span> <input id="sens" type="range" min="0.3" max="2.5" step="0.1" value="1"></label><button class="go" id="play" type="button">Step up to the line</button></div>
   </div>
 </div>
 <div class="fatal" id="fatal" hidden></div>

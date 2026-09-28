@@ -36,6 +36,15 @@ export class Sfx {
       this._noise(t, { dur: 0.2, gain: 0.7, freq: 2800, freqEnd: 700, decay: 0.12 });
       this._noise(t, { dur: 0.3, gain: 0.35, freq: 260, decay: 0.2 });
       this._tone(t, { freq: 160, freqEnd: 60, dur: 0.1, gain: 0.4, decay: 0.1 });
+    } else if (kind === 'mp7') {
+      this._noise(t, { dur: 0.18, gain: 0.65, freq: 3600, freqEnd: 900, decay: 0.1 });
+      this._noise(t, { dur: 0.25, gain: 0.3, freq: 320, decay: 0.16 });
+      this._tone(t, { freq: 190, freqEnd: 70, dur: 0.08, gain: 0.35, decay: 0.08 });
+    } else if (kind === 'garand') {
+      this._noise(t, { dur: 0.3, gain: 1, freq: 4200, freqEnd: 450, decay: 0.2 });
+      this._noise(t, { dur: 1.2, gain: 0.65, freq: 210, freqEnd: 60, decay: 1 });
+      this._tone(t, { freq: 95, freqEnd: 32, dur: 0.35, gain: 0.75, decay: 0.4 });
+      this._noise(t + 0.22, { dur: 1, gain: 0.1, freq: 650, freqEnd: 200, decay: 0.9, attack: 0.05 });
     } else if (kind === 'revolver') {
       this._noise(t, { dur: 0.35, gain: 1, freq: 4200, freqEnd: 450, decay: 0.24 });
       this._noise(t, { dur: 1.1, gain: 0.8, freq: 200, freqEnd: 55, decay: 0.9 });
@@ -60,6 +69,8 @@ export class Sfx {
     for (const [m, a] of [[1, 1], [2.76, 0.5], [5.4, 0.25], [8.9, 0.12]]) this._tone(t, { freq: f * m, dur: 1.5, gain: g * a, decay: 1.2 + size * 0.6 });
   }
   glass() { if (!this.ctx) return; const t = this.ctx.currentTime; this._noise(t, { dur: 0.4, gain: 0.5, type: 'highpass', freq: 3000, decay: 0.3 }); for (let i = 0; i < 5; i++) this._tone(t + i * 0.02, { freq: 2500 + Math.random() * 3000, dur: 0.2, gain: 0.05, decay: 0.2 }); }
+  // the M1 Garand's en-bloc clip leaving the receiver
+  ping() { if (!this.ctx) return; const t = this.ctx.currentTime; for (const [f, g] of [[2650, 0.14], [3980, 0.07], [6120, 0.035]]) this._tone(t, { freq: f, dur: 0.6, gain: g, decay: 0.55 }); }
   tink() { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 3200 + Math.random() * 800, dur: 0.15, gain: 0.05, decay: 0.12 }); }
   thud() { if (!this.ctx) return; const t = this.ctx.currentTime; this._noise(t, { dur: 0.2, gain: 0.35, freq: 400, decay: 0.15 }); }
   empty() { this.click(1.4, 0.3); }

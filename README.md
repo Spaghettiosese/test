@@ -1,6 +1,6 @@
 # ShapeForge Range
 
-A tiny first-person sandbox built on the [ShapeForge Engine](https://github.com/Spaghettiosese/Engine): a covered firing line, three lanes and targets out to 200 m, and five guns modelled, rigged and animated entirely inside the engine.
+A tiny first-person sandbox built on the [ShapeForge Engine](https://github.com/Spaghettiosese/Engine): a covered firing line, three lanes and targets out to 200 m, and eight guns modelled, rigged and animated entirely inside the engine. It plays with a mouse and keyboard or on a phone or tablet with touch controls.
 
 ```bash
 npm start      # serves the folder on http://localhost:8080 (any static server works)
@@ -16,9 +16,23 @@ Open `index.html` through a server (ES modules don't load from `file://`) and cl
 | Move · sprint · jump | WASD · Shift · Space |
 | Fire · aim down sights | Left mouse · right mouse (E toggles) |
 | Reload · inspect | R · F (or I) |
-| Switch weapon | 1–5 · mouse wheel · Q |
+| Switch weapon | 1–8 · mouse wheel · Q |
 | Reset targets | T |
 | Hide help | H |
+
+### Touch (phones and tablets)
+
+The touch controls turn on when the device has a touch screen (or on the first touch). Landscape works best, and the game asks for fullscreen when you start.
+
+| Action | Touch |
+| --- | --- |
+| Move · run | Left stick (push it to the rim to run) |
+| Look | Drag anywhere on the screen, or drag while holding Fire |
+| Fire | Either Fire button (one for each thumb) |
+| Aim down sights | Aim (toggles) |
+| Reload · inspect · jump | Reload · Look · Jump |
+| Switch weapon | Swap, or tap a slot in the top bar |
+| Reset targets | Reset |
 
 If the browser refuses pointer lock (some embedded frames do), drag with the mouse to look.
 
@@ -32,6 +46,9 @@ Every gun is a ShapeForge character: parametric shapes (extruded side profiles, 
 | **.338 Sniper** (`sniper.js`) | Olive thumbhole stock with adjustable cheek piece, fluted heavy barrel, ported muzzle brake, 5-25x56 scope with knurled turrets, folded bipod, 5-round box magazine | Idle, Fire (recoil, then the bolt lifts, runs back, ejects, closes), Reload (mag change, then chamber a round), Inspect (right side, then two clicks on the elevation turret) |
 | **12 Gauge Pump** (`shotgun.js`) | Blued receiver, vent-rib barrel with brass and ivory beads, ribbed walnut pump with action bars, checkered walnut stock with white-line pad, side saddle with four shells | Idle, Fire (shot, then rack), Pump, Reload Start, Insert Shell (loops once per shell, thumbing each into the loading port), Reload End, Inspect (side saddle, press check, ejection port) |
 | **.44 Magnum revolver** (`revolver.js`) | S&W Model 29 style: blued frame, 6.5" ribbed barrel with a red-insert front ramp, adjustable rear sight, fluted six-shot cylinder on a swing-out crane, ejector rod and star, walnut target grips, speedloader | Idle, Fire (a double-action pull: the trigger raises the hammer and turns the cylinder, then it falls; the shot leaves 65 ms after the click), Reload (open the crane, muzzle up, slap the ejector so all six empties fall out as physics brass, speedloader in, twist, close), Inspect (both sides, open, spin the cylinder, flick it shut) |
+| **Double Barrel 12 ga** (`double.js`) | Side-by-side boxlock: case-hardened action with a top lever and tang safety, two triggers, twin barrels with a matted rib and brass bead, a splinter forend, and a walnut pistol-grip stock. The barrels, the forend and the chambered shells swing down together on the hinge pin | Idle, Fire, Reload (the top lever swings, the barrels drop, a flick throws both hulls out as physics brass, two fresh shells are pushed home along the bore, then it snaps shut), Inspect |
+| **M1 Garand** (`garand.js`) | Full-length walnut stock with a steel butt plate, parkerized receiver, aperture rear sight with windage and elevation knobs, walnut handguards, lower band, gas cylinder with the protected front sight, operating rod and handle, eight-round en-bloc clip | Idle, Fire (the op rod cycles and throws the case), Reload (haul the op rod back, the empty clip flies out with its ping, thumb a fresh clip in, the bolt slams home), Inspect |
+| **MP7** (`mp7.js`) | Compact polymer PDW: full-length top rail with flip-up sights and a tritium front dot, slotted flash hider, folding vertical foregrip, retractable stock, T charging handle, and the 40-round magazine inside the pistol grip | Idle, Fire (one round of ~950 rpm auto), Reload (strip the mag down out of the grip, push a new one up, palm it home, rack the T handle), Inspect |
 | **MP5** (`smg.js`) | Stamped receiver with its side rib, cocking tube with a hooded front sight, rotary drum rear sight, slim handguard, three-lug barrel, polymer grip, retractable two-rod stock, curved 30-round 9mm magazine | Idle, Fire (one round of ~800 rpm auto), Reload (charging handle back and locked up, mag change, then the "HK slap" sends the bolt home), Inspect (both sides, press check) |
 
 `tools/preview.html` renders any clip at any time from the eye or from outside; `tools/shots.cjs` and `tools/game-shots.cjs` take headless screenshots of it and of the game.
@@ -49,7 +66,8 @@ index.html            the game page and HUD
 src/game.js           player, weapons, shooting, HUD
 src/range.js          the range and its targets
 src/audio.js          synthesised sound effects
-src/weapons/          rig.js (arms, shape helpers, choreography baker), m4a1.js, sniper.js, shotgun.js, revolver.js, smg.js
+src/weapons/          rig.js (arms, shape helpers, choreography baker), m4a1.js, sniper.js, shotgun.js, revolver.js, smg.js, double.js, garand.js, mp7.js
+assets/               every gun as a ShapeForge character JSON for Studio (File > Open) — regenerate with node tools/export-studio.mjs
 engine/               ShapeForge Engine V4 (vendored, unmodified)
 tools/                weapon tests, preview page, headless screenshot helpers
 ```

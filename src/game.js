@@ -34,6 +34,9 @@ const CFG = {
   shotgun: { label: '12 Gauge Pump', mag: 6, auto: false, interval: 0.92, spread: 0.07, adsSpread: 0.05, pellets: 9, kick: 5, kickAds: 3.5, adsFov: 56, relief: 0.3, impulse: 1.6, brass: 'shell' },
   // the revolver's shot leaves 65 ms after the click: that's the double-action pull in its Fire clip
   revolver: { label: '.44 Magnum', mag: 6, auto: false, interval: 0.45, delay: 0.065, spread: 0.022, adsSpread: 0.002, pellets: 1, kick: 7, kickAds: 5, adsFov: 50, relief: 0.3, impulse: 6, brass: 'magnum44' },
+  double: { label: 'Double Barrel', mag: 2, auto: false, interval: 0.28, spread: 0.075, adsSpread: 0.055, pellets: 9, kick: 6.5, kickAds: 4.6, adsFov: 56, relief: 0.3, impulse: 2, brass: 'shell' },
+  garand: { label: 'M1 Garand', mag: 8, auto: false, interval: 0.18, spread: 0.03, adsSpread: 0.0015, pellets: 1, kick: 3.2, kickAds: 2.3, adsFov: 44, relief: 0.2, impulse: 7, brass: 'rifle3006', ejectOnShot: true },
+  mp7: { label: 'MP7', mag: 40, auto: true, interval: 0.063, spread: 0.02, adsSpread: 0.0035, pellets: 1, kick: 0.5, kickAds: 0.26, adsFov: 52, relief: 0.2, impulse: 2, brass: 'pdw', ejectOnShot: true },
   smg: { label: 'MP5', mag: 30, auto: true, interval: 0.075, spread: 0.022, adsSpread: 0.004, pellets: 1, kick: 0.6, kickAds: 0.3, adsFov: 52, relief: 0.2, impulse: 2, brass: 'pistol', ejectOnShot: true },
 };
 const VM_SCALE = 0.55; // the viewmodel is shrunk toward the eye (same picture, far less wall clipping)
@@ -52,11 +55,12 @@ const vm = WEAPONS.map((w) => {
 });
 // display copies of the guns lying on their left sides on the shooting counters
 for (const [i, w] of WEAPONS.entries()) {
-  const parts = w.gun.parts.filter((p) => !['flash', 'shell', 'loader', 'loaderRounds'].includes(p.bind.bone)); // no flash, no loose ammo
+  const parts = w.gun.parts.filter((p) => !['flash', 'shell', 'loader', 'loaderRounds', 'pair'].includes(p.bind.bone)); // no flash, no loose ammo
   const c = new E.Character({ name: w.gun.name + ' (display)', skeleton: [{ name: 'root', parent: null, head: [0, 0, 0], tail: [0, 0.1, 0] }], materials: w.gun.materials, parts });
   c.autoAnimate = false; c.springs = false;
   const q = E.quat.multiply(E.quat.create(), E.quat.fromEuler(E.quat.create(), 0, 62 + i * 8, 0), E.quat.fromEuler(E.quat.create(), 0, 0, 90));
-  const spot = [{ m4a1: -6.4, sniper: -0.3, shotgun: 6.3, revolver: -4.7, smg: 4.5 }[w.id] ?? 0, 0.935 + 0.03, 0.5];
+  const [sx, sz] = { m4a1: [-6.4, 0.5], sniper: [-0.3, 0.5], shotgun: [6.3, 0.5], revolver: [-4.7, 0.5], smg: [4.5, 0.5], double: [5.2, 0.76], garand: [-5.4, 0.78], mp7: [1.1, 0.52] }[w.id] ?? [0, 0.5];
+  const spot = [sx, 0.935 + 0.03, sz];
   const w0 = E.vec3.transformQuat([0, 0, 0], w.gun.W0, q);
   c.rotation.set(q); c.position.set([spot[0] - w0[0], spot[1] - w0[1], spot[2] - w0[2]]);
   scene.add(c);
@@ -69,6 +73,8 @@ cc.body.userData.player = true;
 const EYE = 1.62;
 const P = { bobY: 0, recoilDebt: 0, triggerWasDown: false, cur: 0, next: null, switchT: 0, ads: 0, bob: 0, recoil: 0, kickZ: 0, kickRot: 0, sway: [0, 0], trigger: false, triggerHeld: false, aimHeld: false, aimToggle: false, cooldown: 0, score: 0, shots: 0, hits: 0, flashT: 0, lastLand: 0 };
 const input = { keys: new Set(), yaw: 0, pitch: 0, dYaw: 0, dPitch: 0 };
+const stick = { id: null, x: 0, y: 0 }; // touch move stick, -1..1 (+x right, +y back)
+let touchMode = false;
 const W = () => vm[P.cur];
 
 // ---------------------------------------------------------------- helpers
@@ -82,6 +88,9 @@ const CASE = {
   magnum: { geo: E.cylinder({ radiusTop: 0.0072, radiusBottom: 0.0072, height: 0.07, radialSegments: 8 }), mat: brassMat, half: [0.007, 0.035, 0.007], mass: 0.02 },
   shell: { geo: E.cylinder({ radiusTop: 0.0105, radiusBottom: 0.0105, height: 0.068, radialSegments: 10 }), mat: hullMat, half: [0.0105, 0.034, 0.0105], mass: 0.03 },
   pistol: { geo: E.cylinder({ radiusTop: 0.0048, radiusBottom: 0.0048, height: 0.019, radialSegments: 8 }), mat: brassMat, half: [0.005, 0.0095, 0.005], mass: 0.005 },
+  rifle3006: { geo: E.cylinder({ radiusTop: 0.006, radiusBottom: 0.006, height: 0.063, radialSegments: 8 }), mat: brassMat, half: [0.006, 0.031, 0.006], mass: 0.013 },
+  pdw: { geo: E.cylinder({ radiusTop: 0.0042, radiusBottom: 0.0042, height: 0.03, radialSegments: 8 }), mat: brassMat, half: [0.0042, 0.015, 0.0042], mass: 0.004 },
+  clip: { geo: E.box({ width: 0.03, height: 0.05, depth: 0.052 }), mat: new E.Material({ name: 'Clip', color: '#56585a', roughness: 0.35, metallic: 0.95 }), half: [0.015, 0.025, 0.026], mass: 0.02 },
   magnum44: { geo: E.cylinder({ radiusTop: 0.0058, radiusBottom: 0.0058, height: 0.03, radialSegments: 8 }), mat: brassMat, half: [0.006, 0.015, 0.006], mass: 0.008 },
 };
 function feed(text, cls = '') { const d = document.createElement('div'); d.textContent = text; if (cls) d.className = cls; $('feed').prepend(d); setTimeout(() => d.remove(), 3200); while ($('feed').children.length > 6) $('feed').lastChild.remove(); }
@@ -109,6 +118,8 @@ function onEvent(s, e) {
   if (n === 'pumpBack') sfx.clack(0.9);
   if (n === 'boltDown' || n === 'click') sfx.click(1.3, 0.2);
   if (n === 'eject6') ejectCylinder(s);
+  if (n === 'eject2') ejectBreech(s);
+  if (n === 'ping') pingClip(s);
   if (n === 'open' || n === 'close') sfx.clack(n === 'open' ? 1.3 : 1.5);
   if (n === 'shellIn') { s.ammo = Math.min(s.cfg.mag, s.ammo + 1); sfx.click(0.7, 0.35); }
 }
@@ -162,7 +173,7 @@ function discharge(s) {
   }
   flashLight.position.set(muzzle); flashLight.intensity = s.cfg.auto ? 30 : 60; P.flashT = 0.045;
   particles.emit(muzzle, { count: s.cfg.auto ? 3 : 8, spread: 0.12, up: 0.1, size: 0.05, color: [0.8, 0.78, 0.74, 0.32], colorEnd: [0.9, 0.88, 0.85, 0.08], grow: 5, buoyancy: 0.35, life: s.cfg.auto ? 1.4 : 2.2, jitter: 0.02, vel: PM.scl(f, 0.6) });
-  sparks.emit(muzzle, { count: s.id === 'shotgun' ? 10 : 4, spread: 0.9, up: 0.3, size: 0.012, grow: 0.4, color: [5, 3, 1.2, 1], colorEnd: [2, 0.5, 0.1, 0.5], life: 0.18, jitter: 0.01, vel: PM.scl(f, 3) });
+  sparks.emit(muzzle, { count: s.cfg.pellets > 1 ? 10 : 4, spread: 0.9, up: 0.3, size: 0.012, grow: 0.4, color: [5, 3, 1.2, 1], colorEnd: [2, 0.5, 0.1, 0.5], life: 0.18, jitter: 0.01, vel: PM.scl(f, 3) });
   if (s.cfg.ejectOnShot) ejectCase(s);
 }
 // revolver: the ejector rod throws all six empties out of the swung-out cylinder at once
@@ -171,8 +182,21 @@ function ejectCylinder(s) {
   for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; ejectCase(s, [c[0] + Math.cos(a) * 0.012, c[1] - 0.02, c[2] + Math.sin(a) * 0.012], [Math.cos(a) * 0.3, -0.8 - Math.random() * 0.5, Math.sin(a) * 0.3]); }
   sfx.tink();
 }
-function ejectCase(s, at = null, vel = null) {
-  const kind = CASE[s.cfg.brass];
+// double barrel: the extractors throw both hulls up and back out of the open chambers
+function ejectBreech(s) {
+  const sk = s.rig.skeleton, c = E.vec3.transformMat4([0, 0, 0], sk.worldHead(sk.boneIndex('chambered')), s.rig.world);
+  const { f, up } = camBasis();
+  for (const side of [-1, 1]) ejectCase(s, [c[0], c[1] + 0.02, c[2]], [up[0] * 1.8 - f[0] * 0.8 + side * 0.3, up[1] * 1.8 - f[1] * 0.8 + 0.4, up[2] * 1.8 - f[2] * 0.8 + side * 0.3]);
+}
+// M1 Garand: the empty en-bloc clip flies up out of the receiver with its famous ping
+function pingClip(s) {
+  const { f, left, up } = camBasis();
+  const p = weaponPointWorld(s.rig, [0, 0.07, 0.04], s.gun);
+  ejectCase(s, p, [up[0] * 3.2 - left[0] * 0.6 - f[0] * 0.3, up[1] * 3.2 - left[1] * 0.6 - f[1] * 0.3, up[2] * 3.2 - left[2] * 0.6 - f[2] * 0.3], 'clip');
+  sfx.ping();
+}
+function ejectCase(s, at = null, vel = null, kindName = null) {
+  const kind = CASE[kindName || s.cfg.brass];
   const p = at || weaponPointWorld(s.rig, s.gun.points.eject, s.gun);
   const { f, left, up } = camBasis();
   if (casings.length > 40) { const c = casings.shift(); world.remove(c.body); scene.remove(c.mesh); }
@@ -188,7 +212,7 @@ function impact(hit, dir, s) {
     const local = PM.qrot(PM.qconj(b.quaternion), PM.sub(hit.point, b.userData.center));
     const r = Math.hypot(local[0], local[1]) / b.userData.size;
     const pts = r < 0.06 ? 10 : r < 0.42 ? Math.max(1, 9 - Math.floor((r - 0.06) / 0.045)) : 0;
-    decals.add(hit.point, hit.normal, 0.012 + (s.id === 'shotgun' ? 0 : 0.004));
+    decals.add(hit.point, hit.normal, 0.012 + (s.cfg.pellets > 1 ? 0 : 0.004));
     particles.emit(hit.point, { count: 3, spread: 0.3, up: 0.2, size: 0.03, color: [0.95, 0.93, 0.88, 0.8], life: 0.5 });
     if (pts) { markHit(); addScore(pts, pts === 10 ? `Bullseye! (${dist} m)` : `${pts} ring (${dist} m)`); hitmark(pts === 10); }
     return;
@@ -243,8 +267,10 @@ function updateWeapon(dt) {
     }
   } else if (P.switchT < 0) P.switchT = Math.min(0, P.switchT + dt);
   // triggers
-  if (P.triggerHeld) tryFire();
-  P.triggerWasDown = P.triggerHeld;
+  // a press is latched until the next frame, so a tap shorter than a frame still fires
+  const pulled = P.triggerHeld || P.firePress;
+  if (pulled) tryFire();
+  P.triggerWasDown = pulled; P.firePress = false;
   // state machine
   if (s.state === 'firing' && P.cooldown <= 0 && (!s.cfg.auto || !P.triggerHeld)) {
     if (clipDone(s) || s.cfg.auto) { s.state = 'idle'; play(s, 'Idle', s.cfg.auto ? 0.15 : 0.2, false); if (s.ammo === 0 && !s.cfg.auto) reload(); }
@@ -323,14 +349,19 @@ function updateViewmodel(dt) {
 // ---------------------------------------------------------------- player
 function updatePlayer(dt) {
   const k = input.keys, s = W();
-  const ix = (k.has('a') ? 1 : 0) - (k.has('d') ? 1 : 0), iz = (k.has('w') ? 1 : 0) - (k.has('s') ? 1 : 0);
+  let ix = (k.has('a') ? 1 : 0) - (k.has('d') ? 1 : 0), iz = (k.has('w') ? 1 : 0) - (k.has('s') ? 1 : 0);
+  // the touch stick is analogue: a light push walks slowly, pushing it to the rim runs
+  const sm = Math.min(1, Math.hypot(stick.x, stick.y)), useStick = !ix && !iz && sm > 0.12;
+  if (useStick) { ix = -stick.x; iz = -stick.y; }
   const fwd = [Math.sin(input.yaw), Math.cos(input.yaw)], left = [Math.cos(input.yaw), -Math.sin(input.yaw)];
   let wish = [0, 0];
   if (ix || iz) {
     const d = [fwd[0] * iz + left[0] * ix, fwd[1] * iz + left[1] * ix], l = Math.hypot(...d);
-    const speed = P.ads > 0.3 ? 1.6 : k.has('shift') && iz > 0 && s.state !== 'reload' ? 5.6 : 3.2;
+    const run = (k.has('shift') || (useStick && sm > 0.92)) && iz > 0.5 && s.state !== 'reload';
+    const speed = (P.ads > 0.3 ? 1.6 : run ? 5.6 : 3.2) * (useStick && !run ? Math.min(1, (sm - 0.12) / 0.7 + 0.25) : 1);
     wish = [(d[0] / l) * speed, (d[1] / l) * speed];
   }
+  $('stick').classList.toggle('run', useStick && sm > 0.92 && iz > 0.5);
   if (k.has(' ')) cc.jump(4.6);
   cc.move(wish, dt);
   if (cc.position[1] < -5) cc.position = [0, 0.2, -2.6];
@@ -356,7 +387,7 @@ function hud(force) {
   $('score').textContent = P.score;
   $('acc').textContent = P.shots ? Math.round((P.hits / P.shots) * 100) + '%' : '–';
   [...WEAPON_BAR.children].forEach((d, i) => d.classList.toggle('on', i === P.cur));
-  const hint = s.state.startsWith('reload') || s.state === 'insert' ? 'Reloading…' : s.ammo === 0 ? 'Empty: press R' : s.state === 'inspect' ? 'Inspecting' : '';
+  const hint = s.state.startsWith('reload') || s.state === 'insert' ? 'Reloading…' : s.ammo === 0 ? (touchMode ? 'Empty: tap reload' : 'Empty: press R') : s.state === 'inspect' ? 'Inspecting' : '';
   $('whint').textContent = hint;
   $('pips').innerHTML = s.cfg.mag <= 10 ? Array.from({ length: s.cfg.mag }, (_, i) => `<i class="${i < s.ammo ? '' : 'spent'} ${s.id}"></i>`).join('') : '';
 }
@@ -378,7 +409,13 @@ const cv = $('stage');
 let started = false, drag = null;
 const lockEl = () => { try { const r = cv.requestPointerLock?.(); if (r && r.catch) r.catch(() => {}); } catch { /* sandboxed: drag to look */ } };
 const locked = () => document.pointerLockElement === cv;
-function start() { started = true; $('menu').hidden = true; sfx.unlock(); lockEl(); hud(true); }
+function start() {
+  started = true; $('menu').hidden = true; sfx.unlock(); hud(true);
+  if (touchMode) {
+    $('touch').hidden = false;
+    try { const r = document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }); if (r && r.then) r.then(() => screen.orientation?.lock?.('landscape').catch(() => {})).catch(() => {}); } catch { /* not allowed here */ }
+  } else lockEl();
+}
 $('play').onclick = start;
 cv.addEventListener('contextmenu', (e) => e.preventDefault());
 // Mouse buttons use mousedown/mouseup: browsers send only one pointerdown while any button is
@@ -387,13 +424,14 @@ cv.addEventListener('mousedown', (e) => {
   if (!started) return;
   sfx.unlock();
   if (!locked()) lockEl();
-  if (e.button === 0) P.triggerHeld = true;
+  if (e.button === 0) P.triggerHeld = P.firePress = true;
   if (e.button === 2) P.aimHeld = true;
   drag = { x: e.clientX, y: e.clientY };
 });
 addEventListener('mouseup', (e) => { if (e.button === 0) P.triggerHeld = false; if (e.button === 2) P.aimHeld = false; if (!e.buttons) drag = null; });
 addEventListener('pointermove', (e) => {
   if (!started) return;
+  if (e.pointerType === 'touch') return; // touches are handled by the touch controls below
   if (e.pointerType === 'mouse' && e.buttons !== undefined) { P.triggerHeld = !!(e.buttons & 1); P.aimHeld = !!(e.buttons & 2); } // stay in sync with the real buttons
   let dx = 0, dy = 0;
   if (locked()) { dx = e.movementX; dy = e.movementY; } else if (drag) { dx = e.clientX - drag.x; dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY; }
@@ -417,6 +455,69 @@ addEventListener('keydown', (e) => {
 addEventListener('keyup', (e) => input.keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => { input.keys.clear(); P.triggerHeld = false; P.aimHeld = false; });
 document.addEventListener('pointerlockchange', () => { if (!locked()) { P.triggerHeld = false; } });
+
+// ---------------------------------------------------------------- touch controls
+// A move stick bottom-left, drag anywhere else (or on the fire button) to look, and buttons
+// for fire, aim, reload, jump, weapon swap, inspect and target reset.
+function enableTouch() {
+  if (touchMode) return;
+  touchMode = true; document.body.classList.add('touch');
+  if (started) { $('touch').hidden = false; hud(true); }
+}
+if (matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0 && matchMedia('(hover: none)').matches) enableTouch();
+addEventListener('touchstart', enableTouch, { passive: true, capture: true });
+const lookBy = (dx, dy) => {
+  const sens = 0.0042 * (camera.fov / (WORLD_FOV * E.DEG)) ** 0.9 * (+$('sens').value || 1);
+  input.yaw -= dx * sens; input.pitch = E.clamp(input.pitch - dy * sens, -1.5, 1.5);
+  input.dYaw += dx * 0.0004; input.dPitch += dy * 0.0004;
+};
+// drag-to-look on the canvas (one finger at a time)
+const look = { id: null, x: 0, y: 0 };
+cv.addEventListener('pointerdown', (e) => {
+  if (e.pointerType !== 'touch' || !started) return;
+  e.preventDefault(); sfx.unlock();
+  if (look.id === null) { look.id = e.pointerId; look.x = e.clientX; look.y = e.clientY; }
+});
+addEventListener('pointermove', (e) => {
+  if (e.pointerId !== look.id) return;
+  lookBy(e.clientX - look.x, e.clientY - look.y); look.x = e.clientX; look.y = e.clientY;
+});
+const endLook = (e) => { if (e.pointerId === look.id) look.id = null; };
+addEventListener('pointerup', endLook); addEventListener('pointercancel', endLook);
+// the move stick
+const stickEl = $('stick'), knob = stickEl.firstElementChild, STICK_R = 50;
+const moveStick = (e) => {
+  const r = stickEl.getBoundingClientRect();
+  let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+  const l = Math.hypot(dx, dy); if (l > STICK_R) { dx *= STICK_R / l; dy *= STICK_R / l; }
+  stick.x = dx / STICK_R; stick.y = dy / STICK_R;
+  knob.style.transform = `translate(${dx}px, ${dy}px)`;
+};
+const releaseStick = (e) => { if (e.pointerId !== stick.id) return; stick.id = null; stick.x = stick.y = 0; knob.style.transform = ''; };
+stickEl.addEventListener('pointerdown', (e) => { e.preventDefault(); if (stick.id !== null) return; stick.id = e.pointerId; stickEl.setPointerCapture(e.pointerId); moveStick(e); });
+stickEl.addEventListener('pointermove', (e) => { if (e.pointerId === stick.id) moveStick(e); });
+stickEl.addEventListener('pointerup', releaseStick); stickEl.addEventListener('pointercancel', releaseStick);
+// buttons: `hold` runs on press and release, `tap` once per press
+function touchButton(id, { hold, tap, lookWhileHeld = false }) {
+  const b = $(id); let pid = null, lx = 0, ly = 0;
+  b.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); if (pid !== null) return;
+    pid = e.pointerId; lx = e.clientX; ly = e.clientY; b.setPointerCapture(e.pointerId); sfx.unlock();
+    b.classList.add('on'); hold?.(true); tap?.();
+  });
+  if (lookWhileHeld) b.addEventListener('pointermove', (e) => { if (e.pointerId !== pid) return; lookBy(e.clientX - lx, e.clientY - ly); lx = e.clientX; ly = e.clientY; });
+  const up = (e) => { if (e.pointerId !== pid) return; pid = null; if (id !== 'tAim') b.classList.remove('on'); hold?.(false); };
+  b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
+  b.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+const fireHeld = new Set();
+for (const id of ['tFire', 'tFire2']) touchButton(id, { hold: (on) => { if (on) { fireHeld.add(id); P.firePress = true; } else fireHeld.delete(id); P.triggerHeld = fireHeld.size > 0; }, lookWhileHeld: true });
+touchButton('tAim', { tap: () => { P.aimToggle = !P.aimToggle; $('tAim').classList.toggle('on', P.aimToggle); } });
+touchButton('tReload', { tap: reload });
+touchButton('tJump', { hold: (on) => { if (on) input.keys.add(' '); else input.keys.delete(' '); } });
+touchButton('tNext', { tap: () => switchTo((P.cur + 1) % vm.length) });
+touchButton('tInspect', { tap: inspect });
+touchButton('tReset', { tap: () => { range.spawnLoose(); range.resetSteel(); decals.clear(); feed('Targets reset'); } });
 
 // ---------------------------------------------------------------- loop
 vm[0].rig.visible = true;
