@@ -9,6 +9,24 @@ npm test       # bakes every weapon clip and checks the gun states
 
 Open `index.html` through a server (ES modules don't load from `file://`) and click **Step up to the line**.
 
+## Ember Glade (fire mage)
+
+`mage.html` (`npm start`, then open `/mage.html`) is a second, third-person playground built on the same vendored V5 engine: a small dusk meadow, an **Ember Mage** character and the fire powers to play with.
+
+| Action | Keys |
+| --- | --- |
+| Move · jump · walk/run | WASD · Space · Q |
+| Fireball | Left mouse |
+| Flame stream (hold) | Right mouse |
+| Ground slam, a ring of fire | E |
+| Restore the glade · time of day · hide help | R · T · H |
+
+- **The character** (`src/mage/mage.js`): 36 parametric parts (superquadric torso and head, tube sleeves, capsule fingers, cone hat, lathe skirt) bound to a humanoid skeleton with two-joint fingers. Idle, Walk and Run come from the engine's gait synthesizer (`synthesizeIdle`, `synthesizeLocomotion`); Fireball, Flamethrower, Slam and Jump are `keyPoseClip` actions with events (`fireball` when the hand opens, `slam` when the fists land). Locomotion is a `BlendSpace1D` on speed, the casts play on a masked upper-body `AnimLayer` so you can throw while running, and the slam plays as a full-body layer.
+- **The glade** (`src/mage/world.js`): flagstone plaza with a brazier, standing stones, a timber hut, a fenced hay yard, trees, straw dummies, a pond, and crates and barrels that are physics bodies. Everything wooden is a `FireSystem` burnable: it heats its neighbours (downwind first), catches, chars, then burns out to embers and smoke, so one hay bale can take the whole glade.
+- **The powers** (`src/mage/game.js`): fireballs are ballistic projectiles with a light and a flame trail that explode on impact (`igniteAt`, `world.explode`, scorch decals, screen shake); the flame stream is a particle jet that ignites everything along the aimed cone; the slam sends a ring of fire outward. Powers cost ember, which refills slowly, and fast next to the brazier.
+
+`npm test` also checks the mage: bones, clips and events, feet above the floor in every cycle, and that fire spreads from one bale.
+
 ## Controls
 
 | Action | Keys |
@@ -76,6 +94,8 @@ index.html            the game page and HUD
 src/game.js           player, weapons, shooting, HUD
 src/range.js          the range and its targets
 src/audio.js          synthesised sound effects
+mage.html             Ember Glade, the fire-mage playground
+src/mage/             mage.js (character and clips), world.js (the glade), game.js (powers, camera), sfx.js
 src/weapons/          rig.js (arms, shape helpers, choreography baker), m4a1.js, sniper.js, shotgun.js, revolver.js, smg.js, double.js, garand.js, mp7.js
 assets/               every gun as a ShapeForge character JSON for Studio (File > Open) — regenerate with node tools/export-studio.mjs
 engine/               ShapeForge Engine V5 (vendored, unmodified)

@@ -6,6 +6,6 @@
   "license": "MIT",
   "scripts": {
     "start": "npx --yes http-server -p 8080 -c-1 .",
-    "test": "node tools/test-weapons.mjs && node tools/test-props.mjs"
+    "test": "node tools/test-weapons.mjs && node tools/test-props.mjs && node tools/test-mage.mjs"
   }
 }
