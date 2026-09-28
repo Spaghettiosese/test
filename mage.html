@@ -44,6 +44,7 @@
   #tFire { right: max(24px, env(safe-area-inset-right)); bottom: max(34px, env(safe-area-inset-bottom)); width: 88px; height: 88px; font-size: 14px; }
   #tFlame { right: calc(max(24px, env(safe-area-inset-right)) + 100px); bottom: max(26px, env(safe-area-inset-bottom)); width: 70px; height: 70px; }
   #tSlam { right: max(24px, env(safe-area-inset-right)); bottom: calc(max(34px, env(safe-area-inset-bottom)) + 100px); width: 68px; height: 68px; }
+  #tPhoenix { right: calc(max(24px, env(safe-area-inset-right)) + 84px); bottom: calc(max(34px, env(safe-area-inset-bottom)) + 168px); width: 64px; height: 64px; font-size: 10px; }
   #tJump { right: calc(max(24px, env(safe-area-inset-right)) + 84px); bottom: calc(max(26px, env(safe-area-inset-bottom)) + 84px); width: 60px; height: 60px; }
   #tReset { right: max(16px, env(safe-area-inset-right)); top: 64px; width: 44px; height: 44px; font-size: 10px; }
   .touch .mana { right: auto; left: 50%; transform: translateX(-50%); bottom: auto; top: 12px; width: min(260px, 36vw); }
@@ -65,12 +66,12 @@
 <div class="hud help panel" id="help">
   <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Space</kbd> jump · <kbd>Q</kbd> walk/run</span>
   <span><kbd>Left click</kbd> fireball · <kbd>Right click</kbd> hold for flame stream</span>
-  <span><kbd>E</kbd> ground slam fire nova · <kbd>R</kbd> restore glade · <kbd>T</kbd> time of day · <kbd>H</kbd> hide</span>
+  <span><kbd>E</kbd> fire nova · <kbd>F</kbd> Phoenix · <kbd>R</kbd> restore glade · <kbd>T</kbd> time of day · <kbd>H</kbd> hide</span>
 </div>
 
 <div id="touch" hidden>
   <div id="stick"><div id="knob"></div></div>
-  <div class="tb" id="tFire">Fire</div><div class="tb" id="tFlame">Flame</div><div class="tb" id="tSlam">Nova</div><div class="tb" id="tJump">Jump</div><div class="tb" id="tReset">Reset</div>
+  <div class="tb" id="tFire">Fire</div><div class="tb" id="tFlame">Flame</div><div class="tb" id="tSlam">Nova</div><div class="tb" id="tPhoenix">Phoenix</div><div class="tb" id="tJump">Jump</div><div class="tb" id="tReset">Reset</div>
 </div>
 <div class="menu" id="menu">
   <div>
@@ -81,6 +82,7 @@
       <tr><td><kbd>Mouse</kbd></td><td>aim · left click throws a fireball</td></tr>
       <tr><td><kbd>Right click</kbd></td><td>hold to breathe a stream of flame</td></tr>
       <tr><td><kbd>E</kbd></td><td>slam the ground: a ring of fire</td></tr>
+      <tr><td><kbd>F</kbd></td><td>summon the Phoenix</td></tr>
     </table>
     <button id="start">Step into the glade</button>
     <p style="margin-top:16px;font-size:13px">Built with the ShapeForge Engine V5: parametric character, rig, gait and key-pose animation, FireSystem, physics.</p>

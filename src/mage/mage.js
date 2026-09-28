@@ -150,6 +150,16 @@ function clipDefs(sk) {
     { t: 1.5, hips: [0, 0.955, 0], bones: { spine: [0, 0, 0], chest: [0, 0, 0], head: [0, 0, 0] }, arms: { R: { target: [-0.22, 1.05, 0.2], pole: [-1, -0.4, -0.3] }, L: { target: [0.22, 1.05, 0.2], pole: [1, -0.4, -0.3] } }, hands: { R: 'relaxed', L: 'relaxed' } },
   ], { events: [{ t: 0.62, name: 'slam' }] }));
 
+  // Phoenix: sweep both arms low and back, rise on tiptoe as they spread overhead (the bird
+  // is summoned), then throw both hands forward to send it off.
+  out.push(keyPoseClip(sk, 'Phoenix', [
+    { t: 0, hips: [0, 0.955, 0], arms: { R: { target: [-0.22, 1.05, 0.2], pole: [-1, -0.4, -0.3] }, L: { target: [0.22, 1.05, 0.2], pole: [1, -0.4, -0.3] } }, legs: { L: 'plant', R: 'plant' }, hands: { R: 'relaxed', L: 'relaxed' } },
+    { t: 0.3, hips: [0, 0.9, -0.03], bones: { spine: [8, 0, 0], chest: [4, 0, 0], head: [8, 0, 0] }, arms: { R: { target: [-0.36, 0.72, -0.16], pole: [-1, -0.2, -0.5] }, L: { target: [0.36, 0.72, -0.16], pole: [1, -0.2, -0.5] } }, hands: { R: 'claw', L: 'claw' } },
+    { t: 0.7, hips: [0, 0.975, -0.02], bones: { spine: [-12, 0, 0], chest: [-10, 0, 0], head: [-18, 0, 0] }, arms: { R: { target: [-0.62, 1.86, 0.02], pole: [-1, 0, -0.3] }, L: { target: [0.62, 1.86, 0.02], pole: [1, 0, -0.3] } }, hands: { R: 'spread', L: 'spread' } },
+    { t: 0.95, hips: [0, 0.94, 0.04], bones: { spine: [10, 0, 0], chest: [6, 0, 0], head: [-4, 0, 0] }, arms: { R: { target: [-0.14, 1.32, 0.58], pole: [-1, -0.3, 0.2] }, L: { target: [0.14, 1.32, 0.58], pole: [1, -0.3, 0.2] } }, hands: { R: 'open', L: 'open' } },
+    { t: 1.5, hips: [0, 0.955, 0], bones: { spine: [0, 0, 0], chest: [0, 0, 0], head: [0, 0, 0] }, arms: { R: { target: [-0.22, 1.05, 0.2], pole: [-1, -0.4, -0.3] }, L: { target: [0.22, 1.05, 0.2], pole: [1, -0.4, -0.3] } }, hands: { R: 'relaxed', L: 'relaxed' } },
+  ], { events: [{ t: 0.72, name: 'phoenix' }] }));
+
   // Jump: crouch, launch with the arms up, tuck, land.
   out.push(keyPoseClip(sk, 'Jump', [
     { t: 0, hips: [0, 0.955, 0], arms: { R: null, L: null }, legs: { L: 'plant', R: 'plant' }, hands: { R: 'relaxed', L: 'relaxed' } },

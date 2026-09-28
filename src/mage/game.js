@@ -6,6 +6,7 @@ import * as E from '../../engine/index.js';
 import { createMage, bonePoint } from './mage.js';
 import { buildGlade } from './world.js';
 import { FireSfx } from './sfx.js';
+import { Phoenix } from './phoenix.js';
 
 const $ = (id) => document.getElementById(id);
 const PM = E.physicsMath;
@@ -76,6 +77,7 @@ function explode(p, normal, radius = 2.4, power = 9) {
   const d = Math.hypot(p[0] - cc.position[0], p[2] - cc.position[2]); S.shake = Math.max(S.shake, Math.min(1, 6 / (d + 2)) * 0.5);
   sfx.boom(Math.min(1.2, 0.7 + radius * 0.2));
   if (n) feed(`${n} thing${n > 1 ? 's' : ''} caught fire`);
+  spawnPatch(p, 1);
 }
 
 // ---------------------------------------------------------------- powers
@@ -100,7 +102,9 @@ function updateFireballs(dt) {
     sparks.emit(f.p, { count: 1, color: [8, 5, 1.5, 1], colorEnd: [2, 0.3, 0.05, 0.3], size: 0.04, grow: 0.5, spread: 1.2, up: 0.5, life: 0.6, jitter: 0.05 });
     if (Math.random() < dt * 12) fire.smoke.emit(f.p, { count: 1, color: [0.1, 0.09, 0.08, 0.4], colorEnd: [0.3, 0.3, 0.3, 0.1], size: 0.25, grow: 4, spread: 0.2, up: 0.4, buoyancy: 0.5, life: 2, jitter: 0.1 });
     f.light.position.set(f.p);
-    if (hit || f.life <= 0) {
+    let near = null;
+    if (!hit) for (const b of fire.burnables) if (!b.permanent && b.state !== 'burnt' && !b.userData?.patch && E.vec3.dist(f.p, b.position) < b.radius * 0.85 + 0.15) { near = b; break; }
+    if (hit || near || f.life <= 0) {
       const p = hit ? hit.point : f.p;
       explode(p, hit ? hit.normal : null, 2.4, 9);
       if (hit && hit.body.isDynamic) hit.body.applyImpulse([dir[0] * 40, dir[1] * 40 + 15, dir[2] * 40], hit.point);
@@ -132,6 +136,32 @@ function breathe(dt) {
   }
   S.breathSnd -= dt; if (S.breathSnd <= 0) { S.breathSnd = 0.16; sfx.breath(); }
 }
+let phoenix = null;
+function summonPhoenix() {
+  if (S.mana < 45 || phoenix || S.slamT > 0 || S.cooldown > 0 || S.breathing) return;
+  S.mana -= 45; S.cooldown = 1; S.castT = 1.3;
+  cast.playOnce('Phoenix', { fadeIn: 0.1, fadeOut: 0.3, speed: 1 });
+}
+function launchPhoenix() { // the Phoenix clip's 'phoenix' event: the bird takes flight
+  const from = madd(head(), [0, 0.9, 0], 1);
+  let to = aimPoint();
+  const dx = to[0] - from[0], dz = to[2] - from[2], d = Math.hypot(dx, dz);
+  if (d > 55) to = [from[0] + (dx / d) * 55, to[1], from[2] + (dz / d) * 55];
+  to = [to[0], Math.max(to[1], 0.6), to[2]];
+  phoenix = new Phoenix(scene, from, to, {
+    flames: (p, n, size) => fire.flames.emit(p, { count: n, color: [3.6, 2.2, 0.7, 0.6], colorEnd: [1, 0.15, 0.03, 0.2], size, grow: 1.2, spread: 0.5, up: 0.2, buoyancy: 1.4, life: 0.6, jitter: 0.25 }),
+    sparks: (p, n) => sparks.emit(p, { count: n, color: [8, 4.5, 1.2, 1], colorEnd: [2.5, 0.4, 0.05, 0.3], size: 0.05, grow: 0.5, spread: 1.5, up: 0.4, life: 1, jitter: 0.4 }),
+    trail: (p, back) => { if (Math.random() < 0.5) fire.smoke.emit(p, { count: 1, color: [0.12, 0.1, 0.09, 0.4], colorEnd: [0.3, 0.3, 0.3, 0.08], size: 0.4, grow: 5, spread: 0.3, up: 0.3, buoyancy: 0.5, life: 2.5, jitter: 0.3 }); if (p[1] < 1.6 && Math.hypot(p[0] - cc.position[0], p[2] - cc.position[2]) > 4 && Math.random() < 0.3) spawnPatch([p[0], 0, p[2]], 2); },
+    ignite: (p, r) => fire.igniteAt(p, r),
+    blocked: (a, b) => { const dir = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], l = Math.hypot(...dir); if (l < 1e-4) return false; return !!world.raycast(a, dir, l + 0.5, { ignore: cc.body }); },
+    impact: (p) => { explode(p, null, 6.5, 26); burst(p, { flames: 120, sparksN: 100, smoke: 25, size: 0.8, power: 7 }); S.shake = Math.max(S.shake, 0.7); for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; spawnPatch([p[0] + Math.sin(a) * 3.5, 0, p[2] + Math.cos(a) * 3.5], 1); } feed('Phoenix strikes!'); },
+    home: () => head(),
+    arrive: () => { S.mana = Math.min(S.maxMana, S.mana + 25); sfx.whoosh(0.6); },
+    onDone: () => { phoenix = null; },
+  });
+  sfx.whoosh(1.4);
+}
+function updatePhoenix(dt) { if (phoenix) phoenix.update(dt); }
 function slam() {
   if (S.mana < 35 || S.slamT > 0 || S.cooldown > 0 || !cc.grounded) return;
   S.mana -= 35; S.slamT = 1.1; S.cooldown = 0.6;
@@ -153,13 +183,74 @@ function nova() { // the Slam clip's 'slam' event: the fists hit the ground
 mage.mixer.on((e) => {
   if (e.name === 'fireball') launchFireball();
   if (e.name === 'slam') nova();
+  if (e.name === 'phoenix') launchPhoenix();
   if (e.name === 'footstep' && cc.grounded && S.moving > 1.2 && Math.random() < 0.5) sfx.thump();
 });
+
+// ---------------------------------------------------------------- spread
+// Fire creeps across the meadow as short-lived grass fires that light whatever they touch, and
+// burning objects throw embers downwind that start new fires further out.
+const patches = [], embers = [];
+const wind = fire.wind;
+function spawnPatch(p, gen = 0) {
+  if (patches.length >= 60 || Math.abs(p[0]) > 60 || Math.abs(p[2]) > 60) return null;
+  for (const q of patches) if (Math.hypot(q.position[0] - p[0], q.position[2] - p[2]) < 0.9) return null;
+  const b = fire.add([p[0], 0.1, p[2]], { radius: 0.55, fuel: 6 + Math.random() * 3, flammability: 1.6, ignition: 0.5, height: 0.6, char: false });
+  b.userData = { name: 'Grass', patch: true, gen }; patches.push(b); fire.ignite(b, 0.3); return b;
+}
+let spreadT = 0;
+function updateSpread(dt) {
+  spreadT -= dt;
+  if (spreadT <= 0) {
+    spreadT = 0.35;
+    for (const b of fire.burning) {
+      if (b.permanent) continue;
+      const u = b.userData || {}, gen = u.patch ? u.gen : 0;
+      if (u.patch && (gen >= 3 || Math.random() > 0.14)) continue;
+      if (!u.patch && Math.random() > 0.5 * Math.min(1, b.fire + 0.2)) continue;
+      const a = Math.random() * Math.PI * 2, r = b.radius * 0.9 + 0.8 + Math.random() * 1.6;
+      spawnPatch([b.position[0] + Math.sin(a) * r + wind[0] * 1.2, 0, b.position[2] + Math.cos(a) * r + wind[2] * 1.2], gen + 1);
+    }
+    // embers: a burning thing spits a spark that lands downwind and lights what it hits
+    for (const b of fire.burning) {
+      if (b.permanent || b.userData?.patch || b.fire < 0.5 || Math.random() > 0.22) continue;
+      const d = 3 + Math.random() * 7, a = Math.atan2(wind[0], wind[2]) + (Math.random() - 0.5) * 1.6;
+      embers.push({ from: [b.position[0], b.position[1] + b.height * 0.6, b.position[2]], to: [b.position[0] + Math.sin(a) * d, 0.2, b.position[2] + Math.cos(a) * d], t: 0, dur: 0.9 + d * 0.12 });
+    }
+  }
+  for (let i = embers.length - 1; i >= 0; i--) {
+    const e = embers[i]; e.t += dt; const k = Math.min(1, e.t / e.dur);
+    const p = [e.from[0] + (e.to[0] - e.from[0]) * k, e.from[1] + (e.to[1] - e.from[1]) * k + Math.sin(k * Math.PI) * 2.5, e.from[2] + (e.to[2] - e.from[2]) * k];
+    sparks.emit(p, { count: 1, color: [8, 4, 1, 1], colorEnd: [3, 0.5, 0.05, 0.3], size: 0.06, grow: 0.5, spread: 0.1, up: 0.1, life: 0.4, jitter: 0.02 });
+    if (k >= 1) { embers.splice(i, 1); if (fire.igniteAt(e.to, 0.6) === 0 && Math.random() < 0.6) spawnPatch(e.to, 2); }
+  }
+}
+// burning things shrink and sag as their fuel goes, glow like embers through the char and flicker
+const baseScale = new Map();
+function updateBurnVisuals(dt) {
+  const t = fire.time;
+  for (const b of fire.burnables) {
+    const n = b.node; if (!n || b.permanent) continue;
+    const u = b.userData || {};
+    if (!baseScale.has(b)) baseScale.set(b, [...n.scale]);
+    if (b.state === 'burning' || b.state === 'burnt') {
+      const k = b.fuel === Infinity ? 1 : E.clamp(b.fuel / b.maxFuel, 0, 1);
+      if (u.collapse || u.prop) { const sc = baseScale.get(b), y = 0.45 + 0.55 * Math.sqrt(k), xz = 0.8 + 0.2 * k; n.scale.set([sc[0] * xz, sc[1] * y, sc[2] * xz]); }
+    }
+    if (b.mats && b.state === 'burning') {
+      const glow = b.fire * b.charred * (0.7 + 0.3 * Math.sin(t * 9 + b.id * 1.7) + 0.2 * Math.sin(t * 23 + b.id));
+      for (const { m } of b.mats) { m.emissive = '#ff4a10'; m.emissiveStrength = Math.max(0, glow) * 2.6; }
+    }
+  }
+  // dying grass fires leave a black scorch mark
+  for (const b of patches) if (b.fire > 0.5 && !b.userData.scorched) { b.userData.scorched = true; decals.add([b.position[0], 0, b.position[2]], [0, 1, 0], 0.9 + Math.random() * 0.6); }
+}
 
 // ---------------------------------------------------------------- fire hooks
 fire.onIgnite = (b) => { if (b.userData?.name && !b.permanent) sfx.whoosh(0.5); };
 fire.onBurntOut = (b) => {
   const u = b.userData || {};
+  if (u.patch) { fire.remove(b); patches.splice(patches.indexOf(b), 1); return; }
   if (u.prop) { // crates and barrels fall apart into embers
     world.remove(u.prop.body); scene.remove(u.prop.node); glade.props.splice(glade.props.indexOf(u.prop), 1); fire.remove(b); S.hitCount++;
   } else if (u.collapse && u.node) { scene.remove(u.node); u.node.parent?.remove(u.node); fire.remove(b); S.hitCount++; }
@@ -255,6 +346,7 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   if (key === 'q') { S.walk = !S.walk; feed(S.walk ? 'Walking' : 'Running'); }
   if (key === 'e') slam();
+  if (key === 'f') summonPhoenix();
   if (key === 'r') resetGlade();
   if (key === 't') { timeIdx = (timeIdx + 1) % TIMES.length; setTime(); feed(['Dusk', 'Night', 'Noon'][timeIdx]); }
   if (key === 'h') $('help').hidden = !$('help').hidden;
@@ -268,6 +360,8 @@ function resetGlade() {
   for (const b of [...fire.burnables]) if (!b.permanent) { fire.extinguish(b); b.fuel = b.maxFuel; b.heat = 0; b.fire = 0; b.state = 'fresh'; b.charred = 0; if (b.mats) fire._char(b); }
   for (const p of glade.props) { world.remove(p.body); scene.remove(p.node); }
   for (const b of fire.burnables.filter((x) => x.userData?.prop)) fire.remove(b);
+  for (const b of [...patches]) { fire.remove(b); } patches.length = 0; embers.length = 0; baseScale.clear();
+  if (phoenix) { scene.remove(phoenix.model.root); phoenix = null; }
   glade.props.length = 0; glade.buildProps(); decals.clear(); S.mana = 100; feed('The glade is restored');
 }
 
@@ -284,6 +378,7 @@ function step(dt) {
   world.step(dt);
   updateFireballs(dt);
   fire.update(dt, camera);
+  updateSpread(dt); updateBurnVisuals(dt); updatePhoenix(dt);
   sparks.update(dt);
   updateAura(dt);
   updateCamera(dt);
@@ -310,7 +405,7 @@ window.__mage = {
   S, input, cc, mage, world, fire, glade, camera, renderer, fireballs,
   start() { S.started = true; $('menu').hidden = true; },
   simulate(sec) { for (let t = 0; t < sec; t += 1 / 60) step(1 / 60); render(); },
-  throwFireball, slam, resetGlade,
+  throwFireball, slam, summonPhoenix, resetGlade, patches, get phoenix() { return phoenix; },
   look(yaw, pitch) { S.yaw = yaw; S.pitch = pitch; },
 };
 
@@ -338,6 +433,7 @@ if (touchMode) {
   btn('tFire', () => { input.lmb = true; throwFireball(); }, () => { input.lmb = false; });
   btn('tFlame', () => { input.rmb = true; }, () => { input.rmb = false; });
   btn('tSlam', slam);
+  btn('tPhoenix', summonPhoenix);
   btn('tJump', () => input.keys.add(' '), () => input.keys.delete(' '));
   btn('tReset', resetGlade);
 }
