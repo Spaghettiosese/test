@@ -68,6 +68,9 @@
   button.big { font: 700 16px system-ui, sans-serif; padding: 12px 26px; border: 0; border-radius: 8px; background: linear-gradient(#ff9a3a, #d9480f); color: #fff; cursor: pointer; box-shadow: 0 0 22px rgba(255, 110, 20, .45); }
   button.big.ice { background: linear-gradient(#5ab8f0, #1f5fa8); box-shadow: 0 0 22px rgba(90, 190, 255, .45); }
   button.big.ghost { background: rgba(255, 255, 255, .1); box-shadow: none; }
+  .pick button.big { opacity: .55; }
+  .pick button.big.sel { opacity: 1; outline: 2px solid #fff; }
+  #pickIce.sel { outline-color: #bfefff; }
   button.big:hover { filter: brightness(1.12); }
 
   .menu { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 60%, rgba(120, 40, 10, .45), rgba(10, 6, 5, .88)); text-align: center; overflow: auto; }
@@ -115,12 +118,12 @@
 <div class="hud feed" id="feed"></div>
 <div class="hud vitals panel">
   <div><small><span>Health</span></small><div class="bar"><i id="hpFill"></i></div></div>
-  <div><small><span>Ember</span><span>refill at a brazier</span></small><div class="bar"><i id="manaFill"></i></div></div>
+  <div><small><span id="resLabel">Ember</span><span id="resHint">refill at a brazier</span></small><div class="bar"><i id="manaFill"></i></div></div>
 </div>
 <div class="hud help panel" id="help">
   <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Space</kbd> jump · <kbd>Shift</kbd> flame dash (dodge)</span>
   <span><kbd>Left click</kbd> fireball · <kbd>Right click</kbd> hold for flame stream</span>
-  <span><kbd>E</kbd> nova · <kbd>F</kbd> Phoenix · <kbd>G</kbd> meteor storm · <kbd>V</kbd> inferno wall</span>
+  <span><kbd>E</kbd> nova · <kbd>F</kbd> Phoenix / glacier spikes · <kbd>G</kbd> meteors / icicle storm · <kbd>V</kbd> inferno wall / ice wall</span>
   <span><kbd>R</kbd> restore glade · <kbd>T</kbd> time of day · <kbd>H</kbd> hide help</span>
 </div>
 <div id="banner" class="hud" hidden></div>
@@ -150,6 +153,8 @@
       <tr><td><kbd>Mouse</kbd></td><td>aim · left click fireball · hold right click for flames</td></tr>
       <tr><td><kbd>E</kbd> <kbd>F</kbd> <kbd>G</kbd> <kbd>V</kbd></td><td>nova · Phoenix · meteor storm · inferno wall</td></tr>
     </table>
+    <p style="margin:0 0 6px">Play as</p>
+    <div class="btns pick" style="margin-bottom:14px"><button class="big sel" id="pickFire">Fire Mage</button><button class="big ice" id="pickIce">Ice Mage</button></div>
     <div class="btns">
       <button class="big" id="startGlade">Ember Glade · sandbox</button>
       <button class="big ice" id="startBoss">Boss fight · Ice Mage</button>

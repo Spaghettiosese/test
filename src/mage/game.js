@@ -24,11 +24,15 @@ const sfx = new FireSfx();
 const cutscene = new Cutscene();
 
 // ---------------------------------------------------------------- the mage (one character, reused by both levels)
-const mage = createMage();
-const sk = mage.skeleton;
-const cast = mage.mixer.addLayer('cast', { mask: E.boneMask(sk, ['spine']) });
-const full = mage.mixer.addLayer('full', { mask: null });
-const locomotion = new E.BlendSpace1D(mage.mixer, [{ clip: 'Idle', x: 0 }, { clip: 'Walk', x: 1.35 }, { clip: 'Run', x: 4.4 }]);
+const chars = {};
+let mage, sk, cast, full, locomotion;
+function pickChar(element) { // 'fire' or 'ice': two playable characters, built once each
+  if (!chars[element]) {
+    const m = createMage({}, element === 'ice' ? 'ice' : 'fire'); m.mixer.on(onMageEvent);
+    chars[element] = { mage: m, cast: m.mixer.addLayer('cast', { mask: E.boneMask(m.skeleton, ['spine']) }), full: m.mixer.addLayer('full', { mask: null }), loco: new E.BlendSpace1D(m.mixer, [{ clip: 'Idle', x: 0 }, { clip: 'Walk', x: 1.35 }, { clip: 'Run', x: 4.4 }]) };
+  }
+  const c = chars[element]; mage = c.mage; cast = c.cast; full = c.full; locomotion = c.loco; sk = mage.skeleton;
+}
 
 // level state: rebuilt by loadLevel()
 let scene, env, world, fire, sparks, snow, destruct, cc, flash, handLight;
@@ -37,7 +41,7 @@ const TIMES = [18.3, 20.6, 12.5]; let timeIdx = 0;
 const S = {
   yaw: 0, pitch: -0.18, face: 0, dist: 4.6, mana: 100, maxMana: 100, hp: 100, maxHp: 100, breathing: false, breathT: 0, breathSnd: 0, castT: 0, slamT: 0,
   cooldown: 0, shake: 0, moving: 0, started: false, airborne: false, hitCount: 0, walk: false, boom: 0, crackleT: 0,
-  invuln: 0, dashT: 0, dashCd: 0, dashDir: [0, 0, 1], chill: 0, frozen: false, dead: false, ended: false, puppet: null,
+  element: 'fire', invuln: 0, dashT: 0, dashCd: 0, dashDir: [0, 0, 1], chill: 0, frozen: false, dead: false, ended: false, puppet: null,
 };
 const input = { keys: new Set(), lmb: false, rmb: false, stick: { x: 0, y: 0 } };
 const touchMode = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
@@ -64,6 +68,7 @@ function burst(p, { flames = 40, sparksN = 30, smoke = 10, size = 0.5, power = 3
   sparks.emit(p, { count: sparksN, color: [7, 4, 1.2, 1], colorEnd: [2.5, 0.4, 0.05, 0.4], size: 0.05, grow: 0.4, spread: power * 1.5, up: power * 1.6, life: 1.2, jitter: 0.2 });
   fire.smoke.emit(p, { count: smoke, color: [0.12, 0.11, 0.1, 0.55], colorEnd: [0.35, 0.34, 0.33, 0.1], size: size * 1.1, grow: 5, spread: power * 0.4, up: 1.2, buoyancy: 0.7, life: 3.5, jitter: 0.3 });
 }
+const el = () => (level === 'boss' ? 'fire' : S.element);
 const bossOn = () => boss && boss.active && !boss.hidden && !boss.dead;
 // a blast: ignites, shoves rigid bodies, wears down destructibles and hurts the boss
 function explode(p, normal, radius = 2.4, power = 9, dmg = 34) {
@@ -71,7 +76,7 @@ function explode(p, normal, radius = 2.4, power = 9, dmg = 34) {
   world.explode(p, radius * 1.7, power);
   const broke = destruct.damage(p, radius * 1.7, power * 8);
   burst(p, { flames: 60, sparksN: 45, smoke: 14, size: 0.55, power: 3.6 });
-  flash.position.set([p[0], p[1] + 0.4, p[2]]); S.boom = 1; flash.range = 8 + radius * 4;
+  flash.color = '#ffb266'; flash.position.set([p[0], p[1] + 0.4, p[2]]); S.boom = 1; flash.range = 8 + radius * 4;
   const d = Math.hypot(p[0] - cc.position[0], p[2] - cc.position[2]); S.shake = Math.max(S.shake, Math.min(1, 6 / (d + 2)) * 0.5);
   sfx.boom(Math.min(1.2, 0.7 + radius * 0.2));
   if (n) feed(`${n} thing${n > 1 ? 's' : ''} caught fire`);
@@ -130,9 +135,10 @@ function throwFireball() {
 }
 function launchFireball() { // the Fireball clip's 'fireball' event: the hand opens
   const from = handR(), to = aimPoint(), dir = norm([to[0] - from[0], to[1] - from[1], to[2] - from[2]]);
-  const light = new E.Light('point', { color: '#ff8a3a', intensity: 7, range: 9, flicker: 0.5 }); scene.add(light);
-  fireballs.push({ p: from, v: [dir[0] * 26, dir[1] * 26 + 0.8, dir[2] * 26], life: 3, light });
-  sfx.whoosh(1);
+  const ice = el() === 'ice';
+  const light = new E.Light('point', { color: ice ? '#7fd6ff' : '#ff8a3a', intensity: 7, range: 9, flicker: 0.5 }); scene.add(light);
+  fireballs.push({ p: from, v: [dir[0] * (ice ? 32 : 26), dir[1] * (ice ? 32 : 26) + 0.8, dir[2] * (ice ? 32 : 26)], life: 3, light, ice });
+  if (ice) sfx.ice(0.8); else sfx.whoosh(1);
 }
 function updateFireballs(dt) {
   for (let i = fireballs.length - 1; i >= 0; i--) {
@@ -140,16 +146,17 @@ function updateFireballs(dt) {
     f.life -= dt; f.v[1] -= 3.2 * dt;
     const len = Math.hypot(...f.v) * dt, dir = norm(f.v);
     const hit = ray(f.p, dir, len + 0.25);
-    fire.flames.emit(f.p, { count: 3, color: [4.2, 2.6, 0.7, 0.8], colorEnd: [1, 0.15, 0.03, 0.2], size: 0.34, grow: 0.3, spread: 0.5, up: 0.3, buoyancy: 1, life: 0.35, jitter: 0.08 });
-    sparks.emit(f.p, { count: 1, color: [8, 5, 1.5, 1], colorEnd: [2, 0.3, 0.05, 0.3], size: 0.04, grow: 0.5, spread: 1.2, up: 0.5, life: 0.6, jitter: 0.05 });
-    if (Math.random() < dt * 12) fire.smoke.emit(f.p, { count: 1, color: [0.1, 0.09, 0.08, 0.4], colorEnd: [0.3, 0.3, 0.3, 0.1], size: 0.25, grow: 4, spread: 0.2, up: 0.4, buoyancy: 0.5, life: 2, jitter: 0.1 });
+    if (f.ice) { mist(f.p, 2, 0.3, 0.4, 0.1); glint(f.p, 3, 1.2); }
+    else { fire.flames.emit(f.p, { count: 3, color: [4.2, 2.6, 0.7, 0.8], colorEnd: [1, 0.15, 0.03, 0.2], size: 0.34, grow: 0.3, spread: 0.5, up: 0.3, buoyancy: 1, life: 0.35, jitter: 0.08 });
+    sparks.emit(f.p, { count: 1, color: [8, 5, 1.5, 1], colorEnd: [2, 0.3, 0.05, 0.3], size: 0.04, grow: 0.5, spread: 1.2, up: 0.5, life: 0.6, jitter: 0.05 }); }
+    if (!f.ice && Math.random() < dt * 12) fire.smoke.emit(f.p, { count: 1, color: [0.1, 0.09, 0.08, 0.4], colorEnd: [0.3, 0.3, 0.3, 0.1], size: 0.25, grow: 4, spread: 0.2, up: 0.4, buoyancy: 0.5, life: 2, jitter: 0.1 });
     f.light.position.set(f.p);
     let near = null;
     if (!hit) for (const b of fire.burnables) if (!b.permanent && b.state !== 'burnt' && !b.userData?.patch && E.vec3.dist(f.p, b.position) < b.radius * 0.85 + 0.15) { near = b; break; }
     const onBoss = bossOn() && boss.hits(f.p, 0.3);
     if (hit || near || onBoss || f.life <= 0) {
       const p = hit ? hit.point : f.p;
-      explode(p, hit ? hit.normal : null, 2.4, 9, 36);
+      if (f.ice) iceBlast(p, 2.6, 9); else explode(p, hit ? hit.normal : null, 2.4, 9, 36);
       if (hit && hit.body.isDynamic) hit.body.applyImpulse([dir[0] * 40, dir[1] * 40 + 15, dir[2] * 40], hit.point);
       scene.remove(f.light); fireballs.splice(i, 1); continue;
     }
@@ -163,17 +170,21 @@ function breathe(dt) {
   S.mana = Math.max(0, S.mana - 18 * dt);
   const a = handR(), b = handL(), from = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
   const to = aimPoint(), dir = norm([to[0] - from[0], to[1] - from[1], to[2] - from[2]]);
-  for (let i = 0; i < 8; i++) {
+  const ice = el() === 'ice';
+  if (ice) {
+    for (let i = 0; i < 10; i++) { const s = 8 + Math.random() * 7, sp = 0.18 * (0.5 + Math.random()); fire.smoke.emit(from, { count: 1, color: [0.85, 0.94, 1, 0.5], colorEnd: [0.9, 0.97, 1, 0.05], size: 0.2, grow: 6, spread: 0.2, up: 0, vel: [dir[0] * s + (Math.random() - 0.5) * s * sp, dir[1] * s + (Math.random() - 0.5) * s * sp, dir[2] * s + (Math.random() - 0.5) * s * sp], buoyancy: 0, life: 0.7, jitter: 0.08 }); }
+    if (Math.random() < 0.6) sparks.emit(from, { count: 1, color: [1.5, 3, 5, 1], colorEnd: [0.3, 1, 2.5, 0.3], size: 0.05, grow: 0.5, spread: 0.6, up: 0.2, vel: [dir[0] * 8, dir[1] * 8, dir[2] * 8], life: 0.9, jitter: 0.05 });
+  } else for (let i = 0; i < 8; i++) {
     const s = 6 + Math.random() * 5, sp = 0.5 + Math.random() * 0.6;
     fire.flames.emit(from, { count: 1, color: [3, 1.5, 0.4, 0.5], colorEnd: [0.9, 0.12, 0.03, 0.15], size: 0.14, grow: 3.2, spread: 0.6, up: 0.2, vel: [dir[0] * s + (Math.random() - 0.5) * sp, dir[1] * s + (Math.random() - 0.5) * sp, dir[2] * s + (Math.random() - 0.5) * sp], buoyancy: 1.2, life: 0.55, jitter: 0.05 });
   }
-  if (Math.random() < 0.5) sparks.emit(from, { count: 1, color: [8, 5, 1.5, 1], colorEnd: [2, 0.3, 0.05, 0.3], size: 0.035, grow: 0.5, spread: 0.6, up: 0.2, vel: [dir[0] * 7, dir[1] * 7, dir[2] * 7], life: 0.9, jitter: 0.05 });
+  if (!ice && Math.random() < 0.5) sparks.emit(from, { count: 1, color: [8, 5, 1.5, 1], colorEnd: [2, 0.3, 0.05, 0.3], size: 0.035, grow: 0.5, spread: 0.6, up: 0.2, vel: [dir[0] * 7, dir[1] * 7, dir[2] * 7], life: 0.9, jitter: 0.05 });
   S.breathT -= dt;
   if (S.breathT <= 0) {
     S.breathT = 0.1;
     let n = 0;
     for (let d = 1; d <= 7.5; d += 0.9) {
-      const pt = madd(from, dir, d); n += fire.igniteAt(pt, 0.35 + d * 0.11);
+      const pt = madd(from, dir, d); if (ice) { extinguishNear(pt, 0.35 + d * 0.11); continue; } n += fire.igniteAt(pt, 0.35 + d * 0.11);
       if (bossOn() && boss.hits(pt, 0.35 + d * 0.06)) { boss.hurt(4.2, pt); break; }
     }
     if (n) feed(`${n} thing${n > 1 ? 's' : ''} caught fire`);
@@ -181,7 +192,7 @@ function breathe(dt) {
     const hit = ray(from, dir, 8);
     if (hit && hit.body.isDynamic) hit.body.applyImpulse([dir[0] * 4, dir[1] * 4 + 1, dir[2] * 4], hit.point);
   }
-  S.breathSnd -= dt; if (S.breathSnd <= 0) { S.breathSnd = 0.16; sfx.breath(); }
+  S.breathSnd -= dt; if (S.breathSnd <= 0) { S.breathSnd = 0.16; if (ice) sfx.ice(0.3); else sfx.breath(); }
 }
 function summonPhoenix() {
   if (S.mana < 45 || phoenix || S.slamT > 0 || S.cooldown > 0 || S.breathing || S.frozen || S.dead) return;
@@ -189,6 +200,7 @@ function summonPhoenix() {
   cast.playOnce('Phoenix', { fadeIn: 0.1, fadeOut: 0.3, speed: 1 });
 }
 function launchPhoenix() { // the Phoenix clip's 'phoenix' event: the bird takes flight
+  if (el() === 'ice') return iceSpikeLine();
   const from = madd(head(), [0, 0.9, 0], 1);
   let to = bossOn() && Math.random() < 0 ? boss.center() : aimPoint();
   const dx = to[0] - from[0], dz = to[2] - from[2], d = Math.hypot(dx, dz);
@@ -213,6 +225,7 @@ function slam() {
   full.playOnce('Slam', { fadeIn: 0.1, fadeOut: 0.35, speed: 1.1 });
 }
 function nova() { // the Slam clip's 'slam' event: the fists hit the ground
+  if (el() === 'ice') return iceNova();
   const p = [cc.position[0], 0.05, cc.position[2]];
   burst(p, { flames: 90, sparksN: 70, smoke: 20, size: 0.6, power: 6 });
   for (let i = 0; i < 90; i++) { const a = (i / 90) * Math.PI * 2; fire.flames.emit(p, { count: 1, color: [3.6, 2.2, 0.8, 0.6], colorEnd: [1, 0.15, 0.03, 0.2], size: 0.4, grow: 1.2, spread: 0.1, up: 0.4, vel: [Math.sin(a) * 9, 0, Math.cos(a) * 9], buoyancy: 1.2, life: 0.75, jitter: 0.1 }); }
@@ -234,21 +247,22 @@ function launchMeteors() { // the Meteor clip's 'meteors' event: hands snap down
   let tgt = aimPoint(); if (bossOn() && boss.hits(tgt, 6)) tgt = [boss.center()[0], 0, boss.center()[2]];
   for (let i = 0; i < 8; i++) {
     const a = Math.random() * Math.PI * 2, r = i === 0 ? 0 : 1.5 + Math.random() * 6.5;
-    meteors.push({ tgt: [tgt[0] + Math.sin(a) * r, Math.max(0, tgt[1]), tgt[2] + Math.cos(a) * r], delay: i * 0.16 + Math.random() * 0.1, mesh: null, p: null });
+    meteors.push({ ice: el() === 'ice', tgt: [tgt[0] + Math.sin(a) * r, Math.max(0, tgt[1]), tgt[2] + Math.cos(a) * r], delay: i * 0.16 + Math.random() * 0.1, mesh: null, p: null });
   }
-  sfx.whoosh(1.6); feed('Meteor Storm!');
+  if (el() === 'ice') { sfx.ice(1.6); feed('Icicle Storm!'); } else { sfx.whoosh(1.6); feed('Meteor Storm!'); }
 }
 function updateMeteors(dt) {
   const dir = norm([0.32, -1, 0.14]), speed = 34;
   for (let i = meteors.length - 1; i >= 0; i--) {
     const m = meteors[i];
-    if (m.delay > 0) { m.delay -= dt; if (m.delay <= 0) { m.p = madd(m.tgt, dir, -48); m.mesh = new E.Mesh(meteorGeo, METEOR, 'Meteor'); m.mesh.castShadow = false; scene.add(m.mesh); } else if (Math.random() < 0.5) sparks.emit([m.tgt[0], 0.15, m.tgt[2]], { count: 1, color: [4, 1.6, 0.4, 0.8], colorEnd: [1, 0.2, 0.05, 0.2], size: 0.14, grow: 0.4, spread: 1.6, up: 0.1, life: 0.35, jitter: 0.6 }); if (m.delay > 0) continue; }
-    m.p = madd(m.p, dir, speed * dt); m.mesh.position.set(m.p); m.mesh.setEuler(m.p[1] * 30, m.p[1] * 22, 0);
+    if (m.delay > 0) { m.delay -= dt; if (m.delay <= 0) { m.p = madd(m.tgt, dir, -48); m.mesh = m.ice ? new E.Mesh(shardGeo, ICE_SHARD, 'Icicle') : new E.Mesh(meteorGeo, METEOR, 'Meteor'); if (m.ice) m.mesh.scale.set([0.5, 3, 0.5]); m.mesh.castShadow = false; scene.add(m.mesh); } else if (Math.random() < 0.5) sparks.emit([m.tgt[0], 0.15, m.tgt[2]], { count: 1, color: [4, 1.6, 0.4, 0.8], colorEnd: [1, 0.2, 0.05, 0.2], size: 0.14, grow: 0.4, spread: 1.6, up: 0.1, life: 0.35, jitter: 0.6 }); if (m.delay > 0) continue; }
+    m.p = madd(m.p, dir, speed * dt); m.mesh.position.set(m.p); if (m.ice) m.mesh.setEuler(180, 0, 0); else m.mesh.setEuler(m.p[1] * 30, m.p[1] * 22, 0);
+    if (m.ice) { mist(m.p, 2, 0.5, 0.4, 0.1); glint(m.p, 2, 1); } else {
     fire.flames.emit(m.p, { count: 3, color: [4, 2.2, 0.6, 0.7], colorEnd: [1, 0.12, 0.02, 0.2], size: 0.7, grow: 0.5, spread: 0.6, up: 0.3, buoyancy: 0.6, life: 0.55, jitter: 0.25 });
-    fire.smoke.emit(m.p, { count: 1, color: [0.12, 0.1, 0.09, 0.4], colorEnd: [0.3, 0.3, 0.3, 0.08], size: 0.6, grow: 4, spread: 0.4, up: 0.2, buoyancy: 0.4, life: 2, jitter: 0.3 });
+    fire.smoke.emit(m.p, { count: 1, color: [0.12, 0.1, 0.09, 0.4], colorEnd: [0.3, 0.3, 0.3, 0.08], size: 0.6, grow: 4, spread: 0.4, up: 0.2, buoyancy: 0.4, life: 2, jitter: 0.3 }); }
     const hit = ray([m.p[0] - dir[0] * speed * dt, m.p[1] - dir[1] * speed * dt, m.p[2] - dir[2] * speed * dt], dir, speed * dt + 0.6);
     const onBoss = bossOn() && boss.hits(m.p, 0.4);
-    if (m.p[1] <= 0.5 || hit || onBoss) { explode(hit ? hit.point : m.p, null, 3.6, 18, 42); burst(m.p, { flames: 50, sparksN: 50, smoke: 10, size: 0.8, power: 5 }); scene.remove(m.mesh); meteors.splice(i, 1); }
+    if (m.p[1] <= 0.5 || hit || onBoss) { if (m.ice) iceBlast(hit ? hit.point : m.p, 3.2, 14); else { explode(hit ? hit.point : m.p, null, 3.6, 18, 42); burst(m.p, { flames: 50, sparksN: 50, smoke: 10, size: 0.8, power: 5 }); } scene.remove(m.mesh); meteors.splice(i, 1); }
   }
 }
 // Inferno Wall: a line of flame sweeps outward along the ground
@@ -258,6 +272,7 @@ function castWall() {
   cast.playOnce('Sweep', { fadeIn: 0.08, fadeOut: 0.3, speed: 1 });
 }
 function launchWall() { // the Sweep clip's 'wall' event
+  if (el() === 'ice') return iceWall();
   const d = norm([Math.sin(S.yaw), 0, Math.cos(S.yaw)]);
   walls.push({ c: [cc.position[0] + d[0] * 2.5, 0, cc.position[2] + d[2] * 2.5], d, t: 0, life: 2.6, speed: 7.5, half: 5, tick: 0 });
   sfx.whoosh(1.3); feed('Inferno Wall');
@@ -281,14 +296,71 @@ function updateWalls(dt) {
     if (w.t >= w.life) walls.splice(i, 1);
   }
 }
-mage.mixer.on((e) => {
+// ---------------------------------------------------------------- Ice Mage powers
+const ICE_MAT = new E.Material({ name: 'Player ice', color: '#a8dcf2', roughness: 0.08, metallic: 0.15, emissive: '#3a8fc0', emissiveStrength: 1 });
+const ICE_SHARD = new E.Material({ name: 'Player shard', color: '#d6f4ff', roughness: 0.05, emissive: '#7fd6ff', emissiveStrength: 3 });
+const shardGeo = E.cone({ radius: 1, height: 1, radialSegments: 6, heightSegments: 1 });
+const pspikes = [];
+const mist = (p, n = 10, size = 0.5, spread = 2, up = 1) => fire.smoke.emit(p, { count: n, color: [0.85, 0.93, 1, 0.5], colorEnd: [0.9, 0.96, 1, 0.05], size, grow: 4, spread, up, buoyancy: 0.2, life: 1.6, jitter: 0.3 });
+const glint = (p, n = 14, spread = 3) => sparks.emit(p, { count: n, color: [1.5, 3, 5, 1], colorEnd: [0.3, 1, 2.5, 0.3], size: 0.07, grow: 0.5, spread, up: spread * 0.6, life: 0.9, jitter: 0.2 });
+function extinguishNear(p, r) { let n = 0; for (const b of fire.burnables) if (!b.permanent && b.state === 'burning' && E.vec3.dist(p, b.position) < r + b.radius) { fire.extinguish(b); n++; } return n; }
+function addSpike(p, h = 2.8, delay = 0, width = 0.8) {
+  const m = new E.Mesh(shardGeo, ICE_SHARD, 'Ice spike'); m.castShadow = false; m.visible = false; m.position.set([p[0], 0, p[2]]); scene.add(m);
+  pspikes.push({ m, p: [...p], t: -delay, h, w: width, hit: false });
+}
+function updateSpikes(dt) {
+  for (let i = pspikes.length - 1; i >= 0; i--) {
+    const s = pspikes[i]; s.t += dt; if (s.t < 0) continue;
+    s.m.visible = true; const k = s.t, hh = k < 0.12 ? s.h * (k / 0.12) : k < 0.9 ? s.h : s.h * Math.max(0.02, 1 - (k - 0.9) / 0.3);
+    s.m.scale.set([s.w, Math.max(0.02, hh), s.w]); s.m.position.set([s.p[0], hh / 2, s.p[2]]);
+    if (!s.hit) { s.hit = true; destruct.damage([s.p[0], 0.8, s.p[2]], 1.8, 50); world.explode([s.p[0], 0.2, s.p[2]], 2.2, 4); extinguishNear(s.p, 1.6); mist([s.p[0], 0.3, s.p[2]], 4, 0.4, 1.5, 0.6); glint([s.p[0], 0.4, s.p[2]], 6, 2); }
+    if (s.t > 1.25) { scene.remove(s.m); pspikes.splice(i, 1); }
+  }
+}
+function iceBlast(p, radius = 2.6, power = 9) {
+  const out = extinguishNear(p, radius), broke = destruct.damage(p, radius * 1.7, power * 8);
+  world.explode(p, radius * 1.6, power * 0.8);
+  mist(p, 16, 0.6, 3, 1.2); glint(p, 34, 5);
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + Math.random(); addSpike([p[0] + Math.sin(a) * radius * 0.6, 0, p[2] + Math.cos(a) * radius * 0.6], 1.2 + Math.random() * 1.2, Math.random() * 0.1, 0.45); }
+  flash.color = '#8fd8ff'; flash.position.set([p[0], p[1] + 0.4, p[2]]); S.boom = 0.7; flash.range = 10;
+  const d = Math.hypot(p[0] - cc.position[0], p[2] - cc.position[2]); S.shake = Math.max(S.shake, Math.min(1, 5 / (d + 2)) * 0.35);
+  sfx.ice(1.2);
+  if (out) feed(`Extinguished ${out} fire${out > 1 ? 's' : ''}`);
+  if (broke) feed(broke > 1 ? `${broke} things shattered` : 'Shattered!');
+}
+function iceNova() {
+  const p = [cc.position[0], 0.05, cc.position[2]];
+  for (const r of [2.2, 4.4, 6.6]) for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2 + r; addSpike([p[0] + Math.sin(a) * r, 0, p[2] + Math.cos(a) * r], 1.6 + r * 0.25, r * 0.06, 0.6); }
+  for (let i = 0; i < 90; i++) { const a = (i / 90) * Math.PI * 2; fire.smoke.emit(p, { count: 1, color: [0.85, 0.94, 1, 0.55], colorEnd: [0.9, 0.97, 1, 0.05], size: 0.5, grow: 3, spread: 0.1, up: 0.2, vel: [Math.sin(a) * 10, 0, Math.cos(a) * 10], buoyancy: 0.1, life: 0.8, jitter: 0.1 }); }
+  glint(p, 80, 8); const out = extinguishNear(p, 8);
+  world.explode([p[0], 0.2, p[2]], 8, 12); destruct.damage([p[0], 0.6, p[2]], 8, 100);
+  flash.color = '#8fd8ff'; flash.position.set([p[0], 1, p[2]]); S.boom = 1; flash.range = 22; S.shake = 0.8; sfx.ice(1.6); feed(out ? `Frost nova! ${out} fire${out > 1 ? 's' : ''} out` : 'Frost nova!');
+}
+function iceSpikeLine() { // the 'phoenix' slot: a line of spikes erupts along the ground toward the crosshair
+  const d = norm([Math.sin(S.yaw), 0, Math.cos(S.yaw)]);
+  for (let i = 0; i < 14; i++) { const r = 2.5 + i * 1.5; addSpike([cc.position[0] + d[0] * r, 0, cc.position[2] + d[2] * r], 2.2 + i * 0.12, i * 0.07, 0.75 + i * 0.03); }
+  sfx.ice(1.4); feed('Glacier Spikes');
+}
+function iceWall() { // the 'wall' slot: a row of ice blocks that you can also shatter
+  const d = norm([Math.sin(S.yaw), 0, Math.cos(S.yaw)]), side = [d[2], 0, -d[0]], yaw = (S.yaw * 180) / Math.PI;
+  for (let i = -2; i <= 2; i++) {
+    const c = [cc.position[0] + d[0] * 4.5 + side[0] * i * 2.2, 1.4, cc.position[2] + d[2] * 4.5 + side[1] * 0 + side[2] * i * 2.2];
+    const node = new E.Mesh(E.box({ width: 2.2, height: 2.8, depth: 1, bevel: 0.12, bevelSegments: 1 }), ICE_MAT, 'Ice block'); node.position.set(c); node.setEuler(0, yaw, 0); scene.add(node);
+    const body = world.add(new E.Body({ shape: new E.Box([1.1, 1.4, 0.5]), type: 'static', position: c, rotation: E.quat.fromEuler(E.quat.create(), 0, yaw, 0) })); body.userData.kind = 'static';
+    destruct.add({ node, body, hp: 90, size: [2.2, 2.8, 1], grid: [2, 3, 1], material: ICE_MAT, center: [...c], name: 'Ice block' });
+    mist([c[0], 0.3, c[2]], 6, 0.6, 1.5, 0.8); glint([c[0], 1, c[2]], 8, 3);
+  }
+  sfx.ice(1.3); feed('Ice Wall');
+}
+
+function onMageEvent(e) {
   if (e.name === 'fireball') launchFireball();
   if (e.name === 'slam') nova();
   if (e.name === 'phoenix') launchPhoenix();
   if (e.name === 'meteors') launchMeteors();
   if (e.name === 'wall') launchWall();
   if (e.name === 'footstep' && cc.grounded && S.moving > 1.2 && Math.random() < 0.5) sfx.thump();
-});
+}
 
 // ---------------------------------------------------------------- spread (glade only)
 function spawnPatch(p, gen = 0) {
@@ -379,7 +451,7 @@ const G = {
 };
 function loadLevel(kind, { skipIntro = false } = {}) {
   level = kind;
-  fireballs.length = 0; meteors.length = 0; walls.length = 0; patches.length = 0; embers.length = 0; explosives.length = 0; baseScale.clear(); phoenix = null;
+  fireballs.length = 0; pspikes.length = 0; meteors.length = 0; walls.length = 0; patches.length = 0; embers.length = 0; explosives.length = 0; baseScale.clear(); phoenix = null;
   scene = new E.Scene(); env = scene.environment; world = new E.PhysicsWorld({ iterations: 8 });
   const boss1 = kind === 'boss';
   fire = new E.FireSystem(scene, { maxLights: 8, maxFlames: 5000, maxSmoke: 3500, wind: boss1 ? [0.6, 0, 0.3] : [0.5, 0, 0.15] });
@@ -399,12 +471,13 @@ function loadLevel(kind, { skipIntro = false } = {}) {
     cc = new E.CharacterController(world, { position: [0, 0.15, -5.5], radius: 0.34, height: 1.8, mask: 0xffff & ~DEBRIS_GROUP });
   }
   cc.body.userData.player = true;
-  scene.add(mage);
-  handLight = new E.Light('point', { color: '#ff8a3a', intensity: 2, range: 5, flicker: 0.6 }); scene.add(handLight);
+  pickChar(kind === 'boss' ? 'fire' : S.element); scene.add(mage);
+  handLight = new E.Light('point', { color: el() === 'ice' ? '#7fd6ff' : '#ff8a3a', intensity: 2, range: 5, flicker: 0.6 }); scene.add(handLight);
   flash = new E.Light('point', { color: boss1 ? '#ffb266' : '#ffb266', intensity: 0, range: 18 }); scene.add(flash);
   hookFire();
   Object.assign(S, { hp: S.maxHp, mana: S.maxMana, dead: false, ended: false, frozen: false, puppet: null, invuln: 0, dashT: 0, dashCd: 0, chill: 0, castT: 0, slamT: 0, cooldown: 0, breathing: false, shake: 0, yaw: boss1 ? 0 : 0, pitch: -0.15, face: 0, hitCount: 0 });
   mage.mixer.stop(); mage.play('Idle', { fade: 0 }); cast.setWeights({}, 0); full.setWeights({}, 0);
+  $('resLabel').textContent = el() === 'ice' ? 'Frost' : 'Ember'; $('resHint').textContent = el() === 'ice' ? 'refill at a brazier' : 'refill at a brazier';
   document.body.classList.toggle('boss-level', boss1); $('endcard').hidden = true; $('banner').hidden = true; hud.show(true);
   if (boss1) {
     boss = new IceBoss(G); G.boss = boss;
@@ -484,15 +557,18 @@ function updateCamera(dt) {
 function updateAura(dt) {
   const power = S.mana / S.maxMana;
   const dashing = S.dashT > 0;
-  for (const h of [handR(), handL()]) {
+  const iceAura = el() === 'ice';
+  if (iceAura) for (const h of [handR(), handL()]) { if (Math.random() < dt * 20) mist(h, 1, 0.12, 0.2, 0.3); if (Math.random() < dt * 9) glint(h, 1, 0.5); }
+  else for (const h of [handR(), handL()]) {
     if (Math.random() < dt * (24 + 30 * power)) fire.flames.emit(h, { count: 1, color: [3.4, 2, 0.6, 0.5], colorEnd: [1, 0.15, 0.03, 0.15], size: 0.075 + 0.05 * power, grow: 0.6, spread: 0.12, up: 0.5, buoyancy: 1.6, life: 0.55, jitter: 0.03 });
     if (Math.random() < dt * 4) sparks.emit(h, { count: 1, color: [6, 3.6, 1, 1], colorEnd: [2, 0.3, 0.05, 0.3], size: 0.03, grow: 0.5, spread: 0.3, up: 0.9, life: 1, jitter: 0.03 });
   }
-  if (Math.random() < dt * 6) fire.flames.emit(bonePoint(mage, 'shoulder.L', [0, 0, 0]), { count: 1, color: [3, 1.6, 0.4, 0.35], colorEnd: [1, 0.1, 0.02, 0.1], size: 0.05, grow: 0.5, spread: 0.05, up: 0.5, buoyancy: 1.8, life: 0.6, jitter: 0.02 });
+  if (!iceAura && Math.random() < dt * 6) fire.flames.emit(bonePoint(mage, 'shoulder.L', [0, 0, 0]), { count: 1, color: [3, 1.6, 0.4, 0.35], colorEnd: [1, 0.1, 0.02, 0.1], size: 0.05, grow: 0.5, spread: 0.05, up: 0.5, buoyancy: 1.8, life: 0.6, jitter: 0.02 });
   if (dashing) { // Flame Dash leaves a burning trail and singes what it passes through
     const p = [cc.position[0], cc.position[1] + 0.5, cc.position[2]];
-    fire.flames.emit(p, { count: 5, color: [3.6, 2, 0.6, 0.6], colorEnd: [1, 0.12, 0.03, 0.2], size: 0.45, grow: 1.2, spread: 0.5, up: 0.6, buoyancy: 1.8, life: 0.5, jitter: 0.25 });
-    fire.igniteAt(p, 1.2);
+    if (el() === 'ice') { mist(p, 3, 0.5, 0.6, 0.3); glint(p, 4, 1.5); extinguishNear(p, 1.4); }
+    else { fire.flames.emit(p, { count: 5, color: [3.6, 2, 0.6, 0.6], colorEnd: [1, 0.12, 0.03, 0.2], size: 0.45, grow: 1.2, spread: 0.5, up: 0.6, buoyancy: 1.8, life: 0.5, jitter: 0.25 });
+    fire.igniteAt(p, 1.2); }
     if (bossOn() && !S.dashHit && boss.hits(p, 1.2)) { S.dashHit = true; boss.hurt(22, p); feed('Flame Dash hit!'); }
   } else S.dashHit = false;
   handLight.position.set(handR());
@@ -544,6 +620,8 @@ function begin(kind, opts) {
   if (touchMode) $('touch').hidden = false;
   document.body.classList.toggle('level-boss', kind === 'boss');
 }
+const pick = (element) => { S.element = element; $('pickFire').classList.toggle('sel', element === 'fire'); $('pickIce').classList.toggle('sel', element === 'ice'); if (!S.started) loadLevel('glade'); };
+$('pickFire').addEventListener('click', () => pick('fire')); $('pickIce').addEventListener('click', () => pick('ice'));
 $('startGlade').addEventListener('click', () => begin('glade'));
 $('startBoss').addEventListener('click', () => begin('boss'));
 $('resume').addEventListener('click', () => { $('menu').hidden = true; if (canvas.requestPointerLock) { try { canvas.requestPointerLock(); } catch { /* ignore */ } } });
@@ -571,7 +649,7 @@ function step(dt) {
   } else { S.yaw += dt * 0.15; mage.update(dt); boss?.update(dt); }
   world.step(dt);
   destruct.update(dt);
-  updateFireballs(dt); updateMeteors(dt); updateWalls(dt);
+  updateFireballs(dt); updateMeteors(dt); updateWalls(dt); updateSpikes(dt);
   fire.update(dt, camera);
   if (level === 'glade') { updateSpread(dt); updateBurnVisuals(); updateExplosives(dt); }
   if (phoenix) phoenix.update(dt);

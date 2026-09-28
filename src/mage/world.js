@@ -159,7 +159,7 @@ export function buildGlade(scene, world, fire) {
   const brazier = fire.addSource([0, 1.3, 0], { radius: 0.5, strength: 1 });
   brazier.userData = { name: 'Brazier' };
   // torches on stakes around the yard entrance
-  const torches = [[12, -3], [12, 3], [-9, -6.5], [-9, 6.5]].map(([x, z]) => {
+  const torches = [[12, -3], [12, 3], [-3.5, -5], [-3.5, 5]].map(([x, z]) => {
     const t = new E.Kit(pal); t.box(M.dark, [0, 0.9, 0], [0.07, 1.8, 0.07]); t.cyl(M.iron, [0, 1.85, 0], 0.06, 0.16, [0, 0, 0], 8, 0.09);
     const n = t.toNode('Torch'); n.position.set([x, 0, z]); root.add(n);
     return fire.addSource([x, 1.95, z], { radius: 0.16, strength: 0.9 });

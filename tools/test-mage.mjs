@@ -74,6 +74,14 @@ import { Phoenix, createPhoenixModel } from '../src/mage/phoenix.js';
   check(patches.filter((b) => b.state !== 'fresh').length >= 5, 'a row of grass fires passes the flame along');
 }
 
+// the glade does not set itself on fire: five idle minutes with only the torches and the brazier lit
+{
+  const scene = new E.Scene(), world = new E.PhysicsWorld({ iterations: 4 }), fire = new E.FireSystem(scene, { wind: [0.5, 0, 0.15] });
+  buildGlade(scene, world, fire);
+  for (let t = 0; t < 300; t += 1 / 30) { world.step(1 / 30); scene.updateWorld?.(); fire.update(1 / 30); }
+  check(fire.burning.filter((b) => !b.permanent).length === 0 && fire.burnables.every((b) => b.permanent || b.state === 'fresh' || b.state === 'hot'), 'nothing in the glade ignites by itself');
+}
+
 // destructible environment: a blast wears a stone down until it shatters into rigid-body chunks
 import { Destructibles } from '../src/mage/destruct.js';
 import { buildArena } from '../src/mage/arena.js';
