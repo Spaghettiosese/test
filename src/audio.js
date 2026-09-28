@@ -36,6 +36,11 @@ export class Sfx {
       this._noise(t, { dur: 0.2, gain: 0.7, freq: 2800, freqEnd: 700, decay: 0.12 });
       this._noise(t, { dur: 0.3, gain: 0.35, freq: 260, decay: 0.2 });
       this._tone(t, { freq: 160, freqEnd: 60, dur: 0.1, gain: 0.4, decay: 0.1 });
+    } else if (kind === 'deagle') {
+      this._noise(t, { dur: 0.35, gain: 1, freq: 4600, freqEnd: 500, decay: 0.22 });
+      this._noise(t, { dur: 0.9, gain: 0.75, freq: 230, freqEnd: 60, decay: 0.7 });
+      this._tone(t, { freq: 105, freqEnd: 34, dur: 0.28, gain: 0.8, decay: 0.3 });
+      this._noise(t + 0.18, { dur: 0.7, gain: 0.1, freq: 700, freqEnd: 200, decay: 0.6, attack: 0.04 });
     } else if (kind === 'mp7') {
       this._noise(t, { dur: 0.18, gain: 0.65, freq: 3600, freqEnd: 900, decay: 0.1 });
       this._noise(t, { dur: 0.25, gain: 0.3, freq: 320, decay: 0.16 });

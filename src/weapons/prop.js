@@ -107,12 +107,12 @@ export function weaponProp(gun, { capacity = 1, detail = 1 } = {}) {
   prop.fire = async () => {
     if (prop.rig.playing) return false;
     const live = st.rounds > 0;
-    if (live) { st.rounds--; await prop.play('Fire'); } else prop.onEvent?.({ name: 'dryfire' });
+    if (live) { st.rounds--; await prop.play(st.rounds === 0 && prop.clips.has('Fire Last') ? 'Fire Last' : 'Fire'); } else prop.onEvent?.({ name: 'dryfire' });
     return live;
   };
   prop.reload = async () => {
     if (prop.rig.playing || st.rounds >= cap) return false;
-    if (reloadClip === 'Reload') await prop.play('Reload');
+    if (reloadClip === 'Reload') await prop.play(st.rounds === 0 && prop.clips.has('Reload Empty') ? 'Reload Empty' : 'Reload');
     else { await prop.play(reloadClip); while (st.rounds < cap) { await prop.play('Insert Shell'); } await prop.play('Reload End'); return true; }
     st.rounds = cap;
     return true;
