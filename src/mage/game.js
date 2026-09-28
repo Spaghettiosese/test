@@ -12,6 +12,7 @@ import { Cutscene } from './cutscene.js';
 import { IceBoss } from './boss.js';
 import { FireSfx } from './sfx.js';
 import { Phoenix } from './phoenix.js';
+import { createColossus } from './colossus.js';
 
 const $ = (id) => document.getElementById(id);
 const PM = E.physicsMath;
@@ -41,10 +42,11 @@ const TIMES = [18.3, 20.6, 12.5]; let timeIdx = 0;
 const S = {
   yaw: 0, pitch: -0.18, face: 0, dist: 4.6, mana: 100, maxMana: 100, hp: 100, maxHp: 100, breathing: false, breathT: 0, breathSnd: 0, castT: 0, slamT: 0,
   cooldown: 0, shake: 0, moving: 0, started: false, airborne: false, hitCount: 0, walk: false, boom: 0, crackleT: 0,
-  element: 'fire', invuln: 0, dashT: 0, dashCd: 0, dashDir: [0, 0, 1], chill: 0, frozen: false, dead: false, ended: false, puppet: null,
+  element: 'fire', titan: null, invuln: 0, dashT: 0, dashCd: 0, dashDir: [0, 0, 1], chill: 0, frozen: false, dead: false, ended: false, puppet: null,
 };
 const input = { keys: new Set(), lmb: false, rmb: false, stick: { x: 0, y: 0 } };
 const touchMode = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+let titanBoulders = [];
 const fireballs = [], meteors = [], walls = [], patches = [], embers = [], explosives = [];
 let phoenix = null;
 const baseScale = new Map();
@@ -116,6 +118,7 @@ function showEnd(title, sub, retry) {
 function victory() { S.ended = true; setTimeout(() => showEnd('VICTORY', 'The Ice Mage is shattered and the sanctum thaws.', false), 400); }
 
 function dash() {
+  if (S.titan) return titanCharge();
   if (S.dashCd > 0 || S.frozen || S.dead || S.slamT > 0) return;
   const f = [Math.sin(S.yaw), 0, Math.cos(S.yaw)], l = [Math.cos(S.yaw), 0, -Math.sin(S.yaw)], k = input.keys;
   let x = 0, z = 0;
@@ -129,6 +132,7 @@ function dash() {
 
 // ---------------------------------------------------------------- powers
 function throwFireball() {
+  if (S.titan) return titanSmash();
   if (S.cooldown > 0 || S.mana < 14 || S.slamT > 0 || S.breathing || S.frozen || S.dead) return;
   S.mana -= 14; S.cooldown = 0.5; S.castT = 0.6;
   cast.playOnce('Fireball', { fadeIn: 0.08, fadeOut: 0.25, speed: 1.15 });
@@ -167,12 +171,12 @@ function breathe(dt) {
   const on = input.rmb && S.mana > 0 && S.slamT <= 0 && !S.frozen && !S.dead;
   if (on !== S.breathing) { S.breathing = on; if (on) cast.play('Flamethrower', { fade: 0.15, restart: true }); else cast.setWeights({}, 0.2); }
   if (!on) return;
-  S.mana = Math.max(0, S.mana - 18 * dt);
+  S.mana = Math.max(0, S.mana - (S.titan ? 6 : 18) * dt);
   const a = handR(), b = handL(), from = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
   const to = aimPoint(), dir = norm([to[0] - from[0], to[1] - from[1], to[2] - from[2]]);
-  const ice = el() === 'ice';
+  const ice = el() === 'ice', big = !!S.titan;
   if (ice) {
-    for (let i = 0; i < 10; i++) { const s = 8 + Math.random() * 7, sp = 0.18 * (0.5 + Math.random()); fire.smoke.emit(from, { count: 1, color: [0.85, 0.94, 1, 0.5], colorEnd: [0.9, 0.97, 1, 0.05], size: 0.2, grow: 6, spread: 0.2, up: 0, vel: [dir[0] * s + (Math.random() - 0.5) * s * sp, dir[1] * s + (Math.random() - 0.5) * s * sp, dir[2] * s + (Math.random() - 0.5) * s * sp], buoyancy: 0, life: 0.7, jitter: 0.08 }); }
+    for (let i = 0; i < (big ? 30 : 10); i++) { const s = 8 + Math.random() * 7, sp = 0.18 * (0.5 + Math.random()); fire.smoke.emit(from, { count: 1, color: [0.85, 0.94, 1, 0.5], colorEnd: [0.9, 0.97, 1, 0.05], size: big ? 0.4 : 0.2, grow: big ? 10 : 6, spread: 0.2, up: 0, vel: [dir[0] * s + (Math.random() - 0.5) * s * sp, dir[1] * s + (Math.random() - 0.5) * s * sp, dir[2] * s + (Math.random() - 0.5) * s * sp], buoyancy: 0, life: 0.7, jitter: 0.08 }); }
     if (Math.random() < 0.6) sparks.emit(from, { count: 1, color: [1.5, 3, 5, 1], colorEnd: [0.3, 1, 2.5, 0.3], size: 0.05, grow: 0.5, spread: 0.6, up: 0.2, vel: [dir[0] * 8, dir[1] * 8, dir[2] * 8], life: 0.9, jitter: 0.05 });
   } else for (let i = 0; i < 8; i++) {
     const s = 6 + Math.random() * 5, sp = 0.5 + Math.random() * 0.6;
@@ -184,7 +188,7 @@ function breathe(dt) {
     S.breathT = 0.1;
     let n = 0;
     for (let d = 1; d <= 7.5; d += 0.9) {
-      const pt = madd(from, dir, d); if (ice) { extinguishNear(pt, 0.35 + d * 0.11); continue; } n += fire.igniteAt(pt, 0.35 + d * 0.11);
+      const pt = madd(from, dir, d); if (ice) { extinguishNear(pt, (0.35 + d * 0.11) * (big ? 2 : 1)); if (big) destruct.damage(pt, 1.6, 14); continue; } n += fire.igniteAt(pt, 0.35 + d * 0.11);
       if (bossOn() && boss.hits(pt, 0.35 + d * 0.06)) { boss.hurt(4.2, pt); break; }
     }
     if (n) feed(`${n} thing${n > 1 ? 's' : ''} caught fire`);
@@ -195,6 +199,7 @@ function breathe(dt) {
   S.breathSnd -= dt; if (S.breathSnd <= 0) { S.breathSnd = 0.16; if (ice) sfx.ice(0.3); else sfx.breath(); }
 }
 function summonPhoenix() {
+  if (S.titan) return;
   if (S.mana < 45 || phoenix || S.slamT > 0 || S.cooldown > 0 || S.breathing || S.frozen || S.dead) return;
   S.mana -= 45; S.cooldown = 1; S.castT = 1.3;
   cast.playOnce('Phoenix', { fadeIn: 0.1, fadeOut: 0.3, speed: 1 });
@@ -220,6 +225,7 @@ function launchPhoenix() { // the Phoenix clip's 'phoenix' event: the bird takes
   sfx.whoosh(1.4);
 }
 function slam() {
+  if (S.titan) return titanBoulder();
   if (S.mana < 35 || S.slamT > 0 || S.cooldown > 0 || !cc.grounded || S.frozen || S.dead) return;
   S.mana -= 35; S.slamT = 1.1; S.cooldown = 0.6;
   full.playOnce('Slam', { fadeIn: 0.1, fadeOut: 0.35, speed: 1.1 });
@@ -239,6 +245,7 @@ function nova() { // the Slam clip's 'slam' event: the fists hit the ground
 const METEOR = new E.Material({ name: 'Meteor', color: '#3b2a22', roughness: 0.8, emissive: '#ff5a12', emissiveStrength: 4 });
 const meteorGeo = E.superquadric({ rx: 0.7, ry: 0.6, rz: 0.75, e1: 0.8, e2: 0.8, widthSegments: 12, heightSegments: 8 });
 function castMeteors() {
+  if (S.titan) return;
   if (S.mana < 55 || S.cooldown > 0 || S.slamT > 0 || S.breathing || S.frozen || S.dead) return;
   S.mana -= 55; S.cooldown = 1.2; S.castT = 1.8;
   cast.playOnce('Meteor', { fadeIn: 0.1, fadeOut: 0.35, speed: 1 });
@@ -267,6 +274,7 @@ function updateMeteors(dt) {
 }
 // Inferno Wall: a line of flame sweeps outward along the ground
 function castWall() {
+  if (S.titan) return;
   if (S.mana < 30 || S.cooldown > 0 || S.slamT > 0 || S.breathing || S.frozen || S.dead) return;
   S.mana -= 30; S.cooldown = 0.9; S.castT = 1.1;
   cast.playOnce('Sweep', { fadeIn: 0.08, fadeOut: 0.3, speed: 1 });
@@ -351,6 +359,90 @@ function iceWall() { // the 'wall' slot: a row of ice blocks that you can also s
     mist([c[0], 0.3, c[2]], 6, 0.6, 1.5, 0.8); glint([c[0], 1, c[2]], 8, 3);
   }
   sfx.ice(1.3); feed('Ice Wall');
+}
+
+// ---------------------------------------------------------------- Titan form (Ice Mage transformation)
+// X turns the Ice Mage into the Ice Colossus for a while: a cocoon of ice, then a seven-metre body
+// (scaled to half size for the player) with a ground smash, a boulder throw, a frost breath and a
+// charge that flattens whatever it hits.
+const TITAN_COST = 60, TITAN_LIFE = 24, TITAN_SCALE = 0.55;
+function toggleTitan() {
+  if (S.titan) { if (S.titan.morph >= 1.7) endTitan(); return; }
+  if (level !== 'glade' || S.frozen || S.dead) return;
+  if (el() !== 'ice') { feed('Only the Ice Mage can transform'); return; }
+  if (S.mana < TITAN_COST) { feed(`Need ${TITAN_COST} frost to transform`); return; }
+  S.mana -= TITAN_COST;
+  const c = createColossus(); c.root.visible = false; scene.add(c.root);
+  const cocoon = new E.Mesh(E.sphere({ radius: 1, widthSegments: 20, heightSegments: 14 }), ICE_MAT, 'Cocoon'); scene.add(cocoon);
+  const orbit = []; for (let i = 0; i < 14; i++) { const m = new E.Mesh(shardGeo, ICE_SHARD, 'Orbit shard'); m.castShadow = false; m.scale.set([0.16, 0.8, 0.16]); scene.add(m); orbit.push({ m, a: (i / 14) * Math.PI * 2, h: 0.3 + (i % 4) * 0.5 }); }
+  S.titan = { c, cocoon, orbit, morph: 0, life: TITAN_LIFE, anim: null, grow: 0, tick: 0, time: 0 };
+  S.frozen = true; sfx.roar(); hud.banner('TRANSFORM'); feed('The Ice Mage becomes the Colossus');
+}
+function endTitan() {
+  const t = S.titan; if (!t) return;
+  const p = [cc.position[0], 2, cc.position[2]]; mist(p, 30, 1.2, 5, 1.5); glint(p, 60, 7); sfx.ice(1.6); S.shake = Math.max(S.shake, 0.6);
+  scene.remove(t.c.root); if (t.cocoon.parent) scene.remove(t.cocoon); for (const o of t.orbit) scene.remove(o.m);
+  mage.visible = true; S.titan = null; S.frozen = false; S.dashT = 0; feed('Back to the Ice Mage');
+}
+function titanFwd() { return [Math.sin(S.face), 0, Math.cos(S.face)]; }
+function titanSmash() { const t = S.titan; if (!t || t.anim || S.cooldown > 0 || t.morph < 1.7) return; t.anim = { name: 'smash', t: 0, done: false }; S.cooldown = 1.1; S.face = S.yaw; }
+function titanBoulder() { const t = S.titan; if (!t || t.anim || S.cooldown > 0 || t.morph < 1.7) return; t.anim = { name: 'boulder', t: 0, done: false }; S.cooldown = 1.6; S.face = S.yaw; }
+function titanCharge() { if (S.dashCd > 0 || !S.titan || S.titan.morph < 1.7) return; const f = titanFwd(); S.dashDir = f; S.dashT = 0.7; S.dashCd = 1.8; S.face = S.yaw; sfx.roar(); }
+function titanImpact() {
+  const f = titanFwd(), p = [cc.position[0] + f[0] * 5, 0.05, cc.position[2] + f[2] * 5];
+  for (const r of [2.5, 5.5, 8.5]) for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2 + r; addSpike([p[0] + Math.sin(a) * r, 0, p[2] + Math.cos(a) * r], 1.8 + r * 0.2, r * 0.05, 0.7); }
+  for (let i = 0; i < 100; i++) { const a = (i / 100) * Math.PI * 2; fire.smoke.emit(p, { count: 1, color: [0.85, 0.94, 1, 0.55], colorEnd: [0.9, 0.97, 1, 0.05], size: 0.6, grow: 3, spread: 0.1, up: 0.2, vel: [Math.sin(a) * 11, 0, Math.cos(a) * 11], buoyancy: 0.1, life: 0.9, jitter: 0.1 }); }
+  glint(p, 90, 9); const out = extinguishNear(p, 10);
+  world.explode([p[0], 0.2, p[2]], 11, 16); const broke = destruct.damage([p[0], 0.8, p[2]], 10, 170);
+  flash.color = '#8fd8ff'; flash.position.set([p[0], 1, p[2]]); S.boom = 1; flash.range = 24; S.shake = 1; sfx.boom(1.5); sfx.ice(1.4);
+  if (out) feed(`${out} fire${out > 1 ? 's' : ''} out`); if (broke) feed(`${broke} thing${broke > 1 ? 's' : ''} shattered`);
+}
+function titanThrow() {
+  const t = S.titan, from = [cc.position[0], 4.2, cc.position[2]], to = aimPoint(); to[1] = 0;
+  const m = new E.Mesh(E.sphere({ radius: 1.2, widthSegments: 16, heightSegments: 12 }), ICE_MAT, 'Boulder'); scene.add(m);
+  titanBoulders.push({ m, from, to, t: 0, dur: 1.1 }); sfx.whoosh(1.2); void t;
+}
+function updateTitan(dt) {
+  const t = S.titan; if (!t) return;
+  t.time += dt; const c = t.c, p = cc.position;
+  if (t.morph < 1.7) { // cocoon closes, shards orbit, then the Colossus tears out
+    t.morph += dt; const k = Math.min(1, t.morph / 1.2);
+    t.cocoon.position.set([p[0], 1.0, p[2]]); const cs = 0.5 + k * 2.4; t.cocoon.scale.set([cs, cs * 1.4, cs]);
+    t.orbit.forEach((o, i) => { const a = o.a + t.morph * (3 + k * 6), r = 1.3 + k; o.m.position.set([p[0] + Math.sin(a) * r, o.h + k * 1.6, p[2] + Math.cos(a) * r]); o.m.setEuler(0, (a * 180) / Math.PI, 20); });
+    S.shake = Math.max(S.shake, 0.2 + 0.4 * k);
+    if (Math.random() < 0.5) mist([p[0] + (Math.random() - 0.5) * 3, 0.3, p[2] + (Math.random() - 0.5) * 3], 3, 0.6, 2, 1);
+    if (t.morph >= 1.7) {
+      scene.remove(t.cocoon); for (const o of t.orbit) scene.remove(o.m); t.orbit = [];
+      mage.visible = false; c.root.visible = true; S.frozen = false; S.dashT = 0;
+      mist([p[0], 2, p[2]], 40, 1.4, 6, 1.5); glint([p[0], 2, p[2]], 80, 9); destruct.burst([p[0], 2, p[2]], 0.3, ICE_MAT, { count: 26, power: 9, from: [p[0], 0.5, p[2]] });
+      const out = extinguishNear([p[0], 1, p[2]], 6); void out; destruct.damage([p[0], 1, p[2]], 6, 90); world.explode([p[0], 0.5, p[2]], 8, 12);
+      S.shake = 1; sfx.boom(1.5); sfx.roar(); hud.banner('ICE COLOSSUS');
+    }
+    return;
+  }
+  t.life -= dt; if (t.life <= 0) { endTitan(); return; }
+  t.grow = Math.min(1, t.grow + dt / 0.7); const sc = TITAN_SCALE * (0.35 + 0.65 * (1 - (1 - t.grow) * (1 - t.grow)));
+  c.root.scale.set([sc, sc, sc]); c.root.position.set([p[0], p[1], p[2]]); c.root.rotation.set(E.quat.fromEuler(E.quat.create(), 0, (S.face * 180) / Math.PI, 0));
+  const st = c.st; st.walk += dt * S.moving * 1.05; st.amp += (Math.min(1, S.moving / 3) - st.amp) * Math.min(1, dt * 8);
+  // arm choreography for the two attacks; idle arms otherwise
+  const a = t.anim; let rx = 0, rz = 0, el2 = 0, lean = 0;
+  if (a) {
+    a.t += dt;
+    if (a.name === 'smash') { const up = Math.min(1, a.t / 0.42), down = a.t < 0.42 ? 0 : Math.min(1, (a.t - 0.42) / 0.12); rx = -165 * up * (1 - down) - 22 * down; el2 = 30 * (1 - down); rz = 8; lean = 14 * down; if (a.t >= 0.54 && !a.done) { a.done = true; titanImpact(); } if (a.t > 1.1) t.anim = null; }
+    else { const up = Math.min(1, a.t / 0.5), thr = a.t < 0.5 ? 0 : Math.min(1, (a.t - 0.5) / 0.14); rx = -150 * up * (1 - thr) - 35 * thr; el2 = 60 * (1 - thr) + 10; rz = 18; lean = -8 * up + 20 * thr; if (a.t >= 0.56 && !a.done) { a.done = true; titanThrow(); } if (a.t > 1.2) t.anim = null; }
+  }
+  st.armR = [rx, rz]; st.armL = [rx, rz]; st.elbowR = el2; st.elbowL = el2; st.lean = S.dashT > 0 ? 20 : lean; st.crouch = S.dashT > 0 ? 0.5 : 0; st.headPitch = S.breathing ? -18 : 0;
+  c.pose(t.time);
+  if (S.dashT > 0) { // the charge flattens what it hits
+    t.tick -= dt; const f = titanFwd();
+    if (t.tick <= 0) { t.tick = 0.06; const q = [p[0] + f[0] * 2.4, 1.2, p[2] + f[2] * 2.4]; destruct.damage(q, 3.6, 95); world.explode(q, 3.6, 3); extinguishNear(q, 3); mist([p[0], 0.4, p[2]], 4, 0.8, 2, 0.5); }
+    S.shake = Math.max(S.shake, 0.25);
+  }
+  for (let i = titanBoulders.length - 1; i >= 0; i--) {
+    const b = titanBoulders[i]; b.t += dt; const k = Math.min(1, b.t / b.dur);
+    b.m.position.set([E.lerp(b.from[0], b.to[0], k), E.lerp(b.from[1], 1.2, k) + Math.sin(k * Math.PI) * 7, E.lerp(b.from[2], b.to[2], k)]); b.m.setEuler(k * 380, k * 250, 0); mist(b.m.position, 1, 0.5, 0.4, 0.1);
+    if (k >= 1) { iceBlast(b.to, 5, 26); for (let n = 0; n < 8; n++) { const ang = (n / 8) * Math.PI * 2; addSpike([b.to[0] + Math.sin(ang) * 3.5, 0, b.to[2] + Math.cos(ang) * 3.5], 2, n * 0.03, 0.7); } S.shake = Math.max(S.shake, 0.8); sfx.boom(1.2); scene.remove(b.m); titanBoulders.splice(i, 1); }
+  }
 }
 
 function onMageEvent(e) {
@@ -451,7 +543,7 @@ const G = {
 };
 function loadLevel(kind, { skipIntro = false } = {}) {
   level = kind;
-  fireballs.length = 0; pspikes.length = 0; meteors.length = 0; walls.length = 0; patches.length = 0; embers.length = 0; explosives.length = 0; baseScale.clear(); phoenix = null;
+  fireballs.length = 0; pspikes.length = 0; titanBoulders = []; S.titan = null; meteors.length = 0; walls.length = 0; patches.length = 0; embers.length = 0; explosives.length = 0; baseScale.clear(); phoenix = null;
   scene = new E.Scene(); env = scene.environment; world = new E.PhysicsWorld({ iterations: 8 });
   const boss1 = kind === 'boss';
   fire = new E.FireSystem(scene, { maxLights: 8, maxFlames: 5000, maxSmoke: 3500, wind: boss1 ? [0.6, 0, 0.3] : [0.5, 0, 0.15] });
@@ -502,7 +594,7 @@ function updatePlayer(dt) {
   const len = Math.hypot(wx, wz);
   const casting = S.castT > 0 || S.breathing || S.slamT > 0;
   const slow = S.chill > 0 ? 0.62 : 1;
-  const top = (S.walk || (sm > 0.08 && sm < 0.5) ? 1.9 : 5.0) * (S.slamT > 0 ? 0 : S.breathing ? 0.45 : S.castT > 0 ? 0.7 : 1) * slow;
+  const top = (S.titan ? 0.9 : 1) * (S.walk || (sm > 0.08 && sm < 0.5) ? 1.9 : 5.0) * (S.slamT > 0 ? 0 : S.breathing ? 0.45 : S.castT > 0 ? 0.7 : 1) * slow;
   if (len > 0) { wx /= len; wz /= len; }
   if (S.puppet) { cc.position = [...S.puppet.p]; cc.velocity = [0, 0, 0]; S.moving += (S.puppet.speed - S.moving) * Math.min(1, dt * 10); S.face = S.puppet.yaw; cc.move([0, 0], dt); cc.position[0] = S.puppet.p[0]; cc.position[2] = S.puppet.p[2]; }
   else if (S.dashT > 0) { cc.velocity[0] = S.dashDir[0] * 17; cc.velocity[2] = S.dashDir[2] * 17; cc.move([S.dashDir[0] * 17, S.dashDir[2] * 17], dt); S.moving = 5; }
@@ -540,9 +632,9 @@ function updateCamera(dt) {
   }
   if (!S.started) { const a = performance.now() / 9000; const r = level === 'boss' ? 30 : 14; camera.position.set([Math.sin(a) * r, level === 'boss' ? 12 : 4.5, Math.cos(a) * r - 4]); camera.target.set([0, 2, level === 'boss' ? 2 : -3]); camera.up.set([0, 1, 0]); camera.fov = 62 * E.DEG; env.shadowCenter = [0, 1, 0]; return; }
   const aiming = input.rmb || S.castT > 0;
-  S.dist += (((aiming ? 3.3 : 4.8) + (level === 'boss' && boss?.phase === 2 ? 2.2 : 0)) - S.dist) * Math.min(1, dt * 6);
+  S.dist += (((aiming ? 3.3 : 4.8) + (level === 'boss' && boss?.phase === 2 ? 2.2 : 0) + (S.titan ? 4.5 : 0)) - S.dist) * Math.min(1, dt * 6);
   const f = fwd(), right = [-Math.cos(S.yaw), 0, Math.sin(S.yaw)];
-  const anchor = madd(head(), right, aiming ? 0.7 : 0.35);
+  const anchor = madd(head(), right, aiming ? 0.7 : 0.35); if (S.titan) anchor[1] += 1.7;
   let dist = S.dist;
   const back = norm([-f[0], -f[1], -f[2]]);
   const hit = ray(anchor, back, dist + 0.3);
@@ -603,6 +695,7 @@ window.addEventListener('keydown', (e) => {
   if (key === 'Shift') dash();
   if (key === 'q') { S.walk = !S.walk; feed(S.walk ? 'Walking' : 'Running'); }
   if (key === 'e') slam();
+  if (key === 'x') toggleTitan();
   if (key === 'f') summonPhoenix();
   if (key === 'g') castMeteors();
   if (key === 'v') castWall();
@@ -649,7 +742,7 @@ function step(dt) {
   } else { S.yaw += dt * 0.15; mage.update(dt); boss?.update(dt); }
   world.step(dt);
   destruct.update(dt);
-  updateFireballs(dt); updateMeteors(dt); updateWalls(dt); updateSpikes(dt);
+  updateFireballs(dt); updateMeteors(dt); updateWalls(dt); updateSpikes(dt); updateTitan(dt);
   fire.update(dt, camera);
   if (level === 'glade') { updateSpread(dt); updateBurnVisuals(); updateExplosives(dt); }
   if (phoenix) phoenix.update(dt);
@@ -661,7 +754,8 @@ function step(dt) {
 let hudT = 0;
 function updateHud(dt) {
   hudT += dt; if (hudT < 0.05) return; hudT = 0;
-  $('manaFill').style.width = (S.mana / S.maxMana) * 100 + '%';
+  $('manaFill').style.width = (S.titan && S.titan.morph >= 1.7 ? (S.titan.life / TITAN_LIFE) * 100 : (S.mana / S.maxMana) * 100) + '%';
+  $('resLabel').textContent = S.titan ? 'Colossus' : el() === 'ice' ? 'Frost' : 'Ember';
   $('hpFill').style.width = (S.hp / S.maxHp) * 100 + '%';
   document.body.classList.toggle('chilled', S.chill > 0);
   $('burning').textContent = Math.max(0, fire.stats.burning - fire.burnables.filter((b) => b.permanent && b.state === 'burning').length);
@@ -683,7 +777,7 @@ window.__mage = {
   get phoenix() { return phoenix; },
   start(kind = 'glade', opts) { begin(kind, opts); },
   simulate(sec) { for (let t = 0; t < sec; t += 1 / 60) step(1 / 60); render(); },
-  throwFireball, slam, summonPhoenix, castMeteors, castWall, dash, resetGlade, skipCutscene,
+  toggleTitan, throwFireball, slam, summonPhoenix, castMeteors, castWall, dash, resetGlade, skipCutscene,
   look(yaw, pitch) { S.yaw = yaw; S.pitch = pitch; },
 };
 
@@ -709,7 +803,7 @@ if (touchMode) {
     b.addEventListener('pointerup', end); b.addEventListener('pointercancel', end); b.addEventListener('contextmenu', (e) => e.preventDefault()); };
   btn('tFire', () => { input.lmb = true; throwFireball(); }, () => { input.lmb = false; });
   btn('tFlame', () => { input.rmb = true; }, () => { input.rmb = false; });
-  btn('tSlam', slam); btn('tPhoenix', summonPhoenix); btn('tMeteor', castMeteors); btn('tWall', castWall); btn('tDash', dash);
+  btn('tSlam', slam); btn('tPhoenix', summonPhoenix); btn('tMeteor', castMeteors); btn('tWall', castWall); btn('tDash', dash); btn('tTitan', toggleTitan);
   btn('tJump', () => input.keys.add(' '), () => input.keys.delete(' '));
   btn('tReset', () => { if (level === 'glade') resetGlade(); });
 }
