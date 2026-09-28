@@ -1,6 +1,8 @@
 // All pixel art lives here as pixel-rect drawing code, so it can be baked to
 // canvases in the browser and exported to PNG (tools/build-art.mjs) for editing
 // in Moonkai Pixel Studio or any other pixel editor.
+import { BufferSurface, MirrorSurface } from './surface.js';
+
 export const P = {
   ink: '#2b1d2e', white: '#fffaf0', cream: '#fff1d6', paper: '#f4e4c1',
   skin: '#f6cfae', skin2: '#dda985', blush: '#f29aa0',
@@ -16,72 +18,77 @@ export const P = {
 };
 
 export const SPRITES = {};
-const def = (name, w, h, draw, flip = false) => { SPRITES[name] = { w, h, draw, flip }; };
+const def = (name, w, h, draw, flip = false, outline = false) => { SPRITES[name] = { w, h, draw, flip, outline }; };
 
-// ---------- Misa (16x24) ----------
-function misa(R, dir, frame) {
-  const step = frame === 1 ? 1 : frame === 2 ? -1 : 0;
-  // legs + shoes
-  const lLift = step === 1 ? 1 : 0, rLift = step === -1 ? 1 : 0;
-  if (dir === 'side') {
-    R(6 + step, 19, 3, 3 - lLift, P.skin); R(6 + step, 22 - lLift, 4, 2, P.shoe);
-    R(8 - step, 19, 3, 3 - rLift, P.skin2); R(8 - step, 22 - rLift, 4, 2, P.shoe);
-  } else {
-    R(5, 19, 2, 3 - lLift, P.skin); R(5, 22 - lLift, 3, 2, P.shoe);
-    R(9, 19, 2, 3 - rLift, P.skin); R(8, 22 - rLift, 3, 2, P.shoe);
-  }
-  // dress
-  if (dir === 'side') { R(5, 12, 6, 8, P.mint); R(5, 18, 6, 2, P.mint2); R(6, 13, 3, 6, P.cream); }
-  else { R(4, 12, 8, 8, P.mint); R(4, 18, 8, 2, P.mint2); }
-  if (dir === 'down') { R(6, 13, 4, 6, P.cream); R(7, 13, 2, 1, P.mint2); }
-  if (dir === 'up') { R(7, 14, 2, 2, P.cream); R(6, 16, 1, 3, P.cream); R(9, 16, 1, 3, P.cream); }
-  // arms
-  if (dir === 'side') { R(7, 13, 2, 5, P.mint2); R(7, 17, 2, 2, P.skin); }
-  else { R(2, 13, 2, 4, P.mint2); R(12, 13, 2, 4, P.mint2); R(2, 17, 2, 2, P.skin); R(12, 17, 2, 2, P.skin); }
-  // head
-  if (dir === 'side') {
-    R(4, 4, 9, 8, P.hair); R(4, 7, 5, 5, P.skin); R(3, 8, 1, 3, P.skin); R(5, 9, 1, 2, P.ink);
-    R(4, 10, 2, 1, P.blush); R(9, 2, 4, 4, P.hair2); R(11, 1, 3, 3, P.hair2); R(4, 4, 5, 3, P.hair2); R(10, 6, 4, 6, P.hair3);
-  } else {
-    R(3, 3, 10, 9, P.hair); R(2, 0, 4, 4, P.hair2); R(10, 0, 4, 4, P.hair2); R(3, 3, 10, 2, P.hair2);
-    if (dir === 'down') {
-      R(4, 6, 8, 5, P.skin); R(4, 5, 8, 2, P.hair); R(3, 6, 2, 6, P.hair); R(11, 6, 2, 6, P.hair);
-      R(5, 8, 2, 2, P.ink); R(9, 8, 2, 2, P.ink); R(5, 8, 1, 1, P.white); R(9, 8, 1, 1, P.white);
-      R(4, 10, 2, 1, P.blush); R(10, 10, 2, 1, P.blush); R(7, 10, 2, 1, P.red2);
-    } else { R(4, 5, 8, 7, P.hair); R(6, 8, 4, 3, P.hair3); }
-  }
+// R(x,y,w,h,color) plus R.e (ellipse: cx,cy,rx,ry,color) and R.t (triangle: [x,y]x3, color).
+export function makeR(surface, ox = 0, oy = 0) {
+  const R = (x, y, w, h, c) => surface.rect(x + ox, y + oy, w, h, c);
+  R.e = (cx, cy, rx, ry, c) => {
+    for (let y = -ry; y <= ry; y++) {
+      const w = Math.floor(rx * Math.sqrt(Math.max(0, 1 - (y * y) / (ry * ry || 1))) + 0.5);
+      surface.rect(cx - w + ox, cy + y + oy, w * 2 + 1, 1, c);
+    }
+  };
+  R.t = (a, b, cc, c) => {
+    const pts = [a, b, cc], ys = pts.map((p) => p[1]);
+    for (let y = Math.min(...ys); y <= Math.max(...ys); y++) {
+      let lo = Infinity, hi = -Infinity;
+      for (let i = 0; i < 3; i++) {
+        const [x1, y1] = pts[i], [x2, y2] = pts[(i + 1) % 3];
+        if (y1 === y2) { if (y1 === y) { lo = Math.min(lo, x1, x2); hi = Math.max(hi, x1, x2); } continue; }
+        if ((y - y1) * (y - y2) <= 0) { const x = x1 + ((y - y1) * (x2 - x1)) / (y2 - y1); lo = Math.min(lo, x); hi = Math.max(hi, x); }
+      }
+      if (lo <= hi) surface.rect(Math.round(lo) + ox, y + oy, Math.round(hi) - Math.round(lo) + 1, 1, c);
+    }
+  };
+  R.at = (dx, dy) => makeR(surface, ox + dx, oy + dy);
+  return R;
 }
-for (const [d, n] of [['down', 'down'], ['up', 'up'], ['side', 'left']])
-  for (let f = 0; f < 3; f++) def(`misa_${n}_${f}`, 16, 24, (R) => misa(R, d, f));
-for (let f = 0; f < 3; f++) def(`misa_right_${f}`, 16, 24, (R) => misa(R, 'side', f), true);
-// Misa standing on tiptoe / carrying nothing special is enough; sleepy pose for the bed
-def('misa_sleep', 16, 12, (R) => {
-  R(1, 3, 14, 8, P.cream); R(1, 5, 14, 6, P.red); R(1, 9, 14, 2, P.red2);
-  R(1, 0, 8, 7, P.hair); R(3, 3, 5, 4, P.skin); R(4, 4, 2, 1, P.ink); R(0, 1, 3, 4, P.hair2);
-});
 
-// ---------- Mochi the cat (16x16), facing right; flipped at runtime ----------
-function mochiSide(R, f) {
-  R(0, 5 - (f ? 1 : 0), 3, 2, P.cat2); R(0, 7, 2, 4, P.cat2); R(1, 10, 3, 2, P.cat2); // tail
-  R(3, 7, 9, 6, P.cat); R(3, 7, 9, 2, P.cat2); R(5, 7, 1, 3, P.cat2); R(8, 7, 1, 3, P.cat2);
-  R(3, 12, 9, 1, P.cat3); R(10, 4, 5, 6, P.cat); R(10, 2, 2, 3, P.cat2); R(13, 2, 2, 3, P.cat2);
-  R(11, 3, 1, 1, P.pink); R(14, 6, 1, 2, P.eye); R(15, 8, 1, 1, P.pink); R(11, 8, 4, 2, P.cat3);
-  if (f === 0) { R(4, 13, 2, 3, P.cat); R(10, 13, 2, 3, P.cat); }
-  else { R(3, 13, 2, 2, P.cat); R(6, 13, 2, 3, P.cat2); R(9, 13, 2, 3, P.cat2); R(12, 13, 2, 2, P.cat); }
+// ---------- Misa (22x34, chibi anime proportions, auto-outlined) ----------
+// Look: brown bob with a pink streak, big glossy eyes, navy hoodie, dark pants, white sneakers.
+const MC = { hair: '#8b5a44', hairH: '#b98262', hairD: '#5a3a2e', pink: '#f0a0b8', skin: '#f8d5b8', skin2: '#e3a98a', navy: '#3d5a8c', navy2: '#2c4270', navyL: '#5f80b4', pants: '#2a3552', pants2: '#1f2840', shoe: '#f4f4f8', sole: '#8a90a8', ink: '#2a1a22', iris: '#b0703c', blush: '#f5a0a8', mouth: '#b04a55', cream: '#fff1d6' };
+// Misa's world/cutscene animation comes from Moonkai Pixel Studio's Character builder (see src/moonkai.js).
+
+// ---------- Mochi the cat (auto-outlined, facing right; flipped at runtime) ----------
+const CC = { o: '#f2b56b', o2: '#d98d45', o3: '#b8702f', cream: '#fff1d6', pink: '#f7a1b1', eye: '#6fcf7a', ink: '#2a1a22' };
+function mochiWalk(R0, p) {
+  const R = R0.at(1, 1), tw = [0, -1, 0, 1][p];
+  R(2 + tw, 7, 3, 3, CC.o2); R(1 + tw, 9, 3, 4, CC.o2); R(2, 12, 4, 3, CC.o2); R(2 + tw, 6, 3, 2, CC.cream);
+  const a = [2, 0, -2, 0][p], b = -a;
+  R(16 + a, 17, 3, 5, CC.o3); R(7 + b, 17, 3, 5, CC.o3);
+  R.e(11, 14, 8, 5, CC.o); R.e(11, 18, 6, 2, CC.cream); R(6, 10, 2, 3, CC.o2); R(10, 9, 2, 3, CC.o2); R(14, 10, 2, 3, CC.o2);
+  R(15 - a, 17, 3, 5, CC.o); R(15 - a, 21, 3, 1, CC.cream); R(6 - b, 17, 3, 5, CC.o); R(6 - b, 21, 3, 1, CC.cream);
+  R.e(19, 10, 5, 5, CC.o); R.t([15, 8], [17, 2], [20, 7], CC.o); R.t([20, 7], [23, 2], [24, 9], CC.o); R(17, 4, 1, 3, CC.pink); R(23, 4, 1, 3, CC.pink);
+  R.e(22, 13, 3, 2, CC.cream); R(24, 11, 1, 1, CC.pink); R(21, 8, 2, 3, CC.eye); R(22, 8, 1, 1, '#ffffff'); R(18, 6, 1, 2, CC.o2);
 }
-def('mochi_walk_0', 16, 16, (R) => mochiSide(R, 0), false);
-def('mochi_walk_1', 16, 16, (R) => mochiSide(R, 1), false);
-def('mochi_sit', 16, 16, (R) => {
-  R(4, 8, 8, 7, P.cat); R(5, 9, 6, 6, P.cat3); R(4, 8, 8, 2, P.cat2); R(3, 13, 3, 2, P.cat); R(10, 13, 3, 2, P.cat);
-  R(12, 12, 3, 3, P.cat2); R(5, 3, 6, 6, P.cat); R(5, 1, 2, 3, P.cat2); R(9, 1, 2, 3, P.cat2);
-  R(6, 5, 1, 2, P.eye); R(9, 5, 1, 2, P.eye); R(7, 7, 2, 1, P.pink); R(7, 3, 2, 1, P.cat2);
-});
-def('mochi_sleep', 16, 16, (R) => {
-  R(1, 8, 14, 6, P.cat); R(1, 8, 14, 2, P.cat2); R(4, 8, 1, 3, P.cat2); R(8, 8, 1, 3, P.cat2);
-  R(2, 10, 6, 4, P.cat); R(2, 9, 2, 2, P.cat2); R(9, 12, 6, 2, P.cat3);
-  R(3, 11, 2, 1, P.ink); R(5, 12, 1, 1, P.pink); R(11, 5, 1, 1, P.white); R(12, 4, 2, 1, P.white); R(11, 3, 3, 1, P.white);
-});
-def('mochi_zoom', 16, 16, (R) => mochiSide(R, 1));
+for (let f = 0; f < 4; f++) def(`mochi_walk_${f}`, 27, 25, (R) => mochiWalk(R, f), false, true);
+function mochiSit(R0, tail, blink) {
+  const R = R0.at(1, 1);
+  const tx = [0, 1, 2, 1][tail];
+  R(16, 15, 4 + tx, 3, CC.o2); R(18 + tx, 11, 3, 6, CC.o2); R(19 + tx, 9, 3, 3, CC.cream);
+  R.e(11, 17, 6, 6, CC.o); R.e(11, 20, 4, 3, CC.cream); R(7, 21, 3, 2, CC.cream); R(12, 21, 3, 2, CC.cream);
+  R(6, 15, 1, 3, CC.o2); R(16, 15, 1, 3, CC.o2);
+  R.e(11, 9, 7, 6, CC.o); R.t([5, 7], [6, 0], [10, 4], CC.o); R.t([12, 4], [16, 0], [17, 7], CC.o);
+  R.t([7, 5], [7, 2], [9, 4], CC.pink); R.t([13, 4], [15, 2], [15, 5], CC.pink);
+  R(10, 3, 1, 3, CC.o2); R(12, 3, 1, 3, CC.o2);
+  if (blink) { R(7, 10, 3, 1, CC.ink); R(13, 10, 3, 1, CC.ink); }
+  else { R(7, 8, 3, 4, CC.eye); R(13, 8, 3, 4, CC.eye); R(8, 8, 1, 4, CC.ink); R(14, 8, 1, 4, CC.ink); R(7, 8, 1, 1, '#ffffff'); R(13, 8, 1, 1, '#ffffff'); }
+  R.e(11, 13, 3, 2, CC.cream); R(11, 11, 1, 1, CC.pink);
+}
+for (let t = 0; t < 4; t++) def(`mochi_sit_${t}`, 26, 26, (R) => mochiSit(R, t, false), false, true);
+def('mochi_sit_b', 26, 26, (R) => mochiSit(R, 0, true), false, true);
+function mochiSleep(R0, br) {
+  const R = R0.at(1, 1);
+  R.e(13, 11 - br, 11, 5 + br, CC.o); R(17, 6 - br, 1, 3, CC.o2); R(12, 5 - br, 1, 3, CC.o2); R(8, 6 - br, 1, 3, CC.o2);
+  R(16, 12, 9, 3, CC.o2); R(22, 12, 3, 3, CC.cream);
+  R.e(6, 11, 4, 4, CC.o); R.t([3, 9], [3, 5], [6, 8], CC.o); R.t([6, 8], [9, 5], [9, 9], CC.o); R(4, 6, 1, 2, CC.pink);
+  R(3, 11, 3, 1, CC.ink); R(5, 13, 1, 1, CC.pink); R(3, 13, 3, 1, CC.cream);
+}
+for (let b = 0; b < 2; b++) def(`mochi_sleep_${b}`, 28, 18, (R) => mochiSleep(R, b), false, true);
+def('heart', 7, 6, (R) => { R(1, 0, 2, 1, P.red); R(4, 0, 2, 1, P.red); R(0, 1, 7, 2, P.red); R(1, 3, 5, 1, P.red); R(2, 4, 3, 1, P.red); R(3, 5, 1, 1, P.red); R(1, 1, 1, 1, P.white); });
+def('zzz', 8, 8, (R) => { R(0, 0, 4, 1, P.white); R(2, 1, 1, 1, P.white); R(1, 2, 1, 1, P.white); R(0, 3, 4, 1, P.white); });
+
 def('heart', 7, 6, (R) => { R(1, 0, 2, 1, P.red); R(4, 0, 2, 1, P.red); R(0, 1, 7, 2, P.red); R(1, 3, 5, 1, P.red); R(2, 4, 3, 1, P.red); R(3, 5, 1, 1, P.red); R(1, 1, 1, 1, P.white); });
 def('zzz', 8, 8, (R) => { R(0, 0, 4, 1, P.white); R(2, 1, 1, 1, P.white); R(1, 2, 1, 1, P.white); R(0, 3, 4, 1, P.white); });
 
@@ -187,39 +194,69 @@ def('bunting', 64, 12, (R) => {
 });
 def('mat', 16, 8, (R) => { R(0, 0, 16, 8, P.dark); R(1, 1, 14, 6, P.brown); R(4, 3, 8, 2, P.yellow); });
 
-// ---------- Portraits (48x48) ----------
-function misaPortrait(R, mood) {
-  R(5, 3, 38, 40, P.hair3); R(5, 3, 38, 34, P.hair); R(2, 0, 12, 12, P.hair2); R(34, 0, 12, 12, P.hair2); R(4, 3, 10, 3, P.hair2);
-  R(8, 8, 32, 8, P.hair2); R(8, 38, 32, 10, P.mint); R(20, 38, 8, 10, P.cream); R(14, 40, 4, 6, P.mint2); R(30, 40, 4, 6, P.mint2);
-  R(11, 14, 26, 24, P.skin); R(10, 12, 28, 6, P.hair); R(12, 14, 8, 6, P.hair); R(28, 14, 8, 6, P.hair); R(8, 14, 4, 24, P.hair); R(36, 14, 4, 24, P.hair);
-  R(20, 32, 8, 8, P.skin2); R(11, 36, 26, 3, P.skin);
-  R(14, 30, 4, 3, P.blush); R(30, 30, 4, 3, P.blush);
-  const eyes = { neutral: () => { R(16, 24, 4, 6, P.ink); R(28, 24, 4, 6, P.ink); R(16, 24, 2, 2, P.white); R(28, 24, 2, 2, P.white); R(21, 34, 6, 1, P.red2); },
-    happy: () => { R(15, 27, 2, 2, P.ink); R(17, 25, 3, 2, P.ink); R(20, 27, 1, 2, P.ink); R(27, 27, 2, 2, P.ink); R(29, 25, 3, 2, P.ink); R(32, 27, 1, 2, P.ink); R(19, 33, 10, 1, P.red2); R(20, 34, 8, 2, P.red2); R(22, 35, 4, 1, P.pink); },
-    surprised: () => { R(15, 22, 6, 8, P.white); R(27, 22, 6, 8, P.white); R(17, 24, 3, 5, P.ink); R(29, 24, 3, 5, P.ink); R(22, 33, 4, 4, P.red2); R(23, 34, 2, 2, P.ink); },
-    sleepy: () => { R(15, 28, 6, 2, P.ink); R(27, 28, 6, 2, P.ink); R(22, 34, 4, 2, P.red2); R(39, 6, 5, 1, P.white); R(41, 7, 1, 1, P.white); R(39, 8, 5, 1, P.white); } };
-  (eyes[mood] || eyes.neutral)();
+// ---------- Portraits (64x64, anime style, auto-outlined; blink + talking frames) ----------
+const PAL = {
+  misa: { hair: MC.hair, hairH: MC.hairH, hairD: MC.hairD, skin: MC.skin, skin2: MC.skin2, iris: '#b0703c', iris2: '#6a3a24', top: MC.navy, top2: MC.navy2, topL: MC.navyL },
+  pip: { hair: '#4a3436', hairH: '#6a4e50', hairD: '#2f2024', skin: '#f2c9a4', skin2: '#d6a07c', iris: '#5a7a4a', iris2: '#34502c', top: '#5a8cc0', top2: '#3f6a98', topL: '#7fb2e0' },
+};
+function facePortrait(R, who, mood, mouth, blink) {
+  const c = PAL[who];
+  // hair back + shoulders
+  R.e(32, 30, 26, 27, c.hairD); R(6, 32, 9, 22, c.hairD); R(49, 32, 9, 22, c.hairD); R.e(10, 53, 4, 3, c.hairD); R.e(53, 53, 4, 3, c.hairD);
+  R.e(32, 66, 29, 16, c.top); R.e(32, 62, 22, 8, c.topL); R(40, 58, 20, 10, c.top2); R.e(32, 57, 7, 3, c.skin2);
+  R(28, 60, 1, 5, '#fff1d6'); R(36, 60, 1, 5, '#fff1d6');
+  R(28, 46, 8, 9, c.skin2);
+  // face
+  R.e(32, 33, 18, 16, c.skin); R.e(32, 43, 13, 9, c.skin); R.e(32, 50, 7, 3, c.skin);
+  R.e(15, 38, 3, 4, c.skin); R.e(49, 38, 3, 4, c.skin);
+  // eyes
+  const eye = (cx, side) => {
+    const rx = mood === 'surprised' ? 6 : 5, ry = mood === 'surprised' ? 7 : 6;
+    if (blink || mood === 'happy') {
+      if (mood === 'happy') { R(cx - 4, 40, 3, 1, MC.ink); R(cx - 2, 38, 5, 2, MC.ink); R(cx + 2, 40, 3, 1, MC.ink); }
+      else { R(cx - 5, 39, 11, 2, MC.ink); R(cx - 5 + (side < 0 ? -1 : 6), 38, 1, 2, MC.ink); }
+      return;
+    }
+    R.e(cx, 38, rx, ry, MC.ink); R.e(cx, 39, rx - 1, ry - 1, c.iris); R.e(cx, 40, rx - 2, ry - 2, c.iris2); R.e(cx, 39, mood === 'surprised' ? 1 : 2, mood === 'surprised' ? 2 : 3, MC.ink);
+    R(cx - 3, 35, 3, 3, '#ffffff'); R(cx + 2, 41, 2, 2, '#ffffffcc');
+    R(cx - rx - 1, 32, rx * 2 + 3, 2, MC.ink); R(side < 0 ? cx - rx - 3 : cx + rx + 1, 33, 3, 2, MC.ink);
+    if (mood === 'sleepy') { R(cx - rx - 1, 33, rx * 2 + 3, 5, c.skin); R(cx - rx - 1, 38, rx * 2 + 3, 2, MC.ink); R(cx - rx - 1, 36, rx * 2 + 3, 2, c.skin2); }
+  };
+  eye(23, -1); eye(41, 1);
+  R(17, mood === 'surprised' ? 26 : 29, 9, 1, c.hairD); R(38, mood === 'surprised' ? 26 : 29, 9, 1, c.hairD);
+  R(31, 45, 2, 1, '#d99a80'); R.e(19, 46, 3, 2, '#f5a0a8'); R.e(45, 46, 3, 2, '#f5a0a8');
+  // mouth
+  const open = mouth === 1;
+  if (mood === 'happy') { if (open) { R.e(32, 50, 4, 3, '#7a2a35'); R(30, 51, 5, 2, '#f08a94'); R(29, 48, 7, 1, MC.mouth); } else { R(28, 48, 1, 1, MC.mouth); R(29, 49, 6, 1, MC.mouth); R(35, 48, 1, 1, MC.mouth); } }
+  else if (mood === 'surprised') R.e(32, 50, open ? 3 : 2, open ? 4 : 3, '#7a2a35');
+  else if (open) R.e(32, 50, 2, 2, '#7a2a35');
+  else R(29, 50, 6, 1, MC.mouth);
+  // bangs
+  R.e(32, 20, 24, 15, c.hair); R(8, 24, 4, 20, c.hair); R(52, 24, 4, 20, c.hair);
+  R.t([10, 24], [34, 16], [21, 32], c.hair); R.t([30, 18], [55, 26], [46, 32], c.hair); R.t([25, 22], [37, 22], [31, 30], c.hair);
+  R.e(28, 12, 15, 3, c.hairH); R(38, 14, 10, 1, c.hairH); R(12, 24, 2, 8, c.hairH);
+  if (who === 'misa') R.t([37, 20], [43, 22], [40, 30], MC.pink);
+  if (who === 'pip') { R.e(32, 15, 24, 11, '#5a8cc0'); R(8, 22, 48, 4, '#3f6a98'); R(40, 16, 22, 8, '#5a8cc0'); R.e(32, 15, 8, 5, '#ffd76a'); R.e(32, 15, 5, 3, '#e0707a'); R.e(20, 46, 1, 1, '#c9805e'); R.e(43, 47, 1, 1, '#c9805e'); }
 }
-for (const m of ['neutral', 'happy', 'surprised', 'sleepy']) def(`p_misa_${m}`, 48, 48, (R) => misaPortrait(R, m));
-function mochiPortrait(R, mood) {
-  R(6, 12, 36, 30, P.cat); R(6, 10, 4, 4, P.cat); R(6, 4, 8, 10, P.cat2); R(34, 4, 8, 10, P.cat2); R(8, 6, 4, 6, P.pink); R(36, 6, 4, 6, P.pink);
-  R(18, 12, 3, 8, P.cat2); R(24, 12, 3, 10, P.cat2); R(30, 12, 3, 8, P.cat2); R(14, 32, 20, 10, P.cat3); R(6, 36, 36, 10, P.cat3);
-  R(4, 30, 8, 1, P.white); R(36, 30, 8, 1, P.white); R(3, 33, 9, 1, P.white); R(36, 33, 9, 1, P.white);
-  R(21, 30, 6, 4, P.pink); R(23, 33, 2, 3, P.pink); R(19, 35, 5, 1, P.cat2); R(25, 35, 5, 1, P.cat2);
-  if (mood === 'happy') { R(11, 24, 3, 2, P.ink); R(13, 22, 4, 2, P.ink); R(17, 24, 1, 2, P.ink); R(30, 24, 3, 2, P.ink); R(32, 22, 4, 2, P.ink); R(36, 24, 1, 2, P.ink); }
-  else if (mood === 'sleepy') { R(11, 26, 7, 2, P.ink); R(30, 26, 7, 2, P.ink); R(38, 8, 6, 1, P.white); R(40, 9, 1, 1, P.white); R(38, 10, 6, 1, P.white); }
-  else { R(11, 21, 8, 9, P.eye); R(29, 21, 8, 9, P.eye); R(14, 22, 2, 7, P.ink); R(32, 22, 2, 7, P.ink); R(12, 22, 2, 2, P.white); R(30, 22, 2, 2, P.white); }
+for (const who of ['misa', 'pip']) for (const mood of who === 'misa' ? ['neutral', 'happy', 'surprised', 'sleepy'] : ['neutral', 'happy'])
+  for (const m of [0, 1]) for (const b of [0, 1]) def(`p_${who}_${mood}_${m}${b}`, 64, 64, (R) => facePortrait(R, who, mood, m, !!b), false, true);
+
+function mochiPortrait(R, mood, mouth, blink) {
+  R.e(32, 60, 22, 14, CC.o); R.e(32, 62, 12, 10, CC.cream);
+  R.t([8, 30], [12, 3], [30, 16], CC.o); R.t([34, 16], [52, 3], [56, 30], CC.o); R.t([13, 22], [14, 9], [25, 17], CC.pink); R.t([39, 17], [50, 9], [51, 22], CC.pink);
+  R.e(32, 36, 25, 20, CC.o); R.e(9, 42, 4, 5, CC.o); R.e(55, 42, 4, 5, CC.o);
+  R(31, 17, 3, 9, CC.o2); R(24, 18, 3, 6, CC.o2); R(38, 18, 3, 6, CC.o2); R(9, 36, 5, 2, CC.o2); R(50, 36, 5, 2, CC.o2);
+  R.e(32, 47, 11, 7, CC.cream); R.e(24, 46, 5, 5, CC.cream); R.e(40, 46, 5, 5, CC.cream);
+  for (const [cx, s] of [[21, -1], [43, 1]]) {
+    if (blink || mood === 'happy') { R(cx - 5, mood === 'happy' ? 37 : 39, 3, 1, CC.ink); R(cx - 3, mood === 'happy' ? 35 : 39, 6, 2, CC.ink); R(cx + 3, mood === 'happy' ? 37 : 39, 3, 1, CC.ink); }
+    else { R.e(cx, 38, 6, 7, CC.ink); R.e(cx, 38, 5, 6, CC.eye); R.e(cx, 39, 2, 5, CC.ink); R(cx - 3, 34, 3, 3, '#ffffff'); R(cx + 1, 41, 2, 2, '#ffffffcc'); if (mood === 'sleepy') { R(cx - 6, 31, 13, 7, CC.o); R(cx - 6, 38, 13, 2, CC.ink); } }
+  }
+  R.t([29, 43], [35, 43], [32, 47], CC.pink); R(32, 47, 1, 2, CC.ink);
+  if (mood === 'happy' || mouth) { R.e(32, 52, 3, mouth ? 3 : 1, '#7a2a35'); if (mouth) R(31, 53, 3, 1, '#f08a94'); } else { R(28, 49, 4, 1, CC.ink); R(33, 49, 4, 1, CC.ink); R(31, 48, 1, 1, CC.ink); }
+  for (const s of [-1, 1]) for (const dy of [-2, 1, 4]) R(s < 0 ? 4 : 46, 46 + dy, 12, 1, '#fff1d6');
+  R.e(32, 18, 8, 2, CC.o3);
 }
-for (const m of ['neutral', 'happy', 'sleepy']) def(`p_mochi_${m}`, 48, 48, (R) => mochiPortrait(R, m));
-function pipPortrait(R, mood) {
-  R(8, 40, 32, 8, P.blue2); R(20, 38, 8, 4, P.cream); R(10, 14, 28, 26, P.skin); R(10, 26, 3, 6, P.skin2);
-  R(7, 8, 34, 8, P.blue); R(7, 6, 30, 3, P.blue); R(10, 2, 26, 6, P.blue); R(30, 12, 14, 4, P.blue2); R(20, 4, 8, 6, P.yellow); R(22, 5, 4, 3, P.red);
-  R(8, 16, 4, 12, '#7a4a30'); R(36, 16, 4, 12, '#7a4a30');
-  R(16, 24, 4, 5, P.ink); R(28, 24, 4, 5, P.ink); R(16, 24, 2, 2, P.white); R(28, 24, 2, 2, P.white);
-  R(13, 31, 4, 3, P.blush); R(31, 31, 4, 3, P.blush); R(19, 33, 10, 2, P.red2); R(20, 35, 8, 2, P.red2); R(22, 35, 4, 1, P.pink);
-}
-def('p_pip_neutral', 48, 48, (R) => pipPortrait(R));
-def('p_pip_happy', 48, 48, (R) => pipPortrait(R));
+for (const mood of ['neutral', 'happy', 'sleepy']) for (const m of [0, 1]) for (const b of [0, 1]) def(`p_mochi_${mood}_${m}${b}`, 64, 64, (R) => mochiPortrait(R, mood, m, !!b), false, true);
 
 // ---------- Item icons (16x16) for the feed minigame ----------
 def('i_fish', 16, 16, (R) => { R(2, 5, 9, 6, P.blue); R(3, 4, 6, 1, P.blue2); R(3, 11, 6, 1, P.blue2); R(11, 4, 4, 3, P.blue2); R(11, 9, 4, 3, P.blue2); R(4, 7, 2, 2, P.white); R(4, 7, 1, 1, P.ink); R(7, 6, 1, 4, P.steel); });
@@ -230,15 +267,44 @@ def('i_star', 16, 16, (R) => { R(7, 1, 2, 14, P.yellow); R(1, 6, 14, 3, P.yellow
 def('i_coin', 8, 8, (R) => { R(1, 0, 6, 8, P.yellow); R(0, 1, 8, 6, P.yellow); R(2, 2, 2, 4, '#fff0b0'); R(5, 5, 2, 1, '#c9a13f'); });
 
 // Pip the postie (world sprite)
-def('pip', 16, 24, (R) => {
-  R(4, 19, 3, 3, P.blue2); R(9, 19, 3, 3, P.blue2); R(4, 22, 4, 2, P.ink); R(8, 22, 4, 2, P.ink);
-  R(3, 11, 10, 9, P.blue); R(3, 16, 10, 1, P.blue2); R(1, 12, 2, 6, P.blue); R(13, 12, 2, 6, P.blue); R(1, 17, 2, 2, P.skin); R(13, 17, 2, 2, P.skin);
-  R(10, 13, 5, 6, P.brown); R(11, 14, 3, 1, P.yellow);
-  R(4, 5, 8, 7, P.skin); R(3, 2, 10, 4, P.blue); R(3, 5, 12, 2, P.blue2); R(7, 2, 2, 2, P.yellow); R(6, 8, 1, 2, P.ink); R(9, 8, 1, 2, P.ink); R(7, 10, 2, 1, P.red2);
-});
+def('pip', 22, 34, (R0) => {
+  const R = R0.at(1, 1), P2 = { navy: '#5a8cc0', navy2: '#3f6a98', navyL: '#7fb2e0' };
+  R(6, 25, 3, 4, '#2f4a70'); R(11, 25, 3, 4, '#2f4a70'); R(5, 29, 4, 3, MC.pants2); R(11, 29, 4, 3, MC.pants2);
+  R(5, 16, 10, 10, P2.navy); R(12, 16, 3, 10, P2.navy2); R(4, 15, 12, 3, P2.navyL); R(2, 17, 3, 8, P2.navy); R(15, 17, 3, 8, P2.navy2); R(2, 25, 3, 2, '#f2c9a4'); R(15, 25, 3, 2, '#d6a07c');
+  R(12, 19, 6, 6, '#8a5a3a'); R(13, 20, 4, 1, '#ffd76a');
+  R.e(10, 9, 8, 7, '#2f2024'); R.e(10, 11, 6, 5, '#f2c9a4'); R(5, 13, 10, 3, '#f2c9a4');
+  R.e(10, 5, 9, 4, '#5a8cc0'); R(3, 6, 16, 3, '#3f6a98'); R(8, 3, 4, 2, '#ffd76a');
+  R(5, 10, 3, 3, MC.ink); R(12, 10, 3, 3, MC.ink); R(5, 10, 1, 1, '#ffffff'); R(12, 10, 1, 1, '#ffffff'); R(9, 15, 2, 1, MC.mouth); R(3, 13, 2, 1, MC.blush); R(15, 13, 2, 1, MC.blush);
+}, false, true);
 
 export function drawSprite(name, surface) {
   const d = SPRITES[name];
   if (!d) throw new Error(`unknown sprite ${name}`);
-  d.draw((x, y, w, h, c) => surface.rect(x, y, w, h, c));
+  d.draw(makeR(surface));
+}
+
+// Selective outline: every empty pixel touching the sprite gets a dark shade of its neighbour's colour.
+function outlineBuffer(b, k = 0.36) {
+  const { w, h, data } = b, out = new Uint8ClampedArray(data);
+  const solid = (x, y) => x >= 0 && y >= 0 && x < w && y < h && data[(y * w + x) * 4 + 3] > 40;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (solid(x, y)) continue;
+    let r = 0, g = 0, bl = 0, n = 0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (solid(x + dx, y + dy)) {
+      const o = ((y + dy) * w + x + dx) * 4; r += data[o]; g += data[o + 1]; bl += data[o + 2]; n++;
+    }
+    if (!n) continue;
+    const o = (y * w + x) * 4;
+    out[o] = (r / n) * k + 30 * (1 - k) * 0.5; out[o + 1] = (g / n) * k + 18 * (1 - k) * 0.5; out[o + 2] = (bl / n) * k + 40 * (1 - k) * 0.6; out[o + 3] = 255;
+  }
+  data.set(out);
+}
+
+// Render a sprite to an RGBA buffer (mirrored / outlined as its definition asks).
+export function renderSprite(name, flip = false) {
+  const d = SPRITES[name];
+  const buf = new BufferSurface(d.w, d.h);
+  drawSprite(name, flip !== d.flip ? new MirrorSurface(buf, d.w) : buf);
+  if (d.outline) outlineBuffer(buf);
+  return buf;
 }

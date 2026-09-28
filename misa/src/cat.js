@@ -2,11 +2,11 @@
 import { moveBody, CUSHION, TILE } from './world.js';
 
 export class Cat {
-  constructor(x, y) { Object.assign(this, { x, y, dir: 1, state: 'nap', t: 10, frame: 0, ft: 0, tx: x, ty: y, stuck: 0, wantHeart: 0 }); }
+  constructor(x, y) { Object.assign(this, { x, y, dir: 1, state: 'nap', t: 10, frame: 0, ft: 0, anim: 0, tx: x, ty: y, stuck: 0, wantHeart: 0 }); }
   set(state, t) { this.state = state; this.t = t; }
   update(dt, ctx) {
     const { player, rects, rng, night } = ctx;
-    this.t -= dt; this.ft += dt;
+    this.t -= dt; this.ft += dt; this.anim += dt;
     const dP = Math.hypot(player.x - this.x, player.y - this.y);
     let speed = 0, tx = this.x, ty = this.y;
     switch (this.state) {
@@ -51,14 +51,14 @@ export class Cat {
       const moved = Math.hypot(this.x - ox, this.y - oy);
       this.stuck = moved < speed * dt * 0.25 ? this.stuck + dt : 0;
       if (this.stuck > 2.5) { this.x = player.x + 6; this.y = player.y; this.stuck = 0; }
-      if (this.ft > 0.14) { this.ft = 0; this.frame ^= 1; }
+      if (this.ft > (this.state === 'zoom' ? 0.07 : 0.11)) { this.ft = 0; this.frame = (this.frame + 1) % 4; }
     }
     if (this.wantHeart > 0) this.wantHeart -= dt;
   }
   get moving() { return ['follow', 'wander', 'goNap', 'zoom'].includes(this.state); }
   get sprite() {
-    if (this.state === 'nap') return 'mochi_sleep';
-    if (this.state === 'sit') return 'mochi_sit';
+    if (this.state === 'nap') return `mochi_sleep_${Math.floor(this.anim * 1.1) % 2}`;
+    if (this.state === 'sit') return this.anim % 4.5 < 0.14 ? 'mochi_sit_b' : `mochi_sit_${Math.floor(this.anim * 2.2) % 4}`;
     return `mochi_walk_${this.frame}`;
   }
 }

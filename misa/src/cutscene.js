@@ -61,16 +61,18 @@ export class Cutscene {
     const s = this.step;
     if (!s) return;
     if (s.t === 'say') {
-      const y = top ? 18 : 150;
-      g.fillStyle = '#2b1d2ee6'; g.fillRect(6, y, 308, 68);
-      g.fillStyle = '#fff1d6'; g.fillRect(6, y, 308, 1); g.fillRect(6, y + 67, 308, 1); g.fillRect(6, y, 1, 68); g.fillRect(313, y, 1, 68);
+      const y = top ? 18 : 142;
+      g.fillStyle = '#2b1d2ee6'; g.fillRect(6, y, 308, 76);
+      g.fillStyle = '#fff1d6'; g.fillRect(6, y, 308, 1); g.fillRect(6, y + 75, 308, 1); g.fillRect(6, y, 1, 76); g.fillRect(313, y, 1, 76);
       let tx = 14;
       if (s.who && s.mood !== null) {
-        const key = `p_${s.who.toLowerCase()}_${s.mood}`;
-        g.fillStyle = '#fff1d6'; g.fillRect(10, y + 8, 52, 52);
-        g.fillStyle = '#b6dcc9'; g.fillRect(12, y + 10, 48, 48);
-        try { g.drawImage(sprite(key), 12, y + 10); } catch { /* narrator or missing portrait */ }
-        tx = 70;
+        const talking = this.shown < s.text.length, m = talking && Math.floor(this.tick * 8) % 2 ? 1 : 0, bl = this.tick % 3.3 < 0.13 ? 1 : 0;
+        const bob = talking ? Math.round(Math.sin(this.tick * 16)) : 0;
+        g.fillStyle = '#fff1d6'; g.fillRect(9, y + 3, 70, 70);
+        g.fillStyle = s.who === 'MOCHI' ? '#f7d9a8' : '#b6dcc9'; g.fillRect(11, y + 5, 66, 66);
+        try { g.drawImage(sprite(`p_${s.who.toLowerCase()}_${s.mood}_${m}${bl}`), 12, y + 6 + bob); } catch { /* narrator or missing portrait */ }
+        g.fillStyle = '#2b1d2e'; g.fillRect(11, y + 5, 66, 1); g.fillRect(11, y + 70, 66, 1);
+        tx = 88;
       }
       if (s.who) {
         g.fillStyle = '#e0707a'; g.fillRect(tx - 2, y - 6, s.who.length * CHAR_W + 8, 11);
@@ -81,9 +83,9 @@ export class Cutscene {
       const maxC = Math.floor((306 - tx) / CHAR_W);
       wrap(s.text, maxC).forEach((ln, i) => {
         const part = ln.slice(0, Math.max(0, left)); left -= ln.length + 1;
-        drawText(g, part, tx, y + 10 + i * 9, '#fff8e8');
+        drawText(g, part, tx, y + 12 + i * 9, '#fff8e8');
       });
-      if (this.shown >= s.text.length && Math.floor(this.tick * 2) % 2) drawText(g, '>', 300, y + 56, '#ffd76a');
+      if (this.shown >= s.text.length && Math.floor(this.tick * 2) % 2) drawText(g, '>', 300, y + 64, '#ffd76a');
     } else if (s.t === 'choice') {
       g.fillStyle = '#2b1d2ee6'; g.fillRect(60, 84, 200, 20 + s.options.length * 16);
       drawTextC(g, 'Make a wish', 160, 90, '#ffd76a');

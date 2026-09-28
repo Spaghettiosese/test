@@ -1,12 +1,14 @@
 import { SPRITES } from './art.js';
-import { sprite, loadOverrides } from './artcache.js';
+import { sprite, sprite2, loadOverrides } from './artcache.js';
+import { loadMisa, drawMisa } from './moonkai.js';
+import { PetGame } from './pet.js';
 import { drawText, drawTextC, measure } from './font.js';
 import { blankInput, axis, act } from './input.js';
-import { mulberry32, pick } from './rng.js';
+import { mulberry32, pick, clamp } from './rng.js';
 import { sfx, musicTick, toggleMusic } from './audio.js';
 import {
   TILE, W, H, GRID, OBJECTS, DECOR, WINDOWS, SPAWN, DOOR_STEP, DUST_SPOTS, SOFA_SPOT,
-  solidRects, moveBody, nearestInteract, footprint,
+  solidRects, moveBody, nearestInteract, footprint, distToRect,
 } from './world.js';
 import { Cat } from './cat.js';
 import { CHORES, dailyChores, starsFor, isAllDone, clockText } from './chores.js';
@@ -59,7 +61,9 @@ const state = {
   day: 1, minutes: 7 * 60, mood: 40, stars: 0, chores: [], decor: [], flags: {}, raining: false, blackout: 0,
   eventsToday: [], teaLeft: 2, bowlFull: false, dishesDone: 0,
 };
-const player = { x: SPAWN.x, y: SPAWN.y, dir: 'down', frame: 0, ft: 0, moving: false };
+const Z = 2; // the world is drawn at 2x with a camera that follows Misa
+const cam = { x: 0, y: 0 };
+const player = { x: SPAWN.x, y: SPAWN.y, dir: 'down', face: 'right', at: 0, run: false, moving: false };
 const cat = new Cat(7.5 * TILE, 11.9 * TILE);
 const pip = { show: false };
 const hearts = [];
@@ -115,7 +119,7 @@ const say = (who, mood, text) => ({ t: 'say', who, mood, text });
 function startDay(intro) {
   Object.assign(state, { minutes: 7 * 60, raining: false, blackout: 0, eventsToday: [], teaLeft: 2, bowlFull: false });
   state.chores = dailyChores(rng, state.day);
-  Object.assign(player, { x: SPAWN.x, y: SPAWN.y, dir: 'down' });
+  Object.assign(player, { x: SPAWN.x, y: SPAWN.y, dir: 'down', face: 'right' });
   Object.assign(cat, { x: 7.5 * TILE, y: 11.9 * TILE }); cat.set('nap', 8);
   pip.show = false; eventTimer = state.day === 1 ? 35 : 45; mode = 'world'; sceneName = null;
   if (intro) startCutscene(INTRO);
@@ -188,20 +192,23 @@ function sleep(forced) {
 function updateWorld(dt) {
   const a = axis(input);
   let vx = a.x, vy = a.y;
+  const wmx = (input.mx + cam.x) / Z, wmy = (input.my + cam.y) / Z;
   if (!vx && !vy && input.down && !input.justDown) {
-    const dx = input.mx - player.x, dy = input.my - (player.y - 8);
-    if (Math.hypot(dx, dy) > 6) { vx = dx; vy = dy; }
+    const dx = wmx - player.x, dy = wmy - (player.y - 12);
+    if (Math.hypot(dx, dy) > 5) { vx = dx; vy = dy; }
   }
   const n = Math.hypot(vx, vy);
   const rects = solidRects(state.decor);
-  player.moving = n > 0;
+  const wasMoving = player.moving, wasRun = player.run;
+  player.moving = n > 0; player.run = player.moving && held.has('shift');
   if (n) {
-    const sp = (held.has('shift') ? 92 : 58) * dt;
+    const sp = (player.run ? 84 : 54) * dt;
     moveBody(player, (vx / n) * sp, (vy / n) * sp, rects);
     player.dir = Math.abs(vx) > Math.abs(vy) ? (vx < 0 ? 'left' : 'right') : vy < 0 ? 'up' : 'down';
-    player.ft += dt;
-    if (player.ft > 0.11) { player.ft = 0; player.frame = (player.frame + 1) % 4; }
-  } else player.frame = 0;
+    if (Math.abs(vx) > 0.2) player.face = vx < 0 ? 'left' : 'right';
+  }
+  if (player.moving !== wasMoving || player.run !== wasRun) player.at = 0;
+  player.at += dt;
 
   clock += dt;
   state.minutes += dt * 2;
@@ -212,14 +219,14 @@ function updateWorld(dt) {
   if (cat.moving === false && cat.state === 'nap' && rng() < dt * 0.4) hearts.push({ x: cat.x, y: cat.y - 18, life: 1.4, z: true });
 
   // interaction
-  const near = nearestInteract(player.x, player.y);
-  const catNear = Math.hypot(cat.x - player.x, cat.y - player.y) < 20;
-  if (act(input)) {
+  const { near, catNear } = targets();
+  if (input.pressed.has('p') && Math.hypot(cat.x - player.x, cat.y - player.y) < 30) petCat();
+  else if (act(input)) {
     let target = near;
     if (input.justDown && !input.pressed.size) {
-      target = near && OBJECTS.includes(near) && hitObj(near, input.mx, input.my) ? near : null;
-      if (!target && catNear && Math.hypot(cat.x - input.mx, cat.y - 8 - input.my) < 14) target = 'cat';
-    } else if (!near && catNear) target = 'cat';
+      target = near && OBJECTS.includes(near) && hitObj(near, wmx, wmy) ? near : null;
+      if (!target && catNear && Math.hypot(cat.x - wmx, cat.y - 6 - wmy) < 14) target = 'cat';
+    } else if (catNear) target = 'cat';
     if (target === 'cat') petCat();
     else if (target) interact(target);
   }
@@ -236,12 +243,28 @@ function updateWorld(dt) {
   if (state.minutes >= 22 * 60) { state.minutes = 22 * 60 - 1; sleep(true); }
 }
 const hitObj = (o, x, y) => { const f = footprint(o); return x > f[0] - 8 && x < f[0] + f[2] + 8 && y > f[1] - 24 && y < f[1] + f[3] + 4; };
+// Mochi wins the prompt when she is closer than the nearest station.
+function targets() {
+  let near = nearestInteract(player.x, player.y);
+  const cd = Math.hypot(cat.x - player.x, cat.y - player.y);
+  let catNear = cd < 22;
+  if (catNear && near && distToRect(player.x, player.y, footprint(near)) < cd - 4) catNear = false;
+  if (catNear) near = null;
+  return { near, catNear };
+}
 function petCat() {
-  if (petCd > 0) return;
-  petCd = 4; api.addMood(2); sfx('purr'); sfx('meow');
-  for (let i = 0; i < 3; i++) hearts.push({ x: cat.x + (i - 1) * 6, y: cat.y - 16 - i * 3, life: 1.2 });
-  if (cat.state === 'nap') cat.set('sit', 3);
-  api.toast('Pet Mochi. Cozy +2');
+  miniId = 'pet'; mini = new PetGame(rng); mode = 'mini'; sfx('meow');
+  if (cat.state === 'nap') cat.set('sit', 6);
+}
+function finishPet() {
+  const aff = mini.affection;
+  mini = null; mode = 'world'; miniId = null;
+  if (petCd <= 0 && aff > 0.05) {
+    petCd = 40; api.addMood(Math.round(aff * 10));
+    if (aff >= 1) { state.stars += 1; api.toast('Mochi adores you! Cozy +10, +1 star'); } else api.toast(`Pet Mochi. Cozy +${Math.round(aff * 10)}`);
+    for (let i = 0; i < 3; i++) hearts.push({ x: cat.x + (i - 1) * 6, y: cat.y - 16 - i * 3, life: 1.2 });
+  } else if (aff > 0.05) api.toast('Mochi purrs happily');
+  cat.set('sit', 8);
 }
 
 function update(dt) {
@@ -259,7 +282,8 @@ function update(dt) {
   else if (mode === 'cutscene') { cs && cs.update(dt, input); if (cs) cat.update(dt, { player, rects: solidRects(state.decor), rng, night: false }); }
   else if (mode === 'mini') {
     mini.update(dt, input);
-    if (pressedNow.has('escape')) { mini = null; mode = 'world'; api.toast('Chore paused'); }
+    if (miniId === 'pet') { if (pressedNow.has('escape')) mini.finish(); if (mini.done) finishPet(); }
+    else if (pressedNow.has('escape')) { mini = null; mode = 'world'; api.toast('Chore paused'); }
     else if (mini.done) { mode = 'result'; resultT = 0; sfx('chime'); }
   } else if (mode === 'result') {
     resultT += dt;
@@ -274,17 +298,17 @@ function update(dt) {
 // ---------- rendering ----------
 let floorLayer = null;
 function buildFloor() {
-  floorLayer = document.createElement('canvas'); floorLayer.width = W * TILE; floorLayer.height = H * TILE;
+  floorLayer = document.createElement('canvas'); floorLayer.width = W * TILE * Z; floorLayer.height = H * TILE * Z;
   const f = floorLayer.getContext('2d'); f.imageSmoothingEnabled = false;
   const names = { k: 't_kitchen', w: 't_wood', b: 't_bath', s: 't_sun', d: 't_door_floor' };
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const c = GRID[y][x];
     let n = names[c];
     if (c === '#') n = y + 1 < H && GRID[y + 1][x] !== '#' ? 't_wall_face' : 't_wall_top';
-    f.drawImage(sprite(n), x * TILE, y * TILE);
+    f.drawImage(sprite2(n), x * TILE * Z, y * TILE * Z);
   }
-  for (const [x, y] of WINDOWS) f.drawImage(sprite('window'), x * TILE, y * TILE);
-  for (const o of OBJECTS) if (o.wallDecor) f.drawImage(sprite(o.spr), o.x * TILE, (o.y + o.h) * TILE - SPRITES[o.spr].h);
+  for (const [x, y] of WINDOWS) f.drawImage(sprite2('window'), x * TILE * Z, y * TILE * Z);
+  for (const o of OBJECTS) if (o.wallDecor) f.drawImage(sprite2(o.spr), o.x * TILE * Z, ((o.y + o.h) * TILE - SPRITES[o.spr].h) * Z);
 }
 
 function objSprite(o) {
@@ -296,12 +320,16 @@ function objSprite(o) {
     default: return o.spr;
   }
 }
-function drawSpr(name, x, y, flip) { g.drawImage(sprite(name, flip), Math.round(x), Math.round(y)); }
+// world-space (1x) position -> screen (2x, camera-relative)
+function drawSpr(name, x, y, flip) { g.drawImage(sprite2(name, flip), Math.round(x * Z - cam.x), Math.round(y * Z - cam.y)); }
+function drawFeet(name, wx, wy, flip) { const d = SPRITES[name]; drawSpr(name, wx - d.w / 2, wy - d.h + 1, flip); }
+function shadow(wx, wy, w) { g.fillStyle = '#0000002e'; g.fillRect(Math.round(wx * Z - cam.x - w), Math.round(wy * Z - cam.y - 3), w * 2, 5); }
 function objPos(o) { const s = SPRITES[o.spr]; return [o.x * TILE + (o.dx || 0), (o.y + o.h) * TILE - s.h + (o.dy || 0)]; }
 
 function drawWorld() {
   if (!floorLayer) buildFloor();
-  g.drawImage(floorLayer, 0, 0);
+  cam.x = clamp(player.x * Z - VW / 2, 0, W * TILE * Z - VW); cam.y = clamp(player.y * Z - 44 - VH / 2, 0, H * TILE * Z - VH);
+  g.drawImage(floorLayer, -Math.round(cam.x), -Math.round(cam.y));
   const list = [];
   for (const o of OBJECTS) {
     if (o.wallDecor) continue;
@@ -320,16 +348,17 @@ function drawWorld() {
   }
   if (state.chores.some((c) => c.id === 'sweep' && !c.done)) DUST_SPOTS.forEach(([x, y]) => drawSpr('dust', x * TILE, y * TILE + 4));
   list.push({ d: cat.y, fn: () => {
-    g.fillStyle = '#0000002a'; g.fillRect(Math.round(cat.x - 6), Math.round(cat.y - 2), 12, 3);
-    drawSpr(cat.sprite, cat.x - 8, cat.y - 15, cat.dir < 0 && cat.state !== 'nap' && cat.state !== 'sit');
-    if (cat.state === 'nap') drawSpr('zzz', cat.x + 4, cat.y - 22 + Math.sin(clock * 2) * 1.5);
+    shadow(cat.x, cat.y, 10);
+    drawFeet(cat.sprite, cat.x, cat.y + 1, cat.dir < 0 && cat.moving);
+    if (cat.state === 'nap') drawSpr('zzz', cat.x + 4, cat.y - 20 + Math.sin(clock * 2) * 1.5);
   } });
   list.push({ d: player.y, fn: () => {
-    g.fillStyle = '#0000002a'; g.fillRect(Math.round(player.x - 5), Math.round(player.y - 2), 10, 3);
-    const f = player.moving ? [1, 0, 2, 0][player.frame] : 0;
-    drawSpr(`misa_${player.dir}_${f}`, player.x - 8, player.y - 24);
+    shadow(player.x, player.y, 12);
+    const sx = player.x * Z - cam.x, sy = player.y * Z - cam.y + 2;
+    if (player.moving) drawMisa(g, 'misa_sheet', player.run ? 'run' : 'walk', player.at * (player.run ? 16 : 14), sx, sy, player.face === 'left');
+    else drawMisa(g, 'misa_sheet', 'idle', player.at * 8, sx, sy, player.face === 'left');
   } });
-  if (pip.show) list.push({ d: DOOR_STEP.y, fn: () => drawSpr('pip', DOOR_STEP.x - 8, DOOR_STEP.y - 24) });
+  if (pip.show) list.push({ d: DOOR_STEP.y, fn: () => { shadow(DOOR_STEP.x, DOOR_STEP.y, 10); drawFeet('pip', DOOR_STEP.x, DOOR_STEP.y); } });
   list.sort((a, b) => a.d - b.d).forEach((e) => e.fn());
   for (const h of hearts) { g.globalAlpha = Math.min(1, h.life); drawSpr(h.z ? 'zzz' : 'heart', h.x - 3, h.y); g.globalAlpha = 1; }
   lighting();
@@ -350,7 +379,7 @@ function lighting() {
     const d = o.getContext('2d');
     d.fillStyle = `rgba(6,4,24,${a})`; d.fillRect(0, 0, VW, VH);
     d.globalCompositeOperation = 'destination-out';
-    for (const [r, al] of [[62, 0.25], [50, 0.3], [38, 0.35], [26, 0.5], [16, 1]]) { d.fillStyle = `rgba(0,0,0,${al})`; d.beginPath(); d.arc(player.x, player.y - 10, r, 0, 7); d.fill(); }
+    for (const [r, al] of [[62, 0.25], [50, 0.3], [38, 0.35], [26, 0.5], [16, 1]]) { d.fillStyle = `rgba(0,0,0,${al})`; d.beginPath(); d.arc(player.x * Z - cam.x, player.y * Z - cam.y - 24, r * 1.5, 0, 7); d.fill(); }
     g.drawImage(o, 0, 0);
   }
 }
@@ -371,11 +400,10 @@ function drawHUD() {
   const ct = clockText(state.minutes);
   drawText(g, ct, VW - measure(ct) - 4, 4, '#fffaf0');
   if (mode === 'world') {
-    const near = nearestInteract(player.x, player.y);
-    const catNear = Math.hypot(cat.x - player.x, cat.y - player.y) < 20;
+    const { near, catNear } = targets();
     const label = near ? near.interact.label : catNear ? 'Pet Mochi' : null;
     if (label) {
-      const t = `E: ${label}`, w = measure(t) + 8, x = Math.round(Math.max(2, Math.min(VW - w - 2, player.x - w / 2))), y = Math.max(16, Math.round(player.y - 36));
+      const t = `E: ${label}`, w = measure(t) + 8, x = Math.round(Math.max(2, Math.min(VW - w - 2, player.x * Z - cam.x - w / 2))), y = Math.max(16, Math.round(player.y * Z - cam.y - 66));
       panel(x, y, w, 12); drawText(g, t, x + 4, y + 4, '#fff6a0');
     }
   }
@@ -408,8 +436,8 @@ function drawScene(name) {
     g.fillStyle = '#7a4f3a'; g.fillRect(0, 0, VW, 12); g.fillRect(0, 0, 12, 112); g.fillRect(VW - 12, 0, 12, 112); g.fillRect(VW / 2 - 3, 0, 6, 104);
     g.fillStyle = '#c39264'; g.fillRect(0, 104, VW, 8); g.fillStyle = '#e3b184'; g.fillRect(0, 104, VW, 2);
     g.fillStyle = night ? '#3a2a4a' : '#5a4a58'; g.fillRect(0, 112, VW, VH - 112);
-    g.save(); g.translate(112, 108); g.scale(3, 3); g.drawImage(sprite(night ? 'misa_up_0' : 'misa_down_0'), -8, -24); g.restore();
-    g.save(); g.translate(180, 108); g.scale(3, 3); g.drawImage(sprite(night ? 'mochi_sit' : 'mochi_sleep'), -8, -16); g.restore();
+    drawMisa(g, 'misa_big', 'idle', clock * 6, 116, 118, true);
+    g.save(); g.translate(190, 108); g.scale(3, 3); g.drawImage(sprite(night ? `mochi_sit_${Math.floor(clock * 2) % 4}` : `mochi_sleep_${Math.floor(clock) % 2}`), -13, -25); g.restore();
   }
 }
 
@@ -418,12 +446,12 @@ function drawTitle() {
   g.fillStyle = '#f4b58a'; g.fillRect(0, 130, VW, 94);
   for (let i = 0; i < 9; i++) { g.fillStyle = '#fff6e6'; g.fillRect((i * 47 + Math.floor(clock * 6)) % 340 - 20, 20 + (i % 3) * 22, 26, 6); }
   g.fillStyle = '#a67548'; g.fillRect(0, 168, VW, 56); g.fillStyle = '#c39264'; g.fillRect(0, 168, VW, 4);
-  g.save(); g.translate(120, 200); g.scale(5, 5); g.drawImage(sprite('misa_down_0'), -8, -24); g.restore();
-  g.save(); g.translate(200, 200); g.scale(4, 4); g.drawImage(sprite(Math.floor(clock) % 4 ? 'mochi_sit' : 'mochi_walk_0'), -8, -16); g.restore();
+  drawMisa(g, 'misa_big', 'idle', clock * 8, 120, 204, false);
+  g.save(); g.translate(212, 200); g.scale(3, 3); g.drawImage(sprite(Math.floor(clock * 2.2) % 9 === 8 ? 'mochi_sit_b' : `mochi_sit_${Math.floor(clock * 2.2) % 4}`), -13, -25); g.restore();
   drawTextC(g, "MISA'S", 160, 22, '#7a4f3a', 4, '#fff6e6'); drawTextC(g, 'LITTLE HOUSE', 160, 48, '#e0707a', 3, '#fff6e6');
   if (Math.floor(clock * 2) % 2) drawTextC(g, hasSave ? `CLICK OR ENTER TO CONTINUE (DAY ${state.day})` : 'CLICK OR ENTER TO START', 160, 84, '#2b1d2e', 1, null);
   if (hasSave) drawTextC(g, 'PRESS N FOR A NEW GAME', 160, 94, '#7a4f3a', 1, null);
-  drawTextC(g, 'WASD MOVE - E INTERACT - SHIFT RUN - M MUSIC', 160, 212, '#2b1d2e', 1, null);
+  drawTextC(g, 'WASD MOVE - E INTERACT - P PET MOCHI - SHIFT RUN', 160, 212, '#2b1d2e', 1, null);
 }
 
 function drawResult() {
@@ -462,7 +490,7 @@ function render() {
   drawToasts();
   if (cs) {
     if (cs.fade > 0) { g.fillStyle = `rgba(0,0,0,${cs.fade})`; g.fillRect(0, 0, VW, VH); }
-    cs.draw(g, sprite, !sceneName && mode === 'cutscene' && player.y > 112);
+    cs.draw(g, sprite, !sceneName && mode === 'cutscene' && player.y * Z - cam.y > 120);
   }
 }
 
@@ -474,4 +502,4 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 hasSave = load();
-loadOverrides().catch(() => {}).finally(() => requestAnimationFrame(frame));
+Promise.all([loadOverrides().catch(() => {}), loadMisa()]).finally(() => requestAnimationFrame(frame));

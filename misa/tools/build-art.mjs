@@ -2,15 +2,13 @@
 // Moonkai Pixel Studio (or any pixel editor). To replace one in-game, save the edited
 // PNG (same size, same name) into assets/override/ - the game loads it automatically.
 import { mkdirSync, writeFileSync, readdirSync } from 'node:fs';
-import { SPRITES, drawSprite } from '../src/art.js';
-import { BufferSurface, MirrorSurface } from '../src/surface.js';
+import { SPRITES, renderSprite } from '../src/art.js';
 import { encodePNG } from './png.mjs';
 
 const out = new URL('../assets/sprites/', import.meta.url);
 mkdirSync(out, { recursive: true });
 for (const [name, d] of Object.entries(SPRITES)) {
-  const buf = new BufferSurface(d.w, d.h);
-  drawSprite(name, d.flip ? new MirrorSurface(buf, d.w) : buf);
+  const buf = renderSprite(name);
   writeFileSync(new URL(`${name}.png`, out), encodePNG(d.w, d.h, buf.data));
 }
 console.log(`exported ${Object.keys(SPRITES).length} sprites to assets/sprites/`);

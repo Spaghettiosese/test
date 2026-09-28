@@ -1,7 +1,6 @@
 // Lean test suite: pure logic only (no browser). Run with `npm test`.
 import assert from 'node:assert/strict';
-import { SPRITES, drawSprite } from '../src/art.js';
-import { BufferSurface } from '../src/surface.js';
+import { SPRITES, renderSprite } from '../src/art.js';
 import { encodePNG } from './png.mjs';
 import { mulberry32 } from '../src/rng.js';
 import { blankInput } from '../src/input.js';
@@ -10,19 +9,21 @@ import { dailyChores, starsFor } from '../src/chores.js';
 import { pickEvent, EVENTS, scriptFor } from '../src/events.js';
 import { Cutscene } from '../src/cutscene.js';
 import { DishGame, SweepGame, LaundryGame, PlantGame, FeedGame } from '../src/minigames.js';
+import { PetGame } from '../src/pet.js';
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log('ok -', name); };
 const DT = 1 / 60;
 const inp = (o = {}) => Object.assign(blankInput(), o);
 
-test('every sprite draws inside its bounds and portraits are 48x48', () => {
+test('every sprite draws, is outlined inside its bounds, and portraits are 64x64', () => {
   for (const [name, d] of Object.entries(SPRITES)) {
-    const s = new BufferSurface(d.w, d.h); drawSprite(name, s);
+    const s = renderSprite(name);
     assert.ok(s.opaquePixels() > 0, `${name} is empty`);
-    if (name.startsWith('p_')) assert.deepEqual([d.w, d.h], [48, 48]);
+    if (name.startsWith('p_')) assert.deepEqual([d.w, d.h], [64, 64]);
+    if (d.outline) assert.ok(s.data[3] === 0, `${name} touches the canvas edge`);
   }
-  const s = new BufferSurface(16, 16); drawSprite('t_wood', s);
+  const s = renderSprite('t_wood');
   assert.equal(encodePNG(16, 16, s.data).subarray(1, 4).toString(), 'PNG');
 });
 
@@ -119,6 +120,17 @@ test('feed: wrong food costs stars, favourite food finishes', () => {
   g.sel = g.fav; g.update(DT, inp({ pressed: new Set([' ']) }));
   for (let i = 0; i < 200; i++) g.update(DT, inp());
   assert.ok(g.done && g.wrong === 1 && g.score < 1);
+});
+
+test('pet: gentle strokes build affection, frantic ones annoy Mochi, Done finishes', () => {
+  const stroke = (g, speed, frames) => { for (let i = 0; i < frames; i++) g.update(DT, inp({ down: true, moved: true, mx: 160 + Math.sin(i * speed) * 25, my: 100 })); };
+  const g = new PetGame(mulberry32(9));
+  stroke(g, 0.12, 240);
+  assert.ok(g.affection > 0.3 && g.mood !== 'annoyed', `affection ${g.affection}`);
+  const before = g.affection;
+  stroke(g, 1.6, 90);
+  assert.ok(g.annoyT > 0 || g.affection < before + 0.2, 'fast petting should annoy');
+  g.finish(); assert.ok(g.done && g.score === g.affection);
 });
 
 console.log(`\n${n} tests passed`);

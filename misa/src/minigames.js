@@ -322,8 +322,8 @@ export class FeedGame {
     const wag = this.sel === this.fav && this.phase === 'pick';
     const sleepy = this.phase === 'sniff';
     const mx = 160 + (sleepy ? 18 : 0);
-    g.save(); g.translate(mx, 78); g.scale(4, 4);
-    g.drawImage(sprite('mochi_sit'), -8, -8);
+    g.save(); g.translate(mx, 92); g.scale(5, 5);
+    g.drawImage(sprite(this.t % 4.5 < 0.14 ? 'mochi_sit_b' : 'mochi_sit_' + (Math.floor(this.t * 2.2) % 4)), -13, -13);
     g.restore();
     const tw = wag ? Math.round(Math.sin(this.t * 14) * 3) : 0;
     rect(g, '#d98d45', mx + 32 + tw, 80, 6, 12); rect(g, '#d98d45', mx + 34 + tw * 1.5, 72, 6, 10);
