@@ -105,6 +105,8 @@ export const HANDS = {
   pistolGrip: { curl: [0.5, 0.15, 0.82, 0.88, 0.92], spread: 0 }, // index along the frame / on the trigger
   squeeze: { curl: [0.5, 0.42, 0.86, 0.9, 0.94], spread: 0 },
   wrap: { curl: [0.35, 0.58, 0.64, 0.68, 0.72], spread: 0.08 }, // around a handguard
+  pistolWrap: { curl: [0.3, 0.78, 0.84, 0.88, 0.92], spread: 0 }, // support hand over the gun hand
+  revolverGrip: { curl: [0.5, 0.18, 0.95, 1.0, 1.04], spread: 0 },
   cup: { curl: [0.3, 0.45, 0.5, 0.55, 0.6], spread: 0.1 },
   relaxed: { curl: [0.2, 0.3, 0.38, 0.45, 0.5], spread: 0.15 },
   grab: { curl: [0.45, 0.62, 0.7, 0.74, 0.78], spread: 0.02 }, // holding a magazine
@@ -115,7 +117,7 @@ export const HANDS = {
   point: { curl: [0.5, 0.05, 0.8, 0.85, 0.9], spread: 0 },
 };
 
-export const HIDDEN = { attach: 'world', p: [0, -40, 0], r: [0, 0, 0] };
+export const HIDDEN = { attach: 'world', p: [0, -5000, 0], r: [0, 0, 0] }; // past the far plane
 // Express `xf` ({p, r} in some space) in the frame of `frame` ({p, r} in the same space):
 // used to keep a held prop exactly where it will be when the hand reaches its next key.
 export function inFrame(frame, xf) {
@@ -130,7 +132,7 @@ export const offset = (base, p) => base.map((v, i) => v + p[i]);
 // ---------------------------------------------------------------- baking
 const mixV = (a, b, s) => a.v + (b.v - a.v) * s;
 const mixPose = (a, b, s) => blendHandPoses(a.pose, b.pose, s);
-const HIDE_DROP = -40;
+const HIDE_DROP = -5000; // beyond the far plane whichever way the parent bone is turned
 
 // gun: { W0, props: { bone: restHead }, slides: { bone: axis }, spins: { bone: axis }, toggles: [bone] }
 // A (an action): { duration, fps, loop, weapon: keys | fn(t), handR, handL, fingersR, fingersL,
@@ -151,7 +153,7 @@ export function performAction(sk, gun, name, A) {
     const wi = idx('weapon');
     sk.pos.set([wk.p[0] - W0[0], wk.p[1] - W0[1], wk.p[2] - W0[2]], wi * 3);
     sk.rot.set(wq, wi * 4);
-    sk.pos.set(RIGHT_SHOULDER, idx('upperArm.R') * 3);
+    sk.pos.set(gun.rightShoulder || RIGHT_SHOULDER, idx('upperArm.R') * 3);
     for (const [bone, axis] of Object.entries(gun.slides || {})) {
       const keys = (A.slides || {})[bone] || [{ t: 0, v: 0 }];
       sk.pos.set(axisVec(axis, sampleKeys(keys, t, mixV)), idx(bone) * 3);

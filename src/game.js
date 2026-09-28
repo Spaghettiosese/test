@@ -32,6 +32,9 @@ const CFG = {
   m4a1: { label: 'M4A1', mag: 30, auto: true, interval: 0.08, spread: 0.018, adsSpread: 0.0025, pellets: 1, kick: 0.9, kickAds: 0.45, adsFov: 50, relief: 0.2, impulse: 3, brass: 'rifle', ejectOnShot: true },
   sniper: { label: '.338 Sniper', mag: 5, auto: false, interval: 1.42, spread: 0.06, adsSpread: 0, pellets: 1, kick: 4.5, kickAds: 3.2, adsFov: 6.5, relief: 0.07, impulse: 14, brass: 'magnum', scoped: true },
   shotgun: { label: '12 Gauge Pump', mag: 6, auto: false, interval: 0.92, spread: 0.07, adsSpread: 0.05, pellets: 9, kick: 5, kickAds: 3.5, adsFov: 56, relief: 0.3, impulse: 1.6, brass: 'shell' },
+  // the revolver's shot leaves 65 ms after the click: that's the double-action pull in its Fire clip
+  revolver: { label: '.44 Magnum', mag: 6, auto: false, interval: 0.45, delay: 0.065, spread: 0.022, adsSpread: 0.002, pellets: 1, kick: 7, kickAds: 5, adsFov: 50, relief: 0.3, impulse: 6, brass: 'magnum44' },
+  smg: { label: 'MP5', mag: 30, auto: true, interval: 0.075, spread: 0.022, adsSpread: 0.004, pellets: 1, kick: 0.6, kickAds: 0.3, adsFov: 52, relief: 0.2, impulse: 2, brass: 'pistol', ejectOnShot: true },
 };
 const VM_SCALE = 0.55; // the viewmodel is shrunk toward the eye (same picture, far less wall clipping)
 const WORLD_FOV = 72;
@@ -49,11 +52,11 @@ const vm = WEAPONS.map((w) => {
 });
 // display copies of the guns lying on their left sides on the shooting counters
 for (const [i, w] of WEAPONS.entries()) {
-  const parts = w.gun.parts.filter((p) => !['flash', 'shell'].includes(p.bind.bone));
+  const parts = w.gun.parts.filter((p) => !['flash', 'shell', 'loader', 'loaderRounds'].includes(p.bind.bone)); // no flash, no loose ammo
   const c = new E.Character({ name: w.gun.name + ' (display)', skeleton: [{ name: 'root', parent: null, head: [0, 0, 0], tail: [0, 0.1, 0] }], materials: w.gun.materials, parts });
   c.autoAnimate = false; c.springs = false;
   const q = E.quat.multiply(E.quat.create(), E.quat.fromEuler(E.quat.create(), 0, 62 + i * 8, 0), E.quat.fromEuler(E.quat.create(), 0, 0, 90));
-  const spot = [[-5.7, 0, 5.7][i] + 0.2, 0.935 + 0.03, 0.5];
+  const spot = [{ m4a1: -6.4, sniper: -0.3, shotgun: 6.3, revolver: -4.7, smg: 4.5 }[w.id] ?? 0, 0.935 + 0.03, 0.5];
   const w0 = E.vec3.transformQuat([0, 0, 0], w.gun.W0, q);
   c.rotation.set(q); c.position.set([spot[0] - w0[0], spot[1] - w0[1], spot[2] - w0[2]]);
   scene.add(c);
@@ -78,6 +81,8 @@ const CASE = {
   rifle: { geo: E.cylinder({ radiusTop: 0.0048, radiusBottom: 0.0048, height: 0.045, radialSegments: 8 }), mat: brassMat, half: [0.005, 0.022, 0.005], mass: 0.012 },
   magnum: { geo: E.cylinder({ radiusTop: 0.0072, radiusBottom: 0.0072, height: 0.07, radialSegments: 8 }), mat: brassMat, half: [0.007, 0.035, 0.007], mass: 0.02 },
   shell: { geo: E.cylinder({ radiusTop: 0.0105, radiusBottom: 0.0105, height: 0.068, radialSegments: 10 }), mat: hullMat, half: [0.0105, 0.034, 0.0105], mass: 0.03 },
+  pistol: { geo: E.cylinder({ radiusTop: 0.0048, radiusBottom: 0.0048, height: 0.019, radialSegments: 8 }), mat: brassMat, half: [0.005, 0.0095, 0.005], mass: 0.005 },
+  magnum44: { geo: E.cylinder({ radiusTop: 0.0058, radiusBottom: 0.0058, height: 0.03, radialSegments: 8 }), mat: brassMat, half: [0.006, 0.015, 0.006], mass: 0.008 },
 };
 function feed(text, cls = '') { const d = document.createElement('div'); d.textContent = text; if (cls) d.className = cls; $('feed').prepend(d); setTimeout(() => d.remove(), 3200); while ($('feed').children.length > 6) $('feed').lastChild.remove(); }
 function hitmark(big) { const h = $('hitmark'); h.classList.toggle('big', !!big); h.style.transition = 'none'; h.style.opacity = 1; requestAnimationFrame(() => { h.style.transition = 'opacity .35s'; h.style.opacity = 0; }); }
@@ -103,6 +108,8 @@ function onEvent(s, e) {
   if (n === 'boltHome' || n === 'pumpHome') sfx.clack(1.2);
   if (n === 'pumpBack') sfx.clack(0.9);
   if (n === 'boltDown' || n === 'click') sfx.click(1.3, 0.2);
+  if (n === 'eject6') ejectCylinder(s);
+  if (n === 'open' || n === 'close') sfx.clack(n === 'open' ? 1.3 : 1.5);
   if (n === 'shellIn') { s.ammo = Math.min(s.cfg.mag, s.ammo + 1); sfx.click(0.7, 0.35); }
 }
 function canAct(s) { return s.state === 'idle' || s.state === 'inspect'; }
@@ -130,6 +137,11 @@ function fire(s) {
   P.cooldown = s.cfg.interval;
   s.state = 'firing';
   play(s, 'Fire', s.cfg.auto ? 0.03 : 0.04);
+  if (s.cfg.delay) s.pending = s.cfg.delay; else discharge(s);
+}
+// the round actually going off: sound, recoil, hitscan, flash, smoke, brass
+function discharge(s) {
+  s.pending = 0;
   sfx.shot(s.id);
   // recoil: camera kick and a viewmodel shove
   const k = P.ads > 0.5 ? s.cfg.kickAds : s.cfg.kick;
@@ -148,18 +160,24 @@ function fire(s) {
     if (i < 4 || Math.random() < 0.3) tracers.push({ a: muzzle, b: end, t: s.id === 'sniper' ? 0.12 : 0.05 });
     if (hit) impact(hit, dir, s);
   }
-  flashLight.position.set(muzzle); flashLight.intensity = s.id === 'm4a1' ? 30 : 60; P.flashT = 0.045;
-  particles.emit(muzzle, { count: s.id === 'm4a1' ? 3 : 8, spread: 0.12, up: 0.1, size: 0.05, color: [0.8, 0.78, 0.74, 0.32], colorEnd: [0.9, 0.88, 0.85, 0.08], grow: 5, buoyancy: 0.35, life: s.id === 'm4a1' ? 1.4 : 2.2, jitter: 0.02, vel: PM.scl(f, 0.6) });
+  flashLight.position.set(muzzle); flashLight.intensity = s.cfg.auto ? 30 : 60; P.flashT = 0.045;
+  particles.emit(muzzle, { count: s.cfg.auto ? 3 : 8, spread: 0.12, up: 0.1, size: 0.05, color: [0.8, 0.78, 0.74, 0.32], colorEnd: [0.9, 0.88, 0.85, 0.08], grow: 5, buoyancy: 0.35, life: s.cfg.auto ? 1.4 : 2.2, jitter: 0.02, vel: PM.scl(f, 0.6) });
   sparks.emit(muzzle, { count: s.id === 'shotgun' ? 10 : 4, spread: 0.9, up: 0.3, size: 0.012, grow: 0.4, color: [5, 3, 1.2, 1], colorEnd: [2, 0.5, 0.1, 0.5], life: 0.18, jitter: 0.01, vel: PM.scl(f, 3) });
   if (s.cfg.ejectOnShot) ejectCase(s);
 }
-function ejectCase(s) {
+// revolver: the ejector rod throws all six empties out of the swung-out cylinder at once
+function ejectCylinder(s) {
+  const sk = s.rig.skeleton, c = E.vec3.transformMat4([0, 0, 0], sk.worldHead(sk.boneIndex('cyl')), s.rig.world);
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; ejectCase(s, [c[0] + Math.cos(a) * 0.012, c[1] - 0.02, c[2] + Math.sin(a) * 0.012], [Math.cos(a) * 0.3, -0.8 - Math.random() * 0.5, Math.sin(a) * 0.3]); }
+  sfx.tink();
+}
+function ejectCase(s, at = null, vel = null) {
   const kind = CASE[s.cfg.brass];
-  const p = weaponPointWorld(s.rig, s.gun.points.eject, s.gun);
+  const p = at || weaponPointWorld(s.rig, s.gun.points.eject, s.gun);
   const { f, left, up } = camBasis();
   if (casings.length > 40) { const c = casings.shift(); world.remove(c.body); scene.remove(c.mesh); }
   const mesh = new E.Mesh(kind.geo, kind.mat, 'Casing'); mesh.castShadow = false; scene.add(mesh);
-  const v = [-left[0] * 2.4 + up[0] * 1.6 - f[0] * 0.4 + cc.velocity[0], -left[1] * 2.4 + up[1] * 1.6 + (Math.random() * 0.6), -left[2] * 2.4 + up[2] * 1.6 - f[2] * 0.4 + cc.velocity[2]];
+  const v = vel ? [vel[0] + cc.velocity[0], vel[1], vel[2] + cc.velocity[2]] : [-left[0] * 2.4 + up[0] * 1.6 - f[0] * 0.4 + cc.velocity[0], -left[1] * 2.4 + up[1] * 1.6 + (Math.random() * 0.6), -left[2] * 2.4 + up[2] * 1.6 - f[2] * 0.4 + cc.velocity[2]];
   const body = world.add(new E.Body({ shape: new E.Box(kind.half), position: p, mass: kind.mass, velocity: v, angularVelocity: [Math.random() * 30 - 15, Math.random() * 30 - 15, Math.random() * 30 - 15], friction: 0.6, restitution: 0.3, mask: 0xffff & ~2, group: 4 }));
   body.node = mesh; body.userData.kind = 'casing';
   casings.push({ body, mesh, t: 10, clinked: false });
@@ -213,6 +231,7 @@ function impact(hit, dir, s) {
 function updateWeapon(dt) {
   const s = W();
   s.t += dt; P.cooldown -= dt;
+  if (s.pending > 0) { s.pending -= dt; if (s.pending <= 0) discharge(s); }
   // weapon switch: lower, swap, raise
   if (P.next !== null) {
     P.switchT += dt;
@@ -389,7 +408,7 @@ addEventListener('keydown', (e) => {
   if (k === ' ') e.preventDefault();
   if (k === 'r') reload();
   if (k === 'f' || k === 'i') inspect();
-  if (k === '1' || k === '2' || k === '3') switchTo(+k - 1);
+  if (k >= '1' && k <= '9' && k.length === 1) switchTo(+k - 1);
   if (k === 'q') switchTo((P.cur + 1) % vm.length);
   if (k === 't') { range.spawnLoose(); range.resetSteel(); decals.clear(); feed('Targets reset'); }
   if (k === 'e') P.aimToggle = !P.aimToggle;

@@ -32,6 +32,15 @@ export class Sfx {
       this._noise(t, { dur: 0.25, gain: 0.9, freq: 3500, freqEnd: 600, decay: 0.16 });
       this._noise(t, { dur: 0.4, gain: 0.5, freq: 300, decay: 0.3 });
       this._tone(t, { freq: 140, freqEnd: 50, dur: 0.12, gain: 0.5, decay: 0.12 });
+    } else if (kind === 'smg') {
+      this._noise(t, { dur: 0.2, gain: 0.7, freq: 2800, freqEnd: 700, decay: 0.12 });
+      this._noise(t, { dur: 0.3, gain: 0.35, freq: 260, decay: 0.2 });
+      this._tone(t, { freq: 160, freqEnd: 60, dur: 0.1, gain: 0.4, decay: 0.1 });
+    } else if (kind === 'revolver') {
+      this._noise(t, { dur: 0.35, gain: 1, freq: 4200, freqEnd: 450, decay: 0.24 });
+      this._noise(t, { dur: 1.1, gain: 0.8, freq: 200, freqEnd: 55, decay: 0.9 });
+      this._tone(t, { freq: 100, freqEnd: 32, dur: 0.3, gain: 0.8, decay: 0.35 });
+      this._noise(t + 0.2, { dur: 0.8, gain: 0.1, freq: 700, freqEnd: 200, decay: 0.7, attack: 0.04 }); // echo
     } else if (kind === 'sniper') {
       this._noise(t, { dur: 0.3, gain: 1, freq: 5000, freqEnd: 500, decay: 0.2 });
       this._noise(t, { dur: 1.6, gain: 0.7, freq: 220, freqEnd: 60, decay: 1.4 });

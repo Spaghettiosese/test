@@ -79,7 +79,7 @@
   .card h1 span { color: var(--orange); }
   .stamp { font: 700 12px var(--mono); letter-spacing: .14em; color: var(--red); border: 2px solid var(--red); padding: 4px 8px; transform: rotate(-4deg); border-radius: 3px; white-space: nowrap; }
   .card p { margin: 0; color: var(--bone-2); max-width: 60ch; font-size: 16px; }
-  .guns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .guns { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
   .gun { padding: 10px 12px; border: 1px solid var(--line); border-radius: 5px; display: grid; gap: 2px; }
   .gun b { font: 400 17px var(--display); letter-spacing: .03em; }
   .gun span { font-size: 13px; color: var(--bone-2); }
@@ -94,6 +94,7 @@
   label.sens { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--bone-2); }
   label.sens input { accent-color: var(--orange); width: 120px; }
   .fatal { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: var(--ink); color: var(--bone); font-size: 18px; text-align: center; z-index: 9; }
+  @media (max-width: 1100px) { .slot span { display: none; } .slot { padding: 6px 8px; } }
   @media (max-width: 640px) {
     .guns, .controls { grid-template-columns: 1fr; }
     .help { display: none; }
@@ -129,23 +130,25 @@
 </div>
 <div class="hud panel score"><div><small>Score</small><b id="score">0</b></div><div><small>Accuracy</small><b id="acc">–</b></div></div>
 <div class="hud feed" id="feed"></div>
-<div class="hud panel help" id="help"><b>WASD</b> move · <b>Shift</b> sprint · <b>Space</b> jump<br><b>Click</b> fire · <b>Right-click</b> aim · <kbd>R</kbd> reload · <kbd>F</kbd> inspect<br><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> or wheel: weapons · <kbd>T</kbd> reset targets · <kbd>H</kbd> hide</div>
+<div class="hud panel help" id="help"><b>WASD</b> move · <b>Shift</b> sprint · <b>Space</b> jump<br><b>Click</b> fire · <b>Right-click</b> aim · <kbd>R</kbd> reload · <kbd>F</kbd> inspect<br><kbd>1</kbd>–<kbd>5</kbd> or wheel: weapons · <kbd>T</kbd> reset targets · <kbd>H</kbd> hide</div>
 <div class="hud weapons" id="weapons"></div>
 <div class="hud panel ammo"><div class="name" id="wname">M4A1</div><div class="pips" id="pips"></div><div class="count"><b id="ammo">30</b><span id="ammoMax">/ 30</span></div><div class="hint" id="whint"></div></div>
 <div class="menu" id="menu">
   <div class="card">
     <header><h1>ShapeForge <span>Range</span></h1><div class="stamp">RANGE IS HOT</div></header>
-    <p>A covered firing line with paper at 10, 25 and 50 m, swinging steel at 15 m, bottles and cans at 12 m, a runner at 35 m and gongs out to 200 m. Every gun, hand and animation is built from ShapeForge shapes.</p>
+    <p>Five guns on a covered firing line: paper at 10, 25 and 50 m, swinging steel at 15 m, bottles and cans at 12 m, a runner at 35 m and gongs out to 200 m. Every gun, hand and animation is built from ShapeForge shapes.</p>
     <div class="guns">
       <div class="gun"><b>1 · M4A1</b><span>Full auto, holographic sight</span><em>30 rds · 5.56</em></div>
       <div class="gun"><b>2 · .338 Sniper</b><span>Bolt action, 6.5° scope</span><em>5 rds · .338</em></div>
       <div class="gun"><b>3 · Pump 12 ga</b><span>9 pellets, loads by hand</span><em>6 shells · 12 ga</em></div>
+      <div class="gun"><b>4 · .44 Magnum</b><span>Double action, speedloader</span><em>6 rds · .44</em></div>
+      <div class="gun"><b>5 · MP5</b><span>800 rpm, the HK slap</span><em>30 rds · 9mm</em></div>
     </div>
     <div class="controls">
       <div><span>Move · sprint · jump</span><span>WASD · Shift · Space</span></div>
       <div><span>Fire · aim</span><span>Left · right mouse (E toggles)</span></div>
       <div><span>Reload · inspect</span><span>R · F</span></div>
-      <div><span>Switch weapon</span><span>1 2 3 · wheel · Q</span></div>
+      <div><span>Switch weapon</span><span>1–5 · wheel · Q</span></div>
       <div><span>Reset targets</span><span>T</span></div>
       <div><span>Release mouse</span><span>Esc</span></div>
     </div>
