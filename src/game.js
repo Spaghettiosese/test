@@ -21,7 +21,9 @@ env.fogDensity = 0.0035; env.shadowRadius = 16; env.shadowFar = 90; env.fogHeigh
 const world = new E.PhysicsWorld({ iterations: 8 });
 const range = buildRange(scene, world);
 const camera = new E.Camera(); camera.near = 0.02; camera.far = 700;
-const particles = new E.Particles(3000);
+const particles = new E.Particles(3000); // dust and smoke
+const sparks = new E.Particles(1500, { additive: true }); // V4 additive particles: glowing sparks
+sparks.gravity = -4; sparks.drag = 1.2;
 const decals = new E.Decals({ max: 400 }); scene.add(decals);
 const sfx = new Sfx();
 
@@ -58,10 +60,11 @@ for (const [i, w] of WEAPONS.entries()) {
 }
 
 // ---------------------------------------------------------------- player
-const cc = new E.CharacterController(world, { position: [0, 0.1, -2.6], radius: 0.3, height: 1.8 });
+// the player ignores group 4 (shell casings): brass spawns inside the capsule and would shove you backwards
+const cc = new E.CharacterController(world, { position: [0, 0.1, -2.6], radius: 0.3, height: 1.8, mask: 0xffff & ~4 });
 cc.body.userData.player = true;
 const EYE = 1.62;
-const P = { bobY: 0, recoilDebt: 0, triggerWasDown: false, cur: 0, next: null, switchT: 0, ads: 0, bob: 0, recoil: 0, kickZ: 0, kickRot: 0, sway: [0, 0], trigger: false, triggerHeld: false, aimHeld: false, cooldown: 0, score: 0, shots: 0, hits: 0, flashT: 0, lastLand: 0 };
+const P = { bobY: 0, recoilDebt: 0, triggerWasDown: false, cur: 0, next: null, switchT: 0, ads: 0, bob: 0, recoil: 0, kickZ: 0, kickRot: 0, sway: [0, 0], trigger: false, triggerHeld: false, aimHeld: false, aimToggle: false, cooldown: 0, score: 0, shots: 0, hits: 0, flashT: 0, lastLand: 0 };
 const input = { keys: new Set(), yaw: 0, pitch: 0, dYaw: 0, dPitch: 0 };
 const W = () => vm[P.cur];
 
@@ -146,7 +149,8 @@ function fire(s) {
     if (hit) impact(hit, dir, s);
   }
   flashLight.position.set(muzzle); flashLight.intensity = s.id === 'm4a1' ? 30 : 60; P.flashT = 0.045;
-  particles.emit(muzzle, { count: s.id === 'm4a1' ? 3 : 8, spread: 0.15, up: 0.15, size: 0.06, color: [0.85, 0.83, 0.8, 0.3], life: 1.1 });
+  particles.emit(muzzle, { count: s.id === 'm4a1' ? 3 : 8, spread: 0.12, up: 0.1, size: 0.05, color: [0.8, 0.78, 0.74, 0.32], colorEnd: [0.9, 0.88, 0.85, 0.08], grow: 5, buoyancy: 0.35, life: s.id === 'm4a1' ? 1.4 : 2.2, jitter: 0.02, vel: PM.scl(f, 0.6) });
+  sparks.emit(muzzle, { count: s.id === 'shotgun' ? 10 : 4, spread: 0.9, up: 0.3, size: 0.012, grow: 0.4, color: [5, 3, 1.2, 1], colorEnd: [2, 0.5, 0.1, 0.5], life: 0.18, jitter: 0.01, vel: PM.scl(f, 3) });
   if (s.cfg.ejectOnShot) ejectCase(s);
 }
 function ejectCase(s) {
@@ -173,7 +177,7 @@ function impact(hit, dir, s) {
   }
   if (k === 'plate' || k === 'gong' || k === 'mover') {
     if (b.isDynamic) b.applyImpulse(PM.scl(dir, s.cfg.impulse * (k === 'gong' ? 3 : 1)), hit.point);
-    particles.emit(hit.point, { count: 10, spread: 1.4, up: 1.2, size: 0.035, color: [3, 2.2, 0.9, 1], life: 0.35 });
+    sparks.emit(hit.point, { count: 14, spread: 1.8, up: 1.6, size: 0.02, grow: 0.4, color: [5, 3.2, 1.2, 1], colorEnd: [2.4, 0.6, 0.1, 0.4], life: 0.45, jitter: 0.01 });
     if (b.userData.cool <= 0) {
       markHit(); b.userData.cool = 0.15;
       const pts = k === 'gong' ? Math.round(b.userData.dist / 2) : k === 'mover' ? 25 : 10;
@@ -194,7 +198,8 @@ function impact(hit, dir, s) {
   if (k === 'can' || k === 'crate' || k === 'casing') {
     b.applyImpulse(PM.add(PM.scl(dir, s.cfg.impulse * (k === 'can' ? 0.25 : 3)), [0, k === 'can' ? 0.4 : 0, 0]), hit.point);
     if (k === 'can') b.angularVelocity = [Math.random() * 20 - 10, 8, Math.random() * 20 - 10];
-    particles.emit(hit.point, { count: 6, spread: 0.8, up: 0.8, size: 0.03, color: k === 'crate' ? [0.55, 0.42, 0.3, 0.7] : [3, 2.2, 0.9, 1], life: 0.4 });
+    if (k === 'crate') particles.emit(hit.point, { count: 6, spread: 0.8, up: 0.8, size: 0.03, color: [0.55, 0.42, 0.3, 0.7], life: 0.4 });
+    else sparks.emit(hit.point, { count: 8, spread: 1.2, up: 1.2, size: 0.018, grow: 0.4, color: [5, 3.2, 1.2, 1], colorEnd: [2.4, 0.6, 0.1, 0.4], life: 0.35, jitter: 0.01 });
     if (k === 'crate') decals.add(hit.point, hit.normal, 0.014);
     if (k !== 'casing') { markHit(); hitmark(); addScore(k === 'can' ? (b.userData.scored ? 5 : 10) : 2, k === 'can' ? (b.userData.scored ? 'Juggle!' : `Can (${dist} m)`) : 'Crate'); b.userData.scored = true; }
     return;
@@ -240,7 +245,7 @@ function updateWeapon(dt) {
   if (s.state === 'pump' && clipDone(s)) { s.state = 'idle'; play(s, 'Idle', 0.2, false); }
   // aim down sights
   const canAim = (s.state === 'idle' || s.state === 'firing') && P.next === null && !(s.id === 'sniper' && s.state === 'firing' && s.t > 0.3);
-  const wantAds = P.aimHeld && canAim;
+  const wantAds = (P.aimHeld || P.aimToggle) && canAim;
   P.ads = E.clamp(P.ads + (wantAds ? dt * (s.cfg.scoped ? 4.5 : 6) : -dt * 6), 0, 1);
   s.rig.mixer.update(dt);
 }
@@ -357,7 +362,9 @@ const locked = () => document.pointerLockElement === cv;
 function start() { started = true; $('menu').hidden = true; sfx.unlock(); lockEl(); hud(true); }
 $('play').onclick = start;
 cv.addEventListener('contextmenu', (e) => e.preventDefault());
-cv.addEventListener('pointerdown', (e) => {
+// Mouse buttons use mousedown/mouseup: browsers send only one pointerdown while any button is
+// held, so a left click made while the right button aims would never arrive as a pointer event.
+cv.addEventListener('mousedown', (e) => {
   if (!started) return;
   sfx.unlock();
   if (!locked()) lockEl();
@@ -365,9 +372,10 @@ cv.addEventListener('pointerdown', (e) => {
   if (e.button === 2) P.aimHeld = true;
   drag = { x: e.clientX, y: e.clientY };
 });
-addEventListener('pointerup', (e) => { if (e.button === 0) P.triggerHeld = false; if (e.button === 2) P.aimHeld = false; drag = null; });
+addEventListener('mouseup', (e) => { if (e.button === 0) P.triggerHeld = false; if (e.button === 2) P.aimHeld = false; if (!e.buttons) drag = null; });
 addEventListener('pointermove', (e) => {
   if (!started) return;
+  if (e.pointerType === 'mouse' && e.buttons !== undefined) { P.triggerHeld = !!(e.buttons & 1); P.aimHeld = !!(e.buttons & 2); } // stay in sync with the real buttons
   let dx = 0, dy = 0;
   if (locked()) { dx = e.movementX; dy = e.movementY; } else if (drag) { dx = e.clientX - drag.x; dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY; }
   const sens = 0.0022 * (camera.fov / (WORLD_FOV * E.DEG)) ** 0.9 * (+$('sens').value || 1);
@@ -384,7 +392,7 @@ addEventListener('keydown', (e) => {
   if (k === '1' || k === '2' || k === '3') switchTo(+k - 1);
   if (k === 'q') switchTo((P.cur + 1) % vm.length);
   if (k === 't') { range.spawnLoose(); range.resetSteel(); decals.clear(); feed('Targets reset'); }
-  if (k === 'e') P.aimHeld = !P.aimHeld;
+  if (k === 'e') P.aimToggle = !P.aimToggle;
   if (k === 'h') $('help').hidden = !$('help').hidden;
 });
 addEventListener('keyup', (e) => input.keys.delete(e.key.toLowerCase()));
@@ -404,7 +412,7 @@ function step(dt) {
   for (let i = debris.length - 1; i >= 0; i--) if (debris[i].t <= 0) debris.splice(i, 1);
   updateViewmodel(dt);
   if (P.flashT > 0) { P.flashT -= dt; if (P.flashT <= 0) flashLight.intensity = 0; }
-  particles.update(dt);
+  particles.update(dt); sparks.update(dt);
 }
 function render(dt) {
   const eye = eyePos(), { f, up } = camBasis();
@@ -416,7 +424,7 @@ function render(dt) {
   const scoped = !$('scope').hidden;
   renderer.settings.dofAperture = 0;
   renderer.settings.vignette = scoped ? 0.2 : 0.35;
-  renderer.render(scene, camera, { background: 'sky', particles, lines: lines.length ? [{ data: new Float32Array(lines) }] : undefined });
+  renderer.render(scene, camera, { background: 'sky', particles: [particles, sparks], lines: lines.length ? [{ data: new Float32Array(lines) }] : undefined });
 }
 function frame(now) {
   const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;

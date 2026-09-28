@@ -48,6 +48,6 @@ src/game.js           player, weapons, shooting, HUD
 src/range.js          the range and its targets
 src/audio.js          synthesised sound effects
 src/weapons/          rig.js (arms, shape helpers, choreography baker), m4a1.js, sniper.js, shotgun.js
-engine/               ShapeForge Engine 3.1 (vendored, unmodified)
+engine/               ShapeForge Engine V4 (vendored, unmodified)
 tools/                weapon tests, preview page, headless screenshot helpers
 ```
