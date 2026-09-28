@@ -10,7 +10,7 @@
 import { P, rbox, cyl, sph, profile, torus, ALONG_Z, SIDE, HANDS, HIDDEN, k, offset, inFrame, weaponDefinition, createWeapon, quat, vec3 } from './rig.js';
 import { sampleKeys, lerpArr } from '../../engine/choreo.js';
 
-const W0 = [-0.055, -0.086, 0.38];
+const W0 = [-0.05, -0.1, 0.34];
 const W = (p) => offset(W0, p);
 const BORE = 0.05;
 const SIGHT = 0.087;
@@ -85,7 +85,7 @@ const LH_MAG = { p: [0.03, -0.2, -0.085], r: [-92, 0, 0] }; // left hand round t
 const IN_HAND = { attach: 'hand.L', ...inFrame(LH_MAG, MAG_BELOW) };
 const LH_SLAP = { attach: 'weapon', p: [0.05, -0.17, -0.085], r: [0, 0, -90] };
 const POUCH = { attach: 'world', p: [0.2, -0.72, 0.2], r: [-60, 30, -30] };
-const MAG_POSE = { p: [-0.02, 0.0, 0.36], r: [-58, -12, 50] }; // canted so the grip base faces the eye
+const MAG_POSE = { p: [-0.03, -0.07, 0.35], r: [-58, -6, 14] }; // canted so the grip base faces the eye
 const RACK = { attach: 'slide', p: [0.03, 0.006, -0.07], r: [-30, 0, -90] }; // fingers over the rear serrations (slide frame)
 const RELAXED_L = { attach: 'world', p: [0.24, -0.42, 0.3], r: [-40, 0, -20] };
 const sway = (dy = 0) => (t) => { const a = (t / 3) * Math.PI * 2; return { p: [W0[0] + 0.003 * Math.sin(a), W0[1] + 0.004 * Math.sin(2 * a) + dy, W0[2] + 0.002 * Math.cos(a)], r: [0.7 * Math.sin(2 * a), 4 + 0.9 * Math.sin(a), -3 + 0.6 * Math.cos(a)] }; };
@@ -166,9 +166,9 @@ function reload(empty) {
     duration: d, fps: 30,
     weapon: [
       k(0, READY), k(0.24, MAG_POSE), k(t1 - 0.02, MAG_POSE),
-      k(slap, { p: offset(MAG_POSE.p, [0, 0.012, 0.004]), r: [-61, -12, 51] }, 'snap'), // the slap seats it
+      k(slap, { p: offset(MAG_POSE.p, [0, 0.012, 0.004]), r: [-61, -6, 15] }, 'snap'), // the slap seats it
       k(1.7, MAG_POSE),
-      ...(empty ? [k(1.86, { p: offset(MAG_POSE.p, [0.003, 0.004, -0.008]), r: [-54, -12, 52] }, 'snap')] : []),
+      ...(empty ? [k(1.86, { p: offset(MAG_POSE.p, [0.003, 0.004, -0.008]), r: [-54, -6, 16] }, 'snap')] : []),
       k(empty ? 2.35 : 1.95, READY), k(d, READY),
     ],
     handR: [
