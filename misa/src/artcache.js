@@ -29,7 +29,7 @@ export function sprite(name, flip = false) {
 }
 
 // Scale2x / EPX: doubles a sprite and rounds off jagged corners instead of just making bigger pixels.
-function epx(src) {
+export function epx(src) {
   const w = src.width, h = src.height, d = src.getContext('2d').getImageData(0, 0, w, h).data;
   const out = new ImageData(w * 2, h * 2), o = out.data;
   const px = (x, y) => { x = Math.max(0, Math.min(w - 1, x)); y = Math.max(0, Math.min(h - 1, y)); const i = (y * w + x) * 4; return d[i + 3] < 8 ? 0 : (d[i] << 24 | d[i + 1] << 16 | d[i + 2] << 8 | d[i + 3]) >>> 0; };

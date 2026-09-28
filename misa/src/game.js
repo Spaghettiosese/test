@@ -355,8 +355,7 @@ function drawWorld() {
   list.push({ d: player.y, fn: () => {
     shadow(player.x, player.y, 12);
     const sx = player.x * Z - cam.x, sy = player.y * Z - cam.y + 2;
-    if (player.moving) drawMisa(g, 'misa_sheet', player.run ? 'run' : 'walk', player.at * (player.run ? 16 : 14), sx, sy, player.face === 'left');
-    else drawMisa(g, 'misa_sheet', 'idle', player.at * 8, sx, sy, player.face === 'left');
+    drawMisa(g, player.dir, player.moving ? (player.run ? 'run' : 'walk') : 'idle', player.at, sx, sy);
   } });
   if (pip.show) list.push({ d: DOOR_STEP.y, fn: () => { shadow(DOOR_STEP.x, DOOR_STEP.y, 10); drawFeet('pip', DOOR_STEP.x, DOOR_STEP.y); } });
   list.sort((a, b) => a.d - b.d).forEach((e) => e.fn());
@@ -436,7 +435,7 @@ function drawScene(name) {
     g.fillStyle = '#7a4f3a'; g.fillRect(0, 0, VW, 12); g.fillRect(0, 0, 12, 112); g.fillRect(VW - 12, 0, 12, 112); g.fillRect(VW / 2 - 3, 0, 6, 104);
     g.fillStyle = '#c39264'; g.fillRect(0, 104, VW, 8); g.fillStyle = '#e3b184'; g.fillRect(0, 104, VW, 2);
     g.fillStyle = night ? '#3a2a4a' : '#5a4a58'; g.fillRect(0, 112, VW, VH - 112);
-    drawMisa(g, 'misa_big', 'idle', clock * 6, 116, 118, true);
+    drawMisa(g, 'left', 'idle', clock, 118, 112, 2);
     g.save(); g.translate(190, 108); g.scale(3, 3); g.drawImage(sprite(night ? `mochi_sit_${Math.floor(clock * 2) % 4}` : `mochi_sleep_${Math.floor(clock) % 2}`), -13, -25); g.restore();
   }
 }
@@ -446,7 +445,7 @@ function drawTitle() {
   g.fillStyle = '#f4b58a'; g.fillRect(0, 130, VW, 94);
   for (let i = 0; i < 9; i++) { g.fillStyle = '#fff6e6'; g.fillRect((i * 47 + Math.floor(clock * 6)) % 340 - 20, 20 + (i % 3) * 22, 26, 6); }
   g.fillStyle = '#a67548'; g.fillRect(0, 168, VW, 56); g.fillStyle = '#c39264'; g.fillRect(0, 168, VW, 4);
-  drawMisa(g, 'misa_big', 'idle', clock * 8, 120, 204, false);
+  drawMisa(g, 'down', 'idle', clock, 118, 206, 2);
   g.save(); g.translate(212, 200); g.scale(3, 3); g.drawImage(sprite(Math.floor(clock * 2.2) % 9 === 8 ? 'mochi_sit_b' : `mochi_sit_${Math.floor(clock * 2.2) % 4}`), -13, -25); g.restore();
   drawTextC(g, "MISA'S", 160, 22, '#7a4f3a', 4, '#fff6e6'); drawTextC(g, 'LITTLE HOUSE', 160, 48, '#e0707a', 3, '#fff6e6');
   if (Math.floor(clock * 2) % 2) drawTextC(g, hasSave ? `CLICK OR ENTER TO CONTINUE (DAY ${state.day})` : 'CLICK OR ENTER TO START', 160, 84, '#2b1d2e', 1, null);

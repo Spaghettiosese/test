@@ -1,5 +1,6 @@
 // Lean test suite: pure logic only (no browser). Run with `npm test`.
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { SPRITES, renderSprite } from '../src/art.js';
 import { encodePNG } from './png.mjs';
 import { mulberry32 } from '../src/rng.js';
@@ -133,4 +134,11 @@ test('pet: gentle strokes build affection, frantic ones annoy Mochi, Done finish
   g.finish(); assert.ok(g.done && g.score === g.affection);
 });
 
+test("Misa's Studio-painted sheets exist with the sizes the game expects", () => {
+  const dims = (f) => { const b = readFileSync(new URL(`../assets/moonkai/${f}`, import.meta.url)); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
+  assert.deepEqual(dims('misa_sheet.png'), [11 * 40, 3 * 48]);
+  assert.deepEqual(dims('misa_portraits.png'), [4 * 64, 4 * 64]);
+  const meta = JSON.parse(readFileSync(new URL('../assets/moonkai/misa.json', import.meta.url), 'utf8'));
+  assert.equal(meta.cols, 11); assert.equal(meta.walk.length, 6);
+});
 console.log(`\n${n} tests passed`);

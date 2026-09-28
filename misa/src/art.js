@@ -48,7 +48,7 @@ export function makeR(surface, ox = 0, oy = 0) {
 // ---------- Misa (22x34, chibi anime proportions, auto-outlined) ----------
 // Look: brown bob with a pink streak, big glossy eyes, navy hoodie, dark pants, white sneakers.
 const MC = { hair: '#8b5a44', hairH: '#b98262', hairD: '#5a3a2e', pink: '#f0a0b8', skin: '#f8d5b8', skin2: '#e3a98a', navy: '#3d5a8c', navy2: '#2c4270', navyL: '#5f80b4', pants: '#2a3552', pants2: '#1f2840', shoe: '#f4f4f8', sole: '#8a90a8', ink: '#2a1a22', iris: '#b0703c', blush: '#f5a0a8', mouth: '#b04a55', cream: '#fff1d6' };
-// Misa's world/cutscene animation comes from Moonkai Pixel Studio's Character builder (see src/moonkai.js).
+// Misa's world sprites and portraits are painted in Moonkai Pixel Studio (see src/moonkai.js).
 
 // ---------- Mochi the cat (auto-outlined, facing right; flipped at runtime) ----------
 const CC = { o: '#f2b56b', o2: '#d98d45', o3: '#b8702f', cream: '#fff1d6', pink: '#f7a1b1', eye: '#6fcf7a', ink: '#2a1a22' };

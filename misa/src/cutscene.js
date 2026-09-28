@@ -2,6 +2,7 @@
 import { drawText, drawTextC, wrap, CHAR_W } from './font.js';
 import { act, blankInput } from './input.js';
 import { sfx } from './audio.js';
+import { drawPortrait } from './moonkai.js';
 
 const CPS = 42;
 export class Cutscene {
@@ -70,7 +71,7 @@ export class Cutscene {
         const bob = talking ? Math.round(Math.sin(this.tick * 16)) : 0;
         g.fillStyle = '#fff1d6'; g.fillRect(9, y + 3, 70, 70);
         g.fillStyle = s.who === 'MOCHI' ? '#f7d9a8' : '#b6dcc9'; g.fillRect(11, y + 5, 66, 66);
-        try { g.drawImage(sprite(`p_${s.who.toLowerCase()}_${s.mood}_${m}${bl}`), 12, y + 6 + bob); } catch { /* narrator or missing portrait */ }
+        if (s.who !== 'MISA' || !drawPortrait(g, s.mood, m, bl, 12, y + 6 + bob)) { try { g.drawImage(sprite(`p_${s.who.toLowerCase()}_${s.mood}_${m}${bl}`), 12, y + 6 + bob); } catch { /* narrator or missing portrait */ } }
         g.fillStyle = '#2b1d2e'; g.fillRect(11, y + 5, 66, 1); g.fillRect(11, y + 70, 66, 1);
         tx = 88;
       }

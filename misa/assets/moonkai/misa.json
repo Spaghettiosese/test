@@ -1,32 +1,31 @@
 {
- "misa_sheet": {
-  "size": 64,
-  "rows": {
-   "idle": {
-    "row": 0,
-    "frames": 8
-   },
-   "walk": {
-    "row": 1,
-    "frames": 12
-   },
-   "run": {
-    "row": 2,
-    "frames": 10
-   }
-  }
- },
- "misa_big": {
-  "size": 128,
-  "rows": {
-   "idle": {
-    "row": 0,
-    "frames": 8
-   },
-   "walk": {
-    "row": 1,
-    "frames": 12
-   }
-  }
- }
+ "size": [
+  40,
+  48
+ ],
+ "cols": 11,
+ "rows": [
+  "down",
+  "up",
+  "side"
+ ],
+ "idle": [
+  0,
+  1,
+  2,
+  1
+ ],
+ "blink": 4,
+ "walk": [
+  5,
+  6,
+  7,
+  8,
+  9,
+  10
+ ],
+ "feet": [
+  20,
+  46
+ ]
 }
