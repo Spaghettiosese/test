@@ -43,7 +43,8 @@ const S = {
   yaw: 0, pitch: -0.18, face: 0, dist: 4.6, mana: 100, maxMana: 100, breathing: false, breathT: 0, breathSnd: 0, castT: 0, slamT: 0,
   cooldown: 0, shake: 0, moving: 0, started: false, airborne: false, hitCount: 0, walk: false, boom: 0, crackleT: 0,
 };
-const input = { keys: new Set(), lmb: false, rmb: false };
+const input = { keys: new Set(), lmb: false, rmb: false, stick: { x: 0, y: 0 } };
+const touchMode = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
 const fireballs = [];
 
 // ---------------------------------------------------------------- helpers
@@ -172,9 +173,11 @@ function updatePlayer(dt) {
   let wx = 0, wz = 0;
   if (k.has('w')) { wx += f[0]; wz += f[2]; } if (k.has('s')) { wx -= f[0]; wz -= f[2]; }
   if (k.has('a')) { wx += l[0]; wz += l[2]; } if (k.has('d')) { wx -= l[0]; wz -= l[2]; }
+  const sm = Math.hypot(input.stick.x, input.stick.y);
+  if (sm > 0.08) { const fx = -input.stick.y, sx = input.stick.x; wx += f[0] * fx - l[0] * sx; wz += f[2] * fx - l[2] * sx; }
   const len = Math.hypot(wx, wz);
   const casting = S.castT > 0 || S.breathing || S.slamT > 0;
-  const top = (S.walk ? 1.9 : 5.0) * (S.slamT > 0 ? 0 : S.breathing ? 0.45 : S.castT > 0 ? 0.7 : 1);
+  const top = (S.walk || (sm > 0.08 && sm < 0.5) ? 1.9 : 5.0) * (S.slamT > 0 ? 0 : S.breathing ? 0.45 : S.castT > 0 ? 0.7 : 1);
   if (len > 0) { wx /= len; wz /= len; }
   cc.move([wx * top, wz * top], dt);
   if (k.has(' ') && cc.grounded) { cc.jump(6.4); mage.mixer.play('Jump', { fade: 0.08, restart: true }); }
@@ -310,3 +313,31 @@ window.__mage = {
   throwFireball, slam, resetGlade,
   look(yaw, pitch) { S.yaw = yaw; S.pitch = pitch; },
 };
+
+// ---------------------------------------------------------------- touch controls
+if (touchMode) {
+  document.body.classList.add('touch'); $('help').hidden = true; $('start').addEventListener('click', () => { $('touch').hidden = false; });
+  $('start').textContent = 'Tap to begin';
+  const stickEl = $('stick'), knob = $('knob'); let sid = null, cx = 0, cy = 0;
+  const R = 55;
+  const setStick = (e) => { let dx = e.clientX - cx, dy = e.clientY - cy; const m = Math.hypot(dx, dy); if (m > R) { dx = (dx / m) * R; dy = (dy / m) * R; } input.stick.x = dx / R; input.stick.y = dy / R; knob.style.transform = `translate(${dx}px, ${dy}px)`; };
+  stickEl.addEventListener('pointerdown', (e) => { e.preventDefault(); sid = e.pointerId; stickEl.setPointerCapture(sid); const r = stickEl.getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2; setStick(e); sfx.unlock(); });
+  stickEl.addEventListener('pointermove', (e) => { if (e.pointerId === sid) setStick(e); });
+  const endStick = (e) => { if (e.pointerId !== sid) return; sid = null; input.stick.x = input.stick.y = 0; knob.style.transform = ''; };
+  stickEl.addEventListener('pointerup', endStick); stickEl.addEventListener('pointercancel', endStick);
+  // drag anywhere else to look around
+  let lid = null, lx = 0, ly = 0;
+  canvas.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse' || lid !== null) return; lid = e.pointerId; lx = e.clientX; ly = e.clientY; });
+  canvas.addEventListener('pointermove', (e) => { if (e.pointerId !== lid) return; look((e.clientX - lx) * 1.5, (e.clientY - ly) * 1.5); lx = e.clientX; ly = e.clientY; });
+  const endLook = (e) => { if (e.pointerId === lid) lid = null; };
+  canvas.addEventListener('pointerup', endLook); canvas.addEventListener('pointercancel', endLook);
+  const btn = (id, down, up) => { const b = $(id); let pid = null;
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); if (pid !== null) return; pid = e.pointerId; b.setPointerCapture(pid); b.classList.add('on'); sfx.unlock(); down?.(); });
+    const end = (e) => { if (e.pointerId !== pid) return; pid = null; b.classList.remove('on'); up?.(); };
+    b.addEventListener('pointerup', end); b.addEventListener('pointercancel', end); b.addEventListener('contextmenu', (e) => e.preventDefault()); };
+  btn('tFire', () => { input.lmb = true; throwFireball(); }, () => { input.lmb = false; });
+  btn('tFlame', () => { input.rmb = true; }, () => { input.rmb = false; });
+  btn('tSlam', slam);
+  btn('tJump', () => input.keys.add(' '), () => input.keys.delete(' '));
+  btn('tReset', resetGlade);
+}

@@ -25,6 +25,8 @@ Open `index.html` through a server (ES modules don't load from `file://`) and cl
 - **The glade** (`src/mage/world.js`): flagstone plaza with a brazier, standing stones, a timber hut, a fenced hay yard, trees, straw dummies, a pond, and crates and barrels that are physics bodies. Everything wooden is a `FireSystem` burnable: it heats its neighbours (downwind first), catches, chars, then burns out to embers and smoke, so one hay bale can take the whole glade.
 - **The powers** (`src/mage/game.js`): fireballs are ballistic projectiles with a light and a flame trail that explode on impact (`igniteAt`, `world.explode`, scorch decals, screen shake); the flame stream is a particle jet that ignites everything along the aimed cone; the slam sends a ring of fire outward. Powers cost ember, which refills slowly, and fast next to the brazier.
 
+On phones and tablets the touch controls switch on automatically: a left stick to move (push it part way to walk), drag anywhere to look, and Fire, Flame, Nova, Jump and Reset buttons.
+
 `npm test` also checks the mage: bones, clips and events, feet above the floor in every cycle, and that fire spreads from one bale.
 
 ## Controls

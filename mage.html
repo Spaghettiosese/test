@@ -34,6 +34,23 @@
   .menu button:hover { filter: brightness(1.12); }
   .menu table { margin: 0 auto 20px; border-collapse: collapse; text-align: left; }
   .menu td { padding: 3px 12px; }
+  .touch canvas, .touch .hud, #touch, #touch * { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .touch .help, .touch .xhair + .stats { }
+  #touch { position: fixed; inset: 0; pointer-events: none; }
+  #stick { position: absolute; left: max(22px, env(safe-area-inset-left)); bottom: max(26px, env(safe-area-inset-bottom)); width: 130px; height: 130px; border-radius: 50%; background: rgba(20, 12, 8, .45); border: 2px solid rgba(255, 190, 110, .35); pointer-events: auto; display: grid; place-items: center; }
+  #knob { width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #ffb86a, #d9480f); box-shadow: 0 0 14px rgba(255, 110, 20, .6); }
+  .tb { position: absolute; pointer-events: auto; border-radius: 50%; border: 2px solid rgba(255, 190, 110, .5); background: rgba(20, 12, 8, .55); color: var(--bone); font: 700 12px system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; display: grid; place-items: center; text-align: center; }
+  .tb.on { background: linear-gradient(#ff9a3a, #d9480f); }
+  #tFire { right: max(24px, env(safe-area-inset-right)); bottom: max(34px, env(safe-area-inset-bottom)); width: 88px; height: 88px; font-size: 14px; }
+  #tFlame { right: calc(max(24px, env(safe-area-inset-right)) + 100px); bottom: max(26px, env(safe-area-inset-bottom)); width: 70px; height: 70px; }
+  #tSlam { right: max(24px, env(safe-area-inset-right)); bottom: calc(max(34px, env(safe-area-inset-bottom)) + 100px); width: 68px; height: 68px; }
+  #tJump { right: calc(max(24px, env(safe-area-inset-right)) + 84px); bottom: calc(max(26px, env(safe-area-inset-bottom)) + 84px); width: 60px; height: 60px; }
+  #tReset { right: max(16px, env(safe-area-inset-right)); top: 64px; width: 44px; height: 44px; font-size: 10px; }
+  .touch .mana { right: auto; left: 50%; transform: translateX(-50%); bottom: auto; top: 12px; width: min(260px, 36vw); }
+  .touch .feed { top: 64px; right: 72px; font-size: 13px; }
+  .touch .menu table { display: none; }
+  .touch .menu h1 { font-size: 34px; }
+  .touch .menu p { margin: 4px 0 12px; }
   #fatal { position: fixed; inset: 0; display: grid; place-items: center; background: #120c0a; padding: 20px; text-align: center; }
 </style>
 </head>
@@ -51,6 +68,10 @@
   <span><kbd>E</kbd> ground slam fire nova · <kbd>R</kbd> restore glade · <kbd>T</kbd> time of day · <kbd>H</kbd> hide</span>
 </div>
 
+<div id="touch" hidden>
+  <div id="stick"><div id="knob"></div></div>
+  <div class="tb" id="tFire">Fire</div><div class="tb" id="tFlame">Flame</div><div class="tb" id="tSlam">Nova</div><div class="tb" id="tJump">Jump</div><div class="tb" id="tReset">Reset</div>
+</div>
 <div class="menu" id="menu">
   <div>
     <h1>Ember Glade</h1>
