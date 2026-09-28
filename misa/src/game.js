@@ -21,8 +21,9 @@ g.imageSmoothingEnabled = false;
 
 // ---------- canvas scaling ----------
 function fit() {
-  const s = Math.max(1, Math.floor(Math.min(innerWidth / VW, innerHeight / VH))) || 1;
-  const fs = Math.min(innerWidth / VW, innerHeight / VH);
+  const aw = Math.min(innerWidth - 32, 1280), ah = innerHeight - 70;
+  const s = Math.max(1, Math.floor(Math.min(aw / VW, ah / VH))) || 1;
+  const fs = Math.min(aw / VW, ah / VH);
   const k = fs >= 1 ? s : fs;
   cv.style.width = VW * k + 'px'; cv.style.height = VH * k + 'px';
 }
@@ -47,7 +48,7 @@ function ptr(e) {
   input.mx = x; input.my = y;
 }
 cv.addEventListener('pointermove', ptr);
-cv.addEventListener('pointerdown', (e) => { ptr(e); input.down = true; input.justDown = true; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointerdown', (e) => { cv.focus(); ptr(e); input.down = true; input.justDown = true; cv.setPointerCapture(e.pointerId); });
 cv.addEventListener('pointerup', () => { input.down = false; });
 cv.addEventListener('contextmenu', (e) => e.preventDefault());
 
