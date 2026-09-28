@@ -68,6 +68,6 @@ src/range.js          the range and its targets
 src/audio.js          synthesised sound effects
 src/weapons/          rig.js (arms, shape helpers, choreography baker), m4a1.js, sniper.js, shotgun.js, revolver.js, smg.js, double.js, garand.js, mp7.js
 assets/               every gun as a ShapeForge character JSON for Studio (File > Open) — regenerate with node tools/export-studio.mjs
-engine/               ShapeForge Engine V4 (vendored, unmodified)
+engine/               ShapeForge Engine V5 (vendored, unmodified)
 tools/                weapon tests, preview page, headless screenshot helpers
 ```
