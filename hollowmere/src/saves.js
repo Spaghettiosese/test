@@ -23,6 +23,7 @@ export class Saves {
       quests: { state: g.quests.state, lit: [...g.quests.lit], kills: { role: g.quests.kills.role, id: [...g.quests.kills.id] } },
       story: { flags: S.flags, objectives: S.objectives.map((o) => ({ id: o.id, text: o.text, sub: o.sub, done: o.done, side: !!o.side })), notes: [...S.notesFound], dukeState: S.dukeState, seenZones: [...(S.seenZones || [])], finale: S.finale, tracked: S.tracked || null },
       stats: g.stats, dead: g.npcs.filter((n) => n.dead).map((n) => n.id),
+      nd: g.level.doors.length, nc: g.level.containers.length,
       containers: g.level.containers.map((c) => (c.opened ? 1 : 0) + (c.locked ? 2 : 0)), doors: g.level.doors.map((d) => (d.locked ? 1 : 0)),
       status: g.status.save(), smith: g.smith.save(), jail: g.jail.save(), shrines: g.shrines.save(), stealth: g.stealth.save(), gear: g.gear.save(), codex: g.codex.save(), lantern: g.lantern.on,
       extra: Object.fromEntries(Object.entries(g.savables).map(([k, m]) => [k, m.save()])), pins: g.wmap.pins, map: b64(g.wmap.seen), tools: { sap: g.tools.sap, poisonHits: g.tools.poisonHits }, quick: g.difficulty,
@@ -48,8 +49,9 @@ export class Saves {
       o.done = so.done; o.text = so.text;
     }
     Object.assign(g.stats, d.stats || {});
-    g.level.containers.forEach((c, i) => { const f = d.containers[i] | 0; if (f & 1) { c.opened = true; c.loot = []; } c.locked = !!(f & 2) && !(f & 1); });
-    g.level.doors.forEach((dr, i) => { if (d.doors[i] === 0) dr.locked = false; });
+    const sameWorld = d.nd === g.level.doors.length && d.nc === g.level.containers.length; // a save from an older build has different door and chest numbers
+    if (sameWorld) g.level.containers.forEach((c, i) => { const f = d.containers[i] | 0; if (f & 1) { c.opened = true; c.loot = []; } c.locked = !!(f & 2) && !(f & 1); });
+    if (sameWorld) g.level.doors.forEach((dr, i) => { if (d.doors[i] === 0) dr.locked = false; });
     const dead = new Set(d.dead || []);
     for (const n of g.npcs) if (dead.has(n.id) && !n.dead) { n.dead = true; n.state = 'dead'; n.hp = 0; n.discovered = true; n.frozen = true; n.loot = []; n.setVisible(false); g.world.remove(n.body); }
     try { const bin = atob(d.map); for (let i = 0; i < bin.length && i < g.wmap.seen.length; i++) if (bin.charCodeAt(i)) g.wmap.paint(i % g.wmap.bw, Math.floor(i / g.wmap.bw)); } catch { /* map stays dark */ }
