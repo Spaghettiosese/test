@@ -98,7 +98,7 @@ const L_ABOVE = { attach: 'chargeRot', p: offset(KNOB_REL, [-0.02, 0.09, -0.03])
 const L_SLAP = { attach: 'chargeRot', p: offset(KNOB_REL, [-0.02, 0.06, -0.03]), r: [-20, 0, 140] };
 const HANDLE_BACK = -0.1, HANDLE_UP = -25;
 const CH_POSE = { p: [0.02, -0.15, 0.4], r: [-8, -30, -20] }; // rolled: the left side and handle face the eye
-const MAG_POSE = { p: [-0.075, -0.13, 0.42], r: [-30, -6, 40] };
+const MAG_POSE = { p: [-0.07, -0.13, 0.42], r: [-30, -6, 38] };
 
 const ACTIONS = {
   Idle: {
@@ -119,49 +119,41 @@ const ACTIONS = {
     events: [{ t: 0, name: 'shot' }],
   },
   Reload: {
-    duration: 2.5, fps: 30,
+    // a rock-and-lock magazine change: strip the old one, fetch a new one, rock it in, slap it home
+    duration: 2.1, fps: 30,
     weapon: [
-      k(0, READY), k(0.22, CH_POSE), k(0.4, CH_POSE),
-      k(0.58, MAG_POSE), k(1.2, MAG_POSE),
-      k(1.32, { p: offset(MAG_POSE.p, [0.004, 0.012, 0]), r: [-27, -6, 51] }, 'snap'), // magazine tapped home
-      k(1.5, CH_POSE), k(1.62, CH_POSE),
-      k(1.68, { p: offset(CH_POSE.p, [0.004, -0.012, 0.004]), r: [-7, -4, 27] }, 'snap'), // the rack
-      k(2.2, READY), k(2.5, READY),
+      k(0, READY), k(0.3, MAG_POSE), k(1.1, MAG_POSE),
+      k(1.2, { p: offset(MAG_POSE.p, [0.004, 0.012, 0]), r: [-33, -6, 41] }, 'snap'), // seated
+      k(1.4, MAG_POSE), k(1.8, READY), k(2.1, READY),
     ],
-    handR: [k(0, GRIP_R), k(1.22, GRIP_R), k(1.25, { attach: 'weapon', p: [-0.036, -0.05, -0.104], r: [-66, 0, 2] }), k(1.32, GRIP_R), k(2.5, GRIP_R)],
+    handR: [k(0, GRIP_R), k(2.1, GRIP_R)],
     handL: [
       k(0, SUPPORT_L),
-      k(0.16, { ...L_HOOK, p: offset(L_HOOK.p, [0.02, 0.02, 0.02]) }),
-      k(0.22, L_HOOK), k(0.36, L_HOOK), k(0.42, L_HOOK), // pull back and lock up
-      k(0.52, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0, 0.07, 0]) }), // thumb on the paddle
-      k(0.58, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0, 0.07, 0]) }),
-      k(0.66, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0.01, -0.02, 0]) }, 'out'),
-      k(0.82, { attach: 'world', p: [0.2, -0.72, 0.2], r: [-60, 30, -30] }),
-      k(0.96, { attach: 'world', p: [0.19, -0.74, 0.22], r: [-60, 30, -30] }),
-      k(1.14, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0.01, -0.06, -0.01]) }),
-      k(1.2, { attach: 'weapon', ...LH_MAG }),
-      k(1.28, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0, 0.07, 0]) }, 'in'),
-      k(1.3, { ...LH_SLAP_MAG, p: offset(LH_SLAP_MAG.p, [0, -0.04, 0]) }), k(1.32, LH_SLAP_MAG, 'snap'),
-      k(1.52, L_ABOVE), k(1.62, L_ABOVE),
-      k(1.68, L_SLAP, 'snap'),
-      k(1.78, { ...L_SLAP, p: offset(L_SLAP.p, [0.02, 0.04, 0]) }),
-      k(2.15, SUPPORT_L), k(2.5, SUPPORT_L),
+      k(0.24, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0, 0.03, 0]) }),
+      k(0.4, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0, 0.03, 0]) }), // thumb on the catch
+      k(0.5, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0.01, -0.03, 0]) }, 'out'),
+      k(0.66, { attach: 'world', p: [0.2, -0.72, 0.2], r: [-60, 30, -30] }),
+      k(0.8, { attach: 'world', p: [0.19, -0.74, 0.22], r: [-60, 30, -30] }),
+      k(0.98, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0.01, -0.06, -0.01]) }),
+      k(1.04, { attach: 'weapon', ...LH_MAG }),
+      k(1.14, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0, 0.05, 0]) }, 'in'),
+      k(1.16, { ...LH_SLAP_MAG, p: offset(LH_SLAP_MAG.p, [0, -0.04, 0]) }), k(1.2, LH_SLAP_MAG, 'snap'),
+      k(1.5, { ...LH_SLAP_MAG, p: offset(LH_SLAP_MAG.p, [0.02, -0.04, 0]) }),
+      k(1.85, SUPPORT_L), k(2.1, SUPPORT_L),
     ],
-    fingersR: [k(0, { pose: HANDS.pistolGrip }), k(1.22, { pose: HANDS.pistolGrip }), k(1.25, { pose: { curl: [0.5, 0.35, 0.82, 0.88, 0.92], spread: 0 } }), k(1.32, { pose: HANDS.pistolGrip }), k(2.5, { pose: HANDS.pistolGrip })],
-    fingersL: [k(0, { pose: HANDS.wrap }), k(0.16, { pose: HANDS.relaxed }), k(0.22, { pose: HANDS.hook }), k(0.42, { pose: HANDS.hook }), k(0.5, { pose: HANDS.grab }), k(0.7, { pose: HANDS.relaxed }), k(0.9, { pose: HANDS.grab }), k(1.28, { pose: HANDS.grab }), k(1.3, { pose: HANDS.flat }), k(1.55, { pose: HANDS.flat }), k(1.8, { pose: HANDS.relaxed }), k(2.15, { pose: HANDS.wrap }), k(2.5, { pose: HANDS.wrap })],
+    fingersR: [k(0, { pose: HANDS.pistolGrip }), k(2.1, { pose: HANDS.pistolGrip })],
+    fingersL: [k(0, { pose: HANDS.wrap }), k(0.24, { pose: HANDS.relaxed }), k(0.4, { pose: HANDS.grab }), k(0.66, { pose: HANDS.grab }), k(0.8, { pose: HANDS.relaxed }), k(0.9, { pose: HANDS.grab }), k(1.14, { pose: HANDS.grab }), k(1.2, { pose: HANDS.flat }), k(1.5, { pose: HANDS.flat }), k(1.85, { pose: HANDS.wrap }), k(2.1, { pose: HANDS.wrap })],
     props: {
       mag: [
-        k(0, SEATED), k(0.58, SEATED),
-        k(0.66, { attach: 'weapon', ...MAG_BELOW, p: offset(MAG_BELOW.p, [0.01, -0.02, 0]) }, 'out'),
-        k(0.7, { attach: 'weapon', ...MAG_BELOW, p: offset(MAG_BELOW.p, [0.02, -0.06, 0]), r: [10, 0, 20] }),
-        k(0.96, { attach: 'world', p: [-0.05, -1.1, 0.4], r: [120, 40, 90] }, 'in'),
-        k(0.97, HIDDEN, 'hold'), k(0.98, { ...IN_HAND }, 'hold'),
-        k(1.2, IN_HAND), k(1.28, SEATED, 'in'), k(2.5, SEATED),
+        k(0, SEATED), k(0.4, SEATED),
+        k(0.5, { attach: 'weapon', ...MAG_BELOW, p: offset(MAG_BELOW.p, [0.01, -0.02, 0]) }, 'out'),
+        k(0.56, { attach: 'weapon', ...MAG_BELOW, p: offset(MAG_BELOW.p, [0.02, -0.06, 0]), r: [10, 0, 20] }),
+        k(0.8, { attach: 'world', p: [-0.05, -1.1, 0.4], r: [120, 40, 90] }, 'in'),
+        k(0.81, HIDDEN, 'hold'), k(0.82, { ...IN_HAND }, 'hold'),
+        k(1.04, IN_HAND), k(1.14, SEATED, 'in'), k(2.1, SEATED),
       ],
     },
-    slides: { charge: [k(0, { v: 0 }), k(0.22, { v: 0 }), k(0.34, { v: HANDLE_BACK }), k(1.66, { v: HANDLE_BACK }), k(1.7, { v: 0 }, 'snap')] },
-    spins: { chargeRot: [k(0, { v: 0 }), k(0.34, { v: 0 }), k(0.42, { v: HANDLE_UP }), k(1.64, { v: HANDLE_UP }), k(1.68, { v: 0 }, 'snap')] },
-    events: [{ t: 0.4, name: 'charge' }, { t: 0.62, name: 'magOut' }, { t: 1.28, name: 'magIn' }, { t: 1.7, name: 'boltHome' }],
+    events: [{ t: 0.5, name: 'magOut' }, { t: 1.16, name: 'magIn' }],
   },
   Inspect: {
     duration: 4.2, fps: 30,
