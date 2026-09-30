@@ -17,9 +17,9 @@ export class Events {
       if (Math.random() < 0.18 && !g.rep.disguise) this.ambush();
     }
     // midnight: the bell tolls thirteen and the ground gives up some of its sleepers
-    if (h >= 0 && h < 0.5 && this.riseNight !== day && (zone === 'town' || zone === 'graveyard' || zone === 'cinder')) {
+    if (h >= 0 && h < 0.5 && this.riseNight !== day && (zone === 'town' || zone === 'graveyard' || zone === 'cinder' || zone === 'stones' || zone === 'mine')) {
       this.riseNight = day; g.ui.flashBanner('THE BELL TOLLS THIRTEEN', 2600, true); g.sfx.bell?.(4);
-      const near = zone === 'cinder' ? [[P[0] + 12, P[2] + 6], [P[0] - 10, P[2] + 10]] : [[-44, 74], [-36, 70], [-40, 78]];
+      const near = zone === 'cinder' || zone === 'stones' || zone === 'mine' ? [[P[0] + 12, P[2] + 6], [P[0] - 10, P[2] + 10]] : [[-44, 74], [-36, 70], [-40, 78]];
       near.forEach(([x, z], i) => setTimeout(() => { const q = g.nav.nearestWalkable(x, z, 6); if (q) g.story.spawnHollow(q[0], q[1], true, false, i === 1 && Math.random() < 0.5 ? 'brute' : null); }, 1800 + i * 900));
     }
   }

@@ -1,6 +1,7 @@
 // The people of the wilds: farmers, toll guards, hunters, a witch, bandits, a hermit, the last
 // survivor of Cinderwick. Same schedule format as the town roster.
 import { S, RT, WD, villager, guardSpec, CLOTH } from './roster.js';
+import { buildDuchyRoster } from './roster_duchy.js';
 
 export const banditSpec = (o = {}) => ({ outfit: 'rogue', hood: o.hood ?? false, skin: o.skin || 'fair', hair: { style: o.hairStyle || 'short', color: o.hair || 'brown' }, beard: o.beard, mustache: o.mustache, scar: o.scar, colors: { cloth: o.cloth || '#4a3f2f', cloth2: o.cloth2 || '#2c2620', leather: o.leather || '#3a2a1c', hose: '#2a2622' }, weapon: o.weapon || 'sword', height: o.height || 1, build: o.build || 1, voice: o.voice || 0.85 });
 
@@ -40,4 +41,5 @@ export function buildWildsRoster(R) {
   // ------------------------------------------------------------------ Cinderwick
   add({ id: 'lamplighter', name: 'Lamplighter Fenn', role: 'villager', pos: [0, 24], yaw: 0, hp: 25, dialogue: 'lamplighter', schedule: [RT(18.4, 21, 'lamp_route', { speed: 0.9, pause: 2 }), RT(5.4, 6.8, 'lamp_route', { speed: 0.9, pause: 2 }), S(21, 5.4, 'well', 'stand'), S(6.8, 18.4, 'well', 'stand')], spec: villager({ cloth: '#4a3a2a', cloth2: '#2a2018', hood: false, hair: 'grey', cap: true, voice: 0.9 }) });
   v('ilse', 'Ilse', [152, 94], [S(0, 24, 'cinder_well', 'stand')], { outfit: 'woman', cloth: '#3a3038', cloth2: '#2a2228', hood: true, hair: 'black', hairStyle: 'long', skin: 'sallow', dialogue: 'ilse', voice: 1.2, hp: 22 });
+  buildDuchyRoster(R);
 }

@@ -22,6 +22,10 @@ import { Foraging } from './foraging.js';
 import { Contracts } from './contracts.js';
 import { Codex } from './codex.js';
 import { Stealth } from './stealth.js';
+import { Fishing } from './fishing.js';
+import { Mining, Smith } from './mining.js';
+import { Jail } from './jail.js';
+import { Shrines } from './shrines.js';
 import { Gear } from './gear.js';
 import { Events } from './events.js';
 import { Saves } from './saves.js';
@@ -59,6 +63,8 @@ export class Game {
     this.squad = new Squad(this);
     this.quests = new Quests(this);
     this.gear = new Gear(this);
+    this.smith = new Smith(this);
+    this.jail = new Jail(this);
     this.status = new Status(this);
     this.lockdown = new Lockdown(this);
     this.hunters = new Hunters(this);
@@ -89,6 +95,7 @@ export class Game {
     this.level.trapSpots ||= [];
     this.traps = new Traps(this);
     this.stealth = new Stealth(this);
+    this.fishing = new Fishing(this); this.mining = new Mining(this); this.shrines = new Shrines(this);
     this.lamps = new Lamps(this);
     this.forage = new Foraging(this);
     installFx(this);
@@ -144,7 +151,7 @@ export class Game {
     this.tools.update(dt);
     this.status.update(dt);
     this.traps?.update(dt);
-    this.stealth.update(dt); this.lockdown.update(dt); this.lamps.update(dt); this.lantern.update(dt); this.hunters.update(dt); this.forage.update(dt); this.codex.update(dt);
+    this.stealth.update(dt); this.jail.update(dt); this.lockdown.update(dt); this.lamps.update(dt); this.lantern.update(dt); this.hunters.update(dt); this.forage.update(dt); this.codex.update(dt);
     if (this.player.mod?.regen && this.player.hp < this.player.maxHp && this.combatT <= 0) this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.mod.regen * dt);
     this.weather.update(dt);
     this.events.update(dt);
@@ -387,6 +394,7 @@ export class Game {
   playerDied() { this.mode = 'dead'; this.stats.deaths++; this.sfx.boom?.(0.6); this.ui.showDeath(); setTimeout(() => this.respawn(), 3800); }
   respawn() {
     const P = this.player;
+    if (this.jail.shouldArrest() && this.jail.arrest()) { this.mode = 'play'; this.ui.hideDeath(); return; }
     P.dead = false; P.hp = P.maxHp; P.stamina = 100; P.ember = Math.max(P.ember, 40); P.atk = null; P.carried = null; P.veilT = 0;
     P.cc.position = [...this.checkpoint]; P.cc.velocity = [0, 0, 0]; P.yaw = this.checkpointYaw ?? 0; P.pitch = 0; P.invuln = 2;
     if (P.crouch) P.setCrouch(false);

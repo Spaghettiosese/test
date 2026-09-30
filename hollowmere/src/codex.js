@@ -38,6 +38,12 @@ export const DEEDS = [
   { id: 'rest', name: 'Well Rested', desc: 'Sleep in a bed.', test: (g) => (g.stats.rests || 0) >= 1 },
   { id: 'hollow10', name: 'Choir Breaker', desc: 'Put down ten hollows.', test: (g) => g.story.hollowCount >= 10 },
   { id: 'gear3', name: 'Dressed for It', desc: 'Wear three pieces of gear at once.', test: (g) => Object.keys(g.gear.eq).length >= 3 },
+  { id: 'fish10', name: 'Line and Hook', desc: 'Catch ten fish.', test: (g) => (g.stats.fish || 0) >= 10 },
+  { id: 'mine12', name: 'Deep Delver', desc: 'Mine twelve ore.', test: (g) => (g.stats.mined || 0) >= 12 },
+  { id: 'forge3', name: 'Bladesmith\'s Friend', desc: 'Reforge your blade three times.', test: (g) => g.smith.level >= 3 },
+  { id: 'jail1', name: 'Guest of the Duchy', desc: 'Be arrested.', test: (g) => (g.stats.arrests || 0) >= 1 },
+  { id: 'escape1', name: 'Jailbreak', desc: 'Escape the gaol.', test: (g) => (g.stats.escapes || 0) >= 1 },
+  { id: 'pick10', name: 'Tumbler Sense', desc: 'Pick ten locks.', test: (g) => (g.stats.picked || 0) >= 10 },
   { id: 'codex8', name: 'Naturalist', desc: 'Fill eight bestiary entries.', test: (g) => g.codex.seen.size >= 8 },
 ];
 export class Codex {

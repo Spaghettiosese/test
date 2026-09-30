@@ -9,6 +9,7 @@ export const EFFECTS = {
   bless: { name: 'Blessing', dur: 240, good: true, xp: 1.25, parry: 0.05 },
   curse: { name: 'Hollow Curse', dur: 100, good: false, stam: 0.6, speed: 0.9 },
   fear: { name: 'Dread', dur: 12, good: false, speed: 0.8, vis: 1.3 },
+  sharp: { name: 'Honed Edge', dur: 300, good: true, dmg: 1.18 },
   root: { name: 'Snared', dur: 3.5, good: false, speed: 0.05 },
 };
 

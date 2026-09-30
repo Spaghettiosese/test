@@ -177,7 +177,7 @@ export class Player {
     if (!this.atk || this.atk.hit) return; this.atk.hit = true;
     const g = this.g, eye = this.eyePos, f = this.forward, flat = this.flat, clip = this.atk.clip;
     const reach = clip === 'Thrust' ? 3.0 : 2.5, arc = Math.cos((clip === 'Thrust' ? 22 : clip === 'Slash3' ? 48 : 62) * D2R);
-    let dmg = (clip === 'Slash3' ? 36 : clip === 'Thrust' ? 32 : 24) * (this.mod?.dmg ?? 1); const rip = this.riposteT > 0; if (rip) { dmg *= 2.2; this.riposteT = 0; g.flashText('RIPOSTE'); }
+    let dmg = (clip === 'Slash3' ? 36 : clip === 'Thrust' ? 32 : 24) * (this.mod?.dmg ?? 1) * (g.status?.mul('dmg') ?? 1); const rip = this.riposteT > 0; if (rip) { dmg *= 2.2; this.riposteT = 0; g.flashText('RIPOSTE'); }
     let hitSomething = false;
     for (const n of g.npcs) {
       if (n.dead || !n.active) continue;
@@ -303,16 +303,28 @@ export class Player {
     if (!o.free && !this.inv.has('lockpick')) { this.g.toast('You need a lockpick'); return; }
     if (!o.free) this.g.rep.crime('lockpick', this.pos, { range: 16 });
     this.picking = { target, level, t: 0, need: (o.need ?? (1.6 + level * 1.5)) * (this.mod?.pick ?? 1), onDone, label, tick: 0, x: this.pos[0], z: this.pos[2], free: !!o.free, watch: o.watch };
+    if (!o.free) { const pins = Math.min(4, 1 + level), wide = 1 / (this.mod?.pick ?? 1); this.picking.game = { pins, set: 0, pos: Math.random(), dir: 1, w: Math.max(0.1, (0.26 - 0.035 * level) * wide), sweet: 0.2 + Math.random() * 0.6, speed: 0.75 + 0.22 * level, fails: 0 }; }
     this.playVm('Reach', 0.1);
   }
   updatePicking(dt, input) {
     const p = this.picking; if (!p) return;
-    if (!input.keys.has('e') || Math.hypot(this.pos[0] - p.x, this.pos[2] - p.z) > 0.6 || this.hurtT > 0.2) { this.picking = null; this.playVm('Idle', 0.12); return; }
+    if (!input.keys.has('e') && !p.game && !p.free || Math.hypot(this.pos[0] - p.x, this.pos[2] - p.z) > 0.6 || this.hurtT > 0.2) { this.picking = null; this.playVm('Idle', 0.12); return; }
+    if (p.game) { // tumbler lock: press E while the marker is inside the gold
+      const G = p.game, g = this.g; G.pos += G.dir * G.speed * dt; if (G.pos > 1) { G.pos = 1; G.dir = -1; } if (G.pos < 0) { G.pos = 0; G.dir = 1; }
+      p.tick += dt; if (p.tick > 0.9) { p.tick = 0; g.noise(this.pos, 2.4, 'pick'); }
+      if (this.usePress && p.t > 0.25) {
+        this.usePress = false;
+        if (Math.abs(G.pos - G.sweet) <= G.w / 2) { G.set++; g.sfx.pick?.(); g.sfx.lockClick?.(); G.sweet = 0.15 + Math.random() * 0.7; G.speed *= 1.08; }
+        else { G.fails++; g.sfx.deny?.(); g.noise(this.pos, 5, 'pick'); G.set = Math.max(0, G.set - 1); if (Math.random() < 0.18 * p.level * (this.mod?.snap ?? 1)) { this.inv.remove('lockpick', 1); g.toast('Your pick snapped'); this.picking = null; this.playVm('Idle', 0.1); return; } }
+      }
+      p.t += dt;
+      if (G.set >= G.pins) { const done = p.onDone; if (p.target && p.target.x !== undefined) g.stealth.leave('forced', p.target.x, p.target.z); this.picking = null; this.playVm('Idle', 0.1); done(); g.sfx.lockClick?.(); g.stats.picked = (g.stats.picked || 0) + 1; }
+      return;
+    }
+    if (!input.keys.has('e')) { this.picking = null; this.playVm('Idle', 0.12); return; }
     p.t += dt; p.tick += dt;
     if (p.watch && !p.watch(dt)) { this.picking = null; this.playVm('Idle', 0.12); return; }
-    if (p.tick > 0.55 && !p.free) { p.tick = 0; this.g.sfx.pick?.(); this.g.noise(this.pos, 3.2, 'pick');
-      if (Math.random() < 0.05 * p.level * (this.mod?.snap ?? 1)) { this.inv.remove('lockpick', 1); this.g.toast('Your pick snapped'); this.g.sfx.deny?.(); this.picking = null; this.playVm('Idle', 0.1); return; } }
-    if (p.t >= p.need) { const done = p.onDone; if (!p.free && p.target && p.target.x !== undefined) this.g.stealth.leave('forced', p.target.x, p.target.z ?? p.target.z); this.picking = null; this.playVm('Idle', 0.1); done(); this.g.sfx.lockClick?.(); }
+    if (p.t >= p.need) { const done = p.onDone; this.picking = null; this.playVm('Idle', 0.1); done(); this.g.sfx.lockClick?.(); }
   }
 
   // ------------------------------------------------------------ camera & viewmodel matrix

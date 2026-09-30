@@ -30,7 +30,8 @@ The second update ("The Wide Valley") is listed in [FEATURES.md](FEATURES.md): a
 | Draughts (haste, ironhide, night eye, ghostwalk) | 6 · 7 · 8 · 9 |
 | Place a trap · smoke bomb · lantern | H · J · L |
 | Map pin · minimap zoom | N · + / - |
-| Pickpocket | hold E from behind |
+| Pickpocket · fish · mine | hold E |
+| Pick a lock | press E when the marker is in the gold |
 | Quick save | F5 |
 | Pause | Esc |
 

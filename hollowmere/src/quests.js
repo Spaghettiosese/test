@@ -68,6 +68,30 @@ export const QUESTS = [
     offer: ['I collected writings once. They are scattered now. Read eight of them for me and tell me they were not all nonsense.', 'The truth is in the total, not in any one page.'],
     steps: [{ type: 'lorecount', n: 8, text: 'Read eight writings (Lore tab)' }],
     done: ['Eight. Then you know what I know. Take my old ring; it never helped me.'], reward: { gold: 40, items: [['signet', 1]] } },
+  { id: 'q_fish', giver: 'ode', title: 'Nets and lines', xp: 60,
+    offer: ['The smokehouse is empty and the winter is long. Bring me five fish and I will pay well over the market rate.', 'Any pier, any shore. The fish do not care who catches them.'],
+    steps: [{ type: 'have', item: 'fish', n: 5, text: 'Catch five fish at Pellmouth (hold E at the water)' }],
+    done: ['Five. Good weight. The smokehouse will smell of you for a week.'], reward: { gold: 45, items: [['cookedfish', 2]] }, take: [['fish', 5]] },
+  { id: 'q_keg', giver: 'marl', title: 'A keg of something stronger', xp: 50,
+    offer: ['My cellar is dry of anything that burns. Bring me three bottles of wine from wherever wine lives.', 'Bandits or merchants, I am not fussy about the provenance.'],
+    steps: [{ type: 'have', item: 'wine', n: 3, text: 'Bring Marl three bottles of wine' }],
+    done: ['Three! The lantern will be lit tonight. Take this.'], reward: { gold: 45, items: [['cookedfish', 3]] }, take: [['wine', 3]] },
+  { id: 'q_ore', giver: 'garrick', title: 'Blue ore', xp: 80,
+    offer: ['The Duke wants ore and my miners want to go home. Dig six pieces for me, and mind the tap-tapping.', 'My chest has a spare pickaxe; the smith sells them too.'],
+    steps: [{ type: 'have', item: 'ore', n: 6, text: 'Mine six ore in Stonehollow (pickaxe, hold E at a vein)' }],
+    done: ['Six! And you came back with your skull. Take your share.'], reward: { gold: 65, items: [['whetstone', 2]] }, take: [['ore', 6]], give: [['pickaxe', 1]] },
+  { id: 'q_miners', giver: 'garrick', title: 'The missing shift', xp: 160, requires: 'q_ore',
+    offer: ['Three of my people went down to the deep end and did not come back up. I hear them humming.', 'Go to the cavern and put down whatever is wearing them now. Five of them, I think.'],
+    steps: [{ type: 'reach', poi: 'mine_deep', r: 6, text: 'Reach the deep cavern of Stonehollow' }, { type: 'kill', role: 'hollow', n: 4, text: 'Put down four hollows' }],
+    done: ['Gone. All of them. I will say a word for each. Take this; the mine gave it up.'], reward: { gold: 90, items: [['gem', 1], ['mendring', 1]] } },
+  { id: 'q_brask', giver: 'brask', title: 'The toll ledger key', xp: 90,
+    offer: ['Captain Bosk at the bridge is skimming. I want his strongbox key. Bring it and I will lose some paperwork with your name on it.', 'He keeps it on him. Or so they say.'],
+    steps: [{ type: 'have', item: 'tollkey', n: 1, text: 'Bring Sergeant Brask the toll house key' }],
+    done: ['Good. Your file just got thinner.'], reward: { gold: 70 }, take: [['tollkey', 1]], clearBounty: true },
+  { id: 'q_singing', giver: 'ode', title: 'The singing stones', xp: 140, requires: 'q_fish',
+    offer: ['South-east of here, on the old road, stones stand in a ring. They sing at night. I want them quiet.', 'Go and see what sleeps there. Then end it.'],
+    steps: [{ type: 'reach', poi: 'stones_altar', r: 6, text: 'Reach the Choir Stones (south-east, off the old road)' }, { type: 'kill', role: 'hollow', n: 3, text: 'Put down three hollows at the stones' }],
+    done: ['I heard it stop. The lake is quiet. Thank you.'], reward: { gold: 80, items: [['sainttear', 1]] } },
   { id: 'q_toll', giver: 'bosk', title: 'The smuggler\'s fee', xp: 80,
     offer: ['Every wagon pays at my bridge. The last carter refused and now my strongbox is light. I want that carter\'s goods back, and I do not care whose back they are on.', 'Look in the wrecked wagon on the road north of here. Bring me what is in the crate.'],
     steps: [{ type: 'have', item: 'potion', n: 1, text: 'Find the wrecked wagon crate on the Old Road' }],
@@ -97,7 +121,7 @@ export class Quests {
     if (step.type === 'kill' && step.role) { let best = null, bd = 1e9; for (const n of this.g.npcs) if (n.role === step.role && !n.dead && n.dist < bd) { bd = n.dist; best = n; } return best ? [best.x, best.z] : null; }
     if (q.hintNpc) { const n = this.g.npcs.find((x) => x.id === q.hintNpc); if (n) return [n.x, n.z]; }
     if (q.hint) return q.hint;
-    return { q_bloom: [-190, -228], q_diary: [162, 66], q_ring: [196, 122], q_stones: [5, -83], q_toll: [-6, -60] }[q.id] || null;
+    return { q_bloom: [-190, -228], q_diary: [162, 66], q_ring: [196, 122], q_stones: [5, -83], q_toll: [-6, -60], q_fish: [170, -155], q_ore: [-236, 138], q_miners: [-237, 152], q_singing: [80, -200] }[q.id] || null;
   }
   onKill(n) {
     this.kills.role[n.role] = (this.kills.role[n.role] || 0) + 1; this.kills.id.add(n.id);
@@ -138,6 +162,7 @@ export class Quests {
     for (const [it, n] of q.reward?.items || []) inv.add(it, n);
     if (q.reward?.ember) g.player.maxEmber = (g.player.maxEmber || 100) + q.reward.ember;
     if (q.flags) Object.assign(g.story.flags, q.flags);
+    if (q.clearBounty) { g.rep.bounty.watch = 0; g.rep.bounty.keep = 0; }
     const o = g.story.objectives.find((x) => x.id === id); if (o) o.done = true;
     g.progress?.addXp(q.xp || 60, q.title);
     g.ui.flashBanner('QUEST COMPLETE', 2000, true); g.sfx.coin?.();
@@ -159,7 +184,7 @@ export class Quests {
   // waystone menu: travel to any attuned stone
   waystone(name) {
     const g = this.g, first = this.light(name);
-    const stones = { ws_road: ['The Old Road', [5, 0.1, -87]], ws_mire: ['The Mirewood', [-70, 0.1, -97]], ws_cinder: ['Cinderwick', [118, 0.1, 2]], ws_gallows: ['Hangman\'s Hill', [208, 0.1, 169]] };
+    const stones = { ws_road: ['The Old Road', [5, 0.1, -87]], ws_mire: ['The Mirewood', [-70, 0.1, -97]], ws_cinder: ['Cinderwick', [118, 0.1, 2]], ws_gallows: ['Hangman\'s Hill', [208, 0.1, 169]], ws_stones: ['The Choir Stones', [80, 0.1, -185]] };
     const dests = [...this.lit].filter((k) => k !== name && stones[k]);
     const lines = [L(first ? 'The stone hums against your palm. It knows you now.' : 'The stone is warm. Somewhere, its siblings answer.', dests.length ? { choices: [...dests.map((k) => ({ text: `Travel to ${stones[k][0]} (${Math.round(Math.hypot(stones[k][1][0] - g.player.pos[0], stones[k][1][2] - g.player.pos[2]))} m)`, next: 'end', action: (G) => G.quests.travel(stones[k][1]) })), { text: 'Stay.', next: 'end' }] } : { end: true })];
     g.ui.dialogue({ lines, name: 'Waystone', spec: { outfit: 'hollow', skin: 'ashen', hair: { style: 'bald' }, glowEyes: true } });

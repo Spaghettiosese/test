@@ -5,6 +5,7 @@ import * as E from '../../../engine/index.js';
 import './furniture.js';
 import './houses.js';
 import { dressHome } from './town.js';
+import { expandDuchy } from './duchy.js';
 
 const rnd = E.rng(20240611);
 const r = (a, b) => a + (b - a) * rnd();
@@ -12,6 +13,10 @@ const hyp = Math.hypot;
 const D2R = Math.PI / 180;
 
 export const REGIONS = [
+  { id: 'fort', name: 'Fort Greywatch', rect: [6, -124, 38, -94] },
+  { id: 'pell', name: 'Pellmouth', rect: [110, -200, 212, -132] },
+  { id: 'mine', name: 'Stonehollow Mine', rect: [-254, 110, -205, 168] },
+  { id: 'stones', name: 'The Choir Stones', rect: [60, -215, 100, -180] },
   // name, [x0, z0, x1, z1] (for the map, zone names and ambience)
   { id: 'road', name: 'The Old Road', rect: [-60, -272, 60, -4] },
   { id: 'farms', name: 'Tolliver Farms', rect: [20, -180, 110, -90] },
@@ -25,6 +30,7 @@ export const LANDMARKS = [
   { name: 'Ashgate', x: 0, z: 50, c: '#e0b450' }, { name: 'Ravenspire', x: 0, z: 125, c: '#c8283a' }, { name: 'Camp', x: 13, z: -34 }, { name: 'Tolliver Farm', x: 40, z: -140 }, { name: 'Greywater Bridge', x: 0, z: -226 },
   { name: 'Hunter\'s Lodge', x: -135, z: -71 }, { name: 'Bandit Camp', x: -172, z: 14, c: '#ff6a6a' }, { name: 'Ruined Tower', x: -116, z: 70 }, { name: 'Witch\'s Hut', x: -204, z: 92 }, { name: 'Sunken Shrine', x: -190, z: -232 },
   { name: 'Cinderwick', x: 150, z: 60, c: '#ff9a48' }, { name: 'Plague Ward', x: 195, z: 120 }, { name: 'Hangman\'s Hill', x: 198, z: 160 }, { name: 'Catacombs', x: 100, z: 36, c: '#a56cff' },
+  { name: 'Fort Greywatch', x: 22, z: -108, c: '#e0b450' }, { name: 'Pellmouth', x: 135, z: -166, c: '#6ac0ff' }, { name: 'Stonehollow Mine', x: -236, z: 138, c: '#a56cff' }, { name: 'Choir Stones', x: 80, z: -200, c: '#c07cff' },
 ];
 export const regionAt = (x, z) => { for (const q of REGIONS) if (x > q.rect[0] && x < q.rect[2] && z > q.rect[1] && z < q.rect[3]) return q; return null; };
 export const inCryptRect = (x, z) => x > 66 && x < 136 && z > 6 && z < 64;
@@ -55,7 +61,7 @@ function wildMats(B) {
 }
 
 // ---------------------------------------------------------------------------- placement helpers
-class Keepout {
+export class Keepout {
   constructor() { this.rects = []; this.circles = []; this.lines = []; }
   rect(x0, z0, x1, z1) { this.rects.push([x0, z0, x1, z1]); }
   circle(x, z, rad) { this.circles.push([x, z, rad]); }
@@ -74,23 +80,23 @@ class Keepout {
 
 const cellKit = (B, prefix, x, z) => B.kit(`${prefix}_${Math.floor(x / 36)}_${Math.floor(z / 36)}`);
 
-function pine(B, x, z, s = 1, collide = true) {
+export function pine(B, x, z, s = 1, collide = true) {
   const k = cellKit(B, 'wood', x, z), h = r(6.5, 10) * s, M = B.pal, m = rnd() < 0.5 ? M.pine : M.pine2;
   k.cyl(M.bark, [x, h * 0.3, z], 0.22 * s, h * 0.6, [r(-2, 2), 0, r(-2, 2)], 6);
   for (let i = 0; i < 4; i++) { const t = i / 4, rad = (2.3 - t * 1.5) * s; k.add(m, E.cone({ radius: rad, height: h * 0.42, radialSegments: 7, heightSegments: 1 }), [x, h * (0.3 + t * 0.2) + h * 0.2, z], [0, r(0, 60), 0]); }
   if (collide) { B.lazyCollider(x - 0.28, 0, z - 0.28, x + 0.28, 5, z + 0.28, 'wood'); B.nav.block(x - 0.5, z - 0.5, x + 0.5, z + 0.5, 1); }
 }
-function birch(B, x, z, s = 1) {
+export function birch(B, x, z, s = 1) {
   const k = cellKit(B, 'wood', x, z), h = r(5, 7.5) * s, M = B.pal;
   k.cyl(M.birch, [x, h / 2, z], 0.13 * s, h, [r(-3, 3), 0, r(-3, 3)], 6);
   k.add(M.leafDead, E.superquadric({ rx: 1.5 * s, ry: 1.1 * s, rz: 1.5 * s, e1: 0.8, e2: 0.8, widthSegments: 7, heightSegments: 5 }), [x, h * 0.85, z]);
   B.lazyCollider(x - 0.18, 0, z - 0.18, x + 0.18, 5, z + 0.18, 'wood'); B.nav.block(x - 0.4, z - 0.4, x + 0.4, z + 0.4, 1);
 }
-function stump(B, x, z, s = 1) { (B.coverPts ||= []).push([x, z, 1.1, 0.25]); cellKit(B, 'wood', x, z).cyl(B.pal.bark, [x, 0.25 * s, z], 0.3 * s, 0.5 * s, [0, 0, 0], 7); }
-function log(B, x, z, s = 1) { (B.coverPts ||= []).push([x, z, 1.4, 0.3]); cellKit(B, 'wood', x, z).cyl(B.pal.bark, [x, 0.22 * s, z], 0.22 * s, 3 * s, [90, r(0, 180), 0], 7); }
-function fernPatch(B, x, z) { (B.coverPts ||= []).push([x, z, 1.7, 0.5]); const k = cellKit(B, 'wood', x, z); for (let i = 0; i < 4; i++) k.add(B.pal.fern, E.cone({ radius: 0.5, height: 0.6, radialSegments: 5, heightSegments: 1 }), [x + r(-0.5, 0.5), 0.3, z + r(-0.5, 0.5)], [r(-20, 20), r(0, 360), r(-20, 20)]); }
-function reedClump(B, x, z) { (B.coverPts ||= []).push([x, z, 1.6, 0.55]); const k = cellKit(B, 'fen', x, z); for (let i = 0; i < 5; i++) k.cyl(B.pal.reed, [x + r(-0.5, 0.5), 0.6, z + r(-0.5, 0.5)], 0.015, r(1.0, 1.6), [r(-8, 8), 0, r(-8, 8)], 4); }
-function deadStick(B, x, z, s = 1) {
+export function stump(B, x, z, s = 1) { (B.coverPts ||= []).push([x, z, 1.1, 0.25]); cellKit(B, 'wood', x, z).cyl(B.pal.bark, [x, 0.25 * s, z], 0.3 * s, 0.5 * s, [0, 0, 0], 7); }
+export function log(B, x, z, s = 1) { (B.coverPts ||= []).push([x, z, 1.4, 0.3]); cellKit(B, 'wood', x, z).cyl(B.pal.bark, [x, 0.22 * s, z], 0.22 * s, 3 * s, [90, r(0, 180), 0], 7); }
+export function fernPatch(B, x, z) { (B.coverPts ||= []).push([x, z, 1.7, 0.5]); const k = cellKit(B, 'wood', x, z); for (let i = 0; i < 4; i++) k.add(B.pal.fern, E.cone({ radius: 0.5, height: 0.6, radialSegments: 5, heightSegments: 1 }), [x + r(-0.5, 0.5), 0.3, z + r(-0.5, 0.5)], [r(-20, 20), r(0, 360), r(-20, 20)]); }
+export function reedClump(B, x, z) { (B.coverPts ||= []).push([x, z, 1.6, 0.55]); const k = cellKit(B, 'fen', x, z); for (let i = 0; i < 5; i++) k.cyl(B.pal.reed, [x + r(-0.5, 0.5), 0.6, z + r(-0.5, 0.5)], 0.015, r(1.0, 1.6), [r(-8, 8), 0, r(-8, 8)], 4); }
+export function deadStick(B, x, z, s = 1) {
   const k = cellKit(B, 'fen', x, z), h = r(3, 5) * s;
   k.cyl(B.pal.bark, [x, h / 2, z], 0.1 * s, h, [r(-6, 6), r(0, 360), r(-6, 6)], 5);
   for (let i = 0; i < 3; i++) { const a = r(0, 360); k.cyl(B.pal.bark, [x + Math.sin(a * D2R) * 0.5, h * 0.7, z + Math.cos(a * D2R) * 0.5], 0.03, 1.4, [55 * Math.cos(a * D2R), a, -55 * Math.sin(a * D2R)], 4); }
@@ -98,7 +104,7 @@ function deadStick(B, x, z, s = 1) {
 }
 
 // scatter through a rectangle with a minimum spacing, skipping keepouts
-function scatter(B, keep, rect, n, place, { spacing = 3.4, seedTries = 40 } = {}) {
+export function scatter(B, keep, rect, n, place, { spacing = 3.4, seedTries = 40 } = {}) {
   const grid = new Map(), key = (x, z) => Math.floor(x / spacing) + ',' + Math.floor(z / spacing);
   let placed = 0;
   for (let i = 0; i < n * seedTries && placed < n; i++) {
@@ -114,7 +120,7 @@ function scatter(B, keep, rect, n, place, { spacing = 3.4, seedTries = 40 } = {}
   return placed;
 }
 
-function trail(B, pts, { w = 2.6, mat = 'dirt', noise = 0 } = {}) {
+export function trail(B, pts, { w = 2.6, mat = 'dirt', noise = 0 } = {}) {
   const M = B.pal;
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i], b = pts[i + 1], dx = b[0] - a[0], dz = b[1] - a[1], L = hyp(dx, dz), yaw = -Math.atan2(dz, dx) / D2R;
@@ -124,14 +130,14 @@ function trail(B, pts, { w = 2.6, mat = 'dirt', noise = 0 } = {}) {
     for (let j = 0; j <= n; j++) B.nav.setNoise(a[0] + dx * j / n - 1.5, a[1] + dz * j / n - 1.5, a[0] + dx * j / n + 1.5, a[1] + dz * j / n + 1.5, noise);
   }
 }
-function waterPlane(B, x0, z0, x1, z1, mat, y = 0.03) {
+export function waterPlane(B, x0, z0, x1, z1, mat, y = 0.03) {
   const m = new E.Mesh(E.plane({ width: x1 - x0, depth: z1 - z0 }), mat, 'Water'); m.castShadow = false; m.position.set([(x0 + x1) / 2, y, (z0 + z1) / 2]); B.scene.add(m);
 }
-function deepWater(B, x0, z0, x1, z1, mat) {
+export function deepWater(B, x0, z0, x1, z1, mat) {
   (B.mapWater ||= []).push([x0, z0, x1, z1]);
   waterPlane(B, x0, z0, x1, z1, mat); B.nav.block(x0, z0, x1, z1, 1); B.lazyCollider(x0, -1, z0, x1, 1.6, z1, 'water');
 }
-function boardwalk(B, a, b, { w = 1.7, y = 0.22 } = {}) {
+export function boardwalk(B, a, b, { w = 1.7, y = 0.22 } = {}) {
   const dx = b[0] - a[0], dz = b[1] - a[1], L = hyp(dx, dz), yaw = -Math.atan2(dz, dx) / D2R, n = Math.ceil(L / 1.6);
   const k = B.kit('boardwalk');
   for (let i = 0; i < n; i++) { const t = (i + 0.5) / n; k.box(B.pal.plank, [a[0] + dx * t, y - 0.03, a[1] + dz * t], [L / n - 0.05, 0.06, w], [0, yaw, 0]); }
@@ -145,24 +151,24 @@ function boardwalk(B, a, b, { w = 1.7, y = 0.22 } = {}) {
     B.nav.setNoise(Math.min(x0, x1) - 1, Math.min(z0, z1) - 1, Math.max(x0, x1) + 1, Math.max(z0, z1) + 1, 2);
   }
 }
-function fenceRun(B, x0, z0, x1, z1, { h = 1.1, gaps = [] } = {}) {
+export function fenceRun(B, x0, z0, x1, z1, { h = 1.1, gaps = [] } = {}) {
   const dx = x1 - x0, dz = z1 - z0, L = hyp(dx, dz), n = Math.floor(L / 1.8), yaw = -Math.atan2(dz, dx) / D2R, k = B.kit('fences_' + Math.floor(x0 / 60) + '_' + Math.floor(z0 / 60));
   for (let i = 0; i <= n; i++) { const t = i / n, px = x0 + dx * t, pz = z0 + dz * t; if (gaps.some((g) => hyp(px - g[0], pz - g[1]) < g[2])) continue; k.box(B.pal.timber, [px, h / 2, pz], [0.1, h, 0.1]); }
   k.box(B.pal.timber, [(x0 + x1) / 2, h * 0.85, (z0 + z1) / 2], [L, 0.07, 0.07], [0, yaw, 0]); k.box(B.pal.timber, [(x0 + x1) / 2, h * 0.45, (z0 + z1) / 2], [L, 0.07, 0.07], [0, yaw, 0]);
   const cells = Math.ceil(L / 3);
   for (let i = 0; i < cells; i++) { const t0 = i / cells, t1 = (i + 1) / cells, ax = x0 + dx * t0, az = z0 + dz * t0, bx = x0 + dx * t1, bz = z0 + dz * t1; if (gaps.some((g) => hyp((ax + bx) / 2 - g[0], (az + bz) / 2 - g[1]) < g[2] + 1)) continue; B.lazyCollider(Math.min(ax, bx) - 0.08, 0, Math.min(az, bz) - 0.08, Math.max(ax, bx) + 0.08, h, Math.max(az, bz) + 0.08, 'wood'); B.nav.block(Math.min(ax, bx) - 0.1, Math.min(az, bz) - 0.1, Math.max(ax, bx) + 0.1, Math.max(az, bz) + 0.1, 1); }
 }
-function tent(B, x, z, yaw = 0, s = 1) {
+export function tent(B, x, z, yaw = 0, s = 1) {
   const k = B.kit('camps_' + Math.floor(x / 60) + '_' + Math.floor(z / 60)), a = yaw;
   for (const side of [-1, 1]) k.box(B.pal.tent, [x + Math.cos(a * D2R) * 0, 1.0 * s, z + side * 0.5 * s], [2.6 * s, 0.05, 1.4 * s], [side * 52, a, 0]);
   k.box(B.pal.timber, [x, 1.65 * s, z], [2.7 * s, 0.06, 0.06], [0, a, 0]);
   B.lazyCollider(x - 1.3 * s, 0, z - 0.9 * s, x + 1.3 * s, 1.6 * s, z + 0.9 * s, 'cloth'); B.nav.block(x - 1.3 * s, z - 0.9 * s, x + 1.3 * s, z + 0.9 * s, 1);
 }
-function logSeat(B, name, x, z, dir) {
+export function logSeat(B, name, x, z, dir) {
   B.kit('camps_' + Math.floor(x / 60) + '_' + Math.floor(z / 60)).cyl(B.pal.bark, [x, 0.22, z], 0.2, 1.4, [90, dir + 90, 0], 7);
   B.poi(name, x, z, { yaw: dir, type: 'sit', y: 0.42, approach: [x + Math.sin(dir * D2R) * 1.0, z + Math.cos(dir * D2R) * 1.0] });
 }
-function waystone(B, x, z, name) {
+export function waystone(B, x, z, name) {
   const k = B.kit('stones');
   k.box(B.pal.stoneOld, [x, 1.1, z], [0.8, 2.2, 0.55], [r(-3, 3), r(0, 360), r(-3, 3)], 0.05);
   k.box(B.pal.rune, [x, 1.5, z + 0.29], [0.3, 0.5, 0.02]);
@@ -170,14 +176,14 @@ function waystone(B, x, z, name) {
   const l = new E.Light('point', { color: '#8f5cff', intensity: 3, range: 7, flicker: 0.1 }); l.position.set([x, 1.6, z + 0.6]); B.decor.add(l); B.lights.push(l);
   B.poi(name, x, z - 1.3, { yaw: 0, type: 'stand' });
 }
-function wagon(B, x, z, yaw = 0, { broken = false } = {}) {
+export function wagon(B, x, z, yaw = 0, { broken = false } = {}) {
   const k = B.kit('road_props');
   k.box(B.pal.plank, [x, 0.9, z], [1.8, 0.15, 3.6], [0, yaw, broken ? 8 : 0]);
   for (const s of [-1, 1]) k.box(B.pal.plank, [x + Math.cos(yaw * D2R) * s * 0.9, 1.25, z - Math.sin(yaw * D2R) * s * 0.9], [0.1, 0.7, 3.6], [0, yaw, 0]);
   for (const s of [-1, 1]) k.cyl(B.pal.timber, [x + Math.cos(yaw * D2R) * s * 1.0, 0.55, z - Math.sin(yaw * D2R) * s * 1.0], 0.55, 0.12, [0, yaw, 90], 12);
   B.lazyCollider(x - 1, 0, z - 1.9, x + 1, 1.5, z + 1.9, 'wood'); B.nav.block(x - 1.1, z - 1.9, x + 1.1, z + 1.9, 1);
 }
-const wprop = (B, kind, x, z, o = {}) => B.prop(kind, x, 0, z, o);
+export const wprop = (B, kind, x, z, o = {}) => B.prop(kind, x, 0, z, o);
 
 // ---------------------------------------------------------------------------- the whole wilds
 export function buildWilds(B) {
@@ -302,6 +308,7 @@ export function buildWilds(B) {
   // a signpost at the fork
   B.kit('trails').box(M.timber, [-120, 1.2, -58], [0.14, 2.4, 0.14]); B.kit('trails').box(M.plank, [-120, 2.0, -58], [1.3, 0.28, 0.06], [0, 20, 4]); B.kit('trails').box(M.plank, [-120, 1.6, -58], [1.1, 0.26, 0.06], [0, -50, -4]);
 
+  expandDuchy(B, keep);
   // ------------------------------------------------ forests: scatter after the clearings are known
   keep.rect(-12, -272, 12, -4);   // road
   const mire = [-252, -160, -60, 198];

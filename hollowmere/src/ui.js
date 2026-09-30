@@ -165,7 +165,9 @@ export class UI {
     E.detect.classList.toggle('on', a > 0.05 || chasing); E.detect.classList.toggle('alert', chasing);
     E.detectFill.style.width = (chasing ? 100 : Math.min(100, a * 140)) + '%';
     // lockpicking
-    const pk = P.picking; E.lock.hidden = !pk; if (pk) { E.lockFill.style.width = (pk.t / pk.need * 100) + '%'; E.lockText.textContent = pk.label; }
+    const pk = P.picking; E.lock.hidden = !pk;
+    if (pk && pk.game) { const G = pk.game, tr = E.lockFill.parentElement, s0 = Math.max(0, (G.sweet - G.w / 2) * 100), s1 = Math.min(100, (G.sweet + G.w / 2) * 100); tr.style.background = `linear-gradient(90deg,#000 ${s0}%,#e0b450 ${s0}%,#e0b450 ${s1}%,#000 ${s1}%)`; E.lockFill.style.left = (G.pos * 100) + '%'; E.lockFill.style.width = '4px'; E.lockFill.style.right = 'auto'; E.lockFill.style.background = '#fff'; E.lockText.textContent = `${pk.label}: pin ${Math.min(G.pins, G.set + 1)} of ${G.pins}. Press E in the gold.`; }
+    else if (pk) { const tr = E.lockFill.parentElement; tr.style.background = ''; E.lockFill.style.left = '0'; E.lockFill.style.right = ''; E.lockFill.style.background = ''; E.lockFill.style.width = (pk.t / pk.need * 100) + '%'; E.lockText.textContent = pk.label; }
     // objective sidebar refresh
     const O = g.story.currentObjective(); if (O && (!this.objective || this.objective.text !== O.text)) this.setObjective('Objective', O.text, O.sub || '');
     E.cross.style.display = (g.mode === 'play') ? '' : 'none';

@@ -30,7 +30,7 @@ export const DIALOGUE = {
     L('The dice clatter across the table.', { onShow: (G) => G.story.diceReport(), goto: 0 }),
     L('Word of advice: don\'t whistle in the graveyard. Something whistles back.', { end: true })],
   bard: (g) => [L(`♪ "...and the Duke went up to Ravenspire, and the Duke came down no more..." ♪`, { choices: [{ text: 'Play me a tune.', next: 1, action: (G) => G.sfx.lute?.() }, { text: 'Tell me a rumor.', next: 2 }, { text: 'Enough.', next: 3 }] }), L('♪ ♪ ♪', { goto: 0 }), (() => { const r = rumor(g); return L(r.text, { onShow: (G) => G.story.reveal(r.place), goto: 0 }); })(), L('Ah, a listener. A rarity. Do you know the ending? Nobody does. That\'s why it\'s so popular.', { end: true })],
-  smith: (g) => [L('Careful of the sparks. Or don\'t. I\'ve stopped caring.', { choices: [SELL, { text: 'Just talking.', next: 2 }] }), L('Done. Coin for the shiny, no questions asked.', { goto: 0 }), L('Yes, I buy steel, and I ask no questions. Mostly because the answers are always the same.', { end: true })],
+  smith: (g) => [L('Careful of the sparks. Or don\'t. I\'ve stopped caring.', { choices: [SELL, { text: `Reforge my blade (Lv ${g.smith.level}→${g.smith.level + 1}: ${g.smith.cost().ore} ore, ${g.smith.cost().gold} gold)`, next: 1, action: (G) => G.smith.upgrade() }, { text: 'Buy a whetstone (15 gold)', next: 1, action: (G) => G.story.buy('whetstone', 15) }, { text: 'Buy a pickaxe (30 gold)', next: 1, action: (G) => G.story.buy('pickaxe', 30) }, { text: 'Just talking.', next: 2 }] }), L('Done. Coin for the shiny, no questions asked.', { goto: 0 }), L('Yes, I buy steel, and I ask no questions. Mostly because the answers are always the same.', { end: true })],
   hilde: () => [L('Bread\'s from this morning, stranger. Nothing else is guaranteed.'), L('If you\'re hungry, there\'s a loaf on the table. If you\'re thieving, there\'s a loaf on the table. Either way, leave a coin.', { end: true })],
   osric: () => [L('Barrels, buckets, coffins. Three trades, one shop.'), L('People used to buy barrels. Now they order coffins by the dozen.', { end: true })],
   marta: (g) => {
@@ -90,6 +90,18 @@ export const DIALOGUE = {
       SELL, { text: 'Leave.', next: 'end' }] }),
     L('Take it. It is bitter, like everything worth having.', { goto: 0 }),
   ],
+  brask: (g) => g.jail.active ? [L('You. Cell ten. Quiet now, the sergeant is here.', { choices: [{ text: `Pay the bribe (${40 + Math.ceil(g.jail.t * 0.5)} gold).`, next: 'end', action: (G) => G.jail.pay() }, { text: 'I will serve my time.', next: 'end' }] })] : g.rep.payDialogue?.({ guard: true, faction: 'watch', role: 'guard' }) || [L('Fort Greywatch holds the road. Nothing moves between the bridge and Ashgate that I do not hear about.'), L('Caught someone breaking the law, I take them in. Anyone who bleeds for it, I take in twice.', { end: true })],
+  fortguard: () => [L('Greywatch holds the road. Move along, friend.'), L('If you are wanted, the sergeant will take your fine. If you are very wanted, the sergeant will take you.', { end: true })],
+  ode: () => [L('Pellmouth has fished this water longer than the Dukes have fought over the hill. We mind our nets.'), L('Some nights the lake sings back. Nobody goes out then.', { end: true })],
+  fisher: () => [[L('Bites are slow. The fish are listening to something.'), L('Not us. Something under the water.', { end: true })], [L('A good day is a full net and nobody drowned.'), L('Today is a good day.', { end: true })]][Math.floor(Math.random() * 2)],
+  marl: (g) => [
+    L('The Drowned Lantern. Ale, stew, a bed, and no questions. One of those is free.', { choices: [
+      { text: 'Buy a cooked fish (9 gold)', next: 1, action: (G) => G.story.buy('cookedfish', 9) }, { text: 'Buy wine (14 gold)', next: 1, action: (G) => G.story.buy('wine', 14) },
+      { text: 'Buy Lamp oil ×3 (14 gold)', next: 1, action: (G) => G.story.buy('oil', 14, 3) }, SELL, { text: 'Just passing.', next: 'end' }] }),
+    L('There you are.', { goto: 0 }),
+  ],
+  garrick: () => [L('Stonehollow. Blue ore, thin seams and a foreman who is tired of burying people.'), L('Mind the deep end. There is a root down there and it hums.', { end: true })],
+  miner: () => [L('Hear that tapping? That is not our picks.'), L('Keep away from the cavern.', { end: true })],
   lamplighter: () => [L('Lamps out at dawn, lit at dusk. Nobody thanks the lamplighter until the lamps go out.'), L('Something comes up out of the dark when a lamp goes out. So I light them fast.', { end: true })],
   ilse: (g) => g.story.flags.ilseTold ? [L('Go on. The bell tolls thirteen. You know what to do.', { end: true })] : [L('Do not go near the gallows hill. They hang the dead there, now.', { mood: 'fear' }), L('...Do not mind me. I have had a long night. Three years of night.', { end: true })],
   brannoch: (g) => {

@@ -1,7 +1,7 @@
 // Job boards: three new contracts every day, generated from templates and tracked as quests.
 import { QUESTS } from './quests.js';
 
-const BOARDS = [{ id: 'gate', name: 'Ashgate notice board', at: [8.6, 1.0, 17.6] }, { id: 'toll', name: 'Toll house board', at: [6.4, 1.0, -218.4] }, { id: 'farm', name: 'Farm gatepost', at: [26.6, 1.0, -132.5] }];
+const BOARDS = [{ id: 'gate', name: 'Ashgate notice board', at: [8.6, 1.0, 17.6] }, { id: 'toll', name: 'Toll house board', at: [6.4, 1.0, -218.4] }, { id: 'farm', name: 'Farm gatepost', at: [26.6, 1.0, -132.5] }, { id: 'pell', name: 'Pellmouth board', at: [131.6, 1.0, -158.4] }, { id: 'fort', name: 'Fort Greywatch board', at: [16, 1.0, -99.8] }];
 export class Contracts {
   constructor(g) { this.g = g; this.day = -1; this.today = []; this.doneToday = new Set(); }
   gen() {
@@ -12,6 +12,8 @@ export class Contracts {
       () => { const b = rnd(bandits); if (!b) return null; return { title: `Bounty: ${b.name}`, text: `Wanted dead: ${b.name}, a bandit of the Mirewood. Bring proof of the deed by ending them.`, steps: [{ type: 'kill', ids: [b.id], text: `Kill ${b.name} (Mirewood)` }], reward: { gold: 55 + Math.floor(Math.random() * 40) }, xp: 70 }; },
       () => { const n = 3 + Math.floor(Math.random() * 3); return { title: 'Cull the hollows', text: `Hollows are stirring. Put down ${n} of them.`, steps: [{ type: 'kill', role: 'hollow', n, text: `Put down ${n} hollows` }], reward: { gold: 30 + n * 14 }, xp: 60 + n * 8 }; },
       () => { const n = 3 + Math.floor(Math.random() * 3); return { title: 'Herbs wanted', text: `The apothecary wants ${n} Hexwort from the Mirewood.`, steps: [{ type: 'have', item: 'h_hex', n, text: `Gather ${n} Hexwort and return here` }], reward: { gold: 22 + n * 8 }, take: [['h_hex', n]], xp: 40 }; },
+      () => { const n = 3 + Math.floor(Math.random() * 3); return { title: 'Fish for the smokehouse', text: `Pellmouth's smokehouse wants ${n} fresh fish.`, steps: [{ type: 'have', item: 'fish', n, text: `Catch ${n} fish` }], reward: { gold: 18 + n * 8 }, take: [['fish', n]], xp: 35 }; },
+      () => { const n = 3 + Math.floor(Math.random() * 3); return { title: 'Ore for the Duke', text: `Ravenspire's armorer wants ${n} pieces of Stonehollow ore.`, steps: [{ type: 'have', item: 'ore', n, text: `Mine ${n} ore` }], reward: { gold: 28 + n * 10 }, take: [['ore', n]], xp: 55 }; },
       () => { const n = 2 + Math.floor(Math.random() * 3); return { title: 'Clear the road', text: `Highwaymen and bandits are choking the trade. Kill ${n} of them.`, steps: [{ type: 'kill', role: 'bandit', n, text: `Kill ${n} bandits` }], reward: { gold: 25 + n * 16 }, xp: 60 }; },
       () => { const n = 2 + Math.floor(Math.random() * 2); return { title: 'Ember for the smith', text: `Brandt needs ${n} Ember moss from the ash of Cinderwick.`, steps: [{ type: 'have', item: 'h_ember', n, text: `Gather ${n} Ember moss` }], reward: { gold: 30 + n * 12 }, take: [['h_ember', n]], xp: 50 }; },
     ];

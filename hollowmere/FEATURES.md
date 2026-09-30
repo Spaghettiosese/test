@@ -343,6 +343,61 @@ This is the running list for the second update ("The Wide Valley"). Every line i
 303. **Stealth record** (times spotted, unseen zones, chokes, lights out, evidence found) shows in the book and on the ending screen.
 304. **Prone blocks attacks.** You must stand to fight.
 
+## Round 5: the duchy grows
+
+305. **Fort Greywatch** holds the road: a timber palisade with a gate, a yard fire, training dummies, a banner and a corner tower.
+306. The fort barracks have bunks, a mess table, a hearth, an armory chest and a chest of confiscated goods.
+307. A locked gaol block with a cell, a bunk and a bucket.
+308. Sergeant Brask and seven fort guards, including a crossbowman, on day and night schedules.
+309. A road patrol walks from the fort to the waystone and back by day.
+310. **Pellmouth**, a lakeside fishing village with three furnished homes.
+311. The Drowned Lantern inn, with a bar, tables, a hearth, bunks and a strongbox.
+312. A lake you cannot cross, with a long pier, moored boats and drying nets.
+313. Harbourmaster Ode, three fishers and innkeeper Marl, who all keep schedules.
+314. **Stonehollow Mine**, three underground chambers reached by a stone arch in the western hills.
+315. Six ore veins glowing in the mine walls.
+316. The Choir Root: a humming violet root in the deep cavern, guarded by dormant hollows.
+317. A locked miner's cache holding gear and a gem.
+318. Foreman Garrick and two miners who work, rest and sleep in the mine.
+319. **The Choir Stones**: nine standing stones round an altar, with offerings, dormant hollows and a waystone.
+320. A fifth waystone at the stones; fast travel covers five stops.
+321. Four new named regions with map labels and announcements.
+322. Hollows rise at the stones and in the mine at midnight.
+323. Job boards at Pellmouth and the fort.
+324. Nine new trails and approaches for the new places.
+325. **Fishing.** Hold E at the pier or shore. A bite arrives mid-cast. You may land a fish, a boot or a silver ring.
+326. Cooking. Any fire cooks a fish into a meal.
+327. **Mining.** Hold E at a vein with a pickaxe. Mining is loud and throws sparks.
+328. Ore veins regrow after two days.
+329. **Blade reforging.** Brandt improves your sword five times for ore and gold, and the damage bonus stacks.
+330. Whetstones sharpen your blade for five minutes.
+331. Brandt sells pickaxes and whetstones.
+332. **Arrest.** Die while wanted and the watch takes you alive to the gaol at Fort Greywatch.
+333. Arrest fines you, confiscates illegal goods and leaves you one lockpick.
+334. Your confiscated goods wait in a locked barracks chest.
+335. Leave the gaol three ways: serve the sentence, bribe the sergeant, or pick the cell door.
+336. Escaping adds to your bounty and brings the watch down.
+337. **Shrines.** Pray at the chapel altar for a small offering and a blessing.
+338. The Choir Stones and the Choir Root gamble: a blessing or a curse.
+339. Blessings heal you, refill Ember and boost XP; curses sap stamina and speed.
+340. **Tumbler lockpicking.** Locks are now a timing game: press E when the marker crosses the gold. More pins on harder locks.
+341. Lockmaster makes the gold wider.
+342. A miss costs a pin and risks snapping the pick.
+343. Six new quests: Nets and lines, A keg of something stronger, Blue ore, The missing shift, The toll ledger key, The singing stones.
+344. Quests can reach a place, then kill something, in order.
+345. Completing Brask's quest clears your bounty.
+346. Two more contract templates: fish and ore.
+347. Six new deeds: Line and Hook, Deep Delver, Bladesmith's Friend, Guest of the Duchy, Jailbreak, Tumbler Sense.
+348. Marl sells cooked fish, wine and lamp oil.
+349. Fish and ore sell for coin.
+350. The journal tallies fish caught, ore mined, blade level, arrests and escapes.
+351. The ending screen reports your blade level and arrests.
+352. Pellmouth has its own water ambience.
+353. Saves now include the smith's work, jail state and shrine cooldowns.
+354. **Bug fix:** the barracks door shared an id with the keep's, which could open the wrong door.
+355. **Bug fix:** barracks furniture no longer walls the sleepers off from their beds.
+356. **Bug fix:** hollows and loot are placed from the level data, so the new nests spawn correctly.
+
 ## What was already there (Chapter I)
 
 - Ashgate, Ravenspire keep, catacombs, graveyard, tavern, smithy, chapel and 59 people on day and night schedules.

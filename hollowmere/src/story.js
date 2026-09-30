@@ -48,7 +48,7 @@ export class Story {
   // ------------------------------------------------------------ notes & extra interactables
   extraInteractables() {
     const L = this.g.level, note = (id, x, y, z, prompt = 'Read the note') => L.interactables.push({ kind: 'note', x, y, z, r: 1.9, obj: { id }, prompt: () => prompt, use: (g) => g.readNote(id) });
-    for (const k of ['ws_road', 'ws_mire', 'ws_cinder', 'ws_gallows']) { const p = L.pois[k]; if (p) L.interactables.push({ kind: 'waystone', x: p.x, y: 1.2, z: p.z + 1.3, r: 2.6, obj: { id: k }, prompt: () => (this.g.quests.lit.has(k) ? 'Use the waystone' : 'Touch the waystone'), use: (g) => g.quests.waystone(k) }); }
+    for (const k of ['ws_road', 'ws_mire', 'ws_cinder', 'ws_gallows', 'ws_stones']) { const p = L.pois[k]; if (p) L.interactables.push({ kind: 'waystone', x: p.x, y: 1.2, z: p.z + 1.3, r: 2.6, obj: { id: k }, prompt: () => (this.g.quests.lit.has(k) ? 'Use the waystone' : 'Touch the waystone'), use: (g) => g.quests.waystone(k) }); }
     for (const l of LORE) { NOTES[l.id] = { title: l.title, text: l.text }; L.interactables.push({ kind: 'note', x: l.at[0], y: l.at[1], z: l.at[2], r: 2.2, obj: { id: l.id }, prompt: () => l.prompt, use: (g) => { const first = !this.notesFound.has(l.id); g.readNote(l.id); if (first) g.progress.addXp(12, 'lore'); } }); }
     for (const [name, p] of Object.entries(L.pois)) if (p.type === 'sleep') L.interactables.push({ kind: 'bed', x: p.x, y: p.y + 0.4, z: p.z, r: 2.4, obj: { id: name }, prompt: () => (this.g.clock.night || this.g.player.hp < this.g.player.maxHp - 5 ? 'Rest in the bed' : 'Lie down for a while'), use: (g) => g.events.sleepMenu(name) });
     for (const f of L.fires) if (f.kind === 'hearth') L.interactables.push({ kind: 'fire', x: f.x, y: f.y + 0.6, z: f.z, r: 3.2, obj: f, prompt: () => (this.g.time - (f.warmAt ?? -99) > 90 ? 'Warm yourself at the fire' : null), use: (g) => { f.warmAt = g.time; const P = g.player; P.hp = Math.min(P.maxHp, P.hp + 25); P.ember = Math.min(P.maxEmber, P.ember + 15); g.toast('The fire warms you'); g.sfx.drink?.(); if (f.indoor === 0) g.saves.save('quick'); } });
@@ -64,7 +64,7 @@ export class Story {
   // ------------------------------------------------------------ talking
   talk(npc) {
     const fn = DIALOGUE[npc.dialogue]; if (!fn) return;
-    const lines = this.g.rep.payDialogue(npc) || this.g.quests.dialogue(npc) || fn(this.g, npc); if (!lines) return;
+    const lines = (this.g.jail.active ? null : this.g.rep.payDialogue(npc)) || this.g.quests.dialogue(npc) || fn(this.g, npc); if (!lines) return;
     const want = Math.atan2(this.g.player.pos[0] - npc.x, this.g.player.pos[2] - npc.z);
     npc.yaw = want;
     npc.ch.upper.playOnce('Talk', { fadeIn: 0.3, fadeOut: 0.6 });
@@ -125,7 +125,7 @@ export class Story {
     if (b.fade !== undefined) this.g.pix.fade = b.fade;
   }
   skip() { let n = 0; while (this.cs && n++ < 60) { const b = this.cs.beat; b?.exit?.(this); this.nextBeat(); } }
-  spawnCryptHollows() { for (const [x, z] of [[104, 22], [108, 16], [100, 26], [102, 55], [109, 55], [152, 44], [140, 58], [168, 66], [128, 96], [158, 90], [184, 84], [120, 110], [192, 118], [200, 132], [186, 128], [206, 112]]) this.spawnHollow(x, z, false, true); }
+  spawnCryptHollows() { for (const [x, z] of [...(this.g.level.hollowSpots || []), [104, 22], [108, 16], [100, 26], [102, 55], [109, 55], [152, 44], [140, 58], [168, 66], [128, 96], [158, 90], [184, 84], [120, 110], [192, 118], [200, 132], [186, 128], [206, 112]]) this.spawnHollow(x, z, false, true); }
   cameraUpdate(cam, dt) {
     const c = this.cs; if (!c) return;
     const b = c.beat; c.t += dt;
@@ -212,7 +212,7 @@ export class Story {
     const p = g.player.pos, zone = this.zoneOf(p);
     if (zone !== this.zone) {
       g.stealth.zoneChanged(zone); this.zone = zone; if (!(this.seenZones ||= new Set()).has(zone) && this.playTime > 20) { this.seenZones.add(zone); g.progress.addXp(15, 'discovered'); } else this.seenZones.add(zone);
-      const names = { road: 'The King\'s Road', town: 'Ashgate', graveyard: 'The Graveyard', court: 'Ravenspire Courtyard', hall: 'The Great Hall', ante: 'The Antechamber', study: 'The Duke\'s Study', chamber: 'The Duke\'s Bedchamber', backyard: 'Behind the Keep', crypt: 'The Catacombs', undercroft: 'Ravenspire Undercroft', farms: 'Tolliver Farms', mire: 'The Mirewood', fen: 'Blackfen', cinder: 'Cinderwick', bridge: 'Greywater Bridge' };
+      const names = { road: 'The King\'s Road', town: 'Ashgate', graveyard: 'The Graveyard', court: 'Ravenspire Courtyard', hall: 'The Great Hall', ante: 'The Antechamber', study: 'The Duke\'s Study', chamber: 'The Duke\'s Bedchamber', backyard: 'Behind the Keep', crypt: 'The Catacombs', undercroft: 'Ravenspire Undercroft', farms: 'Tolliver Farms', mire: 'The Mirewood', fen: 'Blackfen', cinder: 'Cinderwick', bridge: 'Greywater Bridge', fort: 'Fort Greywatch', pell: 'Pellmouth', mine: 'Stonehollow Mine', stones: 'The Choir Stones' };
       if (!this.g.tele) g.ui.area(names[zone]);
       const cps = { town: [[0, 0.1, 16], 0], court: [[0, 0.1, 97.5], 0], hall: [[0, 0.1, 114.5], 0], chamber: [[9, 0.1, 137], 0.4], crypt: [[76, 0.1, 17], 1.57], graveyard: [[-40, 0.1, 64.5], 0] };
       if (cps[zone]) g.setCheckpoint(...cps[zone]);
@@ -391,6 +391,8 @@ export class Story {
         <tr><td>Containers opened</td><td>${st.opened}</td></tr>
         <tr><td>Loot value</td><td>${P.inv.lootValue} gp</td></tr>
         <tr><td>The Duke</td><td>${dukeLine}</td></tr>
+        <tr><td>Blade level</td><td>${g.smith.level}</td></tr>
+        <tr><td>Arrests</td><td>${st.arrests || 0}</td></tr>
         <tr><td>Times spotted</td><td>${g.stealth.st.spotted}</td></tr>
         <tr><td>Zones cleared unseen</td><td>${g.stealth.st.unseenZones}</td></tr>
         <tr><td>Deaths</td><td>${st.deaths}</td></tr>

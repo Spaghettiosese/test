@@ -56,7 +56,7 @@ export class Progress {
       trapsense: r('trapsense'), gold: 1 + 0.25 * r('deeppockets'), will: 1 - 0.4 * r('ironwill'), leechE: 6 * r('emberleech'), alch: 0.25 * r('alchemist'), forage: 0.4 * r('forager'),
       poison: 1 + 0.3 * r('toxicology'), fire: 1 + 0.35 * r('pyro'), sight: 1 + 0.5 * r('sight'),
     };
-    this.g.gear?.apply(m);
+    this.g.gear?.apply(m); if (this.g.smith) m.dmg *= 1 + 0.08 * this.g.smith.level;
     const P = this.g.player; if (!P) { this.mod = m; return; }
     P.mod = m; const hp0 = P.maxHp; P.maxHp = 120 + m.hp; P.hp += P.maxHp - hp0; P.maxEmber = 100 + m.ember; this.mod = m;
   }
