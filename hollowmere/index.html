@@ -75,6 +75,8 @@
   .statusbar .pill.bad { border-color: var(--blood); color: #ff8a8a; } .statusbar .pill.good { border-color: var(--violet); color: #c8a8ff; } .statusbar .pill.warm { border-color: var(--gold); color: var(--gold); }
   .statusbar .xp { width: 150px; height: 8px; border: 2px solid var(--edge); background: #000; position: relative; } .statusbar .xp i { position: absolute; inset: 0 auto 0 0; background: var(--gold); }
   body.book .hud:not(.panel-inv) { visibility: hidden; } body.book #sightCv { display: none; }
+  .tbar { left: 50%; top: 46%; transform: translateX(-50%); padding: 3px 10px; text-align: center; font-size: 15px; min-width: 130px; } .tbar .track { height: 7px; border: 2px solid var(--edge); background: #000; margin-top: 3px; position: relative; } .tbar .track i { position: absolute; inset: 0 auto 0 0; background: var(--blood); }
+  .floater { position: fixed; z-index: 6; pointer-events: none; font: 700 22px var(--title); text-shadow: 2px 2px 0 #000; animation: floaty .9s steps(14) forwards; transform: translate(-50%, -50%); } @keyframes floaty { to { transform: translate(-50%, -190%); opacity: 0; } }
   .minimap { right: 18px; top: 168px; width: 124px; height: 124px; image-rendering: pixelated; z-index: 3; }
   .panel-inv:not([hidden]) { display: block; }
   .panel-inv .tabs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
@@ -171,6 +173,7 @@
   <div class="gem-label" id="goldText"></div>
 </div>
 <div class="hud statusbar" id="statusbar"></div>
+<div class="hud tbar px" id="tbar" hidden><span></span><div class="track"><i></i></div></div>
 <div class="hud detect px" id="detect" style="padding:5px 10px"><svg class="eye" viewBox="0 0 17 11" shape-rendering="crispEdges"><path fill="#e6dcc8" d="M5 0h7v1h3v1h2v1h-1v1h-1v1h1v1h1v1h-2v1h-3v1H5v-1H2V8H0V7h1V6h1V5H1V4H0V3h2V2h3z"/><circle cx="8.5" cy="5.5" r="2.6" fill="#140d1c"/><circle cx="8.5" cy="5.5" r="1.2" fill="#ff9a48" id="eyeIris"/></svg><div class="meter"><i id="detectFill"></i></div></div>
 <div class="hud compass px" id="compass" hidden><canvas id="compassCv" width="240" height="20"></canvas><span id="compassDist"></span></div>
 <div class="hud prompt px" id="prompt" hidden></div>
@@ -206,6 +209,8 @@
       <div><span>Sight · poison blade</span><span>4 · 5</span></div><div><span>Knife · coin · flask</span><span>G · V · X</span></div>
       <div><span>Sap · drag body</span><span>B · hold Z</span></div><div><span>Map · perks · save</span><span>M · P · F5</span></div>
       <div><span>Pickpocket</span><span>hold E behind</span></div><div><span>Drop disguise</span><span>U</span></div>
+      <div><span>Draughts</span><span>6 7 8 9</span></div><div><span>Trap · smoke · lantern</span><span>H · J · L</span></div>
+      <div><span>Kick · map pin · zoom</span><span>Q · N · + -</span></div>
     </div>
   </div>
 </div>

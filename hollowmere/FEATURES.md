@@ -233,6 +233,91 @@ This is the running list for the second update ("The Wide Valley"). Every line i
 200. Difficulty selector and saved settings.
 201. Bed prompts and fire prompts.
 
+## Round 3: eleven new systems
+
+204. **Status effects.** A shared effect table for the player: Haste, Ironhide, Night Eye, Ghostwalk, Mending, Blessing, Hollow Curse, Dread and Snared, with timers on the HUD.
+205. **Draughts.** Four drinkable draughts on keys 6, 7, 8 and 9.
+206. **Smoke bombs.** Throw with J. The cloud blinds guards inside it and hides you.
+207. **Blindness and snares on people.** Guards can now be blinded or pinned in place.
+208. **Equipment.** Five slots (head, body, feet, ring, charm) with 16 pieces of gear.
+209. **Armor.** Worn gear and Ironhide reduce incoming damage.
+210. **The Gear tab** shows what you wear and what every piece does to your armor, noise, visibility, damage, Ember and health.
+211. **Gear as loot.** Bandits, chests, the toll strongbox, the witch's trunk and the drowned reliquary hold specific pieces.
+212. **Bear traps.** Carry them, set them with H, and guards who step on them are held and hurt.
+213. **Tripwires.** Set with H. They trip and stun.
+214. **Bandit snares.** Bandits set traps round their camp and on the wood trails. They never step on their own.
+215. **Disarming.** Crouch beside any trap to disarm and keep it.
+216. **Lockdown.** When the alarm climbs high in Ashgate the gates are barred, the bell rings, civilians run for cover and the watch turns out.
+217. **Lamps.** Street lamps burn only at night.
+218. **Lamplighter Fenn** walks the street lighting them at dusk and putting them out at dawn.
+219. **The lantern (L).** Light to see by in the wilds, at the cost of being seen. Burns lamp oil and can be doused by storms.
+220. **Foraging.** Hexwort, Bogcap, Ember moss and Nightbloom grow in their own regions and regrow.
+221. **Herb alchemy.** Ten new recipes turn herbs and scrap into tonics, draughts, smoke, oil and traps.
+222. **Job boards.** Three boards post three new contracts every day: bounties, hollow culls, herb runs, road clearing.
+223. **Bestiary.** Eleven entries unlock as you first see each kind of person or creature.
+224. **Deeds.** Twenty-four deeds with XP rewards.
+225. **Bounty hunters.** Let a big price stand in the wilds and paid killers come for you.
+226. **Two new book tabs:** Gear and Deeds.
+
+## Round 3: fifty-six existing features made deeper
+
+227. Perk: Trapsense (creep past snares).
+228. Perk: Deep Pockets (more gold).
+229. Perk: Iron Will (curses fade faster).
+230. Perk: Ember Leech (Ember on kill).
+231. Perk: Alchemist (extra brews).
+232. Perk: Forager (extra herbs).
+233. The lore set grows from 16 to 24 writings (eight new ones across the farm, lodge, hut, plague ward, weather stone and watch house).
+234. Eight new rumors that reveal places on the map, now 16 in all.
+235. New quest: Set the snares (Wulf).
+236. New quest: A draught for the dark (Sable).
+237. New quest: Bogcap for oil (Gil).
+238. New quest: The scholar's notes (the hermit).
+239. Quests can now track a stat (traps sprung) and a lore count.
+240. Quests can hand you an item when you accept.
+241. Shops charge 30% more if you are wanted.
+242. Shops give a 10% discount after six finished quests.
+243. Gil now sells gear, oil, smoke bombs and bear traps.
+244. Sable sells poison and fire flasks.
+245. Brannoch sells the sap.
+246. Bandits break and run when Red Cael dies.
+247. Bandit loot now includes gear and scrap.
+248. The toll strongbox holds real gear.
+249. The tool shed holds scrap and a bear trap.
+250. The hunter's chest holds a hood and knives.
+251. Guard chatter has eight more lines.
+252. Guards talk about rain when it rains.
+253. Guards talk about the dawn when it comes.
+254. Villagers recognise a wanted face and run to report it.
+255. Flanking a guard from behind adds 40% damage.
+256. Kill streaks pay bonus XP.
+257. A low-health heartbeat with a red vignette pulse.
+258. Exhaustion: sprint stays locked until stamina recovers.
+259. Floating damage numbers.
+260. A health bar for the enemy you are aiming at.
+261. A noise meter on the HUD.
+262. Map pins (N), up to eight.
+263. Minimap zoom (+ and -).
+264. Waystone menus show distances.
+265. Job boards show your own wanted poster.
+266. Every active draught shows a timer.
+267. The pickpocket payoff now scales with Deep Pockets.
+268. Traps keep score toward deeds and quests.
+269. Hunters can drop chain vests and iron caps.
+270. Smoke lowers your visibility to a fifth inside the cloud.
+271. Gear raises or lowers your footstep noise.
+272. The Craft tab lists the new herb recipes.
+273. Ember flasks can now be brewed from moss.
+274. Rest counts toward the Well Rested deed.
+275. Wraith Sight now works through smoke and lantern light like everything else.
+276. Herbs sell for a little coin.
+277. Iron scrap is sold and used.
+278. Book use is offered from the Journal tab.
+279. Gear adds to save games.
+280. Status effects, codex, pins, lantern state and gear all persist in saves.
+281. The controls list in the menu shows the new keys.
+282. The readme documents every new key.
+
 ## What was already there (Chapter I)
 
 - Ashgate, Ravenspire keep, catacombs, graveyard, tavern, smithy, chapel and 59 people on day and night schedules.

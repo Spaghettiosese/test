@@ -29,6 +29,10 @@ addEventListener('keydown', (e) => {
   if (game.mode === 'end') return;
   if (k === 'tab') { e.preventDefault(); game.ui.toggleJournal(); return; }
   if ((k === 'm' || k === 'p') && (game.mode === 'play' || game.mode === 'journal')) { e.preventDefault(); game.ui.toggleJournal(k === 'm' ? 'map' : 'perks'); return; }
+  if (k === 'n' && game.mode === 'play') { game.wmap.pin(); return; }
+  if (k === 'x' && e.shiftKey && game.mode === 'play') { game.wmap.unpin(); }
+  if ((k === '=' || k === '+') && game.mode === 'play') { game.wmap.zoom = Math.min(3, game.wmap.zoom * 1.25); return; }
+  if (k === '-' && game.mode === 'play') { game.wmap.zoom = Math.max(0.5, game.wmap.zoom / 1.25); return; }
   if (k === 'f5' && game.mode === 'play') { e.preventDefault(); game.saves.save('quick'); return; }
   if (game.mode === 'journal') { if (k === 'escape') game.ui.toggleJournal(); else if (k >= '1' && k <= '7') game.ui.setTab(+k - 1); return; }
   if (k === ' ' || k === 'arrowup' || k === 'arrowdown') e.preventDefault();

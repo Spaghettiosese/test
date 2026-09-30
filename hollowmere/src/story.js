@@ -70,10 +70,11 @@ export class Story {
     npc.ch.upper.playOnce('Talk', { fadeIn: 0.3, fadeOut: 0.6 });
     this.g.ui.dialogue({ npc, lines });
   }
+  priceMul() { const g = this.g; return 1 + (g.rep.wanted('watch') || g.rep.wanted('keep') ? 0.3 : 0) - (Object.values(g.quests.state).filter((x) => x.status === 'done').length >= 6 ? 0.1 : 0); }
   buy(id, price, n = 1) {
-    const inv = this.g.player.inv;
+    const inv = this.g.player.inv; price = Math.ceil(price * this.priceMul());
     if (inv.gold < price) { this.g.toast('Not enough gold'); this.g.sfx.deny?.(); return; }
-    inv.gold -= price; inv.add(id, n); this.g.sfx.coin?.(); this.g.toast(`Bought ${n} ${ITEMS[id]?.name || id}`);
+    inv.gold -= price; inv.add(id, n); this.g.sfx.coin?.(); this.g.toast(`Bought ${n} ${ITEMS[id]?.name || id} for ${price}`);
   }
   sell() {
     const inv = this.g.player.inv; let sum = 0, cnt = 0;

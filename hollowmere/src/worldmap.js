@@ -12,7 +12,7 @@ export class WorldMap {
     this.seen = new Uint8Array(this.bw * this.bh);
     this.cv = document.createElement('canvas'); this.cv.width = this.bw * PX; this.cv.height = this.bh * PX;
     this.ctx = this.cv.getContext('2d'); this.ctx.fillStyle = COL.void; this.ctx.fillRect(0, 0, this.cv.width, this.cv.height);
-    this.water = g.level.mapWater || []; this.t = 0; this.zoom = 1;
+    this.water = g.level.mapWater || []; this.t = 0; this.zoom = 1; this.pins = [];
   }
   bx(x) { return (x - this.nav.x0) / S; }
   bz(z) { return (z - this.nav.z0) / S; }
@@ -42,6 +42,8 @@ export class WorldMap {
       if (dx * dx + dz * dz <= rb * rb) this.paint(bx, bz);
     }
   }
+  pin() { const P = this.g.player; this.pins.push([P.pos[0], P.pos[2]]); if (this.pins.length > 8) this.pins.shift(); this.g.toast(`Map pin ${this.pins.length}/8 placed`); this.g.sfx.pick?.(); }
+  unpin() { if (this.pins.length) { this.pins.pop(); this.g.toast('Last pin removed'); } }
   revealAll() { for (let bz = 0; bz < this.bh; bz++) for (let bx = 0; bx < this.bw; bx++) this.paint(bx, bz); }
   update(dt) {
     this.t -= dt; if (this.t > 0) return; this.t = 0.6;
@@ -62,6 +64,7 @@ export class WorldMap {
     }
     for (const k in (g.level.pois)) if (k.startsWith('ws_')) { const p = g.level.pois[k], [x, y] = tx(p.x, p.z + 1.3); this.diamond(ctx, x, y, 4, g.quests.lit.has(k) ? '#a56cff' : '#4a3a60'); }
     const t = g.story.objectiveTarget?.(); if (t) { const [x, y] = tx(t[0], t[1]); this.diamond(ctx, x, y, 5, '#e0b450'); }
+    this.pins.forEach(([x, z], i) => { const [a, b] = tx(x, z); ctx.fillStyle = '#ff5a5a'; ctx.strokeStyle = '#000'; ctx.fillRect(a - 1, b - 8, 2, 8); ctx.beginPath(); ctx.moveTo(a + 1, b - 8); ctx.lineTo(a + 7, b - 6); ctx.lineTo(a + 1, b - 4); ctx.closePath(); ctx.fill(); ctx.stroke(); });
     const [px, py] = tx(P.pos[0], P.pos[2]); this.arrow(ctx, px, py, P.yaw, 5);
   }
   drawFull(canvas) {

@@ -168,6 +168,10 @@ export class NPC {
     if (this.poison > 0) { this.poison -= dt; this.hp -= dt * (3.2 * (this.g.player.mod?.poison || 1)); if (Math.random() < dt * 0.35) { this.bark(['*cough*', 'I do not feel well...', 'My chest...'][Math.floor(Math.random() * 3)]); this.g.sfx.grunt?.(0.4, this.pos, 0.9); } if (this.hp <= 0) { this.die([0, 0], { poison: true }); return; } }
     if (this.bleed > 0) { this.bleed -= dt; this.hp -= dt * 3.4; if (Math.random() < dt * 3) this.g.spawnBlood([this.x, this.y + 1.0, this.z], [0, 0], 2); if (this.hp <= 0) { this.die([0, 0], { poison: true }); return; } }
     if (this.burn > 0) { this.burn -= dt; this.hp -= dt * 11; if (Math.random() < dt * 2.5) this.g.flames.emit([this.x, this.y + 1.2, this.z], { count: 2, color: [4, 1.8, 0.4, 1], colorEnd: [1, 0.2, 0, 0], size: 0.18, grow: 0.3, spread: 0.3, up: 1.2, life: 0.5, jitter: 0.2 }); if (Math.random() < dt * 1.2) this.g.sfx.grunt?.(0.8, this.pos, 1.3); if (this.hp <= 0) { this.die([0, 0], { fire: true }); return; } if (!this.guard && this.state !== 'flee') this.scare(P.pos, 6); else if (this.guard && this.state === 'routine') { this.alert = 1; this.noticed(this.pos, 'combat'); } }
+    if (!this.guard && this.role === 'villager' && this.state === 'routine' && !this.witness && this.dist < 8 && !this.lying && this.g.rep.wanted('watch')) {
+      this.recogT = (this.recogT || 0) - dt;
+      if (this.recogT <= 0) { this.recogT = 3; const dx = P.pos[0] - this.x, dz = P.pos[2] - this.z; if ((dx * this.fwd[0] + dz * this.fwd[1]) / (this.dist || 1) > 0.3 && this.g.canSee(this.eye, [P.pos[0], P.pos[1] + 1.4, P.pos[2]], this.body) && this.g.rep.disguiseGain(this, 99) >= 1) { this.bark('Wait... you are the one on the posters!', this.spec.voice); this.witness = { kind: 'wanted', sev: 15, faction: 'watch' }; this.state = 'report'; this.reportT = 25; this.path = null; this.goal = null; this.repathT = 0; } }
+    }
     if (this.snare > 0) { this.snare -= dt; this.speed = 0; this.stopMove(); this.setLoco(0); this.blind = Math.max(0, (this.blind || 0) - dt); this.applyPose(); this.body.position[0] = this.x; this.body.position[1] = this.y + 0.9; this.body.position[2] = this.z; if (this.guard && this.snare > 0.3) this.perceive(dt); return; }
     if (this.blind > 0) this.blind -= dt;
     if (this.state === 'ko') { this.koT -= dt; this.speed = 0; if (this.koT <= 0) this.wakeUp(); this.applyPose(); this.body.position[0] = this.x; this.body.position[1] = this.y + 0.3; this.body.position[2] = this.z; return; }
@@ -239,7 +243,7 @@ export class NPC {
   chat(dt) {
     this.chatT = (this.chatT ?? 8 + Math.random() * 20) - dt; if (this.chatT > 0 || this.dist > 22) return; this.chatT = 30 + Math.random() * 40;
     const o = this.g.nearNpcs(this, 6).find((x) => x.guard && !x.dead && x.state === 'routine' && !x.lying); if (!o) return;
-    const L = [['Quiet night.', 'Too quiet.'], ['Did you hear the bell?', 'I heard nothing. Nothing.'], ['My feet hurt.', 'Your feet always hurt.'], ['Captain says double the watch.', 'Captain says a lot of things.'], ['Any word from the keep?', 'Only that we are not to ask.'], ['I saw a hooded man on the road.', 'Everyone is hooded on the road.'], ['Stew tonight?', 'Stew every night.'], ['Do you believe the stories?', 'I believe the bell.']][Math.floor(Math.random() * 8)];
+    const wet = this.g.weather.cur.rain > 0.5, dawn = this.g.clock.between(5, 7), L = wet ? [['Filthy weather.', 'My boots are full of it.'], ['Rain again.', 'Rain puts out the torches. Keep a light handy.']][Math.floor(Math.random() * 2)] : dawn ? [['Dawn at last.', 'Another night nobody died. Mostly.']][0] : [['Quiet night.', 'Too quiet.'], ['Did you hear the bell?', 'I heard nothing. Nothing.'], ['My feet hurt.', 'Your feet always hurt.'], ['Captain says double the watch.', 'Captain says a lot of things.'], ['Any word from the keep?', 'Only that we are not to ask.'], ['I saw a hooded man on the road.', 'Everyone is hooded on the road.'], ['Stew tonight?', 'Stew every night.'], ['Do you believe the stories?', 'I believe the bell.'], ['Heard the hunter has a new dog.', 'Heard the hunter has a new grudge.'], ['Look at those clouds.', 'Pray it is not the ash again.'], ['Who lit the lamps?', 'Fenn. He is never wrong about the time.'], ['You sleeping tonight?', 'When the bell stops.'], ['I keep thinking I see someone on the wall.', 'Aye. So do I. Do not look.'], ['Bad pay, this.', 'Worse company.'], ['Bandits on the west road again.', 'Let the watch on the road deal with them.'], ['My knee says storm.', 'Your knee says a lot.']][Math.floor(Math.random() * 16)];
     this.bark(L[0], this.spec.voice); setTimeout(() => { if (!o.dead && o.state === 'routine') o.bark(L[1], o.spec.voice); }, 2200);
   }
   doRoute(s, dt) {
@@ -574,6 +578,7 @@ export class NPC {
       this.g.spark([this.x + dir[0] * 0.5, this.y + 1.3, this.z + dir[1] * 0.5], [dir[0], 0, dir[1]], 12); this.g.sfx.clang?.(1, this.pos); this.g.noise(this.pos, 14, 'clang', this);
       this.ch.upper.playOnce('Block', { fadeIn: 0.05, fadeOut: 0.3 }); return 'blocked';
     }
+    if (opts.from === 'player' && behind && !opts.backstab && !opts.sap && !opts.ranged) { dmg *= 1.4; if (this.guard) this.g.flashText('FLANKED'); }
     if (opts.bleed && !opts.sap) this.bleed = 5;
     if (dir) this.hitR.hit([dir[0], 0.25, dir[1]], 5 + Math.min(6, dmg * 0.15));
     this.hp -= dmg; if (opts.sap && this.hp <= 0) this.hp = 1; this.tookHit = 0.4; this.alert = 1;

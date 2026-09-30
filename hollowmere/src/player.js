@@ -58,7 +58,9 @@ export class Player {
     const k = input.keys;
     let ix = (k.has('a') ? 1 : 0) - (k.has('d') ? 1 : 0), iz = (k.has('w') ? 1 : 0) - (k.has('s') ? 1 : 0);
     const moving = !!(ix || iz);
-    this.sprint = k.has('shift') && iz > 0 && !this.crouch && this.stamina > 4 && !this.blocking && !this.carried && !this.atk;
+    if (this.stamina <= 0.5) this.exhausted = true; else if (this.stamina > 28) this.exhausted = false;
+    this.noiseNow = Math.max(0, (this.noiseNow || 0) - dt * 5);
+    this.sprint = k.has('shift') && iz > 0 && !this.crouch && !this.exhausted && this.stamina > 4 && !this.blocking && !this.carried && !this.atk;
     let speed = (this.crouch ? 1.7 : this.sprint ? 5.8 : 3.5) * (g.status?.mul('speed') ?? 1);
     if (this.blocking) speed *= 0.55; if (this.carried) speed *= 0.6; if (this.g.tools?.dragging) speed *= 0.5; if (this.atk) speed *= 0.6; if (this.stagger > 0) speed *= 0.3; if (this.picking) speed = 0;
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw), lx = Math.cos(this.yaw), lz = -Math.sin(this.yaw);
@@ -82,7 +84,7 @@ export class Player {
         this.stepDist = 0;
         const floor = g.nav.noise[Math.max(0, g.nav.at(this.pos[0], this.pos[2]))] ?? 0;
         const loud = (this.sprint ? 13 : this.crouch ? 1.3 : 6.5) * [0.8, 1.0, 1.15, 1.4][floor] * (this.mod?.quiet ?? 1) * (g.status?.mul('quiet') ?? 1) * (g.weather?.noiseMul ?? 1);
-        g.noise(this.pos, loud, 'step'); g.sfx.step?.(floor, this.sprint ? 1.2 : this.crouch ? 0.4 : 0.8);
+        this.noiseNow = Math.max(this.noiseNow || 0, loud); g.noise(this.pos, loud, 'step'); g.sfx.step?.(floor, this.sprint ? 1.2 : this.crouch ? 0.4 : 0.8);
         if (floor === 3 && g.story.zone === 'fen') { g.smoke.emit([this.pos[0], 0.08, this.pos[2]], { count: 6, color: [0.25, 0.4, 0.4, 0.5], colorEnd: [0.2, 0.3, 0.3, 0], size: 0.08, grow: 2, spread: 0.6, up: 0.6, life: 0.6, jitter: 0.1 }); g.sfx.splash?.(); }
       }
     }

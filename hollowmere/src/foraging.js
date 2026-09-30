@@ -43,6 +43,6 @@ export class Foraging {
   gather(n) {
     const g = this.g, c = n.k.cnt[0] + Math.floor(Math.random() * (n.k.cnt[1] - n.k.cnt[0] + 1));
     n.ready = false; n.mesh.visible = false; n.regrow = g.clock.day * 24 + g.clock.hours + 18;
-    g.player.inv.add(n.k.item, c); g.toast(`Gathered ${c} ${n.k.name}`); g.sfx.pick?.(); g.player.playVm('Reach', 0.06); g.stats.herbs = (g.stats.herbs || 0) + c; g.progress.addXp(3, '');
+    const bonus = Math.random() < (g.player.mod?.forage || 0) ? 1 : 0; g.player.inv.add(n.k.item, c + bonus); g.toast(`Gathered ${c} ${n.k.name}`); g.sfx.pick?.(); g.player.playVm('Reach', 0.06); g.stats.herbs = (g.stats.herbs || 0) + c; g.progress.addXp(3, '');
   }
 }

@@ -15,7 +15,7 @@ export const EFFECTS = {
 export class Status {
   constructor(g) { this.g = g; this.fx = new Map(); this.clouds = []; }
   add(id, dur = null) {
-    const e = EFFECTS[id]; if (!e) return; const d = dur ?? e.dur;
+    const e = EFFECTS[id]; if (!e) return; const d = (dur ?? e.dur) * (e.good ? 1 : (this.g.player.mod?.will ?? 1));
     this.fx.set(id, Math.max(this.fx.get(id) || 0, d));
     this.g.ui.toast(`${e.good ? '+' : '-'} ${e.name}`); this.g.sfx.veil?.();
   }

@@ -52,7 +52,7 @@ export class Traps {
     for (const t of this.list) {
       if (!t.armed) continue;
       // the player: only world traps (his own he knows)
-      if (t.owner === 'world' && !P.dead && P.cc.grounded && hyp(P.pos[0] - t.x, P.pos[2] - t.z) < t.r && !(P.crouch && P.speedNow < 1.0 && t.kind === 'bear' && P.mod?.trapsense)) { this.trigger(t, 'player'); continue; }
+      if (t.owner === 'world' && !P.dead && P.cc.grounded && hyp(P.pos[0] - t.x, P.pos[2] - t.z) < t.r && !(P.crouch && P.speedNow < 1.0 && P.mod?.trapsense)) { this.trigger(t, 'player'); continue; }
       for (const n of g.npcs) {
         if (n.dead || n.state === 'ko' || n.lying || Math.abs(n.x - t.x) > 1.6 || Math.abs(n.z - t.z) > 1.6) continue;
         if (t.owner === 'world' && (n.faction === 'bandits')) continue; // they know where they set them

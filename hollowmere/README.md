@@ -25,6 +25,9 @@ The second update ("The Wide Valley") is listed in [FEATURES.md](FEATURES.md): a
 | Throw knife · coin · fire flask | G · V · X |
 | Sap · drag a body · drop disguise | B · hold Z · U |
 | Kick | Q |
+| Draughts (haste, ironhide, night eye, ghostwalk) | 6 · 7 · 8 · 9 |
+| Place a trap · smoke bomb · lantern | H · J · L |
+| Map pin · minimap zoom | N · + / - |
 | Pickpocket | hold E from behind |
 | Quick save | F5 |
 | Pause | Esc |

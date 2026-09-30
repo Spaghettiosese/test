@@ -52,6 +52,22 @@ export const QUESTS = [
     offer: ['They will not stay down, hooded one. Three of them dug their way out of the north row last night.', 'End them for good, and take the mausoleum key I hold. It opens more than a mausoleum.'],
     steps: [{ type: 'kill', role: 'hollow', n: 3, text: 'Put down three hollows' }],
     done: ['Three. My old back thanks you. Here, and mind the dark.'], reward: { gold: 50, items: [['hexbane', 1]] } },
+  { id: 'q_snares', giver: 'wulf', title: 'Set the snares', xp: 80, requires: 'q_bandits',
+    offer: ['You did well with the bandits. Here is a harder job.', 'Set a bear trap on the trail near their camp and let two of them find it. Snare them; I will hear the screaming from here.'],
+    steps: [{ type: 'stat', key: 'traps', n: 2, text: 'Catch two people in traps' }],
+    done: ['I heard them. You have a nasty streak, friend. I like it.'], reward: { gold: 60, items: [['beartrap', 2]] }, give: [['beartrap', 2]] },
+  { id: 'q_brew', giver: 'sable', title: 'A draught for the dark', xp: 100, requires: 'q_diary',
+    offer: ['Since you are so good at fetching, brew me a Night Eye draught. Nightbloom and Hexwort, ground fresh.', 'Bring it back untouched.'],
+    steps: [{ type: 'have', item: 'd_night', n: 1, text: 'Brew a Draught of Night Eye (Crafting tab)' }],
+    done: ['Yes. Now you can see what I see. Keep the coin; I keep the draught.'], reward: { gold: 70, items: [['d_ghost', 1]] }, take: [['d_night', 1]] },
+  { id: 'q_bogs', giver: 'gil', title: 'Bogcap for oil', xp: 60,
+    offer: ['Lamps burn oil and oil comes from bogcap. The fen has plenty and I have no boots for it.', 'Bring me four and I will pay in oil and coin.'],
+    steps: [{ type: 'have', item: 'h_bog', n: 4, text: 'Gather four Bogcap in Blackfen' }],
+    done: ['Four! Oil for a month. Here you are.'], reward: { gold: 35, items: [['oil', 3]] }, take: [['h_bog', 4]] },
+  { id: 'q_lore', giver: 'hermit', title: 'The scholar\'s notes', xp: 120, requires: 'q_stones',
+    offer: ['I collected writings once. They are scattered now. Read eight of them for me and tell me they were not all nonsense.', 'The truth is in the total, not in any one page.'],
+    steps: [{ type: 'lorecount', n: 8, text: 'Read eight writings (Lore tab)' }],
+    done: ['Eight. Then you know what I know. Take my old ring; it never helped me.'], reward: { gold: 40, items: [['signet', 1]] } },
   { id: 'q_toll', giver: 'bosk', title: 'The smuggler\'s fee', xp: 80,
     offer: ['Every wagon pays at my bridge. The last carter refused and now my strongbox is light. I want that carter\'s goods back, and I do not care whose back they are on.', 'Look in the wrecked wagon on the road north of here. Bring me what is in the crate.'],
     steps: [{ type: 'have', item: 'potion', n: 1, text: 'Find the wrecked wagon crate on the Old Road' }],
@@ -67,7 +83,7 @@ export class Quests {
   active() { return QUESTS.filter((q) => this.status(q.id) === 'active' || this.status(q.id) === 'ready'); }
   accept(id) {
     const q = this.def(id); if (!q || this.state[id]) return;
-    this.state[id] = { status: 'active', step: 0, count: 0, killBase: { ...this.kills.role } };
+    this.state[id] = { status: 'active', step: 0, count: 0, killBase: { ...this.kills.role }, statBase: { ...this.g.stats } };
     for (const [it, n] of q.give || []) this.g.player.inv.add(it, n);
     const s = this.g.story;
     s.objectives.push({ id, text: q.title + ': ' + q.steps[0].text, sub: q.offer[0], done: false, side: true, target: () => this.targetOf(q) });
@@ -103,6 +119,8 @@ export class Quests {
       if (step.type === 'have') ok = inv.count(step.item) >= (step.n || 1);
       else if (step.type === 'kill') ok = step.ids ? step.ids.every((i) => this.kills.id.has(i)) : (this.kills.role[step.role] || 0) - (st.killBase[step.role] || 0) >= (step.n || 1);
       else if (step.type === 'lit') ok = this.lit.size >= (step.n || 1);
+      else if (step.type === 'stat') ok = (g.stats[step.key] || 0) - (st.statBase?.[step.key] || 0) >= (step.n || 1);
+      else if (step.type === 'lorecount') ok = [...g.story.notesFound].filter((x) => x.startsWith('l_')).length >= (step.n || 1);
       else if (step.type === 'reach') { const p = g.level.pois[step.poi]; ok = !!p && hyp(p.x - g.player.pos[0], p.z - g.player.pos[2]) < (step.r || 4); }
       if (ok) {
         st.step++;
@@ -143,7 +161,7 @@ export class Quests {
     const g = this.g, first = this.light(name);
     const stones = { ws_road: ['The Old Road', [5, 0.1, -87]], ws_mire: ['The Mirewood', [-70, 0.1, -97]], ws_cinder: ['Cinderwick', [118, 0.1, 2]], ws_gallows: ['Hangman\'s Hill', [208, 0.1, 169]] };
     const dests = [...this.lit].filter((k) => k !== name && stones[k]);
-    const lines = [L(first ? 'The stone hums against your palm. It knows you now.' : 'The stone is warm. Somewhere, its siblings answer.', dests.length ? { choices: [...dests.map((k) => ({ text: 'Travel to ' + stones[k][0], next: 'end', action: (G) => G.quests.travel(stones[k][1]) })), { text: 'Stay.', next: 'end' }] } : { end: true })];
+    const lines = [L(first ? 'The stone hums against your palm. It knows you now.' : 'The stone is warm. Somewhere, its siblings answer.', dests.length ? { choices: [...dests.map((k) => ({ text: `Travel to ${stones[k][0]} (${Math.round(Math.hypot(stones[k][1][0] - g.player.pos[0], stones[k][1][2] - g.player.pos[2]))} m)`, next: 'end', action: (G) => G.quests.travel(stones[k][1]) })), { text: 'Stay.', next: 'end' }] } : { end: true })];
     g.ui.dialogue({ lines, name: 'Waystone', spec: { outfit: 'hollow', skin: 'ashen', hair: { style: 'bald' }, glowEyes: true } });
   }
   travel(pos) {

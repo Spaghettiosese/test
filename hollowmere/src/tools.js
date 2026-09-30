@@ -205,7 +205,7 @@ export class Tools {
   craft(id) {
     const r = RECIPES.find((x) => x.id === id), g = this.g, inv = g.player.inv; if (!r || !this.canCraft(r)) { g.sfx.deny?.(); return false; }
     for (const [it, n] of r.needs) if (n) { if (it === 'gold') inv.gold -= n; else inv.remove(it, n); }
-    inv.add(r.makes[0], r.makes[1]); g.stats.crafted = (g.stats.crafted || 0) + r.makes[1]; g.sfx.coin?.(); g.toast(`Crafted ${r.makes[1]} × ${ITEMS[r.makes[0]].name}`); g.progress.addXp(8, 'craft'); return true;
+    const extra = Math.random() < (g.player.mod?.alch || 0) ? 1 : 0; inv.add(r.makes[0], r.makes[1] + extra); g.stats.crafted = (g.stats.crafted || 0) + r.makes[1]; g.sfx.coin?.(); g.toast(`Crafted ${r.makes[1]} × ${ITEMS[r.makes[0]].name}`); g.progress.addXp(8, 'craft'); return true;
   }
   // ---------------------------------------------------------------- interactions
   hook(push, eye, f) {
@@ -226,7 +226,7 @@ export class Tools {
     const need = Math.max(0.7, 1.7 - 0.25 * nim);
     P.startPicking(n, 1, () => {
       const take = n.pockets; n.pockets = []; let gold = 0;
-      for (const [id, c] of take) { const cc = id === 'gold' ? Math.round(c * (1 + 0.3 * nim)) : c; P.inv.add(id, cc); if (id === 'gold') gold += cc; else g.toast(`Took ${ITEMS[id]?.name}`); }
+      for (const [id, c] of take) { const cc = id === 'gold' ? Math.round(c * (1 + 0.3 * nim) * (P.mod?.gold || 1)) : c; P.inv.add(id, cc); if (id === 'gold') gold += cc; else g.toast(`Took ${ITEMS[id]?.name}`); }
       g.toast(gold ? `Lifted ${gold} gold` : 'Pockets emptied'); g.sfx.coin?.(); g.progress.addXp(6, 'pickpocket'); g.stats.pick = (g.stats.pick || 0) + 1;
     }, 'Picking a pocket', { free: true, need, watch: (dt) => {
       if (n.dead || n.state !== 'routine' || n.alert > 0.55) { this.caught(n); return false; }

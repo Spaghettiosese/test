@@ -131,6 +131,7 @@ export class Game {
     if (this.input && playing) P.update(dt, this.input); else if (this.input) { this.input.dYaw = this.input.dPitch = 0; this.input.pressed.clear(); }
     if (playing || cut) this.clock.update(dt);
     this.combatT = Math.max(0, this.combatT - dt);
+    if (playing && P.hp < P.maxHp * 0.3 && !P.dead) { this.hbT = (this.hbT || 0) - dt; if (this.hbT <= 0) { this.hbT = 0.9; this.sfx.heartbeat?.(); this.pix.hurt = Math.max(this.pix.hurt, 0.3); } }
     this.alarmT = Math.max(0, this.alarmT - dt); if (this.alarmT === 0 && this.alarmLevel > 0) this.alarmLevel = Math.max(0, this.alarmLevel - dt * 0.05);
     this.updateEnvironment(dt);
     this.updateLevel(dt);
@@ -361,6 +362,7 @@ export class Game {
     if (res === 'blocked') return res;
     if (res === 'ko') { this.stats.ko = (this.stats.ko || 0) + 1; this.ui.hitMarker(); this.sfx.thud?.(0.7, n.pos); this.flashText?.('KNOCKED OUT'); this.progress.addXp(10, 'knockout'); return res; }
     this.sfx.slash?.(n.pos); this.spawnBlood(at, dir, res === 'killed' ? 26 : 12);
+    if (opts.from === 'player' && res !== 'dead') this.ui.floater?.(dmg >= 900 ? 'KILL' : Math.round(dmg), [n.x, n.y + 1.9, n.z], res === 'killed' ? '#ff5a5a' : '#ffe9a8');
     if (opts.from === 'player' && res !== 'dead' && !n.guard && n.role !== 'bandit' && n.role !== 'hollow') this.rep.crime(res === 'killed' ? 'murder' : 'assault', n.pos, { victim: n });
     if (opts.backstab) { this.flashText?.('ASSASSINATION'); this.stats.stabs++; this.slowmo = 0.35; }
     this.hitStop = Math.max(this.hitStop || 0, res === 'killed' ? 0.09 : 0.045); this.shake = Math.max(this.shake, res === 'killed' ? 0.35 : 0.15);
@@ -371,11 +373,13 @@ export class Game {
   onKill(n, opts) {
     this.stats.kills++; if (n.guard) this.stats.guardKills++; else this.stats.civKills++;
     this.story.onKill(n, opts);
+    if (n.id === 'cael') for (const o of this.npcs) if (o.role === 'bandit' && !o.dead && o.dist < 90 && o.state !== 'retreat') { o.def.brave = false; o.state = 'retreat'; o.retreatT = 14; o.repathT = 0; o.stopMove(); o.bark('The chief is dead! Run!'); }
+    this.streak = (this.time - (this.streakAt || -99) < 9 ? this.streak + 1 : 1); this.streakAt = this.time; if (this.streak >= 3) { this.flashText('×' + this.streak + ' STREAK'); this.progress.addXp(this.streak * 3, ''); }
     { const P = this.player, m = P.mod || {}; let xp = n.role === 'hollow' ? 30 : n.role === 'bandit' ? 28 : n.guard ? 22 : 0;
       if (xp && opts.backstab) xp += 12 + 8 * (m.cutthroat || 0); if (xp && opts.poison) xp += 6;
       if (opts.fire) this.stats.fireKills = (this.stats.fireKills || 0) + 1; if (opts.poison && !opts.bleedOnly) this.stats.poisonKills = (this.stats.poisonKills || 0) + 1;
       if (xp) this.progress.addXp(xp, opts.backstab ? 'assassination' : opts.poison ? 'poisoned' : opts.fire ? 'burned' : 'kill');
-      if (m.leech && !opts.poison && !opts.fire) P.hp = Math.min(P.maxHp, P.hp + m.leech); }
+      if (m.leech && !opts.poison && !opts.fire) P.hp = Math.min(P.maxHp, P.hp + m.leech); if (m.leechE) P.ember = Math.min(P.maxEmber, P.ember + m.leechE); }
     for (const o of this.nearNpcs(n, 14)) if (!o.guard) o.scare(n.pos, 14);
   }
   playerDied() { this.mode = 'dead'; this.stats.deaths++; this.sfx.boom?.(0.6); this.ui.showDeath(); setTimeout(() => this.respawn(), 3800); }

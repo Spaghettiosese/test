@@ -108,7 +108,21 @@ export class UI {
       <h4>Deeds</h4><ul><li><span>Guards slain</span><span>${st.guardKills}</span></li><li><span>Silent kills</span><span>${st.stabs}</span></li><li><span>Torches snuffed</span><span>${st.snuffed}</span></li></ul></div>`;
     this.el.inv.hidden = false;
   }
+  floater(text, pos, color = '#ffe9a8') {
+    const g = this.g, cam = g.camera, f = g.player.forward, e = cam.position;
+    const dx = pos[0] - e[0], dy = pos[1] - e[1], dz = pos[2] - e[2]; if (dx * f[0] + dy * f[1] + dz * f[2] < 0.3) return;
+    const p = cam.project(pos), d = document.createElement('div'); d.className = 'floater'; d.textContent = text; d.style.color = color;
+    d.style.left = ((p[0] * 0.5 + 0.5) * innerWidth) + 'px'; d.style.top = ((0.5 - p[1] * 0.5) * innerHeight) + 'px'; document.body.append(d); setTimeout(() => d.remove(), 900);
+  }
+  drawTarget() {
+    const g = this.g, P = g.player, el = document.getElementById('tbar'); if (!el) return;
+    let best = null, bd = 1e9; const f = P.forward, e = P.eyePos;
+    if (g.mode === 'play') for (const n of g.npcs) { if (n.dead || n.dist > 16 || n.hp >= n.maxHp - 0.5 || !n.visible) continue; const dx = n.x - e[0], dz = n.z - e[2], d = Math.hypot(dx, dz), c = (dx * f[0] + dz * f[2]) / (d || 1); if (c > 0.96 && d < bd) { bd = d; best = n; } }
+    if (!best) { el.hidden = true; return; }
+    el.hidden = false; el.firstElementChild.textContent = best.name; el.lastElementChild.firstElementChild.style.width = Math.max(0, best.hp / best.maxHp * 100) + '%';
+  }
   drawStatus() {
+    this.drawTarget();
     const g = this.g, P = g.player, sb = document.getElementById('statusbar'); if (!sb) return;
     const pills = [], T = g.tools, R = g.rep, pr = g.progress;
     const b = Math.max(R.total('watch'), R.total('keep')); if (b > 0) pills.push([`${b >= 60 ? 'WANTED' : 'Suspect'} · ${Math.ceil(b)}g`, 'bad']);
@@ -121,6 +135,9 @@ export class UI {
     const inv = P.inv, q = [['G', 'knife', 'Knives'], ['V', 'gold', 'Coin'], ['X', 'firebomb', 'Flasks'], ['5', 'poison', 'Oil']].map(([k, id, n]) => [k, n, inv.count(id)]).filter((x) => x[2] > 0).map((x) => `${x[0]}·${x[1]} ${x[2]}`).join('  ');
     if (q) pills.push([q, '']);
     if (g.weather && g.weather.label && g.weather.kind !== 'clear') pills.push([g.weather.label, '']);
+    { const nz = P.noiseNow || 0; pills.push([`Noise ${nz < 2 ? '▮▯▯ quiet' : nz < 8 ? '▮▮▯ normal' : '▮▮▮ loud'}`, nz < 2 ? 'good' : nz < 8 ? '' : 'bad']); }
+    if (g.lantern?.on) pills.push(['Lantern lit (L)', 'warm']); if (P.exhausted) pills.push(['Exhausted', 'bad']);
+    for (const [id, t] of g.status.fx) pills.push([`${id} ${Math.ceil(t)}s`, 'good']);
     const xpw = Math.round(pr.xp / pr.need() * 100), key = pills.map((p) => p.join('|')).join('~') + '#' + pr.level + '/' + xpw + '/' + pr.points;
     if (key !== this._sbKey) { this._sbKey = key; sb.innerHTML = pills.map(([t, c]) => `<div class="pill ${c}">${esc(t)}</div>`).join('') + `<div class="pill">Lv ${pr.level}${pr.points ? ' · ' + pr.points + ' perk pt (P)' : ''}</div><div class="xp"><i style="width:${xpw}%"></i></div>`; }
   }

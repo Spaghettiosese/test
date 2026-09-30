@@ -24,7 +24,7 @@ export class Saves {
       stats: g.stats, dead: g.npcs.filter((n) => n.dead).map((n) => n.id),
       containers: g.level.containers.map((c) => (c.opened ? 1 : 0) + (c.locked ? 2 : 0)), doors: g.level.doors.map((d) => (d.locked ? 1 : 0)),
       status: g.status.save(), gear: g.gear.save(), codex: g.codex.save(), lantern: g.lantern.on,
-      map: b64(g.wmap.seen), tools: { sap: g.tools.sap, poisonHits: g.tools.poisonHits }, quick: g.difficulty,
+      pins: g.wmap.pins, map: b64(g.wmap.seen), tools: { sap: g.tools.sap, poisonHits: g.tools.poisonHits }, quick: g.difficulty,
     };
   }
   save(why = '') {
@@ -52,6 +52,7 @@ export class Saves {
     const dead = new Set(d.dead || []);
     for (const n of g.npcs) if (dead.has(n.id) && !n.dead) { n.dead = true; n.state = 'dead'; n.hp = 0; n.discovered = true; n.frozen = true; n.loot = []; n.setVisible(false); g.world.remove(n.body); }
     try { const bin = atob(d.map); for (let i = 0; i < bin.length && i < g.wmap.seen.length; i++) if (bin.charCodeAt(i)) g.wmap.paint(i % g.wmap.bw, Math.floor(i / g.wmap.bw)); } catch { /* map stays dark */ }
+    g.wmap.pins = d.pins || [];
     g.tools.sap = !!d.tools?.sap; g.tools.poisonHits = d.tools?.poisonHits | 0;
     for (const n of g.npcs) if (!n.dead && n.role !== 'hollow') { n.leaveActivity(); n.slotKey = ''; n.snapToSchedule(); }
     P.cc.position = [...d.pos]; P.cc.velocity = [0, 0, 0]; P.yaw = d.yaw; P.pitch = 0; P.hp = d.hp; P.ember = d.ember; g.checkpoint = d.checkpoint || d.pos; g.checkpointYaw = d.checkpointYaw || 0;

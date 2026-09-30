@@ -16,6 +16,12 @@ export const PERKS = [
   { id: 'umbral', name: 'Umbral Focus', max: 3, desc: 'Ember skills recharge 12% faster per rank.', tree: 'Ember' },
   { id: 'toxicology', name: 'Toxicology', max: 3, desc: 'Poison lasts 30% longer and bites harder per rank.', tree: 'Alchemy' },
   { id: 'pyro', name: 'Firebug', max: 2, desc: 'Fire flasks burn longer and wider.', tree: 'Alchemy' },
+  { id: 'trapsense', name: 'Trapsense', max: 1, desc: 'Creeping (crouched and slow) never trips a snare.', tree: 'Shadow' },
+  { id: 'deeppockets', name: 'Deep Pockets', max: 3, desc: 'Gold from loot and pockets +25% per rank.', tree: 'Shadow' },
+  { id: 'ironwill', name: 'Iron Will', max: 2, desc: 'Curses and dread wear off 40% faster per rank.', tree: 'Body' },
+  { id: 'emberleech', name: 'Ember Leech', max: 3, desc: 'Killing restores 6 Ember per rank.', tree: 'Ember' },
+  { id: 'alchemist', name: 'Alchemist', max: 2, desc: '25% chance per rank to brew an extra item.', tree: 'Alchemy' },
+  { id: 'forager', name: 'Forager', max: 2, desc: 'Gathering herbs yields +1 per rank sometimes.', tree: 'Alchemy' },
   { id: 'sight', name: 'Wraith Eyes', max: 2, desc: 'Wraith Sight lasts longer and shows guard cones.', tree: 'Ember' },
 ];
 
@@ -47,6 +53,7 @@ export class Progress {
       quiet: 0.8 ** r('shadowstep'), cutthroat: r('cutthroat'), pick: 0.75 ** r('lockmaster'), snap: 1 - 0.3 * r('lockmaster'), nimble: r('nimble'),
       dmg: 1 + 0.1 * r('sharp'), parry: 0.05 * r('irongrip'), leech: 4 * r('secondwind'), knife: 1 + 0.3 * r('knifework'), knifeSave: 0.35 + 0.15 * r('knifework'),
       hp: 15 * r('thickskin'), stam: 1 + 0.15 * r('fleet'), sprintCost: 1 - 0.1 * r('fleet'), ember: 20 * r('emberwell'), cd: 0.88 ** r('umbral'),
+      trapsense: r('trapsense'), gold: 1 + 0.25 * r('deeppockets'), will: 1 - 0.4 * r('ironwill'), leechE: 6 * r('emberleech'), alch: 0.25 * r('alchemist'), forage: 0.4 * r('forager'),
       poison: 1 + 0.3 * r('toxicology'), fire: 1 + 0.35 * r('pyro'), sight: 1 + 0.5 * r('sight'),
     };
     this.g.gear?.apply(m);

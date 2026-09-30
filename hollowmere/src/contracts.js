@@ -20,7 +20,8 @@ export class Contracts {
   }
   open(board) {
     this.gen(); const g = this.g, Q = g.quests;
-    const lines = [{ text: `${board.name}. Pinned jobs for hard people.`, choices: [] }];
+    const b = Math.ceil(Math.max(g.rep.total('watch'), g.rep.total('keep')));
+    const lines = [{ text: `${board.name}. Pinned jobs for hard people.${b > 0 ? ` A poster of a hooded thief hangs beside them: ${b} gold reward.` : ''}`, choices: [] }];
     for (const c of this.today) {
       const st = Q.status(c.id);
       if (st === 'ready') lines[0].choices.push({ text: `Claim: ${c.title} (${c.reward.gold} gold)`, next: 'end', action: (G) => G.quests.turnIn(c.id) });
