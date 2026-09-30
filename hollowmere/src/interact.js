@@ -75,6 +75,7 @@ P.updateInteraction = function updateInteraction(dt) {
   this.backstabTarget = best && best.kind === 'backstab' ? best.obj : null;
   if (pl.picking) this.ui.setPrompt(null); else this.ui.setPrompt(this.target ? this.target.prompt : this.backstabTarget ? 'Attack: backstab' : null, this.target?.kind);
   if (pl.usePress && this.target && !pl.picking && !this.story.busy) { this.target.use(); pl.usePress = false; if (this.target.kind === 'door' || this.target.kind === 'talk') pl.playVm('Reach', 0.06); }
+  pl.usePress = false;
 };
 
 // ------------------------------------------------------------ doors & locks

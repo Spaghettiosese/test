@@ -106,7 +106,7 @@ export class Player {
     this.updateCombat(dt, input);
     this.updateCarry(dt, input);
     this.updatePicking(dt, input);
-    this.lmbPress = false; this.usePress = false;
+    this.lmbPress = false;
     // regeneration out of combat
     if (this.hp < this.maxHp && g.combatT <= 0) this.hp = Math.min(this.maxHp, this.hp + dt * 0.8);
   }
