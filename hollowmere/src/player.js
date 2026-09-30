@@ -278,7 +278,7 @@ export class Player {
     p.t += dt; p.tick += dt;
     if (p.tick > 0.55) { p.tick = 0; this.g.sfx.pick?.(); this.g.noise(this.pos, 3.2, 'pick');
       if (Math.random() < 0.05 * p.level) { this.inv.remove('lockpick', 1); this.g.toast('Your pick snapped'); this.g.sfx.deny?.(); this.picking = null; this.playVm('Idle', 0.1); return; } }
-    if (p.t >= p.need) { const done = p.onDone; this.picking = null; this.playVm('Idle', 0.1); done(); this.g.sfx.unlock?.(); }
+    if (p.t >= p.need) { const done = p.onDone; this.picking = null; this.playVm('Idle', 0.1); done(); this.g.sfx.lockClick?.(); }
   }
 
   // ------------------------------------------------------------ camera & viewmodel matrix

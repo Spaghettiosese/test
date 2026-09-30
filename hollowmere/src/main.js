@@ -13,8 +13,14 @@ let drag = null;
 const locked = () => document.pointerLockElement === cv;
 game.canvasLock = () => { if (game.mode !== 'play') return; try { const r = cv.requestPointerLock?.(); if (r && r.catch) r.catch(() => {}); } catch { /* sandboxed: drag to look */ } };
 const sens = () => 0.0022 * (+$('sens').value || 1);
+// Layout-independent key name (KeyE -> 'e'), so it works in embedded frames and other layouts.
+const keyName = (e) => (/^Key[A-Z]$/.test(e.code) ? e.code.slice(3).toLowerCase() : e.key.toLowerCase());
+const grabFocus = () => { try { window.focus(); if (document.activeElement && document.activeElement !== document.body && document.activeElement !== cv) document.activeElement.blur(); cv.focus({ preventScroll: true }); } catch { /* ignore */ } };
+cv.tabIndex = 0; cv.style.outline = 'none';
+// Browsers only allow audio after a gesture, and a frame only gets keys once focused, so every gesture does both.
+for (const t of ['pointerdown', 'mousedown', 'touchstart', 'keydown', 'click']) addEventListener(t, () => { game.sfx.unlock(); if (t !== 'keydown') grabFocus(); }, { capture: true });
 addEventListener('keydown', (e) => {
-  const k = e.key.toLowerCase();
+  const k = keyName(e);
   if (game.mode === 'boot' || game.mode === 'menu') { if (k === 'enter' && game.mode === 'menu') start(); return; }
   if (game.ui.dlg) { e.preventDefault(); if (k === 'e' || k === ' ' || k === 'enter') game.ui.advanceDialogue(); else if (k >= '1' && k <= '9') game.ui.choose(+k - 1); else if (k === 'escape') game.ui.closeDialogue(); return; }
   if (game.ui.sheetOpen) { if (k === 'e' || k === 'escape' || k === ' ' || k === 'enter') { e.preventDefault(); game.ui.closeNote(); } return; }
@@ -30,7 +36,7 @@ addEventListener('keydown', (e) => {
     if (k === 'j') game.player.hp = game.player.maxHp;
   }
 });
-addEventListener('keyup', (e) => game.input.keys.delete(e.key.toLowerCase()));
+addEventListener('keyup', (e) => { game.input.keys.delete(keyName(e)); game.input.keys.delete(e.key.toLowerCase()); });
 addEventListener('blur', () => { game.input.keys.clear(); if (game.player) { game.player.lmb = game.player.rmb = false; } });
 cv.addEventListener('contextmenu', (e) => e.preventDefault());
 addEventListener('mousedown', (e) => {
@@ -64,6 +70,7 @@ $('vol').oninput = (e) => game.sfx.setVolume(+e.target.value);
 $('play').onclick = () => { game.sfx.unlock(); if (game.mode === 'pause') pause(false); else start(); };
 addEventListener('resize', () => game.resize());
 function start() {
+  game.sfx.unlock(); grabFocus();
   if (game.mode !== 'menu') return;
   $('menu').hidden = true; game.sfx.unlock();
   game.story.intro();

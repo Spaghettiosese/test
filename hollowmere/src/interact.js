@@ -90,7 +90,7 @@ P.doorPrompt = function doorPrompt(d) {
 P.useDoor = function useDoor(d) {
   const pl = this.player, group = this.doorGroup(d);
   if (d.locked) {
-    if (d.keyId && pl.inv.has(d.keyId)) { for (const x of group) x.locked = false; this.toast(`Unlocked with the ${ITEMS[d.keyId].name}`); this.sfx.unlock?.(); this.stats.unlocked = (this.stats.unlocked || 0) + 1; return; }
+    if (d.keyId && pl.inv.has(d.keyId)) { for (const x of group) x.locked = false; this.toast(`Unlocked with the ${ITEMS[d.keyId].name}`); this.sfx.lockClick?.(); this.stats.unlocked = (this.stats.unlocked || 0) + 1; return; }
     if (d.gate || d.lockLevel > 3) { this.toast('It will not budge'); this.sfx.deny?.(); return; }
     if (d.keyId === 'gatekey' && !d.pickable) { this.toast('It is barred from the other side'); this.sfx.deny?.(); return; }
     pl.startPicking(d, d.lockLevel || 1, () => { for (const x of group) x.locked = false; this.toast('Click. The lock gives'); this.stats.unlocked = (this.stats.unlocked || 0) + 1; });
@@ -105,7 +105,7 @@ P.useDoor = function useDoor(d) {
 P.openContainer = function openContainer(c) {
   const pl = this.player;
   if (c.locked) {
-    if (c.keyId && pl.inv.has(c.keyId)) { c.locked = false; this.toast(`Unlocked with the ${ITEMS[c.keyId].name}`); this.sfx.unlock?.(); }
+    if (c.keyId && pl.inv.has(c.keyId)) { c.locked = false; this.toast(`Unlocked with the ${ITEMS[c.keyId].name}`); this.sfx.lockClick?.(); }
     else { pl.startPicking(c, c.lockLevel || 1, () => { c.locked = false; this.openContainer(c); }); return; }
   }
   if (!c.opened) { c.opened = true; this.stats.opened++; this.sfx.chest?.([c.x, c.y, c.z]); this.noise([c.x, 0, c.z], 4, 'step'); pl.playVm('Reach', 0.06); }
