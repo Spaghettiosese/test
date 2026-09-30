@@ -1,0 +1,22 @@
+<!doctype html><meta charset=utf-8><style>html,body{margin:0;background:#222;height:100%}canvas{position:fixed;inset:0;width:100%;height:100%}</style>
+<canvas id=c></canvas>
+<script type=module>
+import * as E from '../../engine/index.js';
+import { createPerson } from '../src/people/index.js';
+const q = new URLSearchParams(location.search);
+const c = document.getElementById('c');
+const r = new E.Renderer(c, { pixelRatio: 1, msaa: 4 });
+const scene = new E.Scene(); E.applyTimeOfDay(scene.environment, 12);
+const pal = E.archPalette(); const k = new E.Kit(pal); k.box(pal.stone, [0, -0.05, 0], [40, 0.1, 10]); scene.add(k.toNode());
+const spec = JSON.parse(q.get('spec') || '{"outfit":"guard","weapon":"sword"}');
+const items = (q.get('items') || 'Idle:0').split(',').map((s) => { const [n, t] = s.split(':'); return { n, t: +t }; });
+const chars = items.map((it, i) => {
+  const p = createPerson(spec, { detail: 0.9 }); p.position.set([(i - (items.length - 1) / 2) * 1.4, 0, 0]); p.setEuler(0, +(q.get('yaw') || 0), 0);
+  p.play(it.n, { fade: 0 }); p.mixer.setTime(it.n, it.t); p.autoAnimate = false; p.mixer.evaluate(); scene.add(p); return p;
+});
+const cam = new E.Camera(); const span = items.length * 0.7;
+const side = q.get('side');
+cam.position.set(side ? [6 + span, 1.4, 0] : [0, 1.45, 3.5 + span * 1.2]); cam.target.set([0, +(q.get('ty') || 1.05), 0]); cam.fov = 35 * E.DEG;
+function f() { for (const p of chars) { p.updateWorld(scene.world); p.skeleton.simulateSprings(0.016, p.world); p.updateSockets(); } r.render(scene, cam, { background: 'sky' }); window.__ready = true; requestAnimationFrame(f); }
+f();
+</script>

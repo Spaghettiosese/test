@@ -1,0 +1,18 @@
+<!doctype html><meta charset=utf-8><style>html,body{margin:0;background:#000;height:100%}canvas{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated}#src{left:-9999px;inset:auto;width:480px;height:270px;position:fixed}</style>
+<canvas id=src></canvas><canvas id=out></canvas>
+<script type=module>
+import * as E from '../../engine/index.js';
+import { PixelDisplay } from '../src/pixel.js';
+const src = document.getElementById('src');
+const r = new E.Renderer(src, { pixelRatio: 1, msaa: 0, preserveDrawingBuffer: true });
+const pd = new PixelDisplay(document.getElementById('out'), src);
+const scene = new E.Scene(); E.applyTimeOfDay(scene.environment, 21);
+const pal = E.archPalette(); const k = new E.Kit(pal);
+k.box(pal.stone, [0, -0.05, 0], [30, 0.1, 30]); k.box(pal.brick, [0, 2, 6], [12, 4, 0.5]); k.box(pal.darkWood, [2, 0.5, 3], [1, 1, 1]);
+scene.add(k.toNode());
+const l = new E.Light('point', { color: '#ff9a48', intensity: 14, range: 12, flicker: 0.4 }); l.position.set([0, 2, 3]); scene.add(l);
+const cam = new E.Camera(); cam.position.set([0, 1.6, -2]); cam.target.set([0, 1.5, 6]);
+window.__go = true;
+function f() { r.render(scene, cam, { background: 'sky' }); pd.present(1/60); requestAnimationFrame(f); }
+f();
+</script>
