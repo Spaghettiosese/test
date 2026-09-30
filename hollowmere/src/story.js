@@ -3,6 +3,7 @@
 import * as E from '../../engine/index.js';
 import { createPerson } from './people/index.js';
 import { DIALOGUE } from './dialogue.js';
+import { regionAt, inCryptRect } from './level/wilds.js';
 import { NPC } from './npc.js';
 
 const hyp = Math.hypot;
@@ -38,13 +39,14 @@ export class Story {
   objectiveTarget() {
     const o = this.currentObjective(); if (!o) return null;
     const P = this.g.player.pos, inKeep = P[2] > 92;
-    return { town: [0, 13], court: inKeep ? [0, 98] : P[0] > 66 ? [121, 57] : [0, 91], keep: [0, 112], chamber: [10, 138], letter: [15.4, 139.6], escape: [13, 147.5], locket: [-22.5, 61.4], relic: [99.4, 57.6] }[o.id] || null;
+    return { town: [0, 13], court: inKeep ? [0, 98] : inCryptRect(P[0], P[2]) ? [121, 57] : [0, 91], keep: [0, 112], chamber: [10, 138], letter: [15.4, 139.6], escape: [13, 147.5], locket: [-22.5, 61.4], relic: [99.4, 57.6] }[o.id] || (o.target ? o.target() : null);
   }
   currentObjective() { if (this.g.mode === 'boot') return null; return this.objectives.find((o) => !o.done) || null; }
   complete(id) { const o = this.objectives.find((x) => x.id === id); if (o && !o.done) { o.done = true; this.g.ui.flashBanner('OBJECTIVE COMPLETE', 1800, true); this.g.sfx.coin?.(); } }
   // ------------------------------------------------------------ notes & extra interactables
   extraInteractables() {
     const L = this.g.level, note = (id, x, y, z, prompt = 'Read the note') => L.interactables.push({ kind: 'note', x, y, z, r: 1.9, obj: { id }, prompt: () => prompt, use: (g) => g.readNote(id) });
+    for (const k of ['ws_road', 'ws_mire', 'ws_cinder', 'ws_gallows']) { const p = L.pois[k]; if (p) L.interactables.push({ kind: 'waystone', x: p.x, y: 1.2, z: p.z + 1.3, r: 2.6, obj: { id: k }, prompt: () => (this.g.quests.lit.has(k) ? 'Use the waystone' : 'Touch the waystone'), use: (g) => g.quests.waystone(k) }); }
     note('orders', -28.5, 0.9, 104.5, 'Read the orders'); note('ledger', -16.4, 1.0, 138.0, 'Read the ledger'); note('diary', -34.4, 0.8, 68.6, 'Read the diary'); note('choir', 104, 1.2, 27.4, 'Read the scrawl');
   }
   readNote(id) {
@@ -55,7 +57,7 @@ export class Story {
   // ------------------------------------------------------------ talking
   talk(npc) {
     const fn = DIALOGUE[npc.dialogue]; if (!fn) return;
-    const lines = fn(this.g, npc); if (!lines) return;
+    const lines = this.g.quests.dialogue(npc) || fn(this.g, npc); if (!lines) return;
     const want = Math.atan2(this.g.player.pos[0] - npc.x, this.g.player.pos[2] - npc.z);
     npc.yaw = want;
     npc.ch.upper.playOnce('Talk', { fadeIn: 0.3, fadeOut: 0.6 });
@@ -83,6 +85,7 @@ export class Story {
     const g = this.g;
     if (n.id === 'duke') { this.dukeState = 'dead'; this.flags.dukeKilled = true; g.ui.flashBanner('THE DUKE IS DEAD', 2600); }
     if (n.role === 'hollow') this.hollowCount++;
+    this.g.quests.onKill(n);
   }
 
   // ------------------------------------------------------------ cutscene engine
@@ -98,7 +101,7 @@ export class Story {
     if (b.fade !== undefined) this.g.pix.fade = b.fade;
   }
   skip() { let n = 0; while (this.cs && n++ < 60) { const b = this.cs.beat; b?.exit?.(this); this.nextBeat(); } }
-  spawnCryptHollows() { for (const [x, z] of [[104, 22], [108, 16], [100, 26], [102, 55], [109, 55]]) this.spawnHollow(x, z, false, true); }
+  spawnCryptHollows() { for (const [x, z] of [[104, 22], [108, 16], [100, 26], [102, 55], [109, 55], [152, 44], [140, 58], [168, 66], [128, 96], [158, 90], [184, 84], [120, 110], [192, 118], [200, 132], [186, 128], [206, 112]]) this.spawnHollow(x, z, false, true); }
   cameraUpdate(cam, dt) {
     const c = this.cs; if (!c) return;
     const b = c.beat; c.t += dt;
@@ -162,12 +165,14 @@ export class Story {
   // ------------------------------------------------------------ zones, objectives, the Duke
   zoneOf(p) {
     const x = p[0], z = p[2];
-    if (x > 66) return x > 111 && z > 40 ? 'undercroft' : 'crypt';
+    if (inCryptRect(x, z)) return x > 111 && z > 40 ? 'undercroft' : 'crypt';
     const nav = this.g.nav, ind = nav.indoorAt(x, z);
     if (z > 112 && z < 147 && Math.abs(x) < 20) { if (z > 134) return x > 4.5 ? 'chamber' : x > -7.5 ? 'ante' : 'study'; return 'hall'; }
     if (z > 147 && z < 153 && Math.abs(x) < 20) return 'backyard';
     if (z > 93 && Math.abs(x) < 36) return 'court';
     if (z > 12 && Math.abs(x) < 48 && z < 93) { if (x < -36 && z > 60) return 'graveyard'; return 'town'; }
+    const rg = regionAt(x, z); if (rg && z < 0) return rg.id;
+    if (rg) return rg.id;
     return 'road';
   }
   update(dt) {
@@ -178,12 +183,12 @@ export class Story {
     const p = g.player.pos, zone = this.zoneOf(p);
     if (zone !== this.zone) {
       this.zone = zone;
-      const names = { road: 'The King\'s Road', town: 'Ashgate', graveyard: 'The Graveyard', court: 'Ravenspire Courtyard', hall: 'The Great Hall', ante: 'The Antechamber', study: 'The Duke\'s Study', chamber: 'The Duke\'s Bedchamber', backyard: 'Behind the Keep', crypt: 'The Catacombs', undercroft: 'Ravenspire Undercroft' };
+      const names = { road: 'The King\'s Road', town: 'Ashgate', graveyard: 'The Graveyard', court: 'Ravenspire Courtyard', hall: 'The Great Hall', ante: 'The Antechamber', study: 'The Duke\'s Study', chamber: 'The Duke\'s Bedchamber', backyard: 'Behind the Keep', crypt: 'The Catacombs', undercroft: 'Ravenspire Undercroft', farms: 'Tolliver Farms', mire: 'The Mirewood', fen: 'Blackfen', cinder: 'Cinderwick', bridge: 'Greywater Bridge' };
       if (!this.g.tele) g.ui.area(names[zone]);
       const cps = { town: [[0, 0.1, 16], 0], court: [[0, 0.1, 97.5], 0], hall: [[0, 0.1, 114.5], 0], chamber: [[9, 0.1, 137], 0.4], crypt: [[76, 0.1, 17], 1.57], graveyard: [[-40, 0.1, 64.5], 0] };
       if (cps[zone]) g.setCheckpoint(...cps[zone]);
     }
-    if (zone !== 'road' && !this.objectives[0].done) this.complete('town');
+    if (['town', 'graveyard', 'court', 'hall', 'ante', 'study', 'chamber', 'backyard', 'crypt', 'undercroft'].includes(zone) && !this.objectives[0].done) this.complete('town');
     if (['court', 'hall', 'ante', 'study', 'chamber', 'backyard'].includes(zone)) { this.complete('town'); this.complete('court'); }
     if (['hall', 'ante', 'study', 'chamber'].includes(zone)) this.complete('keep');
     if (zone === 'chamber') this.complete('chamber');

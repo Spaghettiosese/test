@@ -1,13 +1,14 @@
+import { buildWildsRoster } from './roster_wilds.js';
 // Who lives in Hollowmere and how they spend their day and night. Hours are game hours;
 // a schedule entry is { h0, h1, poi | route | wander, act }.
-const S = (h0, h1, poi, act, more = {}) => ({ h0, h1, poi, act, ...more });
-const RT = (h0, h1, route, more = {}) => ({ h0, h1, route, act: 'patrol', ...more });
-const WD = (h0, h1, wander, more = {}) => ({ h0, h1, wander, act: 'wander', ...more });
+export const S = (h0, h1, poi, act, more = {}) => ({ h0, h1, poi, act, ...more });
+export const RT = (h0, h1, route, more = {}) => ({ h0, h1, route, act: 'patrol', ...more });
+export const WD = (h0, h1, wander, more = {}) => ({ h0, h1, wander, act: 'wander', ...more });
 
-const CLOTH = ['#5a4a3c', '#4a4f3c', '#5c3d3d', '#3d4a5c', '#6a5a3a', '#4d3d5a', '#57493a', '#3f4a44'];
+export const CLOTH = ['#5a4a3c', '#4a4f3c', '#5c3d3d', '#3d4a5c', '#6a5a3a', '#4d3d5a', '#57493a', '#3f4a44'];
 const TOWN_TABARD = '#6c2226', KEEP_TABARD = '#2a1620', CAPTAIN_TABARD = '#1a0e14';
-const guardSpec = (o = {}) => ({ outfit: 'guard', skin: o.skin || 'fair', hair: { style: 'short', color: o.hair || 'brown' }, beard: o.beard, colors: { tabard: o.tabard || TOWN_TABARD }, weapon: o.weapon || 'sword', height: o.height || 1, build: o.build || 1, voice: o.voice || 0.9, scar: o.scar });
-const villager = (o) => ({ outfit: o.outfit || 'peasant', skin: o.skin || 'fair', hair: { style: o.hairStyle || 'short', color: o.hair || 'brown' }, beard: o.beard, mustache: o.mustache, colors: { cloth: o.cloth || CLOTH[0], cloth2: o.cloth2 || '#3a2f28', leather: o.leather, hose: o.hose }, apron: o.apron, cap: o.cap, hood: o.hood, height: o.height || 1, build: o.build || 1, voice: o.voice || 1, weapon: null, scarf: o.scarf });
+export const guardSpec = (o = {}) => ({ outfit: 'guard', skin: o.skin || 'fair', hair: { style: 'short', color: o.hair || 'brown' }, beard: o.beard, colors: { tabard: o.tabard || TOWN_TABARD }, weapon: o.weapon || 'sword', height: o.height || 1, build: o.build || 1, voice: o.voice || 0.9, scar: o.scar });
+export const villager = (o) => ({ outfit: o.outfit || 'peasant', skin: o.skin || 'fair', hair: { style: o.hairStyle || 'short', color: o.hair || 'brown' }, beard: o.beard, mustache: o.mustache, colors: { cloth: o.cloth || CLOTH[0], cloth2: o.cloth2 || '#3a2f28', leather: o.leather, hose: o.hose }, apron: o.apron, cap: o.cap, hood: o.hood, height: o.height || 1, build: o.build || 1, voice: o.voice || 1, weapon: null, scarf: o.scarf });
 
 export function buildRoster() {
   const R = [];
@@ -79,5 +80,6 @@ export function buildRoster() {
   walkers.forEach(([name, bed, o], i) => v('walker_' + i, name, [-3 + i * 2, 58 + (i % 2) * 4], [WD(6, 21, 'plaza_', { speed: 0.95 }), S(21, 6, bed, 'sleep')], { ...o, dialogue: 'peasant', voice: 0.85 + i * 0.1 }));
   v('beggar', 'Beggar', [-2, 56], [S(0, 24, 'well', 'stand')], { cloth: '#4a4238', hood: true, hair: 'grey', beard: 'long', skin: 'sallow', dialogue: 'beggar', voice: 0.85, hp: 20 });
   v('brannoch', 'Brannoch', [11.6, -31.4], [S(0, 24, 'camp_brannoch', 'warm')], { cloth: '#3f3a34', cloth2: '#2a241e', hood: true, hair: 'black', beard: 'short', skin: 'tan', dialogue: 'brannoch', voice: 0.75, leather: '#4a3222' });
+  buildWildsRoster(R);
   return R;
 }

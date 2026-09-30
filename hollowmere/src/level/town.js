@@ -55,7 +55,7 @@ export function buildOutskirts(B) {
   B.solid('stoneOld', -5.7, 0, -12.4, -5.0, 1.0, -11.8, { chunk: 'trees', bevel: 0.05 });
   // distant hills for the horizon
   const hills = B.kit('hills');
-  for (let i = 0; i < 26; i++) { const a = (i / 26) * Math.PI * 2, R = r(190, 260); hills.add(M.grass, E.superquadric({ rx: r(35, 70), ry: r(14, 34), rz: r(35, 60), e1: 0.6, e2: 0.6, widthSegments: 10, heightSegments: 6 }), [Math.cos(a) * R + 20, 0, Math.sin(a) * R + 70]); }
+  for (let i = 0; i < 26; i++) { const a = (i / 26) * Math.PI * 2, R = r(340, 430); hills.add(M.grass, E.superquadric({ rx: r(35, 70), ry: r(14, 34), rz: r(35, 60), e1: 0.6, e2: 0.6, widthSegments: 10, heightSegments: 6 }), [Math.cos(a) * R + 20, 0, Math.sin(a) * R + 70]); }
   // ravenspire on its crag (visible from the road)
   const crag = B.kit('crag');
   crag.add(M.stoneOld, E.superquadric({ rx: 70, ry: 18, rz: 40, e1: 0.5, e2: 0.6, widthSegments: 12, heightSegments: 8 }), [0, -2, 128]);
@@ -191,7 +191,7 @@ export function buildTownGround(B) {
 // ---------------------------------------------------------------- shared dressing
 // Furnish a one-room home. The layout is planned relative to the door: a clear lane inside the
 // door, the hearth on the far wall, the bed in the far corner away from the door, a table off to one side.
-function dressHome(B, b, { bed = true, hearth = true, table = true, chest = null, door = null } = {}) {
+export function dressHome(B, b, { bed = true, hearth = true, table = true, chest = null, door = null } = {}) {
   const [x0, z0, x1, z1] = b.inner, dd = door || b.doorInfo || { side: 'E', at: 4.5 };
   const side = dd.side, S = side === 'S' || side === 'N';
   const W = S ? x1 - x0 : z1 - z0, D = S ? z1 - z0 : x1 - x0, uDoor = dd.at - 1;

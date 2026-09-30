@@ -7,13 +7,15 @@ import './houses.js';
 import * as T from './town.js';
 import * as K from './keep.js';
 import { buildCrypt } from './crypt.js';
+import { buildWilds } from './wilds.js';
 
-export const NAV = { x0: -64, z0: -72, w: 192, d: 240 };
+export const NAV = { x0: -256, z0: -272, w: 512, d: 470 };
 
 export function buildLevel({ scene, world, only = null }) {
   const nav = new NavGrid(NAV);
   const B = new Builder({ scene, world, nav });
   T.addHelpers(B);
+  buildWilds(B);
   T.buildOutskirts(B);
   T.buildTownWalls(B);
   T.buildTownGround(B);

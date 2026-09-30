@@ -53,7 +53,7 @@ reach([-40, 64.5], [-42.3, 83.5], 'graveyard gate to the mausoleum');
 reach([76, 17], [104, 22], 'crypt entrance to the ossuary');
 reach([104, 22], [105.5, 55], 'ossuary to the shrine');
 reach([105.5, 55], [120, 52], 'shrine to the undercroft');
-ok(!path([9, -35], [0, 16], 1) || true, 'noop');
+for (const [n, p] of [['Tolliver farmhouse', [29, -142]], ['the barn', [55, -150]], ['Greywater bridge north end', [0, -218]], ['the far side of the bridge', [0, -245]], ['the hunter\'s lodge', [-131, -71]], ['the bandit camp', [-172, 10]], ['the witch hut', [-203, 84]], ['the ruined tower', [-116, 60]], ['the sunken shrine', [-190, -226]], ['Cinderwick', [150, 58]], ['the plague ward gate', [195, 97]], ['the gallows', [198, 150]]]) reach([9, -35], p, 'the wilds: road to ' + n);
 const breach = path([-30, 6], [-30, 16], 2); ok(breach && breach.length, 'the breach is passable for the player (mode 2)');
 const breachNpc = path([-30, 6], [-30, 16], 1); ok(breachNpc && breachNpc.length && breach.length <= breachNpc.length, 'NPCs walk round to the gate while the player can scramble over the breach');
 const sewer = path([22, 6], [22, 16], 1); ok(sewer && sewer.length, 'the sewer outfall is walkable');

@@ -52,7 +52,7 @@ export class NavGrid {
   }
 
   // A* over 8-connected cells. Returns [[x,z],...] (world), or null. mode 2 lets the path cross player-only cells.
-  findPath(sx, sz, gx, gz, { mode = 1, maxNodes = 9000 } = {}) {
+  findPath(sx, sz, gx, gz, { mode = 1, maxNodes = 30000 } = {}) {
     const s = this.nearestWalkable(sx, sz, 4, mode), g = this.nearestWalkable(gx, gz, 8, mode);
     if (!s || !g) return null;
     const [scx, scz] = this.cell(s[0], s[1]), [gcx, gcz] = this.cell(g[0], g[1]);

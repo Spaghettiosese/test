@@ -28,6 +28,10 @@ export const ITEMS = {
   dukekey: { name: "Duke's key", kind: 'key', desc: 'Small, black iron, worn smooth.' },
   mausoleumkey: { name: 'Mausoleum key', kind: 'key', desc: 'Opens the door of the mausoleum.' },
   cryptkey: { name: 'Crypt gate key', kind: 'key', desc: 'Opens the iron gate deep in the catacombs.' },
+  tollkey: { name: 'Toll house key', kind: 'key', desc: 'Opens the toll house at Greywater Bridge.' },
+  hexbane: { name: 'Hexbane draught', kind: 'consumable', heal: 20, ember: 40, value: 30, desc: 'Bitter. Restores some health and Ember.' },
+  nightbloom: { name: 'Nightbloom', kind: 'valuable', value: 45, desc: 'A pale flower that only opens in the dark.' },
+  diary: { name: 'Charred diary', kind: 'valuable', value: 8 },
   letterfake: { name: 'Unsealed letter', kind: 'junk', value: 0, desc: 'A dull tax memorandum. Not what you came for.' },
   letter: { name: 'The Sealed Letter', kind: 'quest', desc: 'Black wax, a raven pressed into it. It is warm to the touch.' },
 };

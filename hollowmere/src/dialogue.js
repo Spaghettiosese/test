@@ -44,6 +44,32 @@ export const DIALOGUE = {
   maid: () => [L('I only sweep. I don\'t see anything. I don\'t hear anything.', { mood: 'fear' }), L('...The Duke walks at night. Down to the cellar, and he doesn\'t come back up the same way.', { end: true })],
   steward: () => [L('The Duke is not to be disturbed. By anyone. By anything.', { mood: 'anger' }), L('Who let you in? Guards!', { end: true })],
   duke: () => [L('Please... please, no...', { mood: 'fear', end: true })],
+  tolliver: () => [L('Worked this land thirty years. Never seen it so quiet. Birds have gone. Even the crows have gone.'), L('If you are heading to Ashgate, do not take the western trail after dark.', { end: true })],
+  maren: () => [L('Tolliver worries. I bake. It is how we cope.'), L('There is stew if you are hungry. Do not tell Tolliver I fed a stranger.', { end: true })],
+  farmhand: () => [[L('Turnips. Always turnips. I dreamed of turnips last night, and they were looking at me.'), L('Back to work.', { end: true })], [L('Boss says the bandits took the harvest money. I say the boss hid it in the well.'), L('Do not repeat that.', { end: true })]][Math.floor(Math.random() * 2)],
+  bosk: () => [L('Greywater Bridge. Toll is a silver a head, two for a wagon. Are you a head or a wagon?'), L('Do not answer. Do not touch my desk. Move along.', { end: true })],
+  tollguard: () => [L('Nothing crosses without paying. Nothing.'), L('Not even ghosts. Especially not ghosts.', { end: true })],
+  gil: (g) => [
+    L('Gil, at your service. Anything you need, I have for a price. Anything you do not need, I have double.', { choices: [
+      { text: 'Buy a lockpick (10 gold)', next: 1, action: (G) => G.story.buy('lockpick', 10) },
+      { text: 'Buy Red Salve (28 gold)', next: 1, action: (G) => G.story.buy('potion', 28) },
+      { text: 'Buy Hexbane draught (45 gold)', next: 1, action: (G) => G.story.buy('hexbane', 45) },
+      { text: 'Buy an Ember Flask (32 gold)', next: 1, action: (G) => G.story.buy('ember', 32) },
+      { text: 'Just passing.', next: 'end' }] }),
+    L('A pleasure. Anything else?', { goto: 0 }),
+  ],
+  pilgrim: () => [L('I walk from stone to stone. They say if you light all four, the road remembers you.'), L('I only made it to two. My knees light the rest.', { end: true })],
+  hermit: () => [L('You can hear them if you press your ear to the rock. Old things, talking in their sleep.'), L('The letter you carry is not a letter. It is a sleeper. Do not wake it.', { end: true })],
+  wulf: () => [L('Quiet. You scare the deer. Not that there are any deer anymore.'), L('The Mirewood has bandits to the west, a witch to the south-west, and something worse under the tower. Choose your poison.', { end: true })],
+  sable: (g) => [
+    L('Old Sable. Yes. The other Sable. Your Sable sends her regards, does she? Ha. She sends everything, that one.', { choices: [
+      { text: 'Buy Hexbane draught (40 gold)', next: 1, action: (G) => G.story.buy('hexbane', 40) },
+      { text: 'Buy an Ember Flask (30 gold)', next: 1, action: (G) => G.story.buy('ember', 30) },
+      { text: 'Buy Red Salve (26 gold)', next: 1, action: (G) => G.story.buy('potion', 26) },
+      { text: 'Leave.', next: 'end' }] }),
+    L('Take it. It is bitter, like everything worth having.', { goto: 0 }),
+  ],
+  ilse: (g) => g.story.flags.ilseTold ? [L('Go on. The bell tolls thirteen. You know what to do.', { end: true })] : [L('Do not go near the gallows hill. They hang the dead there, now.', { mood: 'fear' }), L('...Do not mind me. I have had a long night. Three years of night.', { end: true })],
   brannoch: (g) => {
     const s = g.story;
     return [L('Back for supplies? Sable\'s coin spends the same as anyone\'s.', { choices: [

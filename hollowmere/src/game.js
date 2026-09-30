@@ -7,6 +7,8 @@ import { buildLevel } from './level/index.js';
 import { Clock } from './clock.js';
 import { Audio } from './audio.js';
 import { Squad } from './squad.js';
+import { Quests } from './quests.js';
+import { regionAt, inCryptRect } from './level/wilds.js';
 import { Player } from './player.js';
 import { NPC } from './npc.js';
 import { buildRoster } from './roster.js';
@@ -37,6 +39,7 @@ export class Game {
     this.clock = new Clock(19.3, 140);
     this.sfx = new Audio();
     this.squad = new Squad(this);
+    this.quests = new Quests(this);
     this.input = { keys: new Set(), pressed: new Set(), dYaw: 0, dPitch: 0 };
     this.checkpoint = [0, 0.1, -40];
     this.indoorK = 0; this.areaName = 'The Road';
@@ -95,6 +98,7 @@ export class Game {
     this.updateLevel(dt);
     this.updateNpcs(dt);
     this.squad.update(dt);
+    this.quests.update(dt);
     this.world.step(dt);
     this.updateProps(dt);
     this.story.update(dt);
@@ -143,7 +147,8 @@ export class Game {
   }
   area() {
     const p = this.mode === 'play' ? this.player.pos : this.camera.position;
-    if (p[0] > 68) return 'crypt';
+    if (inCryptRect(p[0], p[2])) return 'crypt';
+    const rg = regionAt(p[0], p[2]); if (rg && (p[2] < 6 || p[0] < -58 || p[0] > 140)) return rg.id;
     if (p[2] > 92 && Math.abs(p[0]) < 38) return this.nav.indoorAt(p[0], p[2]) ? 'keep' : 'keep';
     return 'town';
   }
