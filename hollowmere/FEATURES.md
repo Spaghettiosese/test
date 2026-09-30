@@ -309,7 +309,7 @@ This is the running list for the second update ("The Wide Valley"). Every line i
 272. The Craft tab lists the new herb recipes.
 273. Ember flasks can now be brewed from moss.
 274. Rest counts toward the Well Rested deed.
-275. Wraith Sight now works through smoke and lantern light like everything else.
+275. Wraith Sight also marks unlooted containers within 22 m.
 276. Herbs sell for a little coin.
 277. Iron scrap is sold and used.
 278. Book use is offered from the Journal tab.

@@ -78,7 +78,7 @@ export class Story {
   }
   sell() {
     const inv = this.g.player.inv; let sum = 0, cnt = 0;
-    for (const it of inv.list()) if ((it.kind === 'valuable' || it.kind === 'junk') && it.value) { const each = Math.max(1, Math.round(it.value * 0.6)); sum += each * it.n; cnt += it.n; inv.remove(it.id, it.n); }
+    for (const it of inv.list()) if ((it.kind === 'valuable' || it.kind === 'junk' || it.kind === 'herb' || it.kind === 'gear') && it.value) { const each = Math.max(1, Math.round(it.value * 0.6)); sum += each * it.n; cnt += it.n; inv.remove(it.id, it.n); }
     if (!cnt) { this.g.toast('You have nothing worth selling'); this.g.sfx.deny?.(); return; }
     inv.gold += sum; this.g.sfx.coin?.(); this.g.toast(`Sold ${cnt} item${cnt > 1 ? 's' : ''} for ${sum} gold`);
   }
