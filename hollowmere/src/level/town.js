@@ -58,7 +58,7 @@ export function buildOutskirts(B) {
   for (let i = 0; i < 26; i++) { const a = (i / 26) * Math.PI * 2, R = r(340, 430); hills.add(M.grass, E.superquadric({ rx: r(35, 70), ry: r(14, 34), rz: r(35, 60), e1: 0.6, e2: 0.6, widthSegments: 10, heightSegments: 6 }), [Math.cos(a) * R + 20, 0, Math.sin(a) * R + 70]); }
   // ravenspire on its crag (visible from the road)
   const crag = B.kit('crag');
-  crag.add(M.stoneOld, E.superquadric({ rx: 70, ry: 18, rz: 40, e1: 0.5, e2: 0.6, widthSegments: 12, heightSegments: 8 }), [0, -2, 128]);
+  crag.add(M.stoneOld, E.superquadric({ rx: 95, ry: 22, rz: 40, e1: 0.5, e2: 0.6, widthSegments: 12, heightSegments: 8 }), [0, -6, 214]);
 }
 
 // ---------------------------------------------------------------- pois & small helpers
