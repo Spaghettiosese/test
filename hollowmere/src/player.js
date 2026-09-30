@@ -214,7 +214,7 @@ export class Player {
     if (this.dead) return;
     this.hp -= dmg; this.hurtT = 0.35; this.kick = 0.05; this.g.combatT = 6;
     this.g.sfx.hurt?.(); this.g.pix.hurt = 1;
-    if (from && !opts.fall) { const dx = this.pos[0] - from[0], dz = this.pos[2] - from[1], d = Math.hypot(dx, dz) || 1; this.cc.velocity[0] += (dx / d) * 2.2; this.cc.velocity[2] += (dz / d) * 2.2; }
+    if (from && !opts.fall) { const dx = this.pos[0] - from[0], dz = this.pos[2] - from[1], d = Math.hypot(dx, dz) || 1; const kb = opts.shove ? 7 : 2.2; this.cc.velocity[0] += (dx / d) * kb; this.cc.velocity[2] += (dz / d) * kb; }
     if (dmg > 12 && !opts.fall) { this.stagger = 0.25; if (this.atk) { this.atk = null; this.playVm('Stagger', 0.03); } }
     if (this.hp <= 0) { this.hp = 0; this.dead = true; this.g.playerDied(); }
   }

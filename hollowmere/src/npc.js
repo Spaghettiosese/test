@@ -30,6 +30,8 @@ export class NPC {
     this.percT = Math.random() * 0.2; this.wanderT = 0; this.fleeFrom = null; this.discovered = false; this.loot = def.loot || []; this.hostile = this.guard; this.detect = 0;
     this.held = null; this.dist = 0; this.visible = true; this.knownDoor = null; this.tookHit = 0; this.surrender = false; this.spawn = { x: this.x, z: this.z };
     this.hand = null; this.ragdoll = null; this.frozen = false;
+    this.tactic = 'engage'; this.ringK = Math.floor(Math.random() * 3); this.tacticPt = null; this.dodgeCd = 0; this.dodgeT = 0; this.dodgeV = [0, 0]; this.ranged = this.spec.weapon === 'crossbow'; this.shotT = 1 + Math.random(); this.calledHelp = false;
+    this.strafe = Math.random() < 0.5 ? 1 : -1; this.strafeT = 0; this.searchPt = null; this.lookT = 0; this.retreatT = 0; this.lastVel = [0, 0]; this.feintDone = false;
     if (def.weapon !== null && (this.guard || def.weapon)) { this.ch.hold('R', def.weapon || (this.role === 'captain' ? 'captain' : 'sword')); this.armed = true; }
     this.ch.mixer.on((e) => this.onAnimEvent(e));
     this.applyPose();
@@ -136,6 +138,8 @@ export class NPC {
     if (this.dead) return this.updateDead(dt);
     if (this.rising > 0) { this.rising -= dt; this.y = this.g.nav.floorAt(this.x, this.z) - this.rising * 1.0; this.applyPose(); this.body.position[1] = this.y + 0.9; if (this.rising <= 0) this.anim = ''; return; }
     if (this.dormant) { this.dist = hyp(this.x - this.g.player.pos[0], this.z - this.g.player.pos[2]); this.setAnim('Idle', 0.1); this.applyPose(); return; }
+    if (this.dodgeT > 0) { this.dodgeT -= dt; this.moveBy(this.dodgeV[0] * dt, this.dodgeV[1] * dt); }
+    this.dodgeCd -= dt; this.shotT -= dt;
     this.barkT = Math.max(0, this.barkT - dt); this.attackCd = Math.max(0, this.attackCd - dt); this.stagger = Math.max(0, this.stagger - dt); this.tookHit = Math.max(0, this.tookHit - dt);
     const P = this.g.player;
     this.dist = hyp(this.x - P.pos[0], this.z - P.pos[2]);
@@ -355,7 +359,7 @@ export class NPC {
     this.g.alarm(this.lastSeen || this.pos, 'spotted', this);
     this.g.combatT = Math.max(this.g.combatT, 8);
   }
-  loseTrack() { this.state = 'search'; this.searchT = 14; this.stim = this.lastSeen ? [this.lastSeen[0], this.lastSeen[2]] : null; this.alert = 0.6; this.stopMove(); this.bark('Where did he go?'); }
+  loseTrack() { this.state = 'search'; this.searchT = 14 + this.g.alarmLevel * 8; this.searchPt = null; this.lookT = 0; this.calledHelp = false; this.stim = this.lastSeen ? [this.lastSeen[0], this.lastSeen[2]] : null; this.alert = 0.6; this.stopMove(); this.bark('Where did he go?'); }
 
   // ------------------------------------------------------------ state machine for the alert states
   updateState(dt) {
@@ -379,19 +383,38 @@ export class NPC {
         break;
       }
       case 'search': {
-        this.searchT -= dt; this.speed *= 0.85; this.setLoco(this.speed);
-        this.wanderT -= dt;
-        if (this.wanderT <= 0 && this.stim) { this.wanderT = 3 + Math.random() * 2; const q = this.g.nav.nearestWalkable(this.stim[0] + (Math.random() - 0.5) * 10, this.stim[1] + (Math.random() - 0.5) * 10, 3); if (q) this.goTo(q[0], q[1], 1.6); }
+        this.searchT -= dt; this.lookT -= dt;
         if (this.path) { this.stepPath(dt); this.setLoco(this.speed); }
-        if (this.searchT <= 0) { this.state = 'routine'; this.alert = 0.1; this.slotKey = ''; this.anim = ''; this.arrived = false; this.ch.armR.play('Sword Rest', { fade: 0.3 }); this.bark('Must have been nothing.'); }
+        else {
+          this.speed *= 0.85; this.setLoco(this.speed);
+          if (this.searchPt && this.lookT <= 0 && !this.searchPt.done) {
+            this.searchPt.done = true; this.lookT = 1.6;
+            const o = this.searchPt.obj;
+            if (this.searchPt.tag === 'door' && o && !o.isOpen()) { o.open(this.x, this.z); this.g.sfx.door?.(true, [o.x, 1, o.z]); }
+            if (this.searchPt.tag === 'spot' && o) { this.bark(['Nobody in here.', 'Check the shelves.', 'Empty.'][Math.floor(Math.random() * 3)]); this.g.sfx.chest?.(); }
+            this.ch.upper.playOnce('Look Around', { fadeIn: 0.3, fadeOut: 0.5 });
+          }
+          if (this.lookT <= 0) { const p = this.g.squad.pickSearchPoint(this); if (p) { this.searchPt = p; this.goTo(p.x, p.z, 1.9); } else this.lookT = 1; }
+        }
+        if (this.searchT <= 0) { this.state = 'routine'; this.alert = 0.1; this.slotKey = ''; this.anim = ''; this.arrived = false; this.ch.armR.play('Sword Rest', { fade: 0.3 }); this.bark(this.g.alarmLevel > 1.2 ? 'Stay sharp. He is still out there.' : 'Must have been nothing.'); }
         break;
       }
       case 'chase': {
         this.repathT -= dt;
         const dx = P.pos[0] - this.x, dz = P.pos[2] - this.z, d = hyp(dx, dz);
-        if (this.sees || this.lostT < 1) this.lastSeen = [P.pos[0], P.pos[1], P.pos[2]];
-        const tgt = this.lastSeen || P.pos;
-        if (d < 2.1 && this.sees && this.stagger <= 0) { this.state = 'attack'; this.stopMove(); this.beginAttack(); break; }
+        if (this.sees || this.lostT < 1) { this.lastSeen = [P.pos[0], P.pos[1], P.pos[2]]; this.lastVel = [P.cc?.velocity?.[0] || 0, P.cc?.velocity?.[2] || 0]; }
+        let tgt = this.lastSeen || P.pos;
+        if (!this.sees && this.lostT > 0.4) tgt = [tgt[0] + this.lastVel[0] * Math.min(this.lostT, 1.6) * 0.6, tgt[1], tgt[2] + this.lastVel[1] * Math.min(this.lostT, 1.6) * 0.6]; // run to where he was heading
+        this.reactDodge(dt, d);
+        const cornered = d < 1.7 && this.sees;
+        if (this.ranged || this.tactic === 'archer') { this.archerAI(dt, d, dx, dz); break; }
+        if (d < 2.1 && this.sees && this.stagger <= 0 && (this.tactic === 'engage' || cornered)) { this.state = 'attack'; this.stopMove(); this.beginAttack(); break; }
+        if (this.tactic === 'circle' && this.sees && d < 24 && !cornered) { this.circleAI(dt, d, dx, dz); break; }
+        if ((this.tactic === 'flank' || this.tactic === 'cutoff') && this.tacticPt && this.sees && d > 5) {
+          if (this.repathT <= 0 || !this.path) { this.repathT = 0.7; this.goTo(this.tacticPt[0], this.tacticPt[1], 4.4); }
+          if (this.path) this.stepPath(dt); else this.circleAI(dt, d, dx, dz);
+          this.setLoco(this.speed); break;
+        }
         if (this.repathT <= 0 || !this.path) { this.repathT = 0.5; this.goTo(tgt[0], tgt[2], 4.2); }
         if (this.path) this.stepPath(dt);
         else { this.speed *= 0.9; }
@@ -404,10 +427,28 @@ export class NPC {
         const dx = P.pos[0] - this.x, dz = P.pos[2] - this.z, d = hyp(dx, dz);
         this.speed *= 0.8; this.setLoco(this.speed);
         this.yaw += angDiff(Math.atan2(dx, dz), this.yaw) * Math.min(1, dt * (this.atk ? 3 : 9)) * -1 * -1;
-        if (this.atk) { this.atk.t += dt; if (this.atk.t > this.atk.dur) { this.atk = null; this.attackCd = 0.5 + Math.random() * 0.9; } }
+        this.reactDodge(dt, d);
+        if (this.atk) {
+          this.atk.t += dt;
+          if (this.atk.feint && this.atk.t > 0.28 && !this.atk.hit) { this.atk = null; this.attackCd = 0.22; this.feintDone = true; this.ch.upper.playOnce('Idle', { fadeIn: 0.1, fadeOut: 0.2 }); }
+          else if (this.atk.t > this.atk.dur) { const c = this.comboLeft > 0 && d < 2.3; this.atk = null; this.attackCd = c ? 0.12 : 0.5 + Math.random() * 0.9; if (c) this.comboLeft--; else this.comboLeft = 0; }
+        }
         else if (this.attackCd <= 0) { if (d < 2.4 && (this.sees || d < 1.5)) this.beginAttack(); else { this.state = 'chase'; this.repathT = 0; } }
         else if (d > 3.2) { this.state = 'chase'; this.repathT = 0; }
         else if (d < 1.3) this.moveBy(-dx / (d || 1) * 0.6 * dt, -dz / (d || 1) * 0.6 * dt); // give ground
+        else { this.strafeT -= dt; if (this.strafeT <= 0) { this.strafeT = 0.8 + Math.random(); this.strafe = -this.strafe; } this.moveBy(-dz / (d || 1) * this.strafe * 0.9 * dt, dx / (d || 1) * this.strafe * 0.9 * dt); }
+        break;
+      }
+      case 'retreat': {
+        this.retreatT -= dt; this.repathT -= dt;
+        if (this.repathT <= 0 || !this.path) {
+          this.repathT = 1.2; let best = null, bd = 1e9;
+          for (const o of this.g.npcs) if (o !== this && o.guard && !o.dead && o.state !== 'retreat') { const dd = hyp(o.x - this.x, o.z - this.z); if (dd > 4 && dd < bd && hyp(o.x - P.pos[0], o.z - P.pos[2]) > 5) { bd = dd; best = o; } }
+          const tx = best ? best.x : this.x + (this.x - P.pos[0]) * 3, tz = best ? best.z : this.z + (this.z - P.pos[2]) * 3;
+          const q = this.g.nav.nearestWalkable(tx, tz, 6); if (q) this.goTo(q[0], q[1], 4.6);
+        }
+        if (this.path) this.stepPath(dt); this.setLoco(this.speed);
+        if (this.retreatT <= 0 || (!this.path && this.dist > 6)) { this.state = 'chase'; this.repathT = 0; this.tactic = 'circle'; }
         break;
       }
       case 'stagger': { this.stagger -= 0; this.speed *= 0.8; this.setLoco(0); if (this.stagger <= 0) { this.state = 'chase'; this.repathT = 0; } break; }
@@ -416,11 +457,45 @@ export class NPC {
     }
     if (this.state === 'routine' || this.state === 'flee' || this.state === 'cower') { /* handled */ }
   }
+  reactDodge(dt, d) {
+    const P = this.g.player;
+    if (this.dodgeCd > 0 || this.dodgeT > 0 || this.atk || this.stagger > 0 || !P.atk || d > 2.7 || !this.sees) return;
+    if (Math.random() > dt * 3.2) return;
+    const s = Math.random() < 0.5 ? 1 : -1, l = d || 1;
+    this.dodgeV = [-(P.pos[2] - this.z) / l * s * 5.5, (P.pos[0] - this.x) / l * s * 5.5]; this.dodgeT = 0.24; this.dodgeCd = 3 + Math.random() * 2;
+    this.ch.upper.playOnce('Flinch', { fadeIn: 0.05, fadeOut: 0.15 });
+  }
+  circleAI(dt, d, dx, dz) {
+    const ring = 3.6 + this.ringK * 0.7;
+    this.strafeT -= dt; if (this.strafeT <= 0) { this.strafeT = 1.5 + Math.random() * 2; if (Math.random() < 0.4) this.strafe = -this.strafe; }
+    const l = d || 1, rad = d > ring + 0.8 ? 1 : d < ring - 0.8 ? -1 : 0;
+    this.yaw += angDiff(Math.atan2(dx, dz), this.yaw) * Math.min(1, dt * 8) * -1 * -1;
+    const vx = (dx / l) * rad * 1.6 + (-dz / l) * this.strafe * 1.5, vz = (dz / l) * rad * 1.6 + (dx / l) * this.strafe * 1.5;
+    this.moveBy(vx * dt, vz * dt); this.speed = hyp(vx, vz) * 0.9; this.setLoco(this.speed);
+    if (this.armed) this.ch.armR.play('Guard Idle', { fade: 0.2 });
+    if (d < 8 && Math.random() < dt * 0.15) this.bark(['Come on, then.', 'Not so brave now.', 'Surrounded.'][Math.floor(Math.random() * 3)]);
+  }
+  archerAI(dt, d, dx, dz) {
+    const near = d < 6.5, far = d > 18, los = this.sees;
+    this.yaw += angDiff(Math.atan2(dx, dz), this.yaw) * Math.min(1, dt * 8) * -1 * -1;
+    if (near) { const l = d || 1; this.moveBy(-dx / l * 3.2 * dt, -dz / l * 3.2 * dt); this.speed = 3.2; }
+    else if (far || !los) { this.repathT -= 0; if (!this.path || this.repathT <= 0) { this.repathT = 0.6; const t = this.lastSeen || this.g.player.pos; this.goTo(t[0], t[2], 3.6); } if (this.path) this.stepPath(dt); }
+    else { this.speed *= 0.8; if (this.path) this.stopMove(); }
+    this.setLoco(this.speed);
+    if (los && !near && d < 26 && this.shotT <= 0) {
+      this.shotT = 2.4 + Math.random() * 1.2; this.ch.upper.playOnce('Point', { fadeIn: 0.1, fadeOut: 0.3, speed: 1.6 });
+      setTimeout(() => { if (!this.dead && this.state === 'chase') this.g.squad.fireBolt(this); }, 260);
+    }
+    if (near && this.shotT <= 0 && d < 2.2) { this.state = 'attack'; this.stopMove(); this.beginAttack(); }
+  }
   beginAttack() {
-    const clip = ['Slash A', 'Slash B', 'Overhead', 'Thrust'][Math.floor(Math.random() * 4)];
+    const roll = Math.random();
+    const clip = roll < 0.18 ? 'Thrust' : ['Slash A', 'Slash B', 'Overhead'][Math.floor(Math.random() * 3)];
+    const shove = roll < 0.1, feint = !this.feintDone && Math.random() < 0.22; this.feintDone = false;
+    if (Math.random() < 0.35) this.comboLeft = 1;
     const dur = clip === 'Overhead' ? 1.1 : clip === 'Thrust' ? 0.95 : 0.9;
-    this.atk = { clip, t: 0, dur, hit: false };
-    this.ch.upper.playOnce(clip, { fadeIn: 0.08, fadeOut: 0.25, speed: 0.85 });
+    this.atk = { clip, t: 0, dur, hit: false, shove, feint };
+    this.ch.upper.playOnce(clip, { fadeIn: 0.08, fadeOut: 0.25, speed: feint ? 1.1 : 0.85 });
     this.g.sfx.swing?.(0.7);
   }
   strike() {
@@ -428,7 +503,8 @@ export class NPC {
     const P = this.g.player, dx = P.pos[0] - this.x, dz = P.pos[2] - this.z, d = hyp(dx, dz), f = this.fwd;
     if (d > 2.5 || (dx * f[0] + dz * f[1]) / (d || 1) < 0.35) { this.g.sfx.swing?.(0.3); return; }
     const dmg = (a.clip === 'Overhead' ? 17 : a.clip === 'Thrust' ? 14 : 11) * (this.def.dmg || 1) * (this.role === 'captain' ? 1.3 : 1);
-    const res = P.incoming(dmg, [this.x, this.z], { from: this });
+    const res = a.shove ? P.incoming(4, [this.x, this.z], { from: this, unblockable: true, shove: true }) : P.incoming(dmg, [this.x, this.z], { from: this });
+    if (a.shove && res === 'hit') { P.stagger = Math.max(P.stagger, 0.6); this.g.flashText?.('SHOVED'); }
     if (res === 'parried') { this.stagger = 1.3; this.state = 'stagger'; this.atk = null; this.ch.upper.playOnce('Stagger', { fadeIn: 0.04, fadeOut: 0.3 }); this.bark('Gah!'); }
     else if (res === 'hit') { this.g.sfx.slash?.(this.pos); }
   }
@@ -453,7 +529,7 @@ export class NPC {
       if (this.state !== 'attack') { this.state = 'stagger'; }
       this.lastSeen = [this.g.player.pos[0], this.g.player.pos[1], this.g.player.pos[2]]; this.lostT = 0;
       this.g.alarm(this.lastSeen, 'combat', this);
-      if (this.hp < this.maxHp * 0.25 && Math.random() < 0.4 && this.def.coward) { this.state = 'flee'; this.fleeT = 10; }
+      if (this.hp < this.maxHp * 0.3 && Math.random() < 0.55 && !this.ranged && this.def.brave !== true) { this.state = 'retreat'; this.retreatT = 7; this.repathT = 0; this.stopMove(); this.bark('Fall back! Get help!'); }
     } else this.scare(this.g.player.pos, 20);
     return 'hit';
   }

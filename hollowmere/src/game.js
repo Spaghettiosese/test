@@ -6,6 +6,7 @@ import { PixelDisplay, internalSize } from './pixel.js';
 import { buildLevel } from './level/index.js';
 import { Clock } from './clock.js';
 import { Audio } from './audio.js';
+import { Squad } from './squad.js';
 import { Player } from './player.js';
 import { NPC } from './npc.js';
 import { buildRoster } from './roster.js';
@@ -35,6 +36,7 @@ export class Game {
     this.camera = new E.Camera(); this.camera.near = 0.03; this.camera.far = 420; this.baseFov = 74 * E.DEG; this.camera.fov = this.baseFov;
     this.clock = new Clock(19.3, 140);
     this.sfx = new Audio();
+    this.squad = new Squad(this);
     this.input = { keys: new Set(), pressed: new Set(), dYaw: 0, dPitch: 0 };
     this.checkpoint = [0, 0.1, -40];
     this.indoorK = 0; this.areaName = 'The Road';
@@ -92,6 +94,7 @@ export class Game {
     this.updateEnvironment(dt);
     this.updateLevel(dt);
     this.updateNpcs(dt);
+    this.squad.update(dt);
     this.world.step(dt);
     this.updateProps(dt);
     this.story.update(dt);

@@ -81,3 +81,13 @@ export function makeShield() {
   k.add(m.wood, E.extrude({ outline: [[-0.16, 0.2], [0.16, 0.2], [0.17, -0.05], [0, -0.3], [-0.17, -0.05]], depth: 0.025, bevel: 0.006 }), [0, 0, 0]);
   return k.toNode('Shield');
 }
+
+export function makeCrossbow() {
+  const m = mats(), k = new E.Kit({});
+  k.box(m.wood, [0, 0.2, 0], [0.045, 0.62, 0.06], [0, 0, 0], 0.006);
+  k.box(m.wood, [0, 0.46, 0.0], [0.42, 0.03, 0.035], [0, 0, 0], 0.004);
+  k.box(m.steel, [0, 0.46, 0.03], [0.02, 0.05, 0.02], [0, 0, 0], 0.002);
+  k.box(m.rope, [0, 0.42, 0.0], [0.4, 0.008, 0.008], [0, 0, 0], 0.001);
+  k.box(m.dark, [0, 0.3, 0.036], [0.012, 0.36, 0.014], [0, 0, 0], 0.001);
+  const n = k.toNode('Crossbow'); n.userData.length = 0.6; return n;
+}

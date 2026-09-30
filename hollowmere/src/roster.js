@@ -13,7 +13,7 @@ export function buildRoster() {
   const R = [];
   const add = (d) => { R.push(d); return d; };
   // ------------------------------------------------------------------ the town watch
-  const g = (id, name, pos, yaw, sched, o = {}) => add({ id, name, role: 'guard', pos, yaw, schedule: sched, spec: guardSpec(o), hp: o.hp, dmg: o.dmg, block: o.block, loot: o.loot, dialogue: o.dialogue, eyes: o.eyes });
+  const g = (id, name, pos, yaw, sched, o = {}) => add({ id, name, role: 'guard', pos, yaw, schedule: sched, spec: guardSpec(o), hp: o.hp, dmg: o.dmg, block: o.block, weapon: o.weapon, loot: o.loot, dialogue: o.dialogue, eyes: o.eyes });
   g('gate_l', 'Gate Guard Berrin', [-3.2, 14.6], 0, [S(0, 24, 'gate_post_l', 'guard')], { beard: 'short', hair: 'brown', voice: 0.85 });
   g('gate_r', 'Gate Guard Osk', [3.2, 14.6], 0, [S(0, 24, 'gate_post_r', 'guard')], { hair: 'black', voice: 0.8, dialogue: 'gateguard' });
   g('street_1', 'Watchman Corm', [0, 20], 0, [RT(0, 24, 'street_beat')], { hair: 'blond', voice: 0.95 });
@@ -21,8 +21,8 @@ export function buildRoster() {
   g('plaza_1', 'Watchman Piet', [-6, 52], 0, [RT(0, 24, 'plaza_beat', { pause: 4 })], { hair: 'red', voice: 1.0 });
   g('north_1', 'Watchman Ulf', [0, 84], 0, [RT(0, 24, 'north_gate_beat')], { hair: 'black', beard: 'short' });
   g('grave_1', 'Graveyard Watch', [-40, 66], 0, [S(6, 20, 'sit_watch_0', 'sit'), RT(20, 6, 'graveyard_beat', { speed: 1.0 })], { hair: 'brown', voice: 0.85 });
-  g('wall_e', 'Wall Watch East', [44, 20], 0, [RT(0, 24, 'wall_east', { pause: 4 })], { hair: 'grey', beard: 'long' });
-  g('wall_w', 'Wall Watch West', [-44, 80], 0, [RT(0, 24, 'wall_west', { pause: 4 })], { hair: 'blond' });
+  g('wall_e', 'Wall Watch East', [44, 20], 0, [RT(0, 24, 'wall_east', { pause: 4 })], { weapon: 'crossbow', hair: 'grey', beard: 'long' });
+  g('wall_w', 'Wall Watch West', [-44, 80], 0, [RT(0, 24, 'wall_west', { pause: 4 })], { weapon: 'crossbow', hair: 'blond' });
   g('watch_a', 'Off-duty Watchman', [-14, 21], 0, [S(17, 21.5, 'sit_watch_1', 'eat'), S(21.5, 5.5, 'bed_watch_0', 'sleep'), S(5.5, 17, 'watch_table', 'stand')], { hair: 'brown' });
   g('watch_b', 'Off-duty Watchman', [-12, 21], 0, [S(17, 22, 'sit_watch_2', 'eat'), S(22, 6, 'bed_watch_1', 'sleep'), S(6, 17, 'watch_table', 'stand')], { hair: 'black', scar: true });
   // ------------------------------------------------------------------ Ravenspire's garrison
@@ -35,9 +35,9 @@ export function buildRoster() {
   k('court_c', 'Courtyard Guard', [0, 96], 0, [RT(0, 24, 'court_beat_c', { pause: 3 })], { hair: 'red' });
   k('court_d', 'Courtyard Guard', [22, 112], 0, [S(6, 18, 'spar_a', 'stand'), RT(18, 6, 'court_beat_d')], { hair: 'black' });
   k('spar_1', 'Training Guard', [24, 124], 90, [S(6, 18, 'spar_b', 'stand'), S(18, 20, 'bar_door', 'stand'), S(20, 6, 'bed_bar_0', 'sleep')], { hair: 'brown' });
-  k('rampart_n', 'Rampart Sentry', [-30, 153], 0, [RT(0, 24, 'rampart_north', { sentry: true, y: 6.6, speed: 0.9, pause: 3 })], { hair: 'grey', eyes: 1.2 });
-  k('rampart_w', 'Rampart Sentry', [-36, 100], 0, [RT(0, 24, 'rampart_west', { sentry: true, y: 6.6, speed: 0.9, pause: 3 })], { hair: 'black', eyes: 1.2 });
-  k('rampart_e', 'Rampart Sentry', [36, 146], 0, [RT(0, 24, 'rampart_east', { sentry: true, y: 6.6, speed: 0.9, pause: 3 })], { hair: 'blond', eyes: 1.2 });
+  k('rampart_n', 'Rampart Sentry', [-30, 153], 0, [RT(0, 24, 'rampart_north', { sentry: true, y: 6.6, speed: 0.9, pause: 3 })], { hair: 'grey', eyes: 1.2, weapon: 'crossbow' });
+  k('rampart_w', 'Rampart Sentry', [-36, 100], 0, [RT(0, 24, 'rampart_west', { sentry: true, y: 6.6, speed: 0.9, pause: 3 })], { hair: 'black', eyes: 1.2, weapon: 'crossbow' });
+  k('rampart_e', 'Rampart Sentry', [36, 146], 0, [RT(0, 24, 'rampart_east', { sentry: true, y: 6.6, speed: 0.9, pause: 3 })], { hair: 'blond', eyes: 1.2, weapon: 'crossbow' });
   for (let i = 0; i < 3; i++) k('barr_' + i, 'Off-duty Guard', [-30 + i, 102], 0, [S(17, 21, ['bar_seat_59_1', 'bar_seat_55_1', 'bar_seat_59_0'][i], 'eat'), S(21, 5.5, 'bed_bar_' + (i + 2), 'sleep'), S(5.5, 17, 'bar_door', 'stand')], { hair: ['black', 'brown', 'red'][i] });
   k('hall_1', 'Hall Guard', [0, 114], 0, [S(0, 24, 'hall_door_in', 'guard')], { hair: 'brown', beard: 'short' });
   k('hall_2', 'Hall Guard', [-6, 118], 0, [RT(0, 24, 'hall_beat', { pause: 3 })], { hair: 'grey' });
