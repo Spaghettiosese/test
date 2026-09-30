@@ -2,7 +2,7 @@
 // survivor of Cinderwick. Same schedule format as the town roster.
 import { S, RT, WD, villager, guardSpec, CLOTH } from './roster.js';
 
-const banditSpec = (o = {}) => ({ outfit: 'rogue', hood: o.hood ?? false, skin: o.skin || 'fair', hair: { style: o.hairStyle || 'short', color: o.hair || 'brown' }, beard: o.beard, mustache: o.mustache, scar: o.scar, colors: { cloth: o.cloth || '#4a3f2f', cloth2: o.cloth2 || '#2c2620', leather: o.leather || '#3a2a1c', hose: '#2a2622' }, weapon: o.weapon || 'sword', height: o.height || 1, build: o.build || 1, voice: o.voice || 0.85 });
+export const banditSpec = (o = {}) => ({ outfit: 'rogue', hood: o.hood ?? false, skin: o.skin || 'fair', hair: { style: o.hairStyle || 'short', color: o.hair || 'brown' }, beard: o.beard, mustache: o.mustache, scar: o.scar, colors: { cloth: o.cloth || '#4a3f2f', cloth2: o.cloth2 || '#2c2620', leather: o.leather || '#3a2a1c', hose: '#2a2622' }, weapon: o.weapon || 'sword', height: o.height || 1, build: o.build || 1, voice: o.voice || 0.85 });
 
 export function buildWildsRoster(R) {
   const add = (d) => { R.push(d); return d; };

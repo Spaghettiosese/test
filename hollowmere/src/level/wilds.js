@@ -21,6 +21,11 @@ export const REGIONS = [
   { id: 'bridge', name: 'Greywater Bridge', rect: [-60, -262, 60, -200] },
 ];
 
+export const LANDMARKS = [
+  { name: 'Ashgate', x: 0, z: 50, c: '#e0b450' }, { name: 'Ravenspire', x: 0, z: 125, c: '#c8283a' }, { name: 'Camp', x: 13, z: -34 }, { name: 'Tolliver Farm', x: 40, z: -140 }, { name: 'Greywater Bridge', x: 0, z: -226 },
+  { name: 'Hunter\'s Lodge', x: -135, z: -71 }, { name: 'Bandit Camp', x: -172, z: 14, c: '#ff6a6a' }, { name: 'Ruined Tower', x: -116, z: 70 }, { name: 'Witch\'s Hut', x: -204, z: 92 }, { name: 'Sunken Shrine', x: -190, z: -232 },
+  { name: 'Cinderwick', x: 150, z: 60, c: '#ff9a48' }, { name: 'Plague Ward', x: 195, z: 120 }, { name: 'Hangman\'s Hill', x: 198, z: 160 }, { name: 'Catacombs', x: 100, z: 36, c: '#a56cff' },
+];
 export const regionAt = (x, z) => { for (const q of REGIONS) if (x > q.rect[0] && x < q.rect[2] && z > q.rect[1] && z < q.rect[3]) return q; return null; };
 export const inCryptRect = (x, z) => x > 66 && x < 136 && z > 6 && z < 64;
 
@@ -73,13 +78,13 @@ function pine(B, x, z, s = 1, collide = true) {
   const k = cellKit(B, 'wood', x, z), h = r(6.5, 10) * s, M = B.pal, m = rnd() < 0.5 ? M.pine : M.pine2;
   k.cyl(M.bark, [x, h * 0.3, z], 0.22 * s, h * 0.6, [r(-2, 2), 0, r(-2, 2)], 6);
   for (let i = 0; i < 4; i++) { const t = i / 4, rad = (2.3 - t * 1.5) * s; k.add(m, E.cone({ radius: rad, height: h * 0.42, radialSegments: 7, heightSegments: 1 }), [x, h * (0.3 + t * 0.2) + h * 0.2, z], [0, r(0, 60), 0]); }
-  if (collide) { B.collider(x - 0.28, 0, z - 0.28, x + 0.28, 5, z + 0.28, 'wood'); B.nav.block(x - 0.5, z - 0.5, x + 0.5, z + 0.5, 1); }
+  if (collide) { B.lazyCollider(x - 0.28, 0, z - 0.28, x + 0.28, 5, z + 0.28, 'wood'); B.nav.block(x - 0.5, z - 0.5, x + 0.5, z + 0.5, 1); }
 }
 function birch(B, x, z, s = 1) {
   const k = cellKit(B, 'wood', x, z), h = r(5, 7.5) * s, M = B.pal;
   k.cyl(M.birch, [x, h / 2, z], 0.13 * s, h, [r(-3, 3), 0, r(-3, 3)], 6);
   k.add(M.leafDead, E.superquadric({ rx: 1.5 * s, ry: 1.1 * s, rz: 1.5 * s, e1: 0.8, e2: 0.8, widthSegments: 7, heightSegments: 5 }), [x, h * 0.85, z]);
-  B.collider(x - 0.18, 0, z - 0.18, x + 0.18, 5, z + 0.18, 'wood'); B.nav.block(x - 0.4, z - 0.4, x + 0.4, z + 0.4, 1);
+  B.lazyCollider(x - 0.18, 0, z - 0.18, x + 0.18, 5, z + 0.18, 'wood'); B.nav.block(x - 0.4, z - 0.4, x + 0.4, z + 0.4, 1);
 }
 function stump(B, x, z, s = 1) { cellKit(B, 'wood', x, z).cyl(B.pal.bark, [x, 0.25 * s, z], 0.3 * s, 0.5 * s, [0, 0, 0], 7); }
 function log(B, x, z, s = 1) { cellKit(B, 'wood', x, z).cyl(B.pal.bark, [x, 0.22 * s, z], 0.22 * s, 3 * s, [90, r(0, 180), 0], 7); }
@@ -89,7 +94,7 @@ function deadStick(B, x, z, s = 1) {
   const k = cellKit(B, 'fen', x, z), h = r(3, 5) * s;
   k.cyl(B.pal.bark, [x, h / 2, z], 0.1 * s, h, [r(-6, 6), r(0, 360), r(-6, 6)], 5);
   for (let i = 0; i < 3; i++) { const a = r(0, 360); k.cyl(B.pal.bark, [x + Math.sin(a * D2R) * 0.5, h * 0.7, z + Math.cos(a * D2R) * 0.5], 0.03, 1.4, [55 * Math.cos(a * D2R), a, -55 * Math.sin(a * D2R)], 4); }
-  B.collider(x - 0.2, 0, z - 0.2, x + 0.2, 4, z + 0.2, 'wood'); B.nav.block(x - 0.4, z - 0.4, x + 0.4, z + 0.4, 1);
+  B.lazyCollider(x - 0.2, 0, z - 0.2, x + 0.2, 4, z + 0.2, 'wood'); B.nav.block(x - 0.4, z - 0.4, x + 0.4, z + 0.4, 1);
 }
 
 // scatter through a rectangle with a minimum spacing, skipping keepouts
@@ -123,7 +128,8 @@ function waterPlane(B, x0, z0, x1, z1, mat, y = 0.03) {
   const m = new E.Mesh(E.plane({ width: x1 - x0, depth: z1 - z0 }), mat, 'Water'); m.castShadow = false; m.position.set([(x0 + x1) / 2, y, (z0 + z1) / 2]); B.scene.add(m);
 }
 function deepWater(B, x0, z0, x1, z1, mat) {
-  waterPlane(B, x0, z0, x1, z1, mat); B.nav.block(x0, z0, x1, z1, 1); B.collider(x0, -1, z0, x1, 1.6, z1, 'water');
+  (B.mapWater ||= []).push([x0, z0, x1, z1]);
+  waterPlane(B, x0, z0, x1, z1, mat); B.nav.block(x0, z0, x1, z1, 1); B.lazyCollider(x0, -1, z0, x1, 1.6, z1, 'water');
 }
 function boardwalk(B, a, b, { w = 1.7, y = 0.22 } = {}) {
   const dx = b[0] - a[0], dz = b[1] - a[1], L = hyp(dx, dz), yaw = -Math.atan2(dz, dx) / D2R, n = Math.ceil(L / 1.6);
@@ -133,7 +139,7 @@ function boardwalk(B, a, b, { w = 1.7, y = 0.22 } = {}) {
   // flat collider along the walkway, made of short segments so the diagonal follows
   for (let i = 0; i < n; i++) {
     const t0 = i / n, t1 = (i + 1) / n, x0 = a[0] + dx * t0, z0 = a[1] + dz * t0, x1 = a[0] + dx * t1, z1 = a[1] + dz * t1, hw = w / 2 + 0.05;
-    B.collider(Math.min(x0, x1) - hw * Math.abs(dz / L), -0.3, Math.min(z0, z1) - hw * Math.abs(dx / L), Math.max(x0, x1) + hw * Math.abs(dz / L), y, Math.max(z0, z1) + hw * Math.abs(dx / L), 'wood');
+    B.lazyCollider(Math.min(x0, x1) - hw * Math.abs(dz / L), -0.3, Math.min(z0, z1) - hw * Math.abs(dx / L), Math.max(x0, x1) + hw * Math.abs(dz / L), y, Math.max(z0, z1) + hw * Math.abs(dx / L), 'wood');
     B.nav.clear(Math.min(x0, x1) - hw * Math.abs(dz / L), Math.min(z0, z1) - hw * Math.abs(dx / L), Math.max(x0, x1) + hw * Math.abs(dz / L), Math.max(z0, z1) + hw * Math.abs(dx / L));
     B.nav.setHeight(Math.min(x0, x1) - hw * Math.abs(dz / L), Math.min(z0, z1) - hw * Math.abs(dx / L), Math.max(x0, x1) + hw * Math.abs(dz / L), Math.max(z0, z1) + hw * Math.abs(dx / L), y);
     B.nav.setNoise(Math.min(x0, x1) - 1, Math.min(z0, z1) - 1, Math.max(x0, x1) + 1, Math.max(z0, z1) + 1, 2);
@@ -144,13 +150,13 @@ function fenceRun(B, x0, z0, x1, z1, { h = 1.1, gaps = [] } = {}) {
   for (let i = 0; i <= n; i++) { const t = i / n, px = x0 + dx * t, pz = z0 + dz * t; if (gaps.some((g) => hyp(px - g[0], pz - g[1]) < g[2])) continue; k.box(B.pal.timber, [px, h / 2, pz], [0.1, h, 0.1]); }
   k.box(B.pal.timber, [(x0 + x1) / 2, h * 0.85, (z0 + z1) / 2], [L, 0.07, 0.07], [0, yaw, 0]); k.box(B.pal.timber, [(x0 + x1) / 2, h * 0.45, (z0 + z1) / 2], [L, 0.07, 0.07], [0, yaw, 0]);
   const cells = Math.ceil(L / 3);
-  for (let i = 0; i < cells; i++) { const t0 = i / cells, t1 = (i + 1) / cells, ax = x0 + dx * t0, az = z0 + dz * t0, bx = x0 + dx * t1, bz = z0 + dz * t1; if (gaps.some((g) => hyp((ax + bx) / 2 - g[0], (az + bz) / 2 - g[1]) < g[2] + 1)) continue; B.collider(Math.min(ax, bx) - 0.08, 0, Math.min(az, bz) - 0.08, Math.max(ax, bx) + 0.08, h, Math.max(az, bz) + 0.08, 'wood'); B.nav.block(Math.min(ax, bx) - 0.1, Math.min(az, bz) - 0.1, Math.max(ax, bx) + 0.1, Math.max(az, bz) + 0.1, 1); }
+  for (let i = 0; i < cells; i++) { const t0 = i / cells, t1 = (i + 1) / cells, ax = x0 + dx * t0, az = z0 + dz * t0, bx = x0 + dx * t1, bz = z0 + dz * t1; if (gaps.some((g) => hyp((ax + bx) / 2 - g[0], (az + bz) / 2 - g[1]) < g[2] + 1)) continue; B.lazyCollider(Math.min(ax, bx) - 0.08, 0, Math.min(az, bz) - 0.08, Math.max(ax, bx) + 0.08, h, Math.max(az, bz) + 0.08, 'wood'); B.nav.block(Math.min(ax, bx) - 0.1, Math.min(az, bz) - 0.1, Math.max(ax, bx) + 0.1, Math.max(az, bz) + 0.1, 1); }
 }
 function tent(B, x, z, yaw = 0, s = 1) {
   const k = B.kit('camps_' + Math.floor(x / 60) + '_' + Math.floor(z / 60)), a = yaw;
   for (const side of [-1, 1]) k.box(B.pal.tent, [x + Math.cos(a * D2R) * 0, 1.0 * s, z + side * 0.5 * s], [2.6 * s, 0.05, 1.4 * s], [side * 52, a, 0]);
   k.box(B.pal.timber, [x, 1.65 * s, z], [2.7 * s, 0.06, 0.06], [0, a, 0]);
-  B.collider(x - 1.3 * s, 0, z - 0.9 * s, x + 1.3 * s, 1.6 * s, z + 0.9 * s, 'cloth'); B.nav.block(x - 1.3 * s, z - 0.9 * s, x + 1.3 * s, z + 0.9 * s, 1);
+  B.lazyCollider(x - 1.3 * s, 0, z - 0.9 * s, x + 1.3 * s, 1.6 * s, z + 0.9 * s, 'cloth'); B.nav.block(x - 1.3 * s, z - 0.9 * s, x + 1.3 * s, z + 0.9 * s, 1);
 }
 function logSeat(B, name, x, z, dir) {
   B.kit('camps_' + Math.floor(x / 60) + '_' + Math.floor(z / 60)).cyl(B.pal.bark, [x, 0.22, z], 0.2, 1.4, [90, dir + 90, 0], 7);
@@ -160,7 +166,7 @@ function waystone(B, x, z, name) {
   const k = B.kit('stones');
   k.box(B.pal.stoneOld, [x, 1.1, z], [0.8, 2.2, 0.55], [r(-3, 3), r(0, 360), r(-3, 3)], 0.05);
   k.box(B.pal.rune, [x, 1.5, z + 0.29], [0.3, 0.5, 0.02]);
-  B.collider(x - 0.4, 0, z - 0.4, x + 0.4, 2.2, z + 0.4, 'stone'); B.nav.block(x - 0.5, z - 0.5, x + 0.5, z + 0.5, 1);
+  B.lazyCollider(x - 0.4, 0, z - 0.4, x + 0.4, 2.2, z + 0.4, 'stone'); B.nav.block(x - 0.5, z - 0.5, x + 0.5, z + 0.5, 1);
   const l = new E.Light('point', { color: '#8f5cff', intensity: 3, range: 7, flicker: 0.1 }); l.position.set([x, 1.6, z + 0.6]); B.decor.add(l); B.lights.push(l);
   B.poi(name, x, z - 1.3, { yaw: 0, type: 'stand' });
 }
@@ -169,7 +175,7 @@ function wagon(B, x, z, yaw = 0, { broken = false } = {}) {
   k.box(B.pal.plank, [x, 0.9, z], [1.8, 0.15, 3.6], [0, yaw, broken ? 8 : 0]);
   for (const s of [-1, 1]) k.box(B.pal.plank, [x + Math.cos(yaw * D2R) * s * 0.9, 1.25, z - Math.sin(yaw * D2R) * s * 0.9], [0.1, 0.7, 3.6], [0, yaw, 0]);
   for (const s of [-1, 1]) k.cyl(B.pal.timber, [x + Math.cos(yaw * D2R) * s * 1.0, 0.55, z - Math.sin(yaw * D2R) * s * 1.0], 0.55, 0.12, [0, yaw, 90], 12);
-  B.collider(x - 1, 0, z - 1.9, x + 1, 1.5, z + 1.9, 'wood'); B.nav.block(x - 1.1, z - 1.9, x + 1.1, z + 1.9, 1);
+  B.lazyCollider(x - 1, 0, z - 1.9, x + 1, 1.5, z + 1.9, 'wood'); B.nav.block(x - 1.1, z - 1.9, x + 1.1, z + 1.9, 1);
 }
 const wprop = (B, kind, x, z, o = {}) => B.prop(kind, x, 0, z, o);
 
@@ -219,7 +225,7 @@ export function buildWilds(B) {
   for (const [a, b, c, d] of [[34, -122, 68, -122], [68, -122, 68, -90], [34, -90, 68, -90]]) fenceRun(B, a, b, c, d, { gaps: [[52, -122, 2], [68, -106, 2]] });
   // scarecrow
   B.kit('fields').cyl(M.timber, [83, 1.1, -116], 0.05, 2.2, [0, 0, 0], 5); B.kit('fields').box(M.timber, [83, 1.7, -116], [1.4, 0.05, 0.05]); B.kit('fields').box(M.canvasDirty, [83, 1.3, -116], [0.5, 0.8, 0.2]);
-  B.collider(82.8, 0, -116.2, 83.2, 2.2, -115.8, 'wood');
+  B.lazyCollider(82.8, 0, -116.2, 83.2, 2.2, -115.8, 'wood');
   B.well && B.well(38, -176, { chunk: 'road_props' }); B.pois.well_farm = B.pois.well;
   wprop(B, 'barrel', 46.4, -137); wprop(B, 'crate', 44.8, -137.3, { yaw: 20 }); wprop(B, 'bucket', 44.6, -134); wprop(B, 'sack', 27, -139, { yaw: 40 });
   // ------------------------------------------------ travelling on the road
@@ -233,7 +239,7 @@ export function buildWilds(B) {
   waterPlane(B, -4.5, riverZ0, 4.5, riverZ1, M.river);
   B.kit('bridge').box(M.stoneOld, [0, 0.05, -226], [9, 0.5, 12.6]); B.kit('bridge').box(M.stoneDark, [-4.4, 0.7, -226], [0.5, 1.4, 12.8]); B.kit('bridge').box(M.stoneDark, [4.4, 0.7, -226], [0.5, 1.4, 12.8]);
   for (const s of [-1, 1]) for (const zz of [-231, -226, -221]) B.kit('bridge').box(M.stoneDark, [s * 4.4, 1.5, zz], [0.55, 0.3, 1.2]);
-  B.collider(-4.9, -0.6, riverZ0 - 0.6, -3.9, 1.4, riverZ1 + 0.6, 'stone'); B.collider(3.9, -0.6, riverZ0 - 0.6, 4.9, 1.4, riverZ1 + 0.6, 'stone');
+  B.lazyCollider(-4.9, -0.6, riverZ0 - 0.6, -3.9, 1.4, riverZ1 + 0.6, 'stone'); B.lazyCollider(3.9, -0.6, riverZ0 - 0.6, 4.9, 1.4, riverZ1 + 0.6, 'stone');
   B.nav.block(-4.9, riverZ0, -3.9, riverZ1, 1); B.nav.block(3.9, riverZ0, 4.9, riverZ1, 1);
   B.lampPost(-3.4, -217, { chunk: 'bridge' }); B.lampPost(3.4, -235, { chunk: 'bridge' });
   const toll = B.house({ id: 'toll', x: 8, z: -216, w: 9, d: 7, h: 3.8, wall: 'stoneDark', timber: false, zone: 1, door: { side: 'W', at: 3.5, w: 1.6, id: 'toll_door', locked: true, keyId: 'tollkey', lockLevel: 1 }, windows: [{ side: 'S', at: 2.5 }, { side: 'N', at: 4 }], roofMat: 'roofSlate' });
@@ -270,7 +276,7 @@ export function buildWilds(B) {
   const witch = B.house({ id: 'witch', x: -206, z: 88, w: 8, d: 7, h: 3.4, wall: 'plank', timber: false, door: { side: 'S', at: 4, w: 1.4, id: 'witch_door' }, windows: [{ side: 'E', at: 3 }], roofMat: 'roofRed', y: 0.6, noise: 2 });
   B.vbox('plank', -207, 0, 87, -197, 0.6, 96, { chunk: witch.chunk }); // raised deck body
   B.ground('plank', -209, 82, -203, 87.4, 0.6, 0.15, { chunk: witch.chunk, noise: 2 });
-  B.collider(-209, 0, 82, -203, 0.6, 87.4, 'wood'); B.nav.setHeight(-209, 82, -203, 87.4, 0.6); B.nav.setHeight(-205, 87.4, -201, 95, 0.6);
+  B.lazyCollider(-209, 0, 82, -203, 0.6, 87.4, 'wood'); B.nav.setHeight(-209, 82, -203, 87.4, 0.6); B.nav.setHeight(-205, 87.4, -201, 95, 0.6);
   B.hearth(-202, 0.6, 93.2, { r: 0.4, range: 10, intensity: 9, chunk: witch.chunk });
   for (let i = 0; i < 5; i++) B.prop(['bottle', 'jug', 'pot', 'skull', 'book'][i], -199.6 + i * 0.5, 1.3, 88.4, { sleep: true });
   B.table(-203, 91, 2, 1, { chunk: witch.chunk, y: 0.6 }); B.candle(-203, 1.45, 91, { chunk: witch.chunk });
@@ -322,9 +328,9 @@ export function buildWilds(B) {
   // the sunken shrine at the end of the boardwalk
   const sx = -190, sz = -232;
   B.kit('shrine').box(M.stoneOld, [sx, 0.15, sz], [16, 0.5, 16], [0, 8, 0]);
-  for (const [dx, dz] of [[-5, -5], [5, -5], [-5, 5], [5, 5]]) { B.kit('shrine').cyl(M.stoneOld, [sx + dx, 2.6, sz + dz], 0.6, 5.4, [0, 0, r(-3, 3)], 8); B.collider(sx + dx - 0.6, 0, sz + dz - 0.6, sx + dx + 0.6, 5.4, sz + dz + 0.6, 'stone'); }
+  for (const [dx, dz] of [[-5, -5], [5, -5], [-5, 5], [5, 5]]) { B.kit('shrine').cyl(M.stoneOld, [sx + dx, 2.6, sz + dz], 0.6, 5.4, [0, 0, r(-3, 3)], 8); B.lazyCollider(sx + dx - 0.6, 0, sz + dz - 0.6, sx + dx + 0.6, 5.4, sz + dz + 0.6, 'stone'); }
   B.kit('shrine').box(M.stoneDark, [sx, 3.4, sz - 5], [10, 0.7, 0.9]); B.kit('shrine').box(M.stoneDark, [sx, 1.0, sz - 7.8], [2.4, 1.6, 1.4]);
-  B.nav.block(sx - 1.2, sz - 8.5, sx + 1.2, sz - 7.1, 1); B.collider(sx - 1.2, 0, sz - 8.5, sx + 1.2, 1.6, sz - 7.1, 'stone');
+  B.nav.block(sx - 1.2, sz - 8.5, sx + 1.2, sz - 7.1, 1); B.lazyCollider(sx - 1.2, 0, sz - 8.5, sx + 1.2, 1.6, sz - 7.1, 'stone');
   B.chest(sx, sz - 6.4, { dir: 0, loot: [['gold', 120], ['ring', 1], ['nightbloom', 1]], name: 'Drowned reliquary', locked: true, lockLevel: 3, id: 'fen_reliquary', chunk: 'shrine', gold: true });
   B.poi('fen_shrine', sx, sz + 4, { yaw: 180, type: 'stand' }); B.route('fen_walk', [[-92, -170], [-110, -168], [-128, -176], [-146, -190]]);
   B.ground('stoneOld', sx - 8, sz - 8, sx + 8, sz + 8, 0.02, 0.1, { chunk: 'shrine', noise: 3 }); B.nav.setHeight(sx - 8, sz - 8, sx + 8, sz + 8, 0.15);
@@ -350,7 +356,7 @@ export function buildWilds(B) {
       const gap = rnd() < 0.4; if (gap) continue;
       const hh = r(0.8, 3.2);
       k.box(M.char, [(x0 + x1) / 2, hh / 2, (z0 + z1) / 2], [x1 - x0, hh, z1 - z0], [0, 0, r(-3, 3)]);
-      B.collider(x0, 0, z0, x1, hh, z1, 'wood'); B.nav.block(x0, z0, x1, z1, 1);
+      B.lazyCollider(x0, 0, z0, x1, hh, z1, 'wood'); B.nav.block(x0, z0, x1, z1, 1);
     }
     for (let j = 0; j < 3; j++) k.cyl(M.char, [x + r(1, w - 1), 1.1, z + r(1, d - 1)], 0.12, r(1.5, 2.6), [r(-15, 15), r(0, 360), r(-25, 25)], 5);
     keep.rect(x - 1, z - 1, x + w + 1, z + d + 1);
@@ -371,8 +377,8 @@ export function buildWilds(B) {
   const gx = 196, gz = 122 + 22;
   B.ground('dirt', 186, 150, 208, 166, 0, 0.06, { chunk: 'gallows', noise: 0 });
   B.kit('gallows').box(M.timber, [gx, 3, gz + 6], [0.4, 6, 0.4]); B.kit('gallows').box(M.timber, [gx + 2.4, 5.6, gz + 6], [5, 0.35, 0.35]); B.kit('gallows').box(M.timber, [gx + 1.2, 4.6, gz + 6], [0.2, 2, 0.2], [0, 0, 40]);
-  B.collider(gx - 0.2, 0, gz + 5.8, gx + 0.2, 6, gz + 6.2, 'wood'); B.nav.block(gx - 0.4, gz + 5.6, gx + 0.4, gz + 6.4, 1);
-  B.kit('gallows').box(M.plank, [gx + 2, 0.7, gz + 6], [3.4, 1.4, 3.4]); B.collider(gx + 0.3, 0, gz + 4.3, gx + 3.7, 1.4, gz + 7.7, 'wood'); B.nav.block(gx + 0.3, gz + 4.3, gx + 3.7, gz + 7.7, 1);
+  B.lazyCollider(gx - 0.2, 0, gz + 5.8, gx + 0.2, 6, gz + 6.2, 'wood'); B.nav.block(gx - 0.4, gz + 5.6, gx + 0.4, gz + 6.4, 1);
+  B.kit('gallows').box(M.plank, [gx + 2, 0.7, gz + 6], [3.4, 1.4, 3.4]); B.lazyCollider(gx + 0.3, 0, gz + 4.3, gx + 3.7, 1.4, gz + 7.7, 'wood'); B.nav.block(gx + 0.3, gz + 4.3, gx + 3.7, gz + 7.7, 1);
   for (let i = 0; i < 3; i++) B.kit('gallows').cyl(M.rope, [gx + 1.2 + i * 1.3, 4.2, gz + 6], 0.03, 1.3, [0, 0, 0], 5);
   B.poi('gallows_base', gx + 2, gz + 3, { yaw: 180, type: 'stand' });
   B.chest(gx - 4, gz + 3, { dir: 90, loot: [['gold', 40], ['potion', 1]], name: 'Hangman\'s kit', locked: true, lockLevel: 1, id: 'hangman_kit', chunk: 'gallows' });

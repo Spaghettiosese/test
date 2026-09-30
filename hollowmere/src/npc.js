@@ -30,6 +30,7 @@ export class NPC {
     this.percT = Math.random() * 0.2; this.wanderT = 0; this.fleeFrom = null; this.discovered = false; this.loot = def.loot || []; this.hostile = this.guard; this.detect = 0;
     this.held = null; this.dist = 0; this.visible = true; this.knownDoor = null; this.tookHit = 0; this.surrender = false; this.spawn = { x: this.x, z: this.z };
     this.hand = null; this.ragdoll = null; this.frozen = false;
+    this.faction = def.faction || (this.role === 'bandit' ? 'bandits' : this.guard ? (['#2a1620', '#1a0e14'].includes(this.spec.colors?.tabard) ? 'keep' : 'watch') : 'town'); this.suspect = 0; this.witness = null; this.reportT = 0; this.burn = 0; this.poison = 0; this.koT = 0; this.pockets = def.pockets ?? (this.guard ? [['gold', 2 + Math.floor(Math.random() * 6)]] : Math.random() < 0.7 ? [['gold', 1 + Math.floor(Math.random() * 6)]] : []);
     this.tactic = 'engage'; this.ringK = Math.floor(Math.random() * 3); this.tacticPt = null; this.dodgeCd = 0; this.dodgeT = 0; this.dodgeV = [0, 0]; this.ranged = this.spec.weapon === 'crossbow'; this.shotT = 1 + Math.random(); this.calledHelp = false;
     this.strafe = Math.random() < 0.5 ? 1 : -1; this.strafeT = 0; this.searchPt = null; this.lookT = 0; this.retreatT = 0; this.lastVel = [0, 0]; this.feintDone = false;
     if (def.weapon !== null && (this.guard || def.weapon)) { this.ch.hold('R', def.weapon || (this.role === 'captain' ? 'captain' : 'sword')); this.armed = true; }
@@ -143,6 +144,9 @@ export class NPC {
     this.barkT = Math.max(0, this.barkT - dt); this.attackCd = Math.max(0, this.attackCd - dt); this.stagger = Math.max(0, this.stagger - dt); this.tookHit = Math.max(0, this.tookHit - dt);
     const P = this.g.player;
     this.dist = hyp(this.x - P.pos[0], this.z - P.pos[2]);
+    if (this.poison > 0) { this.poison -= dt; this.hp -= dt * (3.2 * (this.g.player.mod?.poison || 1)); if (Math.random() < dt * 0.35) { this.bark(['*cough*', 'I do not feel well...', 'My chest...'][Math.floor(Math.random() * 3)]); this.g.sfx.grunt?.(0.4, this.pos, 0.9); } if (this.hp <= 0) { this.die([0, 0], { poison: true }); return; } }
+    if (this.burn > 0) { this.burn -= dt; this.hp -= dt * 11; if (Math.random() < dt * 2.5) this.g.flames.emit([this.x, this.y + 1.2, this.z], { count: 2, color: [4, 1.8, 0.4, 1], colorEnd: [1, 0.2, 0, 0], size: 0.18, grow: 0.3, spread: 0.3, up: 1.2, life: 0.5, jitter: 0.2 }); if (Math.random() < dt * 1.2) this.g.sfx.grunt?.(0.8, this.pos, 1.3); if (this.hp <= 0) { this.die([0, 0], { fire: true }); return; } if (!this.guard && this.state !== 'flee') this.scare(P.pos, 6); else if (this.guard && this.state === 'routine') { this.alert = 1; this.noticed(this.pos, 'combat'); } }
+    if (this.state === 'ko') { this.koT -= dt; this.speed = 0; if (this.koT <= 0) this.wakeUp(); this.applyPose(); this.body.position[0] = this.x; this.body.position[1] = this.y + 0.3; this.body.position[2] = this.z; return; }
     if (this.pendingGoal && this.g.pathBudget > 0) this.goTo(...this.pendingGoal);
     if (this.state === 'routine' || this.state === 'notice') this.updateRoutine(dt);
     this.updateReaction(dt);
@@ -252,6 +256,17 @@ export class NPC {
       if (this.fleeT <= 0) { this.state = 'routine'; this.slotKey = ''; this.anim = ''; }
     } else if (this.state === 'cower') {
       this.cowerT -= dt; this.speed = 0; if (this.cowerT <= 0 && this.g.player.pos && hyp(this.x - this.g.player.pos[0], this.z - this.g.player.pos[2]) > 12) { this.state = 'routine'; this.slotKey = ''; this.anim = ''; }
+    } else if (this.state === 'report') {
+      this.reportT -= dt; this.repathT -= dt;
+      if (this.repathT <= 0 || !this.path) {
+        this.repathT = 1.2; let best = null, bd = 1e9;
+        for (const o of this.g.npcs) if (o.guard && !o.dead && o.role !== 'bandit' && o.role !== 'hollow') { const dd = hyp(o.x - this.x, o.z - this.z); if (dd < bd) { bd = dd; best = o; } }
+        this.reportTo = best; if (best) { const q = this.g.nav.nearestWalkable(best.x, best.z, 3); if (q) this.goTo(q[0], q[1], 3.4); }
+      }
+      if (this.path) this.stepPath(dt); this.setLoco(this.speed);
+      const t = this.reportTo;
+      if (t && !t.dead && hyp(t.x - this.x, t.z - this.z) < 2.6) { this.g.rep.reported(this, t); this.state = 'routine'; this.slotKey = ''; this.anim = ''; }
+      else if (this.reportT <= 0 || !t) { this.state = 'routine'; this.slotKey = ''; this.anim = ''; this.witness = null; }
     } else if (this.state === 'handsup') { this.speed = 0; }
   }
   pickFleeGoal() {
@@ -282,7 +297,7 @@ export class NPC {
     let seen = false, gain = 0;
     const pd = this.dist;
     // asleep or out cold: nothing
-    const range = (g.clock.night ? 13 : 20) * (0.45 + 0.75 * Math.min(1.2, P.visibility)) * (this.state === 'chase' ? 1.5 : 1) * (this.def.eyes || 1);
+    const range = (g.clock.night ? 13 : 20) * (0.45 + 0.75 * Math.min(1.2, P.visibility)) * (this.state === 'chase' ? 1.5 : 1) * (this.def.eyes || 1) * (g.weather?.sightMul ?? 1) * [0.85, 1, 1.15][g.difficulty ?? 1];
     if (!P.dead && pd < range + 2) {
       const dx = P.pos[0] - this.x, dz = P.pos[2] - this.z, f = this.fwd, c = (dx * f[0] + dz * f[1]) / (pd || 1);
       const near = 1.7 * (P.crouch ? 0.6 : 1) * (P.veilT > 0 ? 0.5 : 1);
@@ -294,6 +309,8 @@ export class NPC {
           const k = pd < 2.2 ? 2.2 : 1;
           gain = (1 - Math.min(1, pd / range)) ** 0.7 * (0.3 + P.visibility * 0.9) * (0.6 + 0.4 * Math.max(0, c)) * k;
           this.g.zoneBonus?.(this, P) && (gain *= 1.5);
+          gain *= this.g.rep.disguiseGain(this, pd);
+          if (this.g.rep.wanted(this.faction)) { gain *= 1.5; if (this.g.rep.total(this.faction) >= 150 && pd < 14) gain = Math.max(gain, 0.9); }
         }
       }
     }
@@ -314,10 +331,10 @@ export class NPC {
   scanWorld(eye) {
     const g = this.g, f = this.fwd;
     for (const n of g.npcs) {
-      if (!n.dead || n.discovered) continue;
+      if ((!n.dead && n.state !== 'ko') || n.discovered) continue;
       const dx = n.x - this.x, dz = n.z - this.z, d = hyp(dx, dz);
       if (d > 14 || (dx * f[0] + dz * f[1]) / (d || 1) < 0.3) continue;
-      if (g.canSee(eye, [n.x, n.y + 0.4, n.z], this.body)) { n.discovered = true; this.bark('A body! Sound the alarm!'); g.alarm([n.x, n.y, n.z], 'body', this); this.stim = [n.x, n.z]; this.state = 'investigate'; return; }
+      if (g.canSee(eye, [n.x, n.y + 0.4, n.z], this.body)) { n.discovered = true; this.bark(n.dead ? 'A body! Sound the alarm!' : 'He is out cold. Wake him!'); if (n.state === 'ko') n.koT = Math.min(n.koT, 3); g.alarm([n.x, n.y, n.z], n.dead ? 'body' : 'combat', this); this.stim = [n.x, n.z]; this.state = 'investigate'; return; }
     }
     if (this.state === 'routine') for (const t of g.level.torches) {
       if (t.lit || !t.wasLit || t.small || t.noticed > g.time - 25) continue;
@@ -354,6 +371,7 @@ export class NPC {
     } else if (this.state === 'investigate') this.goTo(pos[0], pos[2], 2.2);
   }
   spotted() {
+    if (this.def.hollowType === 'screamer') { this.g.noise(this.pos, 48, 'scream', this); this.g.sfx.hollowCry?.(this.pos); this.g.ui.toast('A hollow screams'); for (const o of this.g.npcs) if (o.role === 'hollow' && o.dormant && o.dist < 45) { o.dormant = false; o.state = 'chase'; o.alert = 1; o.lastSeen = [...this.g.player.pos]; } }
     this.state = 'chase'; this.alert = 1; this.lostT = 0; this.repathT = 0; this.stopMove();
     this.bark(['Intruder!', 'Halt, thief!', 'There you are!', 'Alarm! Alarm!', 'Stop right there!'][Math.floor(Math.random() * 5)]);
     this.g.alarm(this.lastSeen || this.pos, 'spotted', this);
@@ -415,7 +433,7 @@ export class NPC {
           if (this.path) this.stepPath(dt); else this.circleAI(dt, d, dx, dz);
           this.setLoco(this.speed); break;
         }
-        if (this.repathT <= 0 || !this.path) { this.repathT = 0.5; this.goTo(tgt[0], tgt[2], 4.2); }
+        if (this.repathT <= 0 || !this.path) { this.repathT = 0.5; this.goTo(tgt[0], tgt[2], 4.2 * (this.def.speedMul || 1)); }
         if (this.path) this.stepPath(dt);
         else { this.speed *= 0.9; }
         if (d < 3.5 && this.sees) this.yaw += angDiff(Math.atan2(dx, dz), this.yaw) * Math.min(1, dt * 10) * -1 * -1;
@@ -502,7 +520,7 @@ export class NPC {
     const a = this.atk; if (!a) return; a.hit = true;
     const P = this.g.player, dx = P.pos[0] - this.x, dz = P.pos[2] - this.z, d = hyp(dx, dz), f = this.fwd;
     if (d > 2.5 || (dx * f[0] + dz * f[1]) / (d || 1) < 0.35) { this.g.sfx.swing?.(0.3); return; }
-    const dmg = (a.clip === 'Overhead' ? 17 : a.clip === 'Thrust' ? 14 : 11) * (this.def.dmg || 1) * (this.role === 'captain' ? 1.3 : 1);
+    const dmg = (a.clip === 'Overhead' ? 17 : a.clip === 'Thrust' ? 14 : 11) * (this.def.dmg || 1) * (this.role === 'captain' ? 1.3 : 1) * [0.7, 1, 1.35][this.g.difficulty ?? 1];
     const res = a.shove ? P.incoming(4, [this.x, this.z], { from: this, unblockable: true, shove: true }) : P.incoming(dmg, [this.x, this.z], { from: this });
     if (a.shove && res === 'hit') { P.stagger = Math.max(P.stagger, 0.6); this.g.flashText?.('SHOVED'); }
     if (res === 'parried') { this.stagger = 1.3; this.state = 'stagger'; this.atk = null; this.ch.upper.playOnce('Stagger', { fadeIn: 0.04, fadeOut: 0.3 }); this.bark('Gah!'); }
@@ -513,13 +531,14 @@ export class NPC {
     if (this.dead) return 'dead';
     const unaware = (this.state === 'routine' || this.state === 'notice' || this.lying) && this.alert < 0.95 && !this.sees;
     const behind = dir && ((dir[0] * this.fwd[0] + dir[1] * this.fwd[1]) > 0.1); // dir points from the player to us; same direction as we face => the player is behind us
-    if (opts.from === 'player' && (unaware && (behind || this.lying || this.seated || this.asleep || this.surrender))) { dmg = 999; opts.backstab = true; }
+    if (opts.sap) { if (unaware && (behind || this.lying || this.seated || this.asleep || this.surrender)) { this.knockOut(); return 'ko'; } dmg *= 0.3; }
+    if (opts.from === 'player' && (unaware && (behind || opts.silentKill || this.lying || this.seated || this.asleep || this.surrender))) { dmg = 999; opts.backstab = true; }
     // guards sometimes block a frontal blow
     if (this.guard && !opts.backstab && (this.state === 'chase' || this.state === 'attack') && !this.atk && Math.random() < (this.def.block ?? 0.22) && !behind) {
       this.g.spark([this.x + dir[0] * 0.5, this.y + 1.3, this.z + dir[1] * 0.5], [dir[0], 0, dir[1]], 12); this.g.sfx.clang?.(1, this.pos); this.g.noise(this.pos, 14, 'clang', this);
       this.ch.upper.playOnce('Block', { fadeIn: 0.05, fadeOut: 0.3 }); return 'blocked';
     }
-    this.hp -= dmg; this.tookHit = 0.4; this.alert = 1;
+    this.hp -= dmg; if (opts.sap && this.hp <= 0) this.hp = 1; this.tookHit = 0.4; this.alert = 1;
     if (this.hp <= 0) { this.die(dir, opts); return 'killed'; }
     this.g.sfx.grunt?.(1, this.pos, this.spec.voice || 1);
     this.ch.upper.playOnce('Flinch', { fadeIn: 0.04, fadeOut: 0.25 });
@@ -532,6 +551,17 @@ export class NPC {
       if (this.hp < this.maxHp * 0.3 && Math.random() < 0.55 && !this.ranged && this.def.brave !== true) { this.state = 'retreat'; this.retreatT = 7; this.repathT = 0; this.stopMove(); this.bark('Fall back! Get help!'); }
     } else this.scare(this.g.player.pos, 20);
     return 'hit';
+  }
+  knockOut(secs = 55) {
+    if (this.dead || this.state === 'ko') return;
+    this.leaveActivity?.(); this.stopMove(); this.atk = null;
+    this.state = 'ko'; this.koT = secs; this.lying = true; this.lyingPos = [this.x, this.y + 0.12, this.z]; this.lyingYaw = this.yaw / D2R; this.setAnim('Sleep', 0.1); this.showSword(false);
+    this.g.sfx.thud?.(0.6, this.pos); this.g.noise(this.pos, 3, 'step', this);
+  }
+  wakeUp() {
+    this.lying = false; this.state = 'routine'; this.slotKey = ''; this.anim = ''; this.alert = 0.5; this.y = this.g.nav.floorAt(this.x, this.z); this.showSword(true);
+    this.bark(this.guard ? 'Ugh... my head. Someone hit me!' : 'Ow... what happened?');
+    if (this.guard) { this.g.alarm(this.pos, 'body', this); }
   }
   die(dir, opts = {}) {
     if (this.dead) return;
@@ -551,7 +581,7 @@ export class NPC {
     else if (Math.random() < 0.5) drops.push(['gold', 1 + Math.floor(Math.random() * 5)]);
     this.loot = drops; this.searched = false;
     g.bloodPool([this.x, this.y, this.z]);
-    g.noise(this.pos, opts.backstab ? 4 : 11, opts.backstab ? 'step' : 'combat', this);
+    if (!(opts.backstab && g.player.mod?.cutthroat) && !opts.poison && !opts.fire) g.noise(this.pos, opts.backstab ? 4 : 11, opts.backstab ? 'step' : 'combat', this);
     this.deadT = 0;
   }
   updateDead(dt) {

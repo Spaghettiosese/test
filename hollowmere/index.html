@@ -70,6 +70,25 @@
   .banner.small { font-size: 22px; top: 32%; letter-spacing: .1em; color: var(--gold); }
   @keyframes banner { 0% { opacity: 0; transform: translate(-50%, 8px) } 10%, 80% { opacity: 1; transform: translate(-50%, 0) } 100% { opacity: 0 } }
   .area { left: 50%; top: 12%; transform: translateX(-50%); font: 400 26px var(--title); letter-spacing: .3em; text-transform: uppercase; color: var(--dim); text-shadow: 2px 2px 0 #000; animation: banner 3.4s steps(30) forwards; }
+  .statusbar { right: 18px; top: 128px; display: grid; gap: 4px; justify-items: end; font-size: 15px; }
+  .statusbar .pill { padding: 1px 8px; border: 2px solid var(--edge); background: rgba(16,10,24,.8); letter-spacing: .04em; white-space: nowrap; }
+  .statusbar .pill.bad { border-color: var(--blood); color: #ff8a8a; } .statusbar .pill.good { border-color: var(--violet); color: #c8a8ff; } .statusbar .pill.warm { border-color: var(--gold); color: var(--gold); }
+  .statusbar .xp { width: 150px; height: 8px; border: 2px solid var(--edge); background: #000; position: relative; } .statusbar .xp i { position: absolute; inset: 0 auto 0 0; background: var(--gold); }
+  body.book .hud:not(.panel-inv) { visibility: hidden; } body.book #sightCv { display: none; }
+  .minimap { right: 18px; top: 168px; width: 124px; height: 124px; image-rendering: pixelated; z-index: 3; }
+  .panel-inv { display: block !important; }
+  .panel-inv .tabs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  .panel-inv .tabs button, .panel-inv .mini, .panel-inv .link { font: 700 15px var(--pixel); color: var(--bone); background: #1b1226; border: 2px solid var(--edge); padding: 3px 10px; cursor: pointer; }
+  .panel-inv .tabs button.on { border-color: var(--gold); color: var(--gold); } .panel-inv .tabs kbd { color: var(--dim); margin-right: 6px; font: 400 12px var(--title); }
+  .panel-inv .tabs .pts { margin-left: auto; color: var(--dim); font-size: 16px; } .panel-inv .tabs .pts b { color: var(--gold); }
+  .panel-inv .mini { padding: 0 8px; font-size: 14px; } .panel-inv .mini:disabled { opacity: .35; cursor: default; } .panel-inv .mini:not(:disabled):hover, .panel-inv .link:hover, .panel-inv .tabs button:hover { border-color: var(--gold); color: var(--gold); }
+  .panel-inv .link { border: 0; background: none; padding: 0; text-align: left; }
+  .panel-inv .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; } .panel-inv .cols3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+  .panel-inv .perk { border-bottom: 1px dashed #3a2a4a; padding: 5px 0; display: grid; gap: 2px; } .panel-inv .perk small { color: var(--dim); font-size: 14px; } .panel-inv .perk .mini { justify-self: start; margin-top: 2px; }
+  .panel-inv .pips { color: var(--gold); letter-spacing: 2px; } .panel-inv .sub { color: var(--dim); font-size: 16px; margin: 4px 0 8px; } .panel-inv .lore { white-space: pre-line; font-size: 18px; color: var(--bone); }
+  .panel-inv .recipes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 4px 20px; } .panel-inv .hint { margin-top: 8px; text-align: right; color: var(--dim); font-size: 14px; }
+  .panel-inv canvas#bookMap { width: 100%; max-width: 720px; height: auto; image-rendering: pixelated; border: 2px solid var(--edge); display: block; margin: 0 auto; }
+  @media (max-width: 720px) { .panel-inv .cols { grid-template-columns: 1fr; } .minimap { display: none; } }
   .lock { left: 50%; bottom: 26%; transform: translateX(-50%); padding: 10px 16px; width: 260px; text-align: center; }
   .lock .track { height: 12px; border: 2px solid var(--edge); background: #000; margin-top: 6px; position: relative; }
   .lock .track i { position: absolute; inset: 0 auto 0 0; background: var(--gold); }
@@ -113,6 +132,7 @@
   .menu button.go:hover { filter: brightness(1.25); color: #fff; border-color: var(--gold); }
   .menu .keys { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px 22px; text-align: left; font-size: 16px; color: var(--dim); margin-top: 6px; }
   .menu .keys div { display: flex; justify-content: space-between; border-bottom: 1px dashed #2a1c38; padding: 1px 0; } .menu .keys span:last-child { color: var(--bone); }
+  .menu select { font: 700 16px var(--pixel); background: #1b1226; color: var(--bone); border: 2px solid var(--edge); padding: 3px 8px; }
   .menu label { color: var(--dim); font-size: 16px; display: flex; gap: 10px; align-items: center; justify-content: center; }
   .menu input[type=range] { accent-color: var(--violet); width: 140px; }
   .death { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; background: rgba(60, 0, 8, .55); font: 700 clamp(36px, 8vw, 80px) var(--title); letter-spacing: .2em; color: #ff5a6a; text-shadow: 4px 4px 0 #000; pointer-events: none; animation: fadein 1.4s steps(14) both; }
@@ -150,6 +170,7 @@
   <div style="display:flex;gap:8px;align-items:center"><span class="gem-label">LIGHT</span><div class="gem"><i id="gem"></i></div></div>
   <div class="gem-label" id="goldText"></div>
 </div>
+<div class="hud statusbar" id="statusbar"></div>
 <div class="hud detect px" id="detect" style="padding:5px 10px"><svg class="eye" viewBox="0 0 17 11" shape-rendering="crispEdges"><path fill="#e6dcc8" d="M5 0h7v1h3v1h2v1h-1v1h-1v1h1v1h1v1h-2v1h-3v1H5v-1H2V8H0V7h1V6h1V5H1V4H0V3h2V2h3z"/><circle cx="8.5" cy="5.5" r="2.6" fill="#140d1c"/><circle cx="8.5" cy="5.5" r="1.2" fill="#ff9a48" id="eyeIris"/></svg><div class="meter"><i id="detectFill"></i></div></div>
 <div class="hud compass px" id="compass" hidden><canvas id="compassCv" width="240" height="20"></canvas><span id="compassDist"></span></div>
 <div class="hud prompt px" id="prompt" hidden></div>
@@ -163,6 +184,8 @@
 <div class="titlecard" id="titlecard" hidden><div><h1 id="tcH"></h1><p id="tcP"></p></div></div>
 <div class="hud dialog px" id="dialog" hidden><canvas id="portrait" width="32" height="32"></canvas><div><h3 id="dName"></h3><p id="dText"></p><div class="choices" id="dChoices"></div></div><span class="hint">Click / E to continue</span></div>
 <div class="hud sheet" id="sheet" hidden><h2 id="sheetH"></h2><p id="sheetP"></p><div class="hint">Press E, Esc or click to close</div></div>
+<canvas id="sightCv" style="position:fixed;inset:0;pointer-events:none;z-index:2"></canvas>
+<canvas class="hud minimap" id="minimap" width="124" height="124" hidden></canvas>
 <div class="hud panel-inv px" id="inv" hidden></div>
 <div class="death" id="death" hidden>YOU DIED</div>
 <div class="menu" id="menu">
@@ -170,7 +193,9 @@
     <h1>HOLLOWMERE</h1>
     <div class="sub">The Duke's Seal · Chapter I</div>
     <p class="blurb">Ravenspire keep stands above the walled town of Ashgate. In its Duke's bedchamber lies a letter sealed in black wax. The Gray Hand wants it. You are the Gray Hand's knife.</p>
+    <button class="go" id="cont" hidden>Continue</button>
     <button class="go" id="play">Begin the Job</button>
+    <label>Difficulty <select id="diff"><option value="0">Merciful</option><option value="1" selected>Grim</option><option value="2">Hollow</option></select></label>
     <label>Volume <input type="range" id="vol" min="0" max="1" step="0.05" value="0.6"></label>
     <label>Mouse <input type="range" id="sens" min="0.3" max="2.5" step="0.05" value="1"></label>
     <div class="keys">
@@ -178,6 +203,9 @@
       <div><span>Sword · block/parry</span><span>LMB · RMB</span></div><div><span>Interact · lockpick</span><span>E (hold)</span></div>
       <div><span>Veil · Dash · Slam</span><span>1 · 2 · 3</span></div><div><span>Salve · Ember flask</span><span>R · T</span></div>
       <div><span>Throw held object</span><span>LMB</span></div><div><span>Journal · pause</span><span>Tab · Esc</span></div>
+      <div><span>Sight · poison blade</span><span>4 · 5</span></div><div><span>Knife · coin · flask</span><span>G · V · X</span></div>
+      <div><span>Sap · drag body</span><span>B · hold Z</span></div><div><span>Map · perks · save</span><span>M · P · F5</span></div>
+      <div><span>Pickpocket</span><span>hold E behind</span></div><div><span>Drop disguise</span><span>U</span></div>
     </div>
   </div>
 </div>

@@ -4,6 +4,7 @@ import * as E from '../../engine/index.js';
 import { createPerson } from './people/index.js';
 import { DIALOGUE } from './dialogue.js';
 import { regionAt, inCryptRect } from './level/wilds.js';
+import { LORE } from './lore.js';
 import { NPC } from './npc.js';
 
 const hyp = Math.hypot;
@@ -47,6 +48,8 @@ export class Story {
   extraInteractables() {
     const L = this.g.level, note = (id, x, y, z, prompt = 'Read the note') => L.interactables.push({ kind: 'note', x, y, z, r: 1.9, obj: { id }, prompt: () => prompt, use: (g) => g.readNote(id) });
     for (const k of ['ws_road', 'ws_mire', 'ws_cinder', 'ws_gallows']) { const p = L.pois[k]; if (p) L.interactables.push({ kind: 'waystone', x: p.x, y: 1.2, z: p.z + 1.3, r: 2.6, obj: { id: k }, prompt: () => (this.g.quests.lit.has(k) ? 'Use the waystone' : 'Touch the waystone'), use: (g) => g.quests.waystone(k) }); }
+    for (const l of LORE) { NOTES[l.id] = { title: l.title, text: l.text }; L.interactables.push({ kind: 'note', x: l.at[0], y: l.at[1], z: l.at[2], r: 2.2, obj: { id: l.id }, prompt: () => l.prompt, use: (g) => { const first = !this.notesFound.has(l.id); g.readNote(l.id); if (first) g.progress.addXp(12, 'lore'); } }); }
+    for (const [name, p] of Object.entries(L.pois)) if (p.type === 'sleep') L.interactables.push({ kind: 'bed', x: p.x, y: p.y + 0.4, z: p.z, r: 2.4, obj: { id: name }, prompt: () => (this.g.clock.night || this.g.player.hp < this.g.player.maxHp - 5 ? 'Rest in the bed' : 'Lie down for a while'), use: (g) => g.events.sleepMenu(name) });
     note('orders', -28.5, 0.9, 104.5, 'Read the orders'); note('ledger', -16.4, 1.0, 138.0, 'Read the ledger'); note('diary', -34.4, 0.8, 68.6, 'Read the diary'); note('choir', 104, 1.2, 27.4, 'Read the scrawl');
   }
   readNote(id) {
@@ -57,7 +60,7 @@ export class Story {
   // ------------------------------------------------------------ talking
   talk(npc) {
     const fn = DIALOGUE[npc.dialogue]; if (!fn) return;
-    const lines = this.g.quests.dialogue(npc) || fn(this.g, npc); if (!lines) return;
+    const lines = this.g.rep.payDialogue(npc) || this.g.quests.dialogue(npc) || fn(this.g, npc); if (!lines) return;
     const want = Math.atan2(this.g.player.pos[0] - npc.x, this.g.player.pos[2] - npc.z);
     npc.yaw = want;
     npc.ch.upper.playOnce('Talk', { fadeIn: 0.3, fadeOut: 0.6 });
@@ -153,6 +156,11 @@ export class Story {
     this.play(beats, () => this.beginPlay());
     g.pix.fade = 1;
   }
+  resume() {
+    const g = this.g; if (this.rook) { this.rook.visible = false; this.g.scene.remove(this.rook); }
+    g.mode = 'play'; g.ui.showHud(true); g.ui.letterbox(false); g.pix.fade = 0; g.canvasLock?.(); this.startTime = g.time; this.playTime = 60; this.hintQ = [];
+    g.player.playVm('Draw', 0.05); g.ui.toast('Game loaded');
+  }
   beginPlay() {
     const g = this.g, P = g.player;
     if (this.rook) { this.rook.visible = false; this.g.scene.remove(this.rook); }
@@ -182,7 +190,7 @@ export class Story {
     this.timer += dt; if (this.timer < 0.2) { this.dukeUpdate(dt); return; } const step = this.timer; this.timer = 0;
     const p = g.player.pos, zone = this.zoneOf(p);
     if (zone !== this.zone) {
-      this.zone = zone;
+      this.zone = zone; if (!(this.seenZones ||= new Set()).has(zone) && this.playTime > 20) { this.seenZones.add(zone); g.progress.addXp(15, 'discovered'); } else this.seenZones.add(zone);
       const names = { road: 'The King\'s Road', town: 'Ashgate', graveyard: 'The Graveyard', court: 'Ravenspire Courtyard', hall: 'The Great Hall', ante: 'The Antechamber', study: 'The Duke\'s Study', chamber: 'The Duke\'s Bedchamber', backyard: 'Behind the Keep', crypt: 'The Catacombs', undercroft: 'Ravenspire Undercroft', farms: 'Tolliver Farms', mire: 'The Mirewood', fen: 'Blackfen', cinder: 'Cinderwick', bridge: 'Greywater Bridge' };
       if (!this.g.tele) g.ui.area(names[zone]);
       const cps = { town: [[0, 0.1, 16], 0], court: [[0, 0.1, 97.5], 0], hall: [[0, 0.1, 114.5], 0], chamber: [[9, 0.1, 137], 0.4], crypt: [[76, 0.1, 17], 1.57], graveyard: [[-40, 0.1, 64.5], 0] };
@@ -298,10 +306,11 @@ export class Story {
     const spots = [[8.5, 138], [13.5, 138.5], [9, 142], [13, 143]];
     spots.forEach(([x, z], i) => setTimeout(() => this.spawnHollow(x, z, true), 600 + i * 500));
   }
-  spawnHollow(x, z, rising = false, dormant = false) {
+  spawnHollow(x, z, rising = false, dormant = false, type = null) {
     const g = this.g;
-    const n = new NPC(g, { id: 'hollow_' + (this.hollowSeq = (this.hollowSeq || 0) + 1), name: 'Hollow', role: 'hollow', hostile: true, pos: [x, z], yaw: 0, hp: 55, dmg: 1.05, block: 0, eyes: 0.9, weapon: null, detail: 0.4, schedule: [{ h0: 0, h1: 24, poi: 'shrine', act: 'stand' }],
-      spec: { outfit: 'hollow', skin: 'ashen', hair: { style: 'bald' }, glowEyes: true, colors: { cloth: '#2a2630', hose: '#1c1a22', cloth2: '#221e28' }, height: 1.06, build: 0.92, weapon: null, voice: 0.4 } });
+    type = type || (Math.random() < 0.18 ? 'brute' : Math.random() < 0.1 ? 'screamer' : null);
+    const n = new NPC(g, { id: 'hollow_' + (this.hollowSeq = (this.hollowSeq || 0) + 1), name: 'Hollow', role: 'hollow', hollowType: type, speedMul: type === 'brute' ? 0.75 : type === 'screamer' ? 1.2 : 1, hostile: true, pos: [x, z], yaw: 0, hp: type === 'brute' ? 140 : type === 'screamer' ? 28 : 55, dmg: type === 'brute' ? 1.7 : 1.05, block: 0, eyes: 0.9, weapon: null, detail: 0.4, schedule: [{ h0: 0, h1: 24, poi: 'shrine', act: 'stand' }],
+      spec: { outfit: 'hollow', skin: 'ashen', hair: { style: 'bald' }, glowEyes: true, colors: { cloth: '#2a2630', hose: '#1c1a22', cloth2: '#221e28' }, height: type === 'brute' ? 1.28 : 1.06, build: type === 'brute' ? 1.25 : 0.92, weapon: null, voice: type === 'screamer' ? 1.6 : 0.4 } });
     g.npcs.push(n); n.dormant = dormant;
     if (!dormant) { n.state = 'chase'; n.alert = 1; n.lastSeen = [...g.player.pos]; if (rising) { n.rising = 1.8; n.setAnim('Cower', 0.1); } }
     g.sfx.hollowCry?.(n.pos); g.emitBurst([x, 0.1, z], 'dust');

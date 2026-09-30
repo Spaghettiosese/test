@@ -103,8 +103,19 @@ export class Audio {
     const s2 = c.createBufferSource(); s2.buffer = this.noise; s2.loop = true; s2.playbackRate.value = 0.5;
     const f2 = c.createBiquadFilter(); f2.type = 'lowpass'; f2.frequency.value = 260;
     this.hearthGain = c.createGain(); this.hearthGain.gain.value = 0; s2.connect(f2); f2.connect(this.hearthGain); this.hearthGain.connect(this.master); s2.start();
+    // rain (hiss) and running water (low rumble)
+    const s3 = c.createBufferSource(); s3.buffer = this.noise; s3.loop = true; s3.playbackRate.value = 1.3;
+    const f3 = c.createBiquadFilter(); f3.type = 'highpass'; f3.frequency.value = 1800;
+    this.rainGain = c.createGain(); this.rainGain.gain.value = 0; s3.connect(f3); f3.connect(this.rainGain); this.rainGain.connect(this.master); s3.start();
+    const s4 = c.createBufferSource(); s4.buffer = this.noise; s4.loop = true; s4.playbackRate.value = 0.7;
+    const f4 = c.createBiquadFilter(); f4.type = 'bandpass'; f4.frequency.value = 520; f4.Q.value = 0.4;
+    this.waterGain = c.createGain(); this.waterGain.gain.value = 0; s4.connect(f4); f4.connect(this.waterGain); this.waterGain.connect(this.master); s4.start();
     this._ambT = 0;
   }
+  owl(p) { if (!this.ctx) return; const { g, pan } = this._s(p, 90); const t = this.t; for (const [o, f] of [[0, 380], [0.42, 330], [0.8, 330]]) this._tone(t + o, { freq: f, freqEnd: f * 0.92, dur: 0.32, gain: 0.05 * g, type: 'sine', decay: 0.3, attack: 0.05, pan }); }
+  frog(p) { if (!this.ctx) return; const { g, pan } = this._s(p, 60); const t = this.t; for (let i = 0; i < 3 + Math.floor(Math.random() * 3); i++) this._tone(t + i * 0.11, { freq: 170 + Math.random() * 40, freqEnd: 120, dur: 0.09, gain: 0.05 * g, type: 'square', decay: 0.08, pan }); }
+  rooster(p) { if (!this.ctx) return; const { g, pan } = this._s(p, 120); const t = this.t; [[0, 520, 720], [0.35, 640, 820], [0.7, 700, 500], [1.1, 560, 300]].forEach(([o, a, b]) => this._tone(t + o, { freq: a, freqEnd: b, dur: 0.4, gain: 0.05 * g, type: 'sawtooth', decay: 0.38, pan })); }
+  thunder(d = 1) { if (!this.ctx) return; const t = this.t; this._noise(t, { dur: 2.6, gain: 0.6 / d, freq: 180, freqEnd: 60, decay: 2.4, attack: 0.08 }); this._tone(t, { freq: 48, freqEnd: 26, dur: 2.2, gain: 0.5 / d, decay: 2, attack: 0.1 }); }
   startMusic() {
     const c = this.ctx;
     this.padGain = c.createGain(); this.padGain.gain.value = 0.0; this.padFilter = c.createBiquadFilter(); this.padFilter.type = 'lowpass'; this.padFilter.frequency.value = 500; this.padFilter.Q.value = 3;
@@ -125,9 +136,11 @@ export class Audio {
     this.padFilter.frequency.setTargetAtTime(380 + m.tension * 900 + (m.indoor ? 0 : 120), now, 1.2);
     this.windGain.gain.setTargetAtTime((m.indoor ? 0.02 : 0.09) * (m.area === 'crypt' ? 0.2 : 1), now, 1.5);
     this.hearthGain.gain.setTargetAtTime(m.indoor ? 0.16 : 0.0, now, 1.0);
+    this.rainGain.gain.setTargetAtTime((m.rain || 0) * (m.indoor ? 0.03 : 0.11), now, 1.2);
+    this.waterGain.gain.setTargetAtTime(m.area === 'bridge' ? 0.09 : m.area === 'fen' ? 0.035 : 0, now, 1.5);
     if (m.tension > 0.5) { this._pulseT -= dt; if (this._pulseT <= 0) { this._pulseT = 0.66; this._tone(now, { freq: 60, freqEnd: 34, dur: 0.25, gain: 0.35 * m.tension, decay: 0.25 }); } }
     // random ambient one-shots
-    this._ambT -= dt; if (this._ambT <= 0) { this._ambT = 8 + Math.random() * 14; if (!m.indoor && m.area !== 'crypt') { const r = Math.random(); if (r < 0.45) this.crow([this.listener.pos[0] + 20, 8, this.listener.pos[2] + 25]); else if (r < 0.6 && m.night) this.wolf(); } else if (m.area === 'crypt' && Math.random() < 0.5) this.whisper(); }
+    this._ambT -= dt; if (this._ambT <= 0) { this._ambT = 8 + Math.random() * 14; if (!m.indoor && m.area === 'fen' && m.night) { this.frog([this.listener.pos[0] + (Math.random() - 0.5) * 30, 0, this.listener.pos[2] + (Math.random() - 0.5) * 30]); this._ambT = 2 + Math.random() * 4; } else if (!m.indoor && m.area === 'mire' && m.night && Math.random() < 0.6) this.owl([this.listener.pos[0] + 25, 6, this.listener.pos[2] + 20]); else if (!m.indoor && m.area === 'farms' && !m.night && Math.random() < 0.5) this.rooster([this.listener.pos[0] - 30, 1, this.listener.pos[2] + 20]); else if (!m.indoor && m.area === 'cinder' && Math.random() < 0.5) this.whisper?.([this.listener.pos[0] + 6, 1.5, this.listener.pos[2] + 6]); else if (!m.indoor && m.area !== 'crypt') { const r = Math.random(); if (r < 0.45) this.crow([this.listener.pos[0] + 20, 8, this.listener.pos[2] + 25]); else if (r < 0.6 && m.night) this.wolf(); } else if (m.area === 'crypt' && Math.random() < 0.5) this.whisper(); }
   }
   bellNote() { if (!this.ctx) return; const t = this.t, f = [220, 261.6, 329.6, 392][Math.floor(Math.random() * 4)] * (Math.random() < 0.5 ? 1 : 2); for (const [m, a] of [[1, 1], [2.01, 0.4], [3, 0.2]]) this._tone(t, { freq: f * m, dur: 5, gain: 0.06 * a, decay: 4.5, attack: 0.01 }); }
 }

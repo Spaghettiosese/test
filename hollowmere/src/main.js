@@ -28,7 +28,9 @@ addEventListener('keydown', (e) => {
   if (game.mode === 'play' && k === 'escape') { pause(true); return; }
   if (game.mode === 'end') return;
   if (k === 'tab') { e.preventDefault(); game.ui.toggleJournal(); return; }
-  if (game.mode === 'journal') { if (k === 'escape') game.ui.toggleJournal(); return; }
+  if ((k === 'm' || k === 'p') && (game.mode === 'play' || game.mode === 'journal')) { e.preventDefault(); game.ui.toggleJournal(k === 'm' ? 'map' : 'perks'); return; }
+  if (k === 'f5' && game.mode === 'play') { e.preventDefault(); game.saves.save('quick'); return; }
+  if (game.mode === 'journal') { if (k === 'escape') game.ui.toggleJournal(); else if (k >= '1' && k <= '5') game.ui.setTab(+k - 1); return; }
   if (k === ' ' || k === 'arrowup' || k === 'arrowdown') e.preventDefault();
   game.input.keys.add(k); if (!e.repeat) { game.input.pressed.add(k); if (k === 'e') { game.player.usePress = true; } }
   if (game.debug && !e.repeat) {
@@ -66,7 +68,10 @@ function pause(on) {
   if (on) { game.mode = 'pause'; $('menu').hidden = false; $('play').textContent = 'Resume'; const h = $('menu').querySelector('.blurb'); h.textContent = 'The night waits. Ravenspire waits longer.'; game.input.keys.clear(); }
   else { $('menu').hidden = true; game.mode = 'play'; game.canvasLock(); }
 }
-$('vol').oninput = (e) => game.sfx.setVolume(+e.target.value);
+$('vol').oninput = (e) => { game.sfx.setVolume(+e.target.value); game.saves.saveSettings({ vol: +e.target.value }); };
+$('sens').oninput = (e) => game.saves.saveSettings({ sens: +e.target.value });
+$('diff').onchange = (e) => { game.difficulty = +e.target.value; game.saves.saveSettings({ diff: game.difficulty }); };
+$('cont').onclick = () => { game.sfx.unlock(); grabFocus(); if (game.mode !== 'menu') return; if (game.saves.load()) { $('menu').hidden = true; game.story.resume(); } else game.ui.toast('That save could not be loaded'); };
 $('play').onclick = () => { game.sfx.unlock(); if (game.mode === 'pause') pause(false); else start(); };
 addEventListener('resize', () => game.resize());
 function start() {
@@ -94,6 +99,8 @@ function frame(now) {
   game.story.spawnCryptHollows();
   $('loading').hidden = true;
   game.mode = 'menu';
+  { const st = game.saves.settings(); if (st.vol !== undefined) { $('vol').value = st.vol; game.sfx.setVolume(st.vol); } if (st.sens) $('sens').value = st.sens; if (st.diff !== undefined) { game.difficulty = st.diff; $('diff').value = st.diff; }
+    const inf = game.saves.info(); if (inf) { $('cont').hidden = false; $('cont').textContent = `Continue · Lv ${inf.level} · Day ${inf.day + 1} · ${String(Math.floor(inf.hours)).padStart(2, '0')}:00`; } }
   if (q.has('skipintro') || q.has('nomenu')) { $('menu').hidden = true; game.story.beginPlay(); }
   if (q.has('at')) { const [x, y, z] = q.get('at').split(',').map(Number); game.player.cc.position = [x, y || 0.1, z]; game.setCheckpoint([x, y || 0.1, z]); }
   if (q.has('hour')) { game.clock.hours = +q.get('hour'); for (const n of game.npcs) { n.leaveActivity(); n.snapToSchedule(); } }

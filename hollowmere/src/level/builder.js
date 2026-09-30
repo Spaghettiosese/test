@@ -76,6 +76,8 @@ export class Builder {
     const b = new E.Body({ shape: new E.Box([(x1 - x0) / 2, (y1 - y0) / 2, (z1 - z0) / 2]), type: 'static', position: [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], friction: 0.7 });
     b.userData.kind = kind; this.world.add(b); this.statics.push(b); return b;
   }
+  // a static box that only exists in the physics world while the player is near (big outdoor areas)
+  lazyCollider(x0, y0, z0, x1, y1, z1, kind = 'stone') { (this.lazy ||= []).push({ a: [x0, y0, z0, x1, y1, z1, kind], cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, body: null }); return null; }
   // visual box only
   vbox(mat, x0, y0, z0, x1, y1, z1, { chunk, bevel = 0, rot = null } = {}) {
     const k = this.kit(chunk);

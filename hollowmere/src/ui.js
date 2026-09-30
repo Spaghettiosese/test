@@ -2,6 +2,7 @@
 // prompts, toasts, barks, dialogue, notes, journal, death and end screens.
 import { drawPortrait } from './portraits.js';
 import { ITEMS } from './items.js';
+import { installPanels } from './panels.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
@@ -12,7 +13,7 @@ export class UI {
     this.el = {}; for (const id of ['vitals', 'hpBar', 'stBar', 'emBar', 'skills', 'sk1', 'sk2', 'sk3', 'objective', 'objText', 'objSub', 'topRight', 'clock', 'gem', 'goldText', 'detect', 'detectFill', 'prompt', 'lock', 'lockFill', 'lockText', 'toasts', 'barks', 'areaName', 'banners', 'subtitle', 'titlecard', 'tcH', 'tcP', 'dialog', 'portrait', 'dName', 'dText', 'dChoices', 'sheet', 'sheetH', 'sheetP', 'inv', 'death', 'end', 'endCard', 'cross', 'compass', 'compassCv', 'compassDist']) this.el[id] = $(id);
     this.lastKey = '';
   }
-  showHud(on) { for (const id of ['vitals', 'skills', 'objective', 'topRight', 'compass']) this.el[id].hidden = !on; }
+  showHud(on) { for (const id of ['vitals', 'skills', 'objective', 'topRight', 'compass']) this.el[id].hidden = !on; const sb = document.getElementById('statusbar'); if (sb) sb.hidden = !on; const mm = document.getElementById('minimap'); if (mm) mm.hidden = !on; }
   hitMarker() { const c = this.el.cross; c.classList.remove('hit'); void c.offsetWidth; c.classList.add('hit'); }
   // a strip of compass with a diamond over the direction of the current objective
   drawCompass() {
@@ -107,6 +108,22 @@ export class UI {
       <h4>Deeds</h4><ul><li><span>Guards slain</span><span>${st.guardKills}</span></li><li><span>Silent kills</span><span>${st.stabs}</span></li><li><span>Torches snuffed</span><span>${st.snuffed}</span></li></ul></div>`;
     this.el.inv.hidden = false;
   }
+  drawStatus() {
+    const g = this.g, P = g.player, sb = document.getElementById('statusbar'); if (!sb) return;
+    const pills = [], T = g.tools, R = g.rep, pr = g.progress;
+    const b = Math.max(R.total('watch'), R.total('keep')); if (b > 0) pills.push([`${b >= 60 ? 'WANTED' : 'Suspect'} · ${Math.ceil(b)}g`, 'bad']);
+    if (R.total('bandits') > 0) pills.push(['Bandit grudge', 'bad']);
+    if (R.disguise) pills.push(['Disguised: ' + R.disguise.label + ' (U)', 'good']);
+    if (T.poisonHits > 0) pills.push(['Poisoned blade ×' + T.poisonHits, 'good']);
+    if (T.sap) pills.push(['Sap drawn (B)', 'warm']);
+    if (T.sightT > 0) pills.push(['Wraith Sight ' + Math.ceil(T.sightT) + 's', 'good']);
+    if (T.dragging) pills.push(['Dragging body', 'warm']);
+    const inv = P.inv, q = [['G', 'knife', 'Knives'], ['V', 'gold', 'Coin'], ['X', 'firebomb', 'Flasks'], ['5', 'poison', 'Oil']].map(([k, id, n]) => [k, n, inv.count(id)]).filter((x) => x[2] > 0).map((x) => `${x[0]}·${x[1]} ${x[2]}`).join('  ');
+    if (q) pills.push([q, '']);
+    if (g.weather && g.weather.label && g.weather.kind !== 'clear') pills.push([g.weather.label, '']);
+    const xpw = Math.round(pr.xp / pr.need() * 100), key = pills.map((p) => p.join('|')).join('~') + '#' + pr.level + '/' + xpw + '/' + pr.points;
+    if (key !== this._sbKey) { this._sbKey = key; sb.innerHTML = pills.map(([t, c]) => `<div class="pill ${c}">${esc(t)}</div>`).join('') + `<div class="pill">Lv ${pr.level}${pr.points ? ' · ' + pr.points + ' perk pt (P)' : ''}</div><div class="xp"><i style="width:${xpw}%"></i></div>`; }
+  }
   // ------------------------------------------------------------ end screen
   showEnd(html) { this.el.endCard.innerHTML = html; this.el.end.hidden = false; document.exitPointerLock?.(); }
 
@@ -134,6 +151,8 @@ export class UI {
     // objective sidebar refresh
     const O = g.story.currentObjective(); if (O && (!this.objective || this.objective.text !== O.text)) this.setObjective('Objective', O.text, O.sub || '');
     E.cross.style.display = (g.mode === 'play') ? '' : 'none';
+    this.drawStatus();
     this.drawCompass();
   }
 }
+installPanels(UI);

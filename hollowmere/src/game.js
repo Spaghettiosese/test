@@ -8,6 +8,13 @@ import { Clock } from './clock.js';
 import { Audio } from './audio.js';
 import { Squad } from './squad.js';
 import { Quests } from './quests.js';
+import { Progress } from './progress.js';
+import { Reputation } from './reputation.js';
+import { Tools } from './tools.js';
+import { Weather } from './weather.js';
+import { Events } from './events.js';
+import { Saves } from './saves.js';
+import { WorldMap } from './worldmap.js';
 import { regionAt, inCryptRect } from './level/wilds.js';
 import { Player } from './player.js';
 import { NPC } from './npc.js';
@@ -35,11 +42,18 @@ export class Game {
     st.ssao = true; st.ssr = false; st.contactShadows = false; st.godRays = true; st.volumetrics = true; st.saturation = 1.05; st.contrast = 1.06;
     this.scene = new E.Scene(); this.env = this.scene.environment;
     this.world = new E.PhysicsWorld({ iterations: 8, substeps: 2 });
-    this.camera = new E.Camera(); this.camera.near = 0.03; this.camera.far = 420; this.baseFov = 74 * E.DEG; this.camera.fov = this.baseFov;
+    this.camera = new E.Camera(); this.camera.near = 0.03; this.camera.far = 280; this.baseFov = 74 * E.DEG; this.camera.fov = this.baseFov;
     this.clock = new Clock(19.3, 140);
     this.sfx = new Audio();
     this.squad = new Squad(this);
     this.quests = new Quests(this);
+    this.progress = new Progress(this);
+    this.rep = new Reputation(this);
+    this.tools = new Tools(this);
+    this.weather = new Weather(this);
+    this.events = new Events(this);
+    this.saves = new Saves(this);
+    this.difficulty = 1;
     this.input = { keys: new Set(), pressed: new Set(), dYaw: 0, dPitch: 0 };
     this.checkpoint = [0, 0.1, -40];
     this.indoorK = 0; this.areaName = 'The Road';
@@ -54,12 +68,14 @@ export class Game {
     await tick();
     this.level = buildLevel({ scene: this.scene, world: this.world });
     this.nav = this.level.nav; this.decor = this.level.decor;
+    this.wmap = new WorldMap(this);
     installFx(this);
     this.ui = new UI(this); this.story = new Story(this);
     this.world.on('contact', (e) => this.onContact(e));
     progress(0.25, 'Stitching the arms');
     await tick();
     this.player = new Player(this, [0, 0.1, -46]);
+    this.progress.applyMods();
     this.npcs = [];
     const roster = buildRoster();
     for (let i = 0; i < roster.length; i++) {
@@ -98,7 +114,14 @@ export class Game {
     this.updateLevel(dt);
     this.updateNpcs(dt);
     this.squad.update(dt);
+    this.updateLazy(dt);
     this.quests.update(dt);
+    this.tools.update(dt);
+    this.weather.update(dt);
+    this.events.update(dt);
+    this.wmap.update(dt);
+    this.saves.tick(dt);
+    this.rep.update(dt);
     this.world.step(dt);
     this.updateProps(dt);
     this.story.update(dt);
@@ -143,6 +166,7 @@ export class Game {
     env.godRays *= 1 - k; env.volumeDensity = 0.03 * (1 - k * 0.5);
     if (this.clock.night) env.exposure *= 1.06;
     E.setNightLights(this.level.pal, env.night);
+    this.weather.apply(env);
     env.shadowRadius = 26; env.shadowFar = 90;
   }
   area() {
@@ -245,6 +269,17 @@ export class Game {
       }
     }
   }
+  // streamed static colliders: forests and fences only exist as physics bodies near the player
+  updateLazy(dt) {
+    this.lazyT = (this.lazyT || 0) - dt; if (this.lazyT > 0 || !this.level.lazy) return; this.lazyT = 0.2;
+    const c = this.mode === 'play' || this.mode === 'talk' ? this.player.pos : this.camera.position;
+    for (const it of this.level.lazy) {
+      const d = Math.max(Math.abs(it.cx - c[0]), Math.abs(it.cz - c[2]));
+      if (!it.body && d < 42) { const [x0, y0, z0, x1, y1, z1, kind] = it.a; it.body = new E.Body({ shape: new E.Box([(x1 - x0) / 2, (y1 - y0) / 2, (z1 - z0) / 2]), type: 'static', position: [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], friction: 0.7 }); it.body.userData.kind = kind; this.world.add(it.body); }
+      else if (it.body && d > 58) { this.world.remove(it.body); it.body = null; }
+    }
+  }
+  flashText(t) { this.ui.flashBanner(t, 900, true); }
   updateProps(dt) {
     for (const b of this.dynBodies) {
       if (b.userData.thrown > 0) b.userData.thrown -= dt;
@@ -295,7 +330,9 @@ export class Game {
     const before = n.hp, res = n.takeHit(dmg, dir, opts);
     const at = [n.x, n.y + 1.2, n.z];
     if (res === 'blocked') return res;
+    if (res === 'ko') { this.ui.hitMarker(); this.sfx.thud?.(0.7, n.pos); this.flashText?.('KNOCKED OUT'); this.progress.addXp(10, 'knockout'); return res; }
     this.sfx.slash?.(n.pos); this.spawnBlood(at, dir, res === 'killed' ? 26 : 12);
+    if (opts.from === 'player' && res !== 'dead' && !n.guard && n.role !== 'bandit' && n.role !== 'hollow') this.rep.crime(res === 'killed' ? 'murder' : 'assault', n.pos, { victim: n });
     if (opts.backstab) { this.flashText?.('ASSASSINATION'); this.stats.stabs++; }
     this.ui.hitMarker();
     if (res !== 'dead') { this.combatT = Math.max(this.combatT, 5); if (!opts.backstab) this.noise(n.pos, 12, 'combat', n); this.player.kick = 0.02; }
@@ -304,6 +341,10 @@ export class Game {
   onKill(n, opts) {
     this.stats.kills++; if (n.guard) this.stats.guardKills++; else this.stats.civKills++;
     this.story.onKill(n, opts);
+    { const P = this.player, m = P.mod || {}; let xp = n.role === 'hollow' ? 30 : n.role === 'bandit' ? 28 : n.guard ? 22 : 0;
+      if (xp && opts.backstab) xp += 12 + 8 * (m.cutthroat || 0); if (xp && opts.poison) xp += 6;
+      if (xp) this.progress.addXp(xp, opts.backstab ? 'assassination' : opts.poison ? 'poisoned' : opts.fire ? 'burned' : 'kill');
+      if (m.leech && !opts.poison && !opts.fire) P.hp = Math.min(P.maxHp, P.hp + m.leech); }
     for (const o of this.nearNpcs(n, 14)) if (!o.guard) o.scare(n.pos, 14);
   }
   playerDied() { this.mode = 'dead'; this.stats.deaths++; this.sfx.boom?.(0.6); this.ui.showDeath(); setTimeout(() => this.respawn(), 3800); }
@@ -317,7 +358,7 @@ export class Game {
     P.inv.gold = Math.floor(P.inv.gold * 0.85);
     this.ui.toast('You wake, aching, at your last safe place');
   }
-  setCheckpoint(pos, yaw = 0) { this.checkpoint = [pos[0], pos[1] ?? 0.1, pos[2]]; this.checkpointYaw = yaw; }
+  setCheckpoint(pos, yaw = 0) { this.checkpoint = [pos[0], pos[1] ?? 0.1, pos[2]]; this.checkpointYaw = yaw; if (this.mode === 'play' && this.time - (this.lastSave || -99) > 25 && this.combatT <= 0) { this.lastSave = this.time; this.saves.save('auto'); } }
   titleCamera(dt) {
     const t = this.time * 0.05;
     this.camera.position.set([Math.sin(t) * 5, 4.2 + Math.sin(t * 0.7) * 0.5, -38 + Math.cos(t * 0.8) * 3]);

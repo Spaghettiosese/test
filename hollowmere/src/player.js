@@ -59,7 +59,7 @@ export class Player {
     const moving = !!(ix || iz);
     this.sprint = k.has('shift') && iz > 0 && !this.crouch && this.stamina > 4 && !this.blocking && !this.carried && !this.atk;
     let speed = this.crouch ? 1.7 : this.sprint ? 5.8 : 3.5;
-    if (this.blocking) speed *= 0.55; if (this.carried) speed *= 0.6; if (this.atk) speed *= 0.6; if (this.stagger > 0) speed *= 0.3; if (this.picking) speed = 0;
+    if (this.blocking) speed *= 0.55; if (this.carried) speed *= 0.6; if (this.g.tools?.dragging) speed *= 0.5; if (this.atk) speed *= 0.6; if (this.stagger > 0) speed *= 0.3; if (this.picking) speed = 0;
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw), lx = Math.cos(this.yaw), lz = -Math.sin(this.yaw);
     let wish = [0, 0];
     if (moving) { const d = [fx * iz + lx * ix, fz * iz + lz * ix], l = Math.hypot(d[0], d[1]); wish = [(d[0] / l) * speed, (d[1] / l) * speed]; }
@@ -72,7 +72,7 @@ export class Player {
     if (this.cc.grounded && !this.wasGrounded && this.fallV < -6) { const dmg = Math.max(0, (-this.fallV - 8) * 9); if (dmg > 0) this.hurt(dmg, null, { fall: true }); g.noise(this.pos, clamp(-this.fallV * 1.6, 4, 16), 'land'); g.sfx.thud?.(0.8); this.kick = 0.05; }
     this.fallV = this.cc.velocity[1]; this.wasGrounded = this.cc.grounded;
     // stamina & footsteps
-    if (this.sprint && this.speedNow > 3) this.stamina = Math.max(0, this.stamina - dt * 11); else this.stamina = Math.min(100, this.stamina + dt * (this.blocking || this.atk ? 5 : 20));
+    if (this.sprint && this.speedNow > 3) this.stamina = Math.max(0, this.stamina - dt * 11 * (this.mod?.sprintCost ?? 1)); else this.stamina = Math.min(100, this.stamina + dt * (this.blocking || this.atk ? 5 : 20) * (this.mod?.stam ?? 1));
     if (this.stamina <= 0.5 && this.sprint) this.sprint = false;
     if (this.cc.grounded && this.speedNow > 0.4) {
       this.stepDist += this.speedNow * dt;
@@ -80,7 +80,7 @@ export class Player {
       if (this.stepDist > stride) {
         this.stepDist = 0;
         const floor = g.nav.noise[Math.max(0, g.nav.at(this.pos[0], this.pos[2]))] ?? 0;
-        const loud = (this.sprint ? 13 : this.crouch ? 1.3 : 6.5) * [0.8, 1.0, 1.15, 1.4][floor];
+        const loud = (this.sprint ? 13 : this.crouch ? 1.3 : 6.5) * [0.8, 1.0, 1.15, 1.4][floor] * (this.mod?.quiet ?? 1) * (g.weather?.noiseMul ?? 1);
         g.noise(this.pos, loud, 'step'); g.sfx.step?.(floor, this.sprint ? 1.2 : this.crouch ? 0.4 : 0.8);
       }
     }
@@ -140,6 +140,7 @@ export class Player {
     if (input.pressed.has('3')) this.skillSlam();
     if (input.pressed.has('r')) this.g.useItem('potion');
     if (input.pressed.has('t')) this.g.useItem('ember');
+    this.g.tools.keys(input, dt);
     input.pressed.clear();
   }
   attack() {
@@ -161,7 +162,7 @@ export class Player {
     if (!this.atk || this.atk.hit) return; this.atk.hit = true;
     const g = this.g, eye = this.eyePos, f = this.forward, flat = this.flat, clip = this.atk.clip;
     const reach = clip === 'Thrust' ? 3.0 : 2.5, arc = Math.cos((clip === 'Thrust' ? 22 : clip === 'Slash3' ? 48 : 62) * D2R);
-    const dmg = clip === 'Slash3' ? 36 : clip === 'Thrust' ? 32 : 24;
+    const dmg = (clip === 'Slash3' ? 36 : clip === 'Thrust' ? 32 : 24) * (this.mod?.dmg ?? 1);
     let hitSomething = false;
     for (const n of g.npcs) {
       if (n.dead || !n.active) continue;
@@ -169,7 +170,7 @@ export class Player {
       if (d > reach + 0.3 || Math.abs(n.y - this.pos[1]) > 1.6) continue;
       const c = (dx * flat[0] + dz * flat[1]) / (d || 1);
       if (c < arc && d > 0.9) continue;
-      g.hitNpc(n, dmg, [dx / (d || 1), dz / (d || 1)], { from: 'player', clip, heavy: clip !== 'Slash1' && clip !== 'Slash2' });
+      const ho = { from: 'player', clip, heavy: clip !== 'Slash1' && clip !== 'Slash2', sap: g.tools.sap }; const hr = g.hitNpc(n, dmg, [dx / (d || 1), dz / (d || 1)], ho); if (g.tools.poisonHits > 0 && hr !== 'blocked' && hr !== 'dead' && hr !== 'killed' && !g.tools.sap) { n.poison = 12 * (this.mod?.poison || 1); g.tools.poisonHits--; if (!g.tools.poisonHits) g.ui.toast('The poison on your blade is spent'); }
       hitSomething = true;
     }
     // physics props: fling them
@@ -198,7 +199,7 @@ export class Player {
     if (this.blocking && fromXZ) {
       const dx = fromXZ[0] - this.pos[0], dz = fromXZ[1] - this.pos[2], d = Math.hypot(dx, dz) || 1, c = (dx * this.flat[0] + dz * this.flat[1]) / d;
       if (c > 0.35 && !opts.unblockable) {
-        const parry = this.blockT < 0.28;
+        const parry = this.blockT < 0.28 + (this.mod?.parry || 0);
         this.stamina -= parry ? 0 : dmg * 0.9;
         this.playVm('BlockHit', 0.02, true); this.vmClip = 'Block';
         g.spark([this.pos[0] + this.flat[0] * 0.8, this.pos[1] + 1.3, this.pos[2] + this.flat[1] * 0.8], [-this.flat[0], 0, -this.flat[1]], parry ? 22 : 12);
@@ -223,7 +224,7 @@ export class Player {
   spend(n) { if (this.ember < n) { this.g.toast('Not enough Ember'); this.g.sfx.deny?.(); return false; } this.ember -= n; return true; }
   skillVeil() {
     if (this.cool.veil > 0 || this.atk || !this.spend(30)) return;
-    this.veilT = 9; this.cool.veil = 12; this.playVm('Veil', 0.06); this.g.sfx.veil?.(); this.g.toast('Shadow Veil');
+    this.veilT = 9; this.cool.veil = 12 * (this.mod?.cd ?? 1); this.playVm('Veil', 0.06); this.g.sfx.veil?.(); this.g.toast('Shadow Veil');
     this.g.emitBurst(this.eyePos, 'veil');
   }
   skillDash(input) {
@@ -233,13 +234,13 @@ export class Player {
     if (!ix && !iz) iz = 1;
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw), lx = Math.cos(this.yaw), lz = -Math.sin(this.yaw);
     const d = [fx * iz + lx * ix, fz * iz + lz * ix], l = Math.hypot(d[0], d[1]);
-    this.dashDir = [d[0] / l, d[1] / l]; this.dashT = 0.22; this.invuln = 0.35; this.cool.dash = 2.5;
+    this.dashDir = [d[0] / l, d[1] / l]; this.dashT = 0.22; this.invuln = 0.35; this.cool.dash = 2.5 * (this.mod?.cd ?? 1);
     this.playVm('Dash', 0.03); this.g.sfx.dash?.(); this.g.noise(this.pos, 8, 'dash');
     for (let i = 0; i < 12; i++) this.g.emitBurst([this.pos[0] - this.dashDir[0] * i * 0.3, this.pos[1] + 1, this.pos[2] - this.dashDir[1] * i * 0.3], 'shadow');
   }
   skillSlam() {
     if (this.cool.slam > 0 || this.atk || !this.spend(40)) return;
-    this.cool.slam = 9; this.atk = { clip: 'Slam', t: 0, dur: 1.3, hit: true }; this.playVm('Slam', 0.05); this.g.sfx.swing?.(0.6);
+    this.cool.slam = 9 * (this.mod?.cd ?? 1); this.atk = { clip: 'Slam', t: 0, dur: 1.3, hit: true }; this.playVm('Slam', 0.05); this.g.sfx.swing?.(0.6);
   }
 
   // ------------------------------------------------------------ carrying
@@ -266,18 +267,20 @@ export class Player {
   }
 
   // ------------------------------------------------------------ lock picking
-  startPicking(target, level, onDone, label = 'Picking the lock') {
+  startPicking(target, level, onDone, label = 'Picking the lock', o = {}) {
     if (this.picking) return;
-    if (!this.inv.has('lockpick')) { this.g.toast('You need a lockpick'); return; }
-    this.picking = { target, level, t: 0, need: 1.6 + level * 1.5, onDone, label, tick: 0, x: this.pos[0], z: this.pos[2] };
+    if (!o.free && !this.inv.has('lockpick')) { this.g.toast('You need a lockpick'); return; }
+    if (!o.free) this.g.rep.crime('lockpick', this.pos, { range: 16 });
+    this.picking = { target, level, t: 0, need: (o.need ?? (1.6 + level * 1.5)) * (this.mod?.pick ?? 1), onDone, label, tick: 0, x: this.pos[0], z: this.pos[2], free: !!o.free, watch: o.watch };
     this.playVm('Reach', 0.1);
   }
   updatePicking(dt, input) {
     const p = this.picking; if (!p) return;
     if (!input.keys.has('e') || Math.hypot(this.pos[0] - p.x, this.pos[2] - p.z) > 0.6 || this.hurtT > 0.2) { this.picking = null; this.playVm('Idle', 0.12); return; }
     p.t += dt; p.tick += dt;
-    if (p.tick > 0.55) { p.tick = 0; this.g.sfx.pick?.(); this.g.noise(this.pos, 3.2, 'pick');
-      if (Math.random() < 0.05 * p.level) { this.inv.remove('lockpick', 1); this.g.toast('Your pick snapped'); this.g.sfx.deny?.(); this.picking = null; this.playVm('Idle', 0.1); return; } }
+    if (p.watch && !p.watch(dt)) { this.picking = null; this.playVm('Idle', 0.12); return; }
+    if (p.tick > 0.55 && !p.free) { p.tick = 0; this.g.sfx.pick?.(); this.g.noise(this.pos, 3.2, 'pick');
+      if (Math.random() < 0.05 * p.level * (this.mod?.snap ?? 1)) { this.inv.remove('lockpick', 1); this.g.toast('Your pick snapped'); this.g.sfx.deny?.(); this.picking = null; this.playVm('Idle', 0.1); return; } }
     if (p.t >= p.need) { const done = p.onDone; this.picking = null; this.playVm('Idle', 0.1); done(); this.g.sfx.lockClick?.(); }
   }
 

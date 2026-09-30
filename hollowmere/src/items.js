@@ -32,6 +32,10 @@ export const ITEMS = {
   hexbane: { name: 'Hexbane draught', kind: 'consumable', heal: 20, ember: 40, value: 30, desc: 'Bitter. Restores some health and Ember.' },
   nightbloom: { name: 'Nightbloom', kind: 'valuable', value: 45, desc: 'A pale flower that only opens in the dark.' },
   diary: { name: 'Charred diary', kind: 'valuable', value: 8 },
+  knife: { name: 'Throwing knife', kind: 'ammo', value: 6, desc: 'Balanced for throwing. G to throw.' },
+  poison: { name: 'Nightshade oil', kind: 'consumable', value: 20, desc: 'Coat your blade. 5 to apply; poisons the next five hits.' },
+  firebomb: { name: 'Fire flask', kind: 'consumable', value: 25, desc: 'Wine, cloth and a spark. X to throw.' },
+  sap: { name: 'Lead sap', kind: 'tool', desc: 'B swaps between blade and sap. The sap knocks out the unwary.' },
   letterfake: { name: 'Unsealed letter', kind: 'junk', value: 0, desc: 'A dull tax memorandum. Not what you came for.' },
   letter: { name: 'The Sealed Letter', kind: 'quest', desc: 'Black wax, a raven pressed into it. It is warm to the touch.' },
 };
