@@ -21,9 +21,19 @@ export class NPC {
     this.maxHp = def.hp ?? (this.guard ? 60 : 30); this.hp = this.maxHp;
     this.ch = createPerson(this.spec, { detail: def.detail ?? 0.4 });
     this.ch.userData.npc = this; game.scene.add(this.ch);
+    this.look = new E.LookAt(this.ch, { maxYaw: 68, maxPitch: 30, speed: 6 }); this.hitR = new E.HitReaction(this.ch, { stiffness: 110, damping: 12 });
+    this.ch.update = function update(dt) {
+      this.updateWorld(this.parent ? this.parent.world : null);
+      if (this.autoAnimate) this.mixer.update(dt);
+      const n = this.userData.npc; if (n && !n.dead && n.lod < 2) { n.postAnim(dt); }
+      if (this.springs) this.skeleton.simulateSprings(dt, this.world);
+      if (this.handlers) for (const h of Object.values(this.handlers)) h.update(dt);
+      this.updateSockets();
+      if (this.handlers) for (const h of Object.values(this.handlers)) if (h.prop.update) h.prop.update(dt);
+    };
     this.body = new E.Body({ shape: new E.Capsule(0.3, 0.6), type: 'kinematic', position: [this.x, this.y + 0.9, this.z], group: 8 });
     this.body.userData.kind = 'npc'; this.body.userData.npc = this; game.world.add(this.body);
-    this.state = 'routine'; this.mode = 'idle'; this.anim = ''; this.activity = null; this.slot = null; this.slotKey = ''; this.poi = null;
+    this.lod = 0; this.state = 'routine'; this.mode = 'idle'; this.anim = ''; this.activity = null; this.slot = null; this.slotKey = ''; this.poi = null;
     this.path = null; this.pathI = 0; this.goal = null; this.speed = 0; this.wantSpeed = 0; this.repathT = 0; this.stuckT = 0;
     this.alert = 0; this.stim = null; this.searchT = 0; this.lostT = 0; this.seeT = 0; this.sees = false; this.attackCd = 0; this.atk = null; this.stagger = 0; this.blockT = 0;
     this.active = true; this.dead = false; this.asleep = false; this.lying = false; this.seated = false; this.timer = Math.random() * 3; this.barkT = 0; this.idleT = 0; this.routeI = 0; this.routeDir = 1; this.pauseT = 0;
@@ -49,6 +59,17 @@ export class NPC {
     if (speed < 0.12) { m.setWeights({ Idle: 1 }, 0.25); m.timeScale = 1; return; }
     if (speed <= W) { const t = speed / W; m.setWeights({ Walk: Math.min(1, t * 1.5), Idle: Math.max(0, 1 - t * 1.5) }, 0.2); m.timeScale = Math.max(0.55, t); return; }
     const t = Math.min(1, (speed - W) / (R - W)); m.setWeights({ Walk: 1 - t, Run: t }, 0.2); m.timeScale = t < 0.5 ? speed / W * 0.75 : speed / R;
+  }
+  // procedural layers on top of the clips: gaze and hit recoil
+  postAnim(dt) {
+    const P = this.g.player, L = this.look; let tgt = null, w = 0;
+    if (!this.lying && !this.dormant && this.state !== 'ko') {
+      if (this.state === 'chase' || this.state === 'attack' || this.state === 'handsup') { tgt = [P.pos[0], P.pos[1] + 1.5, P.pos[2]]; w = 1; }
+      else if ((this.state === 'notice' || this.state === 'investigate' || this.state === 'search') && this.stim) { tgt = [this.stim[0], this.y + 1.5, this.stim[1]]; w = 0.8; }
+      else if (this.state === 'routine' && this.dist < 7 && !this.guard) { const dx = P.pos[0] - this.x, dz = P.pos[2] - this.z, c = (dx * this.fwd[0] + dz * this.fwd[1]) / (this.dist || 1); if (c > 0.35) { tgt = [P.pos[0], P.pos[1] + (P.crouch ? 1.0 : 1.5), P.pos[2]]; w = 0.65; } }
+      else if (this.state === 'routine' && this.guard && this.dist < 5 && P.visibility > 0.35) { tgt = [P.pos[0], P.pos[1] + 1.5, P.pos[2]]; w = 0.45; }
+    }
+    L.target = tgt; L.weight = w; L.update(dt); this.hitR.update(dt);
   }
   applyPose() {
     // the character node follows the simulation (standing, sitting or lying)
@@ -204,6 +225,10 @@ export class NPC {
     const a = this.activity;
     this.idleT += dt;
     if (a === 'work' && Math.random() < dt * 0.0) return;
+    if (!this.seated && !this.lying && (a === 'stand' || a === 'guard' || a === 'talk' || a === 'warm')) {
+      this.fidgetT = (this.fidgetT ?? 4 + Math.random() * 12) - dt;
+      if (this.fidgetT <= 0) { this.fidgetT = 8 + Math.random() * 16; const c = this.guard ? ['Look Around', 'Arms Crossed'] : ['Look Around', 'Arms Crossed', 'Point', 'Talk']; this.ch.upper.playOnce(c[Math.floor(Math.random() * c.length)], { fadeIn: 0.4, fadeOut: 0.7 }); }
+    }
     if (this.guard && this.role !== 'bandit' && a !== 'sleep') this.chat(dt);
     if (this.guard && this.idleT > 12 + (this.id.length % 5) * 3) { this.idleT = 0; this.ch.upper.playOnce('Look Around', { fadeIn: 0.3, fadeOut: 0.5 }); }
     // talk to a neighbour: face the player when he is close & we are just standing
@@ -547,6 +572,7 @@ export class NPC {
       this.ch.upper.playOnce('Block', { fadeIn: 0.05, fadeOut: 0.3 }); return 'blocked';
     }
     if (opts.bleed && !opts.sap) this.bleed = 5;
+    if (dir) this.hitR.hit([dir[0], 0.25, dir[1]], 5 + Math.min(6, dmg * 0.15));
     this.hp -= dmg; if (opts.sap && this.hp <= 0) this.hp = 1; this.tookHit = 0.4; this.alert = 1;
     if (this.hp <= 0) { this.die(dir, opts); return 'killed'; }
     this.g.sfx.grunt?.(1, this.pos, this.spec.voice || 1);

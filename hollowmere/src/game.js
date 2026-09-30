@@ -101,6 +101,7 @@ export class Game {
 
   // ------------------------------------------------------------ frame
   step(dt) {
+    if (this.hitStop > 0) { this.hitStop -= dt; dt *= 0.12; } else if (this.slowmo > 0) { this.slowmo -= dt; dt *= 0.45; }
     this.time += dt; this.frame++;
     const P = this.player;
     this.pathBudget = 3;
@@ -133,6 +134,7 @@ export class Game {
     // listener & music
     this.sfx.setListener(this.camera.position, P.yaw);
     this.sfx.mood.tension = Math.min(1, (this.combatT > 0 ? 0.8 : 0) + this.alarmLevel * 0.25 + this.maxAlert() * 0.6);
+    { let nf = 0; const c = this.camera.position; for (const f of this.level.fires) { if (!f.lit) continue; const d = Math.hypot(f.x - c[0], f.z - c[2]); if (d < 14) nf = Math.max(nf, 1 - d / 14); } this.sfx.mood.fire = nf; }
     this.sfx.mood.indoor = this.indoorK > 0.5 ? 1 : 0; this.sfx.mood.night = this.clock.night ? 1 : 0;
     this.sfx.mood.area = this.area();
     this.sfx.update(dt);
@@ -279,6 +281,7 @@ export class Game {
       else if (it.body && d > 58) { this.world.remove(it.body); it.body = null; }
     }
   }
+  keepPlaying() { this.ui.el.end.hidden = true; this.mode = 'play'; this.ui.showHud(true); this.ui.letterbox(false); this.pix.fade = 0; this.canvasLock?.(); this.ui.toast('The valley is yours to wander. F5 saves.'); }
   flashText(t) { this.ui.flashBanner(t, 900, true); }
   updateProps(dt) {
     for (const b of this.dynBodies) {
@@ -333,7 +336,8 @@ export class Game {
     if (res === 'ko') { this.ui.hitMarker(); this.sfx.thud?.(0.7, n.pos); this.flashText?.('KNOCKED OUT'); this.progress.addXp(10, 'knockout'); return res; }
     this.sfx.slash?.(n.pos); this.spawnBlood(at, dir, res === 'killed' ? 26 : 12);
     if (opts.from === 'player' && res !== 'dead' && !n.guard && n.role !== 'bandit' && n.role !== 'hollow') this.rep.crime(res === 'killed' ? 'murder' : 'assault', n.pos, { victim: n });
-    if (opts.backstab) { this.flashText?.('ASSASSINATION'); this.stats.stabs++; }
+    if (opts.backstab) { this.flashText?.('ASSASSINATION'); this.stats.stabs++; this.slowmo = 0.35; }
+    this.hitStop = Math.max(this.hitStop || 0, res === 'killed' ? 0.09 : 0.045); this.shake = Math.max(this.shake, res === 'killed' ? 0.35 : 0.15);
     this.ui.hitMarker();
     if (res !== 'dead') { this.combatT = Math.max(this.combatT, 5); if (!opts.backstab) this.noise(n.pos, 12, 'combat', n); this.player.kick = 0.02; }
     void before; return res;

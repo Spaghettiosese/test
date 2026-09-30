@@ -40,6 +40,9 @@ export class Weather {
       for (let i = 0; i < n + Math.random(); i++) g.sparks.emit([c[0] + (Math.random() - 0.5) * 26, c[1] + 7 + Math.random() * 4, c[2] + (Math.random() - 0.5) * 26], { count: 1, color: [0.7, 0.8, 1.0, 0.55], colorEnd: [0.5, 0.6, 0.8, 0.0], size: 0.025, grow: 0, spread: 0, up: 0, life: 0.55, jitter: 0, vel: [0.6, -24, 0.3] });
     }
     if (this.kind === 'ash' || this.target === 'ash') { /* the town ash already drifts; thicken it */ if (g.indoorK < 0.6 && Math.random() < dt * 40) g.smoke.emit([c[0] + (Math.random() - 0.5) * 18, c[1] + 3 + Math.random() * 3, c[2] + (Math.random() - 0.5) * 18], { count: 1, color: [0.3, 0.28, 0.28, 0.6], colorEnd: [0.25, 0.22, 0.22, 0], size: 0.05, grow: 0.5, spread: 0.1, up: -0.6, life: 4, jitter: 0, vel: [0.6, -0.7, 0.3] }); }
+    // fireflies in the wet woods, night only
+    const z = g.story?.zone;
+    if ((z === 'mire' || z === 'fen' || z === 'farms') && g.clock.night && ind < 0.5 && this.cur.rain < 0.5 && Math.random() < dt * 5) g.sparks.emit([c[0] + (Math.random() - 0.5) * 24, c[1] - 0.6 + Math.random() * 2.2, c[2] + (Math.random() - 0.5) * 24], { count: 1, color: [1.2, 2.2, 0.5, 0.9], colorEnd: [0.4, 1.0, 0.2, 0], size: 0.05, grow: 0, spread: 0.2, up: 0.1, life: 3, jitter: 0.6, vel: [0.1, 0.05, 0.1] });
     // lightning
     if (this.target === 'storm' && this.k >= 0.4) {
       this.strike -= dt;

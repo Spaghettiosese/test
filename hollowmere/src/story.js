@@ -52,6 +52,8 @@ export class Story {
     for (const l of LORE) { NOTES[l.id] = { title: l.title, text: l.text }; L.interactables.push({ kind: 'note', x: l.at[0], y: l.at[1], z: l.at[2], r: 2.2, obj: { id: l.id }, prompt: () => l.prompt, use: (g) => { const first = !this.notesFound.has(l.id); g.readNote(l.id); if (first) g.progress.addXp(12, 'lore'); } }); }
     for (const [name, p] of Object.entries(L.pois)) if (p.type === 'sleep') L.interactables.push({ kind: 'bed', x: p.x, y: p.y + 0.4, z: p.z, r: 2.4, obj: { id: name }, prompt: () => (this.g.clock.night || this.g.player.hp < this.g.player.maxHp - 5 ? 'Rest in the bed' : 'Lie down for a while'), use: (g) => g.events.sleepMenu(name) });
     for (const f of L.fires) if (f.kind === 'hearth') L.interactables.push({ kind: 'fire', x: f.x, y: f.y + 0.6, z: f.z, r: 3.2, obj: f, prompt: () => (this.g.time - (f.warmAt ?? -99) > 90 ? 'Warm yourself at the fire' : null), use: (g) => { f.warmAt = g.time; const P = g.player; P.hp = Math.min(P.maxHp, P.hp + 25); P.ember = Math.min(P.maxEmber, P.ember + 15); g.toast('The fire warms you'); g.sfx.drink?.(); if (f.indoor === 0) g.saves.save('quick'); } });
+    const fate = (kind, x, y, z, prompt) => L.interactables.push({ kind: 'note', x, y, z, r: 2.6, obj: { id: 'fate_' + kind }, prompt: () => (this.fate && !this.ended && this.g.player.inv.has('letter') ? prompt : null), use: () => this.ending(kind) });
+    fate('saint', -190, 1.0, -233.5, 'Lay the letter on the drowned altar'); fate('unseal', 195, 1.0, 98.6, 'Break the seal at the plague ward gate');
     note('orders', -28.5, 0.9, 104.5, 'Read the orders'); note('ledger', -16.4, 1.0, 138.0, 'Read the ledger'); note('diary', -34.4, 0.8, 68.6, 'Read the diary'); note('choir', 104, 1.2, 27.4, 'Read the scrawl');
   }
   readNote(id) {
@@ -223,6 +225,7 @@ export class Story {
     this.hourly();
     this.hints();
     this.hollowUpdate(0.2);
+    this.fateUpdate(dt);
     this.dukeUpdate(dt);
   }
   hourly() {
@@ -340,17 +343,44 @@ export class Story {
     const beats = [
       { dur: 3, fadeTo: 0.55, fadeRate: 2, sub: ['', 'Cold air. Stars. Behind you the bell of Ravenspire tolled thirteen, and the ground began to sing.'], cam: { p0: [13, 1.7, 148.6], p1: [13, 2.2, 149.4], l0: [13, 6, 140], l1: [13, 9, 140], fov: 66 }, enter: () => { g.sfx.hollowCry?.([13, 1, 140]); } },
       { dur: 3.6, sub: ['Rook', 'Sable knew. She sent me in to open it. She sent me to be the key.'], cam: { p0: [13, 1.7, 149.4], p1: [13, 6, 151], l0: [13, 9, 140], l1: [0, 20, 140], fov: 68 } },
-      { dur: 3.2, sub: ['Rook', 'Then Sable and I have things to discuss.'], cam: { p0: [13, 6, 151], p1: [10, 14, 152], l0: [0, 20, 140], l1: [0, 26, 60], fov: 70 } },
-      { dur: 3.4, title: ['TO BE CONTINUED', 'Chapter II · The Choir Beneath'], fadeTo: 1, fadeRate: 1.6, cam: { p0: [10, 14, 152], p1: [8, 18, 152], l0: [0, 26, 60], l1: [0, 30, 40], fov: 72 } },
+      { dur: 3.2, sub: ['Rook', 'The letter is warm in my hand. I can end it, or give it away, or finish what it started.'], fadeTo: 0, cam: { p0: [13, 6, 151], p1: [12, 3, 150], l0: [0, 20, 140], l1: [13, 2, 140], fov: 66 } },
     ];
-    this.play(beats, () => this.showEnd());
+    this.play(beats, () => this.beginFate());
   }
-  showEnd() {
+  // after the escape the whole map opens: three places to end the letter's story
+  beginFate() {
+    const g = this.g; g.mode = 'play'; g.ui.letterbox(false); g.ui.showHud(true); g.pix.fade = 0; g.canvasLock?.(); this.fate = true; this.fateT = 20;
+    this.objectives.push({ id: 'fate', text: 'Decide the letter\'s fate', sub: 'Give it to Brannoch at the camp on the south road. Burn it on the drowned altar in Blackfen. Or break the seal at the plague ward in Cinderwick. Hollows are rising and the watch hunts you.', done: false, target: () => this.fateTarget() });
+    g.rep.add('keep', 260, 'the theft'); g.alarmLevel = 3; g.alarmT = 40; g.ui.toast('The bell tolls. Every hollow in the valley is waking.');
+    g.setCheckpoint(g.player.pos, g.player.yaw);
+  }
+  fateTarget() { const P = this.g.player.pos, C = [[11.6, -31.4], [-190, -226], [195, 97]]; let b = C[0], bd = 1e9; for (const c of C) { const d = hyp(c[0] - P[0], c[1] - P[2]); if (d < bd) { bd = d; b = c; } } return b; }
+  fateUpdate(dt) {
+    const g = this.g; if (!this.fate || this.ended || g.mode !== 'play') return;
+    this.fateT -= dt; if (this.fateT > 0) return; this.fateT = 42;
+    if (g.npcs.filter((n) => n.role === 'hollow' && !n.dead && n.dist < 70).length >= 9) return;
+    const P = g.player.pos, a = Math.random() * 6.283, r = 18 + Math.random() * 12, q = g.nav.nearestWalkable(P[0] + Math.cos(a) * r, P[2] + Math.sin(a) * r, 8);
+    if (q && g.nav.indoorAt(q[0], q[1]) === 0) { this.spawnHollow(q[0], q[1], true, false); g.ui.toast('Something claws out of the ground nearby'); }
+  }
+  ending(kind) {
+    const g = this.g; if (this.ended) return; this.ended = true; this.complete('fate'); g.player.inv.remove('letter', 1);
+    const T = {
+      gray: { h: 'THE GRAY HAND\'S KNIFE', line: 'You hand the letter to Brannoch. Sable opens it in a room without windows. The bell tolls thirteen once more, and this time the whole valley answers. You were paid. You will spend it somewhere very quiet.', tag: 'Ending: The Gray Hand' },
+      saint: { h: 'THE QUIET BELL', line: 'You lay the letter on the Pale Saint\'s drowned altar and it burns black without smoke. In Ashgate the hollows sit down where they stand. The bell does not toll. Somewhere far below, a door swings shut for the last time.', tag: 'Ending: The Quiet Bell' },
+      unseal: { h: 'KEY OF THE CHOIR', line: 'You break the seal at the plague ward gate. The letter reads you, not the other way. The choir of Cinderwick rises and knows your name, and you understand that you were never the thief. You were the door.', tag: 'Ending: The Choir' },
+    }[kind];
+    g.mode = 'cutscene'; g.ui.letterbox(true); g.ui.showHud(false); const P = g.player;
+    this.play([
+      { dur: 3.4, fadeTo: 0.3, sub: ['', T.line.split('. ')[0] + '.'], cam: { p0: [P.pos[0], P.pos[1] + 1.7, P.pos[2]], p1: [P.pos[0], P.pos[1] + 2.4, P.pos[2] + 0.5], l0: [P.pos[0] + Math.sin(P.yaw) * 6, P.pos[1] + 1.6, P.pos[2] + Math.cos(P.yaw) * 6], fov: 60 }, enter: () => { g.sfx.bell?.(3); if (kind === 'unseal') g.sfx.hollowCry?.(P.pos); if (kind === 'saint') g.sfx.veil?.(); } },
+      { dur: 4.4, fadeTo: 0.85, fadeRate: 1.4, title: [T.h, T.tag], cam: { p0: [P.pos[0], P.pos[1] + 2.4, P.pos[2] + 0.5], p1: [P.pos[0], P.pos[1] + 5, P.pos[2] + 2], l0: [P.pos[0], P.pos[1] + 6, P.pos[2] + 10], fov: 66 } },
+    ], () => this.showEnd(T));
+  }
+  showEnd(T = null) {
     const g = this.g, st = g.stats, P = g.player, mins = Math.round(this.playTime / 60);
     const unseen = st.kills === 0 && g.alarmCount === 0;
     let title = 'Blade in the Dark'; if (st.civKills > 0 || st.guardKills >= 8) title = 'Butcher of Ashgate'; else if (st.kills === 0) title = 'Ghost of Ashgate'; else if (st.guardKills <= 3) title = 'Quiet Knife';
     const dukeLine = this.flags.dukeKilled ? 'You killed the Duke' : this.dukeState === 'surrender' || this.dukeState === 'fled' ? 'You spared the Duke' : 'The Duke never woke';
-    g.ui.showEnd(`<h2>CHAPTER I COMPLETE</h2><p style="color:var(--dim);font-size:20px;margin:0">${title}</p>
+    g.ui.showEnd(`<h2>CHAPTER I COMPLETE</h2><p style="color:var(--gold);font-size:22px;margin:0">${T ? T.tag : ''}</p><p style="color:var(--dim);font-size:20px;margin:0">${title}</p>${T ? `<p style="font-size:18px;color:var(--bone);max-width:52ch;margin:4px auto">${T.line}</p>` : ''}
       <table>
         <tr><td>Time in Hollowmere</td><td>${mins} min</td></tr>
         <tr><td>Guards slain</td><td>${st.guardKills}</td></tr>
@@ -362,7 +392,7 @@ export class Story {
         <tr><td>The Duke</td><td>${dukeLine}</td></tr>
         <tr><td>Deaths</td><td>${st.deaths}</td></tr>
       </table>
-      <button class="go" style="justify-self:center" onclick="location.reload()">PLAY AGAIN</button>`);
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"><button class="go" style="min-width:0" onclick="window.__game.keepPlaying()">KEEP EXPLORING</button><button class="go" style="min-width:0" onclick="location.reload()">PLAY AGAIN</button></div>`);
     g.mode = 'end';
     void unseen;
   }

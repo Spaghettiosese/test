@@ -32,6 +32,26 @@ export const QUESTS = [
     offer: ['Four old stones stand along these roads. Touch each one and they will remember you. A lit stone will carry you to any other lit stone.', 'A hermit has to have some fun. Light them all and come tell me.'],
     steps: [{ type: 'lit', n: 4, text: 'Touch all four waystones (road, Mirewood, Cinderwick, gallows)' }],
     done: ['They sing when you pass. That is the sound of old magic waking. Take a little of it.'], reward: { gold: 50, ember: 30 } },
+  { id: 'q_parcel', giver: 'gil', to: 'brandt', title: 'Gil\'s parcel', xp: 60, give: [['parcel', 1]],
+    offer: ['I have a parcel for Brandt the smith in Ashgate. Payment on delivery, only I am not walking past those bandits again.', 'Carry it for me. Do not open it. It rattles, which I take as a bad sign.'],
+    steps: [{ type: 'have', item: 'parcel', n: 1, text: 'Deliver the parcel to Brandt the smith in Ashgate' }],
+    done: ['Ah. The parcel. From Gil. Of course it is. Here, for the trouble.'], reward: { gold: 40 }, take: [['parcel', 1]], hintNpc: 'brandt', immediate: true },
+  { id: 'q_hollows', giver: 'ilse', title: 'Put them down', xp: 160, requires: 'q_ring',
+    offer: ['You are still here. Good. The hollows in the ash used to be neighbours. I cannot do it myself.', 'Put five of them down, and I will give you what my husband left me.'],
+    steps: [{ type: 'kill', role: 'hollow', n: 5, text: 'Put down five hollows' }],
+    done: ['Five. It is not enough. It will never be enough. But thank you.'], reward: { gold: 80, items: [['gem', 1]] } },
+  { id: 'q_wine', giver: 'gorm', title: 'A better vintage', xp: 60,
+    offer: ['My cellar is dry and the merchants will not come past the bandits. Bring me two bottles of wine and drinks are on the house for life.', 'Bandits love their wine. Look in their supply crates.'],
+    steps: [{ type: 'have', item: 'wine', n: 2, text: 'Bring Old Gorm two bottles of wine (bandit supply crate?)' }],
+    done: ['Ha! Real wine! Take this, and drink whenever you like. Do not tell the mercenary.'], reward: { gold: 45, items: [['potion', 1]] }, take: [['wine', 2]] },
+  { id: 'q_cheese', giver: 'hilde', title: 'Cheese for the bake', xp: 50,
+    offer: ['Bread is nothing without cheese, and cheese has vanished from Ashgate. Bring me two rounds and I will pay in coin and warm loaves.', 'Farms have cheese. Farms always have cheese.'],
+    steps: [{ type: 'have', item: 'cheese', n: 2, text: 'Bring Baker Hilde two rounds of cheese (farms?)' }],
+    done: ['Two! You beauty. Here, and take a loaf for the road.'], reward: { gold: 30, items: [['bread', 2]] }, take: [['cheese', 2]] },
+  { id: 'q_grave', giver: 'tobbe', title: 'Those who do not stay buried', xp: 90,
+    offer: ['They will not stay down, hooded one. Three of them dug their way out of the north row last night.', 'End them for good, and take the mausoleum key I hold. It opens more than a mausoleum.'],
+    steps: [{ type: 'kill', role: 'hollow', n: 3, text: 'Put down three hollows' }],
+    done: ['Three. My old back thanks you. Here, and mind the dark.'], reward: { gold: 50, items: [['hexbane', 1]] } },
   { id: 'q_toll', giver: 'bosk', title: 'The smuggler\'s fee', xp: 80,
     offer: ['Every wagon pays at my bridge. The last carter refused and now my strongbox is light. I want that carter\'s goods back, and I do not care whose back they are on.', 'Look in the wrecked wagon on the road north of here. Bring me what is in the crate.'],
     steps: [{ type: 'have', item: 'potion', n: 1, text: 'Find the wrecked wagon crate on the Old Road' }],
@@ -48,16 +68,18 @@ export class Quests {
   accept(id) {
     const q = this.def(id); if (!q || this.state[id]) return;
     this.state[id] = { status: 'active', step: 0, count: 0, killBase: { ...this.kills.role } };
+    for (const [it, n] of q.give || []) this.g.player.inv.add(it, n);
     const s = this.g.story;
     s.objectives.push({ id, text: q.title + ': ' + q.steps[0].text, sub: q.offer[0], done: false, side: true, target: () => this.targetOf(q) });
     this.g.toast('New quest: ' + q.title); this.g.sfx.bell?.(1);
   }
   targetOf(q) {
     const st = this.state[q.id]; if (!st) return null;
-    if (st.status === 'ready') { const n = this.g.npcs.find((x) => x.id === q.giver); return n ? [n.x, n.z] : null; }
+    if (st.status === 'ready') { const n = this.g.npcs.find((x) => x.id === (q.to || q.giver)); return n ? [n.x, n.z] : null; }
     const step = q.steps[st.step], P = this.g.level.pois;
     if (step.type === 'kill' && step.ids) { const n = this.g.npcs.find((x) => x.id === step.ids[0] && !x.dead); return n ? [n.x, n.z] : null; }
     if (step.type === 'kill' && step.role) { let best = null, bd = 1e9; for (const n of this.g.npcs) if (n.role === step.role && !n.dead && n.dist < bd) { bd = n.dist; best = n; } return best ? [best.x, best.z] : null; }
+    if (q.hintNpc) { const n = this.g.npcs.find((x) => x.id === q.hintNpc); if (n) return [n.x, n.z]; }
     if (q.hint) return q.hint;
     return { q_bloom: [-190, -228], q_diary: [162, 66], q_ring: [196, 122], q_stones: [5, -83], q_toll: [-6, -60] }[q.id] || null;
   }
@@ -85,7 +107,7 @@ export class Quests {
       if (ok) {
         st.step++;
         const o = g.story.objectives.find((x) => x.id === q.id);
-        if (st.step >= q.steps.length) { st.status = 'ready'; if (o) { o.text = q.title + ': return to ' + (g.npcs.find((n) => n.id === q.giver)?.name || 'the giver'); } g.toast(q.title + ': return to the quest giver'); g.sfx.coin?.(); }
+        if (st.step >= q.steps.length) { st.status = 'ready'; if (o) { o.text = q.title + ': return to ' + (g.npcs.find((n) => n.id === (q.to || q.giver))?.name || 'the giver'); } g.toast(q.title + ': return to the quest giver'); g.sfx.coin?.(); }
         else if (o) o.text = q.title + ': ' + q.steps[st.step].text;
       }
     }
@@ -105,9 +127,11 @@ export class Quests {
   }
   // dialogue lines for an NPC that gives quests (null when none apply)
   dialogue(npc) {
-    const mine = QUESTS.filter((q) => q.giver === npc.id);
-    for (const q of mine) if (this.status(q.id) === 'ready') return [...q.done.slice(0, -1).map((t) => L(t)), L(q.done[q.done.length - 1], { end: true, onShow: (G) => G.quests.turnIn(q.id) })];
-    for (const q of mine) if (this.status(q.id) === 'active') return [L(`${q.title}: ${q.steps[this.state[q.id].step].text}. Have you done it yet?`, { end: true })];
+    const mine = QUESTS.filter((q) => q.giver === npc.id && !(q.requires && this.status(q.requires) !== 'done'));
+    const turn = QUESTS.filter((q) => q.to === npc.id && this.status(q.id) === 'ready');
+    for (const q of turn) return [...q.done.slice(0, -1).map((t) => L(t)), L(q.done[q.done.length - 1], { end: true, onShow: (G) => G.quests.turnIn(q.id) })];
+    for (const q of mine) if (this.status(q.id) === 'ready' && !q.to) return [...q.done.slice(0, -1).map((t) => L(t)), L(q.done[q.done.length - 1], { end: true, onShow: (G) => G.quests.turnIn(q.id) })];
+    for (const q of mine) if (this.status(q.id) === 'active' || (this.status(q.id) === 'ready' && q.to)) return [L(`${q.title}: ${q.steps[this.state[q.id].step].text}. Have you done it yet?`, { end: true })];
     for (const q of mine) if (this.status(q.id) === 'new') return [
       ...q.offer.slice(0, -1).map((t) => L(t)),
       L(q.offer[q.offer.length - 1], { choices: [{ text: 'I will do it.', next: 'end', action: (G) => G.quests.accept(q.id) }, { text: 'Not now.', next: 'end' }] }),

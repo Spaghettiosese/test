@@ -10,6 +10,8 @@ npm run test:hollowmere      # level / roster / reachability consistency test
 ## Story
 You are Rook, sent to infiltrate the walled town of Ashgate and the Duke's keep to steal a sealed letter. Cross the town, get past the court and garrison, reach the Duke's bedchamber, take the letter, and escape. Something in the crypts does not want the letter to leave.
 
+The second update ("The Wide Valley") is listed in [FEATURES.md](FEATURES.md): a map five times larger, squad AI, witnesses and bounties, disguises, perks, crafting, weather, a world map, quests and three endings.
+
 ## Controls
 | Action | Keys |
 | --- | --- |
@@ -18,7 +20,13 @@ You are Rook, sent to infiltrate the walled town of Ashgate and the Duke's keep 
 | Skills: Shadow Veil, Umbral Dash, Gravebreaker | 1 · 2 · 3 |
 | Interact / loot / talk · hold to pick locks | E |
 | Pick up and throw props | F · left mouse |
-| Journal | Tab |
+| Journal · perks · craft · map · lore | Tab · P · M |
+| Wraith Sight · poison blade | 4 · 5 |
+| Throw knife · coin · fire flask | G · V · X |
+| Sap · drag a body · drop disguise | B · hold Z · U |
+| Kick | Q |
+| Pickpocket | hold E from behind |
+| Quick save | F5 |
 | Pause | Esc |
 
 Debug URL params: `?debug&nomenu&skipintro&at=x,y,z&yaw=&pitch=&hour=`.

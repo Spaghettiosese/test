@@ -32,6 +32,7 @@ export const ITEMS = {
   hexbane: { name: 'Hexbane draught', kind: 'consumable', heal: 20, ember: 40, value: 30, desc: 'Bitter. Restores some health and Ember.' },
   nightbloom: { name: 'Nightbloom', kind: 'valuable', value: 45, desc: 'A pale flower that only opens in the dark.' },
   diary: { name: 'Charred diary', kind: 'valuable', value: 8 },
+  parcel: { name: 'Sealed parcel', kind: 'quest', desc: 'Gil\'s parcel for Brandt the smith. It rattles.' },
   knife: { name: 'Throwing knife', kind: 'ammo', value: 6, desc: 'Balanced for throwing. G to throw.' },
   poison: { name: 'Nightshade oil', kind: 'consumable', value: 20, desc: 'Coat your blade. 5 to apply; poisons the next five hits.' },
   firebomb: { name: 'Fire flask', kind: 'consumable', value: 25, desc: 'Wine, cloth and a spark. X to throw.' },

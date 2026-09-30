@@ -113,6 +113,7 @@ export class Audio {
     this._ambT = 0;
   }
   lute() { if (!this.ctx) return; const t = this.t, seq = [[0, 262], [0.28, 330], [0.56, 392], [0.84, 349], [1.2, 294], [1.5, 330], [1.8, 262], [2.3, 196]]; for (const [o, f] of seq) { this._tone(t + o, { freq: f, dur: 0.6, gain: 0.09, type: 'triangle', decay: 0.55, attack: 0.01 }); this._tone(t + o, { freq: f * 2, dur: 0.3, gain: 0.03, type: 'sine', decay: 0.25 }); } }
+  splash() { if (!this.ctx) return; const t = this.t; this._noise(t, { dur: 0.25, gain: 0.16, type: 'bandpass', freq: 900, freqEnd: 400, q: 0.7, decay: 0.2 }); }
   owl(p) { if (!this.ctx) return; const { g, pan } = this._s(p, 90); const t = this.t; for (const [o, f] of [[0, 380], [0.42, 330], [0.8, 330]]) this._tone(t + o, { freq: f, freqEnd: f * 0.92, dur: 0.32, gain: 0.05 * g, type: 'sine', decay: 0.3, attack: 0.05, pan }); }
   frog(p) { if (!this.ctx) return; const { g, pan } = this._s(p, 60); const t = this.t; for (let i = 0; i < 3 + Math.floor(Math.random() * 3); i++) this._tone(t + i * 0.11, { freq: 170 + Math.random() * 40, freqEnd: 120, dur: 0.09, gain: 0.05 * g, type: 'square', decay: 0.08, pan }); }
   rooster(p) { if (!this.ctx) return; const { g, pan } = this._s(p, 120); const t = this.t; [[0, 520, 720], [0.35, 640, 820], [0.7, 700, 500], [1.1, 560, 300]].forEach(([o, a, b]) => this._tone(t + o, { freq: a, freqEnd: b, dur: 0.4, gain: 0.05 * g, type: 'sawtooth', decay: 0.38, pan })); }
@@ -123,7 +124,8 @@ export class Audio {
     this.padFilter.connect(this.padGain); this.padGain.connect(this.musicBus);
     const notes = [55, 82.4, 110, 130.8];
     this.voices = notes.map((n, i) => { const o = c.createOscillator(); o.type = i % 2 ? 'sawtooth' : 'triangle'; o.frequency.value = n; o.detune.value = (i - 1.5) * 7; const g = c.createGain(); g.gain.value = 0.14; o.connect(g); g.connect(this.padFilter); o.start(); return o; });
-    this._chords = [[55, 82.4, 110, 130.8], [43.65, 65.4, 87.3, 110], [49, 73.4, 98, 123.5], [41.2, 61.7, 82.4, 103.8]];
+    this._chordSets = { default: [[55, 82.4, 110, 130.8], [43.65, 65.4, 87.3, 110], [49, 73.4, 98, 123.5], [41.2, 61.7, 82.4, 103.8]], fen: [[46.2, 69.3, 92.4, 110], [43.65, 65.4, 82.4, 116.5], [41.2, 61.7, 77.8, 98], [46.2, 65.4, 87.3, 103.8]], cinder: [[55, 58.3, 110, 116.5], [49, 51.9, 98, 103.8], [46.2, 49, 92.4, 98], [55, 65.4, 110, 123.5]], mire: [[65.4, 98, 130.8, 155.6], [58.3, 87.3, 116.5, 146.8], [61.7, 92.4, 123.5, 146.8], [65.4, 98, 130.8, 174.6]] };
+    this._chords = this._chordSets.default;
     this._chord = 0; this._musT = 0; this._pulseT = 0;
   }
   update(dt) {
@@ -131,12 +133,12 @@ export class Audio {
     const c = this.ctx, m = this.mood, now = c.currentTime;
     // score: slow chord changes, brighter and pulsing when guards are hunting you
     this._musT -= dt;
-    if (this._musT <= 0) { this._musT = 14; this._chord = (this._chord + 1) % 4; const ch = this._chords[this._chord]; this.voices.forEach((o, i) => o.frequency.setTargetAtTime(ch[i], now, 3)); if (m.area === 'crypt' || Math.random() < 0.3) this.bellNote(); }
+    if (this._musT <= 0) { this._musT = 14; this._chords = this._chordSets[m.area] || this._chordSets.default; this._chord = (this._chord + 1) % 4; const ch = this._chords[this._chord]; this.voices.forEach((o, i) => o.frequency.setTargetAtTime(ch[i], now, 3)); if (m.area === 'crypt' || Math.random() < 0.3) this.bellNote(); }
     const base = m.area === 'crypt' ? 0.2 : m.area === 'keep' ? 0.17 : 0.13;
     this.padGain.gain.setTargetAtTime(base + m.tension * 0.18, now, 1.5);
     this.padFilter.frequency.setTargetAtTime(380 + m.tension * 900 + (m.indoor ? 0 : 120), now, 1.2);
     this.windGain.gain.setTargetAtTime((m.indoor ? 0.02 : 0.09) * (m.area === 'crypt' ? 0.2 : 1), now, 1.5);
-    this.hearthGain.gain.setTargetAtTime(m.indoor ? 0.16 : 0.0, now, 1.0);
+    this.hearthGain.gain.setTargetAtTime(Math.max(m.indoor ? 0.16 : 0.0, (m.fire || 0) * 0.14), now, 1.0);
     this.rainGain.gain.setTargetAtTime((m.rain || 0) * (m.indoor ? 0.03 : 0.11), now, 1.2);
     this.waterGain.gain.setTargetAtTime(m.area === 'bridge' ? 0.09 : m.area === 'fen' ? 0.035 : 0, now, 1.5);
     if (m.tension > 0.5) { this._pulseT -= dt; if (this._pulseT <= 0) { this._pulseT = 0.66; this._tone(now, { freq: 60, freqEnd: 34, dur: 0.25, gain: 0.35 * m.tension, decay: 0.25 }); } }

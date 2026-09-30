@@ -83,6 +83,7 @@ export class Player {
         const floor = g.nav.noise[Math.max(0, g.nav.at(this.pos[0], this.pos[2]))] ?? 0;
         const loud = (this.sprint ? 13 : this.crouch ? 1.3 : 6.5) * [0.8, 1.0, 1.15, 1.4][floor] * (this.mod?.quiet ?? 1) * (g.weather?.noiseMul ?? 1);
         g.noise(this.pos, loud, 'step'); g.sfx.step?.(floor, this.sprint ? 1.2 : this.crouch ? 0.4 : 0.8);
+        if (floor === 3 && g.story.zone === 'fen') { g.smoke.emit([this.pos[0], 0.08, this.pos[2]], { count: 6, color: [0.25, 0.4, 0.4, 0.5], colorEnd: [0.2, 0.3, 0.3, 0], size: 0.08, grow: 2, spread: 0.6, up: 0.6, life: 0.6, jitter: 0.1 }); g.sfx.splash?.(); }
       }
     }
     // eye height & head bob
@@ -221,7 +222,7 @@ export class Player {
         this.playVm('BlockHit', 0.02, true); this.vmClip = 'Block';
         g.spark([this.pos[0] + this.flat[0] * 0.8, this.pos[1] + 1.3, this.pos[2] + this.flat[1] * 0.8], [-this.flat[0], 0, -this.flat[1]], parry ? 22 : 12);
         g.sfx.clang?.(parry ? 1.2 : 0.9); g.noise(this.pos, 12, 'clang');
-        if (parry) { this.stamina = Math.min(100, this.stamina + 8); this.riposteT = 1.3; g.flashText?.('PARRY'); return 'parried'; }
+        if (parry) { this.stamina = Math.min(100, this.stamina + 8); this.riposteT = 1.3; g.flashText?.('PARRY'); g.slowmo = 0.3; g.shake = Math.max(g.shake, 0.3); return 'parried'; }
         if (this.stamina <= 0) { this.stagger = 0.8; this.blocking = false; this.stamina = 0; g.sfx.grunt?.(); }
         return 'blocked';
       }
