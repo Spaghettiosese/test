@@ -8,6 +8,7 @@ import { DOUBLE, createDouble } from './double.js';
 import { GARAND, createGarand } from './garand.js';
 import { MP7, createMP7 } from './mp7.js';
 import { DEAGLE, createDeagle } from './deagle.js';
+import { AK47, createAK47 } from './ak47.js';
 import { weaponProp } from './prop.js';
 
 export const WEAPONS = [
@@ -19,6 +20,7 @@ export const WEAPONS = [
   { id: 'double', capacity: 2, gun: DOUBLE, create: createDouble },
   { id: 'garand', capacity: 8, gun: GARAND, create: createGarand },
   { id: 'mp7', capacity: 40, gun: MP7, create: createMP7 },
+  { id: 'ak47', capacity: 30, gun: AK47, create: createAK47 },
   { id: 'deagle', capacity: 7, gun: DEAGLE, create: createDeagle },
 ];
 

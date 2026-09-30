@@ -1,6 +1,6 @@
 # ShapeForge Range
 
-A tiny first-person sandbox built on the [ShapeForge Engine](https://github.com/Spaghettiosese/Engine): a covered firing line, three lanes and targets out to 200 m, and nine guns modelled, rigged and animated entirely inside the engine. It plays with a mouse and keyboard or on a phone or tablet with touch controls.
+A tiny first-person sandbox built on the [ShapeForge Engine](https://github.com/Spaghettiosese/Engine): a covered firing line, three lanes and targets out to 200 m, and ten guns modelled, rigged and animated entirely inside the engine. It plays with a mouse and keyboard or on a phone or tablet with touch controls.
 
 ```bash
 npm start      # serves the folder on http://localhost:8080 (any static server works)
@@ -16,7 +16,7 @@ Open `index.html` through a server (ES modules don't load from `file://`) and cl
 | Move · sprint · jump | WASD · Shift · Space |
 | Fire · aim down sights | Left mouse · right mouse (E toggles) |
 | Reload · inspect | R · F (or I) |
-| Switch weapon | 1–9 · mouse wheel · Q |
+| Switch weapon | 1–0 · mouse wheel · Q |
 | Reset targets | T |
 | Hide help | H |
 
@@ -50,6 +50,7 @@ Every gun is a ShapeForge character: parametric shapes (extruded side profiles, 
 | **M1 Garand** (`garand.js`) | Full-length walnut stock with a steel butt plate, parkerized receiver, aperture rear sight with windage and elevation knobs, walnut handguards, lower band, gas cylinder with the protected front sight, operating rod and handle, eight-round en-bloc clip | Idle, Fire (the op rod cycles and throws the case), Reload (haul the op rod back, the empty clip flies out with its ping, thumb a fresh clip in, the bolt slams home), Inspect |
 | **MP7** (`mp7.js`) | Compact polymer PDW: full-length top rail with flip-up sights and a tritium front dot, slotted flash hider, folding vertical foregrip, retractable stock, T charging handle, and the 40-round magazine inside the pistol grip | Idle, Fire (one round of ~950 rpm auto), Reload (strip the mag down out of the grip, push a new one up, palm it home, rack the T handle), Inspect |
 | **Desert Eagle .50 AE** (`deagle.js`) | Massive slide with a ribbed top, rear serrations and dot sights, a triangular barrel housing with its own rail, chunky steel frame, checkered rubber grip, seven-round magazine | Idle, Idle Empty (slide locked back), Fire (a heavy kick: the slide cycles and the muzzle climbs), Fire Last (the slide stays back), Reload (mag change, palm slap), Reload Empty (the same, then the slide is released), **Inspect** (right side, a slide press check, then the pistol is spun twice on the trigger finger and caught) |
+| **AK-47** (`ak47.js`) | Stamped receiver under a dust cover, gas tube and wooden handguards, slant muzzle brake, tangent rear sight, wood stock, bakelite-red pistol grip, curved 30-round banana magazine, right-side charging handle | Idle, Fire (one round of ~600 rpm auto), Reload (mag out, fresh mag in, rack the handle), Inspect |
 | **MP5** (`smg.js`) | Stamped receiver with its side rib, cocking tube with a hooded front sight, rotary drum rear sight, slim handguard, three-lug barrel, polymer grip, retractable two-rod stock, curved 30-round 9mm magazine | Idle, Fire (one round of ~800 rpm auto), Reload (charging handle back and locked up, mag change, then the "HK slap" sends the bolt home), Inspect (both sides, press check) |
 
 ### V5 props

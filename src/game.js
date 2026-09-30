@@ -36,6 +36,7 @@ const CFG = {
   revolver: { label: '.44 Magnum', mag: 6, auto: false, interval: 0.45, delay: 0.065, spread: 0.022, adsSpread: 0.002, pellets: 1, kick: 7, kickAds: 5, adsFov: 50, relief: 0.3, impulse: 6, brass: 'magnum44' },
   double: { label: 'Double Barrel', mag: 2, auto: false, interval: 0.28, spread: 0.075, adsSpread: 0.055, pellets: 9, kick: 6.5, kickAds: 4.6, adsFov: 56, relief: 0.3, impulse: 2, brass: 'shell' },
   garand: { label: 'M1 Garand', mag: 8, auto: false, interval: 0.18, spread: 0.03, adsSpread: 0.0015, pellets: 1, kick: 3.2, kickAds: 2.3, adsFov: 44, relief: 0.2, impulse: 7, brass: 'rifle3006', ejectOnShot: true },
+  ak47: { label: 'AK-47', mag: 30, auto: true, interval: 0.1, spread: 0.026, adsSpread: 0.0035, pellets: 1, kick: 1.4, kickAds: 0.8, adsFov: 50, relief: 0.2, impulse: 4, brass: 'ak', ejectOnShot: true },
   deagle: { label: 'Desert Eagle', mag: 7, auto: false, interval: 0.3, spread: 0.02, adsSpread: 0.002, pellets: 1, kick: 8.5, kickAds: 6, adsFov: 52, relief: 0.28, impulse: 9, brass: 'ae50' },
   mp7: { label: 'MP7', mag: 40, auto: true, interval: 0.063, spread: 0.02, adsSpread: 0.0035, pellets: 1, kick: 0.5, kickAds: 0.26, adsFov: 52, relief: 0.2, impulse: 2, brass: 'pdw', ejectOnShot: true },
   smg: { label: 'MP5', mag: 30, auto: true, interval: 0.075, spread: 0.022, adsSpread: 0.004, pellets: 1, kick: 0.6, kickAds: 0.3, adsFov: 52, relief: 0.2, impulse: 2, brass: 'pistol', ejectOnShot: true },
@@ -61,7 +62,7 @@ for (const [i, w] of WEAPONS.entries()) {
   const c = makeWeaponProp(w.id, { detail: 0.7 });
   c.name = w.gun.name + ' (display)';
   const q = E.quat.multiply(E.quat.create(), E.quat.fromEuler(E.quat.create(), 0, 62 + i * 8, 0), E.quat.fromEuler(E.quat.create(), 0, 0, 90));
-  const [sx, sz] = { m4a1: [-6.4, 0.5], sniper: [-0.3, 0.5], shotgun: [6.3, 0.5], revolver: [-4.7, 0.5], smg: [4.5, 0.5], double: [5.2, 0.76], garand: [-5.4, 0.78], mp7: [1.1, 0.52], deagle: [-2.6, 0.5] }[w.id] ?? [0, 0.5];
+  const [sx, sz] = { m4a1: [-6.4, 0.5], sniper: [-0.3, 0.5], shotgun: [6.3, 0.5], revolver: [-4.7, 0.5], smg: [4.5, 0.5], double: [5.2, 0.76], garand: [-5.4, 0.78], mp7: [1.1, 0.52], deagle: [-2.6, 0.5], ak47: [2.6, 0.5] }[w.id] ?? [0, 0.5];
   c.rotation.set(q); c.position.set([sx, 0.935 + 0.03, sz]);
   scene.add(c); displays.push(c);
 }
@@ -89,6 +90,7 @@ const CASE = {
   shell: { geo: E.cylinder({ radiusTop: 0.0105, radiusBottom: 0.0105, height: 0.068, radialSegments: 10 }), mat: hullMat, half: [0.0105, 0.034, 0.0105], mass: 0.03 },
   pistol: { geo: E.cylinder({ radiusTop: 0.0048, radiusBottom: 0.0048, height: 0.019, radialSegments: 8 }), mat: brassMat, half: [0.005, 0.0095, 0.005], mass: 0.005 },
   rifle3006: { geo: E.cylinder({ radiusTop: 0.006, radiusBottom: 0.006, height: 0.063, radialSegments: 8 }), mat: brassMat, half: [0.006, 0.031, 0.006], mass: 0.013 },
+  ak: { geo: E.cylinder({ radiusTop: 0.0055, radiusBottom: 0.0055, height: 0.039, radialSegments: 8 }), mat: brassMat, half: [0.0055, 0.02, 0.0055], mass: 0.016 },
   ae50: { geo: E.cylinder({ radiusTop: 0.0066, radiusBottom: 0.0066, height: 0.04, radialSegments: 8 }), mat: brassMat, half: [0.0068, 0.02, 0.0068], mass: 0.014 },
   pdw: { geo: E.cylinder({ radiusTop: 0.0042, radiusBottom: 0.0042, height: 0.03, radialSegments: 8 }), mat: brassMat, half: [0.0042, 0.015, 0.0042], mass: 0.004 },
   clip: { geo: E.box({ width: 0.03, height: 0.05, depth: 0.052 }), mat: new E.Material({ name: 'Clip', color: '#56585a', roughness: 0.35, metallic: 0.95 }), half: [0.015, 0.025, 0.026], mass: 0.02 },
@@ -456,7 +458,7 @@ addEventListener('keydown', (e) => {
   if (k === ' ') e.preventDefault();
   if (k === 'r') reload();
   if (k === 'f' || k === 'i') inspect();
-  if (k >= '1' && k <= '9' && k.length === 1) switchTo(+k - 1);
+  if (k >= '0' && k <= '9' && k.length === 1) switchTo(k === '0' ? 9 : +k - 1);
   if (k === 'q') switchTo((P.cur + 1) % vm.length);
   if (k === 't') { range.spawnLoose(); range.resetSteel(); decals.clear(); feed('Targets reset'); }
   if (k === 'e') P.aimToggle = !P.aimToggle;
