@@ -25,6 +25,13 @@ function portcullis(B, x, z, w, h, chunk) {
   const body = new E.Body({ shape: new E.Box([w / 2, h / 2, 0.15]), type: 'static', position: [x, h / 2, z] }); body.userData.kind = 'iron'; B.world.add(body);
   const p = { part, body, x, z, w, h, closed: true, node };
   p.set = (up) => { part.set(up ? h + 0.4 : 0); p.closed = !up; };
+  p.blocking = true;
+  p.update = (dt) => {
+    part.update(dt);
+    const clear = part.value > 2.3;                       // the lowest bar is above head height
+    if (clear && p.blocking) { B.world.remove(body); p.blocking = false; } else if (!clear && !p.blocking) { B.world.add(body); p.blocking = true; }
+    body.position[1] = part.value + h / 2;
+  };
   B.portcullis = p;
   return p;
 }

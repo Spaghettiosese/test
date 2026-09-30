@@ -12,7 +12,7 @@ export function buildCrypt(B) {
   // rooms: doorways are plain arches, cut by house() through the wall lines
   const arches = (list) => list.map(([side, at, w = 2]) => ({ side, at, w, kind: 'arch', h: 2.7 }));
   const mk = (id, x, z, w, d, ar, extra = {}) => {
-    const b = B.house({ id, x, z, w, d, h: 3.8, wall: 'stoneOld', timber: false, zone: 2, roof: false, underground: true, floor: 'flagstone', ceilMat: 'stoneDark', noise: 1, t: 0.9, ...extra, doors: arches(ar), windows: [] });
+    const b = B.house({ id, x, z, w, d, h: 3.8, wall: 'stoneOld', timber: false, zone: 2, roof: false, underground: true, floor: 'flagstone', ceilMat: 'stoneDark', noise: 1, t: 0.9, ...extra, doors: extra.doors || arches(ar), windows: [] });
     return b;
   };
   const A = mk('crypt_a', 72, 11, 12, 12, [['E', 6]]);
@@ -20,7 +20,7 @@ export function buildCrypt(B) {
   const Bh = mk('crypt_b', 97, 10, 17, 22, [['W', 7], ['N', 8]], { h: 4.6 });
   const C2 = mk('crypt_c2', 103, 31, 5, 15, [['S', 2], ['N', 2]]);
   const Cc = mk('crypt_c', 97, 45, 17, 15, [['S', 8]], { h: 4.6, doors: arches([['S', 8]]).concat([{ side: 'E', at: 7, w: 1.8, id: 'crypt_gate', locked: true, keyId: 'cryptkey', lockLevel: 2, h: 2.7 }]) });
-  const U = mk('undercroft', 113, 44, 14, 17, [], { h: 4.2, doors: [] });
+  const U = mk('undercroft', 113, 44, 14, 17, [['W', 8, 1.8]], { h: 4.2 });
   // the doorway between the shrine and the undercroft shares a wall: cut it in the undercroft too
   B.nav.clear(113.05, 51.05, 113.95, 52.95);
   B.useChunk('crypt');

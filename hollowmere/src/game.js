@@ -170,7 +170,7 @@ export class Game {
     // gates: open by day, barred from 22:00 to 05:30
     const wantOpen = !this.clock.between(22, 5.5) && this.alarmLevel < 1.5;
     if (wantOpen !== this.gatesOpen) { this.gatesOpen = wantOpen; this.updateGates(false); }
-    if (L.portcullis) L.portcullis.part.update(dt);
+    if (L.portcullis) L.portcullis.update(dt);
     for (const f of L.fires) { f.phase += dt; }
     // torch flicker & flames
     const P = this.player.pos;
