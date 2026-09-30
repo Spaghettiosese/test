@@ -49,6 +49,7 @@ export class Progress {
       hp: 15 * r('thickskin'), stam: 1 + 0.15 * r('fleet'), sprintCost: 1 - 0.1 * r('fleet'), ember: 20 * r('emberwell'), cd: 0.88 ** r('umbral'),
       poison: 1 + 0.3 * r('toxicology'), fire: 1 + 0.35 * r('pyro'), sight: 1 + 0.5 * r('sight'),
     };
+    this.g.gear?.apply(m);
     const P = this.g.player; if (!P) { this.mod = m; return; }
     P.mod = m; const hp0 = P.maxHp; P.maxHp = 120 + m.hp; P.hp += P.maxHp - hp0; P.maxEmber = 100 + m.ember; this.mod = m;
   }

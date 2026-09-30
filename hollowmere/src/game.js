@@ -12,6 +12,16 @@ import { Progress } from './progress.js';
 import { Reputation } from './reputation.js';
 import { Tools } from './tools.js';
 import { Weather } from './weather.js';
+import { Status } from './status.js';
+import { Traps } from './traps.js';
+import { Lockdown } from './lockdown.js';
+import { Lamps } from './lamps.js';
+import { Lantern } from './lantern.js';
+import { Hunters } from './hunters.js';
+import { Foraging } from './foraging.js';
+import { Contracts } from './contracts.js';
+import { Codex } from './codex.js';
+import { Gear } from './gear.js';
 import { Events } from './events.js';
 import { Saves } from './saves.js';
 import { WorldMap } from './worldmap.js';
@@ -47,6 +57,12 @@ export class Game {
     this.sfx = new Audio();
     this.squad = new Squad(this);
     this.quests = new Quests(this);
+    this.gear = new Gear(this);
+    this.status = new Status(this);
+    this.lockdown = new Lockdown(this);
+    this.hunters = new Hunters(this);
+    this.contracts = new Contracts(this);
+    this.codex = new Codex(this);
     this.progress = new Progress(this);
     this.rep = new Reputation(this);
     this.tools = new Tools(this);
@@ -69,12 +85,17 @@ export class Game {
     this.level = buildLevel({ scene: this.scene, world: this.world });
     this.nav = this.level.nav; this.decor = this.level.decor;
     this.wmap = new WorldMap(this);
+    this.level.trapSpots ||= [];
+    this.traps = new Traps(this);
+    this.lamps = new Lamps(this);
+    this.forage = new Foraging(this);
     installFx(this);
     this.ui = new UI(this); this.story = new Story(this);
     this.world.on('contact', (e) => this.onContact(e));
     progress(0.25, 'Stitching the arms');
     await tick();
     this.player = new Player(this, [0, 0.1, -46]);
+    this.lantern = new Lantern(this);
     this.progress.applyMods();
     this.npcs = [];
     const roster = buildRoster();
@@ -118,6 +139,10 @@ export class Game {
     this.updateLazy(dt);
     this.quests.update(dt);
     this.tools.update(dt);
+    this.status.update(dt);
+    this.traps?.update(dt);
+    this.lockdown.update(dt); this.lamps.update(dt); this.lantern.update(dt); this.hunters.update(dt); this.forage.update(dt); this.codex.update(dt);
+    if (this.player.mod?.regen && this.player.hp < this.player.maxHp && this.combatT <= 0) this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.mod.regen * dt);
     this.weather.update(dt);
     this.events.update(dt);
     this.wmap.update(dt);
@@ -167,6 +192,7 @@ export class Game {
     env.fogDensity = 0.011 * (1 - k * 0.5) + (this.clock.night ? 0.004 : 0); env.fogHeight = 0.3 * (1 - k);
     env.godRays *= 1 - k; env.volumeDensity = 0.03 * (1 - k * 0.5);
     if (this.clock.night) env.exposure *= 1.06;
+    if (this.status.has('night')) { env.ambient = Math.max(env.ambient, 0.95); env.exposure *= 1.18; }
     E.setNightLights(this.level.pal, env.night);
     this.weather.apply(env);
     env.shadowRadius = 26; env.shadowFar = 90;
@@ -202,7 +228,7 @@ export class Game {
     for (const n of this.npcs) if (!n.dead && n.dist < 12) actors.push([n.x, n.y, n.z]);
     L.updateDoors(dt, actors);
     // gates: open by day, barred from 22:00 to 05:30
-    const wantOpen = !this.clock.between(22, 5.5) && this.alarmLevel < 1.5;
+    const wantOpen = !this.clock.between(22, 5.5) && this.alarmLevel < 1.5 && !this.lockdown?.active;
     if (wantOpen !== this.gatesOpen) { this.gatesOpen = wantOpen; this.updateGates(false); }
     if (L.portcullis) L.portcullis.update(dt);
     for (const f of L.fires) { f.phase += dt; }
@@ -333,7 +359,7 @@ export class Game {
     const before = n.hp, res = n.takeHit(dmg, dir, opts);
     const at = [n.x, n.y + 1.2, n.z];
     if (res === 'blocked') return res;
-    if (res === 'ko') { this.ui.hitMarker(); this.sfx.thud?.(0.7, n.pos); this.flashText?.('KNOCKED OUT'); this.progress.addXp(10, 'knockout'); return res; }
+    if (res === 'ko') { this.stats.ko = (this.stats.ko || 0) + 1; this.ui.hitMarker(); this.sfx.thud?.(0.7, n.pos); this.flashText?.('KNOCKED OUT'); this.progress.addXp(10, 'knockout'); return res; }
     this.sfx.slash?.(n.pos); this.spawnBlood(at, dir, res === 'killed' ? 26 : 12);
     if (opts.from === 'player' && res !== 'dead' && !n.guard && n.role !== 'bandit' && n.role !== 'hollow') this.rep.crime(res === 'killed' ? 'murder' : 'assault', n.pos, { victim: n });
     if (opts.backstab) { this.flashText?.('ASSASSINATION'); this.stats.stabs++; this.slowmo = 0.35; }
@@ -347,6 +373,7 @@ export class Game {
     this.story.onKill(n, opts);
     { const P = this.player, m = P.mod || {}; let xp = n.role === 'hollow' ? 30 : n.role === 'bandit' ? 28 : n.guard ? 22 : 0;
       if (xp && opts.backstab) xp += 12 + 8 * (m.cutthroat || 0); if (xp && opts.poison) xp += 6;
+      if (opts.fire) this.stats.fireKills = (this.stats.fireKills || 0) + 1; if (opts.poison && !opts.bleedOnly) this.stats.poisonKills = (this.stats.poisonKills || 0) + 1;
       if (xp) this.progress.addXp(xp, opts.backstab ? 'assassination' : opts.poison ? 'poisoned' : opts.fire ? 'burned' : 'kill');
       if (m.leech && !opts.poison && !opts.fire) P.hp = Math.min(P.maxHp, P.hp + m.leech); }
     for (const o of this.nearNpcs(n, 14)) if (!o.guard) o.scare(n.pos, 14);

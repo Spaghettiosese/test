@@ -28,15 +28,16 @@ export function buildWildsRoster(R) {
   // bandits: hostile from the start, a leader, sleepers, sentries
   const bandit = (id, name, pos, sched, o = {}) => add({ id, name, role: 'bandit', pos, yaw: o.yaw ?? 0, schedule: sched, hostile: true, hp: o.hp ?? 55, dmg: o.dmg ?? 0.95, block: o.block ?? 0.22, eyes: o.eyes ?? 1.0, loot: o.loot || [], weapon: o.weapon, spec: banditSpec(o) });
   const bc = [-172, 14];
-  bandit('cael', 'Red Cael', [bc[0] + 2, bc[1] + 3], [S(6, 22, 'bandit_seat_0', 'drink'), S(22, 6, 'bed_bandit_0', 'sleep')], { hair: 'red', beard: 'long', scar: true, build: 1.14, height: 1.05, hp: 120, dmg: 1.25, block: 0.4, weapon: 'captain', voice: 0.7, loot: [['gold', 90], ['tollkey', 1], ['ring', 1]] });
+  bandit('cael', 'Red Cael', [bc[0] + 2, bc[1] + 3], [S(6, 22, 'bandit_seat_0', 'drink'), S(22, 6, 'bed_bandit_0', 'sleep')], { hair: 'red', beard: 'long', scar: true, build: 1.14, height: 1.05, hp: 120, dmg: 1.25, block: 0.4, weapon: 'captain', voice: 0.7, loot: [['gold', 90], ['tollkey', 1], ['ring', 1], ['leathers', 1], ['wolftooth', 1]] });
   const bl = [['Bandit Rook', 'brown', 'sword'], ['Bandit Dorn', 'black', 'mace'], ['Bandit Ivo', 'blond', 'spear'], ['Bandit Skarn', 'grey', 'sword'], ['Bandit Pell', 'red', 'dagger'], ['Bandit Yorl', 'black', 'mace']];
   bl.forEach(([name, hair, weapon], i) => {
     const seat = 'bandit_seat_' + (i + 1 < 6 ? i + 1 : 5);
-    if (i < 3) bandit('bandit_' + i, name, [bc[0] + 3 + i, bc[1] + 2], [S(6, 22, seat, i % 2 ? 'drink' : 'eat'), S(22, 6, 'bed_bandit_' + (i + 1), 'sleep')], { hair, weapon, beard: i % 2 ? 'short' : undefined, loot: [['gold', 8 + i * 4]] });
+    if (i < 3) bandit('bandit_' + i, name, [bc[0] + 3 + i, bc[1] + 2], [S(6, 22, seat, i % 2 ? 'drink' : 'eat'), S(22, 6, 'bed_bandit_' + (i + 1), 'sleep')], { hair, weapon, beard: i % 2 ? 'short' : undefined, loot: [['gold', 8 + i * 4], ['scrap', 1 + (i % 2)]].concat(i === 1 ? [['ironcap', 1]] : []) });
     else if (i === 3) bandit('bandit_3', name, [bc[0] + 14, bc[1] + 12], [S(0, 24, 'bandit_lookout', 'guard')], { hair, weapon, eyes: 1.25, loot: [['gold', 14]] });
     else if (i === 4) bandit('bandit_4', name, [bc[0] - 15, bc[1] - 4], [RT(0, 24, 'bandit_patrol', { pause: 3, speed: 1.05 })], { hair, weapon, loot: [['gold', 10], ['potion', 1]] });
     else bandit('bandit_5', name, [bc[0] - 15, bc[1] - 2], [S(0, 24, 'bandit_gate', 'guard')], { hair, weapon, loot: [['gold', 9]] });
   });
   // ------------------------------------------------------------------ Cinderwick
+  add({ id: 'lamplighter', name: 'Lamplighter Fenn', role: 'villager', pos: [0, 24], yaw: 0, hp: 25, dialogue: 'lamplighter', schedule: [RT(18.4, 21, 'lamp_route', { speed: 0.9, pause: 2 }), RT(5.4, 6.8, 'lamp_route', { speed: 0.9, pause: 2 }), S(21, 5.4, 'well', 'stand'), S(6.8, 18.4, 'well', 'stand')], spec: villager({ cloth: '#4a3a2a', cloth2: '#2a2018', hood: false, hair: 'grey', cap: true, voice: 0.9 }) });
   v('ilse', 'Ilse', [152, 94], [S(0, 24, 'cinder_well', 'stand')], { outfit: 'woman', cloth: '#3a3038', cloth2: '#2a2228', hood: true, hair: 'black', hairStyle: 'long', skin: 'sallow', dialogue: 'ilse', voice: 1.2, hp: 22 });
 }

@@ -168,6 +168,8 @@ export class NPC {
     if (this.poison > 0) { this.poison -= dt; this.hp -= dt * (3.2 * (this.g.player.mod?.poison || 1)); if (Math.random() < dt * 0.35) { this.bark(['*cough*', 'I do not feel well...', 'My chest...'][Math.floor(Math.random() * 3)]); this.g.sfx.grunt?.(0.4, this.pos, 0.9); } if (this.hp <= 0) { this.die([0, 0], { poison: true }); return; } }
     if (this.bleed > 0) { this.bleed -= dt; this.hp -= dt * 3.4; if (Math.random() < dt * 3) this.g.spawnBlood([this.x, this.y + 1.0, this.z], [0, 0], 2); if (this.hp <= 0) { this.die([0, 0], { poison: true }); return; } }
     if (this.burn > 0) { this.burn -= dt; this.hp -= dt * 11; if (Math.random() < dt * 2.5) this.g.flames.emit([this.x, this.y + 1.2, this.z], { count: 2, color: [4, 1.8, 0.4, 1], colorEnd: [1, 0.2, 0, 0], size: 0.18, grow: 0.3, spread: 0.3, up: 1.2, life: 0.5, jitter: 0.2 }); if (Math.random() < dt * 1.2) this.g.sfx.grunt?.(0.8, this.pos, 1.3); if (this.hp <= 0) { this.die([0, 0], { fire: true }); return; } if (!this.guard && this.state !== 'flee') this.scare(P.pos, 6); else if (this.guard && this.state === 'routine') { this.alert = 1; this.noticed(this.pos, 'combat'); } }
+    if (this.snare > 0) { this.snare -= dt; this.speed = 0; this.stopMove(); this.setLoco(0); this.blind = Math.max(0, (this.blind || 0) - dt); this.applyPose(); this.body.position[0] = this.x; this.body.position[1] = this.y + 0.9; this.body.position[2] = this.z; if (this.guard && this.snare > 0.3) this.perceive(dt); return; }
+    if (this.blind > 0) this.blind -= dt;
     if (this.state === 'ko') { this.koT -= dt; this.speed = 0; if (this.koT <= 0) this.wakeUp(); this.applyPose(); this.body.position[0] = this.x; this.body.position[1] = this.y + 0.3; this.body.position[2] = this.z; return; }
     if (this.pendingGoal && this.g.pathBudget > 0) this.goTo(...this.pendingGoal);
     if (this.state === 'routine' || this.state === 'notice') this.updateRoutine(dt);
@@ -327,6 +329,7 @@ export class NPC {
     const gm = this.g.mode; if (gm !== 'play' && gm !== 'talk' && gm !== 'read' && gm !== 'journal') return;
     this.percT -= dt; if (this.percT > 0) return; this.percT = 0.14 + Math.random() * 0.04;
     const g = this.g, P = g.player, eye = this.eye;
+    if (this.blind > 0) { this.sees = false; this.alert = Math.max(0, this.alert - 0.02); return; }
     let seen = false, gain = 0;
     const pd = this.dist;
     // asleep or out cold: nothing

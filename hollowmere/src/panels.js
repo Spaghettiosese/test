@@ -5,9 +5,11 @@ import { RECIPES } from './tools.js';
 import { ITEMS } from './items.js';
 import { QUESTS } from './quests.js';
 import { LORE } from './lore.js';
+import { GEAR, SLOTS } from './gear.js';
+import { CODEX, DEEDS } from './codex.js';
 
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-export const TABS = [['journal', 'Journal'], ['perks', 'Perks'], ['craft', 'Craft'], ['map', 'Map'], ['lore', 'Lore']];
+export const TABS = [['journal', 'Journal'], ['perks', 'Perks'], ['craft', 'Craft'], ['map', 'Map'], ['lore', 'Lore'], ['gear', 'Gear'], ['deeds', 'Deeds']];
 
 export function installPanels(UI) {
   const P = UI.prototype;
@@ -27,6 +29,8 @@ export function installPanels(UI) {
     if (act === 'tab') { this.tab = arg; this.renderBook(); }
     else if (act === 'perk') { g.progress.buy(arg); this.renderBook(); }
     else if (act === 'craft') { g.tools.craft(arg); this.renderBook(); }
+    else if (act === 'equip') { g.gear.equip(arg); this.renderBook(); }
+    else if (act === 'unequip') { g.gear.unequip(arg); this.renderBook(); }
     else if (act === 'use') { g.useItem(arg); this.renderBook(); }
     else if (act === 'lore') { this.loreOpen = arg; this.renderBook(); }
   };
@@ -57,7 +61,18 @@ export function installPanels(UI) {
       body = `<div class="cols"><div><h4>Writings found (${found.length}/${LORE.length})</h4><ul>${found.map((l) => `<li><button class="link" data-act="lore:${l.id}">${esc(l.title)}</button></li>`).join('') || '<li><span>Nothing yet. Read what you find.</span></li>'}</ul></div><div>${open ? `<h4>${esc(open.title)}</h4><p class="lore">${esc(open.text)}</p>` : '<p class="sub">Choose a writing to read again.</p>'}</div></div>`;
     }
     document.body.classList.add('book');
-    this.el.inv.innerHTML = head + `<div class="bookbody">${body}</div><div class="hint">Tab / Esc to close · 1-5 tabs · M map · P perks</div>`;
+    if (tab === 'gear') {
+      const eq = g.gear.eq, m = P.mod, mods = [['Armor', Math.round((m.armor + g.status.sum('armor')) * 100) + '%'], ['Noise', Math.round(m.quiet * g.status.mul('quiet') * 100) + '%'], ['Visibility', Math.round(m.vis * 100) + '%'], ['Damage', Math.round(m.dmg * 100) + '%'], ['Max Ember', P.maxEmber], ['Max Health', P.maxHp]];
+      const owned = Object.keys(GEAR).filter((id) => inv.has(id));
+      body = `<div class="cols"><div><h4>Worn</h4><ul>${SLOTS.map(([s, n]) => `<li><span>${n}: ${eq[s] ? esc(GEAR[eq[s]].name) : '<i>empty</i>'}</span><span>${eq[s] ? `<button class="mini" data-act="unequip:${s}">remove</button>` : ''}</span></li>`).join('')}</ul>
+        <h4>Effect</h4><ul>${mods.map(([a, b]) => `<li><span>${a}</span><span>${b}</span></li>`).join('')}</ul></div>
+        <div><h4>In your pack</h4><ul>${owned.map((id) => `<li><span>${esc(GEAR[id].name)}<br><small style="color:var(--dim)">${esc(GEAR[id].desc)}</small></span><span><button class="mini" data-act="equip:${id}">wear</button></span></li>`).join('') || '<li><span>No gear. Loot bandits, chests and the shops.</span></li>'}</ul>
+        <h4>Active effects</h4><ul>${[...g.status.fx].map(([id, t]) => `<li><span>${esc(g.status.constructor.name && (id))}</span><span>${Math.ceil(t)}s</span></li>`).join('') || '<li><span>None</span></li>'}</ul></div></div>`;
+    } else if (tab === 'deeds') {
+      body = `<div class="cols"><div><h4>Deeds (${g.codex.done.size}/${DEEDS.length})</h4><ul>${DEEDS.map((d) => `<li class="${g.codex.done.has(d.id) ? 'done' : ''}"><span>${esc(d.name)}<br><small style="color:var(--dim)">${esc(d.desc)}</small></span><span>${g.codex.done.has(d.id) ? 'done' : ''}</span></li>`).join('')}</ul></div>
+        <div><h4>Bestiary (${g.codex.seen.size}/${CODEX.length})</h4><ul>${CODEX.map((c) => g.codex.seen.has(c.id) ? `<li><span><b>${esc(c.name)}</b><br><small style="color:var(--dim)">${esc(c.text)}</small></span></li>` : `<li><span style="color:var(--dim)">???</span></li>`).join('')}</ul></div></div>`;
+    }
+    this.el.inv.innerHTML = head + `<div class="bookbody">${body}</div><div class="hint">Tab / Esc to close · 1-7 tabs · M map · P perks</div>`;
     this.el.inv.hidden = false;
   };
   const upd = P.update;

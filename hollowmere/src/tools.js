@@ -11,6 +11,16 @@ export const RECIPES = [
   { id: 'salve', name: 'Red Salve', makes: ['potion', 2], needs: [['bread', 2], ['hexbane', 1]], desc: 'Two salves from bread and bitter herbs.' },
   { id: 'ember', name: 'Ember Flask', makes: ['ember', 1], needs: [['hexbane', 1], ['ring', 1]], desc: 'Grind a silver ring into a flask of Ember.' },
   { id: 'pick', name: 'Lockpicks', makes: ['lockpick', 3], needs: [['dagger', 1]], desc: 'File a dagger into three picks.' },
+  { id: 'hexbane', name: 'Hexbane draught', makes: ['hexbane', 1], needs: [['h_hex', 2]], desc: 'Boil two Hexwort into a bitter tonic.' },
+  { id: 'emberf', name: 'Ember Flask (moss)', makes: ['ember', 1], needs: [['h_ember', 2]], desc: 'Steep two Ember moss.' },
+  { id: 'd_haste', name: 'Draught of Haste (6)', makes: ['d_haste', 1], needs: [['h_bog', 1], ['hexbane', 1]], desc: 'Run 28% faster for 40 seconds.' },
+  { id: 'd_iron', name: 'Draught of Ironhide (7)', makes: ['d_iron', 1], needs: [['h_bog', 2], ['scrap', 1]], desc: 'Take 40% less damage for 70 seconds.' },
+  { id: 'd_night', name: 'Draught of Night Eye (8)', makes: ['d_night', 1], needs: [['nightbloom', 1], ['h_hex', 1]], desc: 'See in the dark for two minutes.' },
+  { id: 'd_ghost', name: 'Draught of Ghostwalk (9)', makes: ['d_ghost', 1], needs: [['nightbloom', 1], ['h_ember', 1]], desc: 'Nearly silent and half as visible for 25 seconds.' },
+  { id: 'smokeb', name: 'Smoke bombs', makes: ['smoke', 2], needs: [['h_ember', 1], ['cloth', 1]], desc: 'Two bombs that blind and hide (J).' },
+  { id: 'oilf', name: 'Lamp oil', makes: ['oil', 3], needs: [['h_bog', 1]], desc: 'Render bogcap into lantern oil (L).' },
+  { id: 'beart', name: 'Bear trap', makes: ['beartrap', 1], needs: [['scrap', 3]], desc: 'Set with H. Holds and hurts.' },
+  { id: 'wiret', name: 'Tripwires', makes: ['wire', 2], needs: [['scrap', 1], ['cloth', 1]], desc: 'Set with H. Trips and stuns.' },
   { id: 'sap', name: 'Lead sap', makes: ['sap', 1], needs: [['sack', 0], ['gold', 15]], desc: 'A weighted cosh, for quiet work.', once: true },
 ];
 
@@ -32,6 +42,10 @@ export class Tools {
     if (k.has('x')) this.throwBomb();
     if (k.has('b')) this.toggleSap();
     if (k.has('u')) g.rep.remove();
+    if (k.has('l')) g.lantern.toggle();
+    if (k.has('h')) g.traps?.drop();
+    if (k.has('j')) this.throwSmoke();
+    for (const [key, id, ef] of [['6', 'd_haste', 'haste'], ['7', 'd_iron', 'iron'], ['8', 'd_night', 'night'], ['9', 'd_ghost', 'ghost']]) if (k.has(key)) this.drink(id, ef);
     this.dragUpdate(input.keys.has('z'), dt);
   }
   origin(sp, up = 0.0) {
@@ -63,6 +77,17 @@ export class Tools {
   toggleSap() {
     const g = this.g; if (!g.player.inv.has('sap')) { g.toast('You have no sap (craft one)'); return; }
     this.sap = !this.sap; g.ui.toast(this.sap ? 'Sap ready: blows knock out the unwary' : 'Blade ready'); g.sfx.blip?.(0.8);
+  }
+  throwSmoke() {
+    const g = this.g, P = g.player; if (this.cool.bomb > 0 || P.dead || g.mode !== 'play') return;
+    if (!P.inv.has('smoke')) { g.toast('No smoke bombs'); g.sfx.deny?.(); return; }
+    P.inv.remove('smoke', 1); this.cool.bomb = 1.0;
+    const o = this.origin(13, 3.0), m = new E.Mesh(this.geoFlask, this.mGold, 'Smoke'); m.castShadow = false;
+    this.add('smoke', m, o.p, o.v); P.playVm('Pinch', 0.03); g.sfx.swing?.(0.5);
+  }
+  drink(id, ef) {
+    const g = this.g, P = g.player; if (!P.inv.has(id)) { g.toast(`No ${ITEMS[id]?.name || id}`); g.sfx.deny?.(); return; }
+    P.inv.remove(id, 1); g.status.add(ef); g.sfx.drink?.(); P.playVm('Pinch', 0.05);
   }
   applyPoison() {
     const g = this.g, P = g.player;
@@ -116,10 +141,12 @@ export class Tools {
       const dmg = 22 * (P.mod?.knife || 1) * (head ? 2.6 : 1);
       const opts = { from: 'player', clip: 'knife', ranged: true, silentKill: unaware && head };
       const res = g.hitNpc(n, dmg, [dir[0], dir[2]], opts);
+      if (res === 'killed') g.stats.knifeKills = (g.stats.knifeKills || 0) + 1;
       if (res === 'killed' && Math.random() < (P.mod?.knifeSave ?? 0.35)) { P.inv.add('knife', 1); }
       if (head && res !== 'blocked') g.flashText('HEADSHOT');
     } else if (pr.kind === 'coin') { g.noise(n.pos, 6, 'step'); g.sfx.coin?.(); n.hear([n.x, n.y, n.z], 8, 'coin', null); }
     else if (pr.kind === 'bomb') this.burst(pr.p);
+    else if (pr.kind === 'smoke') g.status.smoke(pr.p);
   }
   land(pr, at, normal, dir) {
     const g = this.g;
@@ -131,6 +158,7 @@ export class Tools {
       g.sfx.coin?.(); g.noise(at, 15, 'coin'); g.spark(at, [0, 1, 0], 3);
       for (const n of g.npcs) if (n.guard && !n.dead && hyp(n.x - at[0], n.z - at[2]) < 15) { n.alert = Math.max(n.alert, 0.45); n.noticed(at, 'coin'); if (n.state === 'notice') n.bark('Did you hear a coin?'); }
     } else if (pr.kind === 'bomb') this.burst(at);
+    else if (pr.kind === 'smoke') g.status.smoke(at);
   }
   burst(at) {
     const g = this.g, P = g.player, s = P.mod?.fire || 1;
@@ -177,7 +205,7 @@ export class Tools {
   craft(id) {
     const r = RECIPES.find((x) => x.id === id), g = this.g, inv = g.player.inv; if (!r || !this.canCraft(r)) { g.sfx.deny?.(); return false; }
     for (const [it, n] of r.needs) if (n) { if (it === 'gold') inv.gold -= n; else inv.remove(it, n); }
-    inv.add(r.makes[0], r.makes[1]); g.sfx.coin?.(); g.toast(`Crafted ${r.makes[1]} × ${ITEMS[r.makes[0]].name}`); g.progress.addXp(8, 'craft'); return true;
+    inv.add(r.makes[0], r.makes[1]); g.stats.crafted = (g.stats.crafted || 0) + r.makes[1]; g.sfx.coin?.(); g.toast(`Crafted ${r.makes[1]} × ${ITEMS[r.makes[0]].name}`); g.progress.addXp(8, 'craft'); return true;
   }
   // ---------------------------------------------------------------- interactions
   hook(push, eye, f) {
@@ -199,7 +227,7 @@ export class Tools {
     P.startPicking(n, 1, () => {
       const take = n.pockets; n.pockets = []; let gold = 0;
       for (const [id, c] of take) { const cc = id === 'gold' ? Math.round(c * (1 + 0.3 * nim)) : c; P.inv.add(id, cc); if (id === 'gold') gold += cc; else g.toast(`Took ${ITEMS[id]?.name}`); }
-      g.toast(gold ? `Lifted ${gold} gold` : 'Pockets emptied'); g.sfx.coin?.(); g.progress.addXp(6, 'pickpocket');
+      g.toast(gold ? `Lifted ${gold} gold` : 'Pockets emptied'); g.sfx.coin?.(); g.progress.addXp(6, 'pickpocket'); g.stats.pick = (g.stats.pick || 0) + 1;
     }, 'Picking a pocket', { free: true, need, watch: (dt) => {
       if (n.dead || n.state !== 'routine' || n.alert > 0.55) { this.caught(n); return false; }
       if (n.dist > 2.4) return false;

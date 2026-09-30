@@ -53,7 +53,7 @@ export class Events {
     P.hp = Math.min(P.maxHp, P.hp + (P.maxHp - P.hp) * 0.7 + 10); P.ember = P.maxEmber; P.stamina = 100;
     for (const n of g.npcs) if (!n.dead && n.state !== 'ko' && !n.dormant && n.role !== 'hollow') { if (n.state === 'chase' || n.state === 'attack' || n.state === 'search') { n.state = 'routine'; n.alert = 0; } n.slotKey = ''; n.snapToSchedule?.(); }
     g.alarmLevel = 0; g.combatT = 0; g.weather.next = Math.min(g.weather.next, 30);
-    g.ui.toast('You rest. Time passes.'); g.saves?.save('rest');
+    g.stats.rests = (g.stats.rests || 0) + 1; g.ui.toast('You rest. Time passes.'); g.saves?.save('rest');
     this.fade = 1.2;
   }
   updateFade(dt) { if (this.fade > 0) { this.fade -= dt * 1.4; this.g.pix.fade = Math.max(0, this.fade); } }

@@ -216,7 +216,7 @@ export function buildWilds(B) {
   keep.rect(46, -158, 65, -144);
   // outbuildings, fields, well and fences
   const shed = B.house({ id: 'shed', x: 28, z: -168, w: 6, d: 5, h: 3, wall: 'plank', timber: false, door: { side: 'N', at: 3, w: 1.4, id: 'shed_door' }, roofMat: 'roofRed', windows: [] });
-  B.chest(32.6, -166.5, { dir: 180, loot: [['lockpick', 2], ['potion', 1]], name: 'Tool chest', locked: true, lockLevel: 2, id: 'shed_chest', chunk: shed.chunk });
+  B.chest(32.6, -166.5, { dir: 180, loot: [['lockpick', 2], ['potion', 1], ['scrap', 4], ['beartrap', 1]], name: 'Tool chest', locked: true, lockLevel: 2, id: 'shed_chest', chunk: shed.chunk });
   keep.rect(26, -170, 36, -160);
   const fields = [[70, -140, 96, -112, 'crop'], [70, -108, 96, -92, 'cropG'], [36, -118, 66, -98, 'field'], [72, -170, 100, -150, 'crop']];
   for (const [x0, z0, x1, z1, m] of fields) { B.ground('field', x0, z0, x1, z1, 0, 0.05, { chunk: 'fields' }); keep.rect(x0, z0, x1, z1); const k = B.kit('fields'); for (let x = x0 + 1; x < x1; x += 1.5) for (let z = z0 + 1; z < z1; z += 1.5) if (m !== 'field') k.cyl(M[m === 'crop' ? 'crop' : 'cropG'], [x + r(-0.3, 0.3), 0.4, z + r(-0.3, 0.3)], 0.06, m === 'crop' ? 0.9 : 0.35, [r(-8, 8), 0, r(-8, 8)], 4); }
@@ -246,7 +246,7 @@ export function buildWilds(B) {
   const [tx0, tz0, tx1, tz1] = toll.inner;
   for (let i = 0; i < 2; i++) B.bed(tx1 - 1.2 - i * 2.2, tz1 - 1.3, { dir: 180, id: 'bed_toll_' + i, chunk: toll.chunk });
   B.table(tx0 + 2, tz0 + 2, 2, 1, { chunk: toll.chunk }); B.chair(tx0 + 2, tz0 + 3.2, 180, { name: 'sit_toll', chunk: toll.chunk }); B.candle(tx0 + 2, 0.85, tz0 + 2, { chunk: toll.chunk });
-  B.chest(tx0 + 0.8, tz1 - 0.8, { dir: 90, loot: [['gold', 80], ['tollkey', 0], ['letterfake', 0]].filter((l) => l[1] > 0), name: 'Toll strongbox', locked: true, lockLevel: 2, id: 'toll_box', chunk: toll.chunk });
+  B.chest(tx0 + 0.8, tz1 - 0.8, { dir: 90, loot: [['gold', 80], ['ironcap', 1], ['raven', 1]], name: 'Toll strongbox', locked: true, lockLevel: 2, id: 'toll_box', chunk: toll.chunk });
   B.hearth(tx0 + 3.6, 0, tz1 - 0.6, { r: 0.35, range: 9, intensity: 8, chunk: toll.chunk });
   B.poi('toll_post_n', 2.2, -216, { yaw: 180, type: 'stand' }); B.poi('toll_post_s', -2.2, -236, { yaw: 0, type: 'stand' }); B.poi('toll_desk', tx0 + 4.2, tz0 + 2.6, { yaw: 270, type: 'stand' });
   B.route('bridge_beat', [[-2, -215], [2, -240], [-2, -240], [2, -215]]);
@@ -256,7 +256,7 @@ export function buildWilds(B) {
 
   // ------------------------------------------------ the Mirewood: hunter's lodge, watch tower, witch, bandits
   const lodge = B.house({ id: 'lodge', x: -142, z: -76, w: 13, d: 10, h: 3.6, wall: 'plank', timber: false, door: { side: 'E', at: 4.5, w: 1.6, id: 'lodge_door' }, windows: [{ side: 'S', at: 3 }, { side: 'S', at: 9 }, { side: 'N', at: 4 }], roofMat: 'roofRed' });
-  dressHome(B, lodge, { chest: { loot: [['gold', 20], ['potion', 1], ['dagger', 0]].filter((l) => l[1] > 0), name: 'Hunter chest', locked: true, lockLevel: 1 } });
+  dressHome(B, lodge, { chest: { loot: [['gold', 20], ['potion', 1], ['huntershood', 1], ['knife', 3]], name: 'Hunter chest', locked: true, lockLevel: 1 } });
   B.poi('lodge_yard', -126, -71, { yaw: 270, type: 'stand' });
   B.kit('camps_-3_-2').box(M.plank, [-129.5, 1.6, -78], [0.1, 3.2, 0.1]); for (let i = 0; i < 3; i++) B.kit('camps_-3_-2').box(M.rug, [-130 + i * 0.9, 1.9, -77.8], [0.7, 1.0, 0.06], [0, 0, r(-6, 6)]);
   keep.rect(-144, -78, -126, -64);
@@ -269,7 +269,7 @@ export function buildWilds(B) {
   B.nav.clear(tower.x - 0.6, tower.z - 4.8, tower.x + 0.6, tower.z - 3.2); // door gap
   B.vbox('leafDead', tower.x - 3, 0, tower.z - 2, tower.x + 3, 0.1, tower.z + 2, { chunk: 'tower_ruin' });
   B.poi('tower_camp', tower.x, tower.z - 6, { yaw: 0, type: 'stand' });
-  B.chest(tower.x + 6, tower.z + 1, { dir: 270, loot: [['gold', 40], ['ring', 1]], name: 'Old cache', locked: true, lockLevel: 3, id: 'tower_cache', chunk: 'tower_ruin' });
+  B.chest(tower.x + 6, tower.z + 1, { dir: 270, loot: [['gold', 40], ['ring', 1], ['wolftooth', 1], ['signet', 1]], name: 'Old cache', locked: true, lockLevel: 3, id: 'tower_cache', chunk: 'tower_ruin' });
   keep.circle(tower.x, tower.z, 8);
 
   // the witch's hut on stilts above the bog
@@ -280,7 +280,7 @@ export function buildWilds(B) {
   B.hearth(-202, 0.6, 93.2, { r: 0.4, range: 10, intensity: 9, chunk: witch.chunk });
   for (let i = 0; i < 5; i++) B.prop(['bottle', 'jug', 'pot', 'skull', 'book'][i], -199.6 + i * 0.5, 1.3, 88.4, { sleep: true });
   B.table(-203, 91, 2, 1, { chunk: witch.chunk, y: 0.6 }); B.candle(-203, 1.45, 91, { chunk: witch.chunk });
-  B.chest(-199.8, 94.2, { y: 0.6, dir: 270, loot: [['potion', 2], ['gold', 35], ['hexbane', 1]], name: 'Witch trunk', locked: true, lockLevel: 2, id: 'witch_chest', chunk: witch.chunk });
+  B.chest(-199.8, 94.2, { y: 0.6, dir: 270, loot: [['potion', 2], ['gold', 35], ['hexbane', 1], ['nightcloak', 1], ['embering', 1]], name: 'Witch trunk', locked: true, lockLevel: 2, id: 'witch_chest', chunk: witch.chunk });
   B.poi('witch_fire', -204, 93.2, { yaw: 0, type: 'stand', y: 0.6 }); B.poi('witch_table', -203, 92.4, { yaw: 180, type: 'stand', y: 0.6 }); B.bed(-200.4, 90.6, { dir: 90, y: 0.6, id: 'bed_witch', chunk: witch.chunk });
   keep.rect(-212, 78, -196, 100);
 
@@ -291,10 +291,11 @@ export function buildWilds(B) {
   for (let i = 0; i < 6; i++) { const a = i * 60 + 20; logSeat(B, 'bandit_seat_' + i, bc.x + Math.sin(a * D2R) * 3.4, bc.z + Math.cos(a * D2R) * 3.4, (a + 180) % 360); }
   tent(B, bc.x - 8, bc.z + 6, 20); tent(B, bc.x + 9, bc.z + 5, -30); tent(B, bc.x - 6, bc.z - 9, 70); tent(B, bc.x + 8, bc.z - 8, 110, 1.15);
   [[bc.x - 8, bc.z + 3.6, 0], [bc.x + 9, bc.z + 2.6, 0], [bc.x - 3.6, bc.z - 9, 90], [bc.x + 8, bc.z - 5.4, 0], [bc.x - 9.6, bc.z + 5.6, 90]].forEach(([x, z, d], i) => B.bed(x, z, { dir: d, id: 'bed_bandit_' + i, w: 0.85, l: 1.8, sheet: 'linen', chunk: 'camps_-3_0' }));
-  B.chest(bc.x + 12, bc.z - 2, { dir: 270, loot: [['gold', 60], ['potion', 2], ['lockpick', 3]], name: 'Bandit loot', locked: true, lockLevel: 2, id: 'bandit_loot', chunk: 'camps_-3_0' });
+  B.chest(bc.x + 12, bc.z - 2, { dir: 270, loot: [['gold', 60], ['potion', 2], ['lockpick', 3], ['chainvest', 1], ['greaves', 1]], name: 'Bandit loot', locked: true, lockLevel: 2, id: 'bandit_loot', chunk: 'camps_-3_0' });
   B.chest(bc.x - 2, bc.z + 12, { dir: 180, loot: [['gold', 25], ['wine', 2]], name: 'Supply crate', chunk: 'camps_-3_0' });
   for (let i = 0; i < 5; i++) wprop(B, ['barrel', 'crate', 'sack', 'bottle', 'crateS'][i], bc.x + 4 + i * 0.7, bc.z + 12, { yaw: r(0, 360) });
   B.poi('bandit_lookout', bc.x + 14, bc.z + 12, { yaw: 315, type: 'stand' }); B.poi('bandit_gate', bc.x - 15, bc.z - 2, { yaw: 270, type: 'stand' });
+  B.route('lamp_route', [[0, 22], [0, 36], [0, 48], [0, 60], [0, 72], [0, 84], [0, 60], [0, 36]]);
   B.route('hunt_loop', [[-122, -70], [-108, -88], [-94, -72], [-108, -52], [-122, -70]]); B.route('road_walk', [[2, -100], [2, -140], [-2, -190], [2, -140]]); B.route('pilgrim_route', [[5, -92], [-30, -100], [-64, -96], [-30, -100]]);
   B.route('bandit_patrol', [[bc.x - 15, bc.z - 4], [bc.x - 12, bc.z + 12], [bc.x + 4, bc.z + 16], [bc.x + 16, bc.z + 2], [bc.x + 8, bc.z - 14], [bc.x - 8, bc.z - 15]]);
   fenceRun(B, bc.x - 18, bc.z - 16, bc.x - 18, bc.z + 16, { gaps: [[bc.x - 18, bc.z - 2, 2.2]] });
@@ -331,7 +332,7 @@ export function buildWilds(B) {
   for (const [dx, dz] of [[-5, -5], [5, -5], [-5, 5], [5, 5]]) { B.kit('shrine').cyl(M.stoneOld, [sx + dx, 2.6, sz + dz], 0.6, 5.4, [0, 0, r(-3, 3)], 8); B.lazyCollider(sx + dx - 0.6, 0, sz + dz - 0.6, sx + dx + 0.6, 5.4, sz + dz + 0.6, 'stone'); }
   B.kit('shrine').box(M.stoneDark, [sx, 3.4, sz - 5], [10, 0.7, 0.9]); B.kit('shrine').box(M.stoneDark, [sx, 1.0, sz - 7.8], [2.4, 1.6, 1.4]);
   B.nav.block(sx - 1.2, sz - 8.5, sx + 1.2, sz - 7.1, 1); B.lazyCollider(sx - 1.2, 0, sz - 8.5, sx + 1.2, 1.6, sz - 7.1, 'stone');
-  B.chest(sx, sz - 6.4, { dir: 0, loot: [['gold', 120], ['ring', 1], ['nightbloom', 1]], name: 'Drowned reliquary', locked: true, lockLevel: 3, id: 'fen_reliquary', chunk: 'shrine', gold: true });
+  B.chest(sx, sz - 6.4, { dir: 0, loot: [['gold', 120], ['ring', 1], ['nightbloom', 1], ['sainttear', 1], ['mendring', 1]], name: 'Drowned reliquary', locked: true, lockLevel: 3, id: 'fen_reliquary', chunk: 'shrine', gold: true });
   B.poi('fen_shrine', sx, sz + 4, { yaw: 180, type: 'stand' }); B.route('fen_walk', [[-92, -170], [-110, -168], [-128, -176], [-146, -190]]);
   B.ground('stoneOld', sx - 8, sz - 8, sx + 8, sz + 8, 0.02, 0.1, { chunk: 'shrine', noise: 3 }); B.nav.setHeight(sx - 8, sz - 8, sx + 8, sz + 8, 0.15);
   B.nav.clear(sx - 8, sz - 8, sx + 8, sz + 8); for (const [dx, dz] of [[-5, -5], [5, -5], [-5, 5], [5, 5]]) B.nav.block(sx + dx - 0.7, sz + dz - 0.7, sx + dx + 0.7, sz + dz + 0.7, 1); B.nav.block(sx - 1.2, sz - 8.5, sx + 1.2, sz - 7.1, 1);
@@ -388,6 +389,8 @@ export function buildWilds(B) {
   // world edge: dense treeline so the map ends in forest, not void
   const edge = (x0, z0, x1, z1) => scatter(B, { hit: (x) => Math.abs(x) < 9 }, [x0, z0, x1, z1], Math.round((x1 - x0) * (z1 - z0) / 60), (x, z) => pine(B, x, z, r(1.0, 1.6)), { spacing: 3.2 });
   edge(-254, 186, 254, 197); edge(-254, -270, 254, -262); edge(246, -270, 255, 197); edge(-255, -270, -246, 197);
+  // bandits' snares round the camp and on the wood trails; wires across the bandit gate
+  B.trapSpots = [{ kind: 'bear', x: -160, z: -8 }, { kind: 'bear', x: -150, z: 20 }, { kind: 'bear', x: -186, z: 30 }, { kind: 'wire', x: -186, z: 12, yaw: 90 }, { kind: 'wire', x: -158, z: 2, yaw: 30 }, { kind: 'bear', x: -136, z: -34 }, { kind: 'bear', x: -104, z: 10 }, { kind: 'bear', x: -122, z: 40 }, { kind: 'wire', x: 118, z: 86, yaw: 0 }, { kind: 'bear', x: 140, z: 102 }, { kind: 'bear', x: -110, z: -150 }];
   B.useChunk('main');
   return { keep };
 }

@@ -23,6 +23,7 @@ export class Saves {
       story: { flags: S.flags, objectives: S.objectives.map((o) => ({ id: o.id, text: o.text, sub: o.sub, done: o.done, side: !!o.side })), notes: [...S.notesFound], dukeState: S.dukeState, seenZones: [...(S.seenZones || [])], finale: S.finale },
       stats: g.stats, dead: g.npcs.filter((n) => n.dead).map((n) => n.id),
       containers: g.level.containers.map((c) => (c.opened ? 1 : 0) + (c.locked ? 2 : 0)), doors: g.level.doors.map((d) => (d.locked ? 1 : 0)),
+      status: g.status.save(), gear: g.gear.save(), codex: g.codex.save(), lantern: g.lantern.on,
       map: b64(g.wmap.seen), tools: { sap: g.tools.sap, poisonHits: g.tools.poisonHits }, quick: g.difficulty,
     };
   }
@@ -36,6 +37,7 @@ export class Saves {
     const P = g.player, S = g.story, inv = P.inv;
     g.clock.hours = d.hours; g.clock.day = d.day || 0;
     inv.gold = d.inv.gold; inv.lootValue = d.inv.lootValue; inv.items = new Map(d.inv.items);
+    g.gear.load(d.gear); g.status.load(d.status); g.codex.load(d.codex); g.lantern.on = !!d.lantern;
     g.progress.load(d.progress); g.rep.load(d.rep); g.weather.load(d.weather);
     g.quests.state = d.quests.state || {}; g.quests.lit = new Set(d.quests.lit || []); g.quests.kills = { role: d.quests.kills?.role || {}, id: new Set(d.quests.kills?.id || []) };
     Object.assign(S.flags, d.story.flags || {}); S.notesFound = new Set(d.story.notes || []); S.dukeState = d.story.dukeState || S.dukeState; S.seenZones = new Set(d.story.seenZones || []); if (d.story.finale) S.finale = true;

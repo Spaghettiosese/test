@@ -30,7 +30,7 @@ addEventListener('keydown', (e) => {
   if (k === 'tab') { e.preventDefault(); game.ui.toggleJournal(); return; }
   if ((k === 'm' || k === 'p') && (game.mode === 'play' || game.mode === 'journal')) { e.preventDefault(); game.ui.toggleJournal(k === 'm' ? 'map' : 'perks'); return; }
   if (k === 'f5' && game.mode === 'play') { e.preventDefault(); game.saves.save('quick'); return; }
-  if (game.mode === 'journal') { if (k === 'escape') game.ui.toggleJournal(); else if (k >= '1' && k <= '5') game.ui.setTab(+k - 1); return; }
+  if (game.mode === 'journal') { if (k === 'escape') game.ui.toggleJournal(); else if (k >= '1' && k <= '7') game.ui.setTab(+k - 1); return; }
   if (k === ' ' || k === 'arrowup' || k === 'arrowdown') e.preventDefault();
   game.input.keys.add(k); if (!e.repeat) { game.input.pressed.add(k); if (k === 'e') { game.player.usePress = true; } }
   if (game.debug && !e.repeat) {

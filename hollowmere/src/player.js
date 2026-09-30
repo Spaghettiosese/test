@@ -59,7 +59,7 @@ export class Player {
     let ix = (k.has('a') ? 1 : 0) - (k.has('d') ? 1 : 0), iz = (k.has('w') ? 1 : 0) - (k.has('s') ? 1 : 0);
     const moving = !!(ix || iz);
     this.sprint = k.has('shift') && iz > 0 && !this.crouch && this.stamina > 4 && !this.blocking && !this.carried && !this.atk;
-    let speed = this.crouch ? 1.7 : this.sprint ? 5.8 : 3.5;
+    let speed = (this.crouch ? 1.7 : this.sprint ? 5.8 : 3.5) * (g.status?.mul('speed') ?? 1);
     if (this.blocking) speed *= 0.55; if (this.carried) speed *= 0.6; if (this.g.tools?.dragging) speed *= 0.5; if (this.atk) speed *= 0.6; if (this.stagger > 0) speed *= 0.3; if (this.picking) speed = 0;
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw), lx = Math.cos(this.yaw), lz = -Math.sin(this.yaw);
     let wish = [0, 0];
@@ -81,7 +81,7 @@ export class Player {
       if (this.stepDist > stride) {
         this.stepDist = 0;
         const floor = g.nav.noise[Math.max(0, g.nav.at(this.pos[0], this.pos[2]))] ?? 0;
-        const loud = (this.sprint ? 13 : this.crouch ? 1.3 : 6.5) * [0.8, 1.0, 1.15, 1.4][floor] * (this.mod?.quiet ?? 1) * (g.weather?.noiseMul ?? 1);
+        const loud = (this.sprint ? 13 : this.crouch ? 1.3 : 6.5) * [0.8, 1.0, 1.15, 1.4][floor] * (this.mod?.quiet ?? 1) * (g.status?.mul('quiet') ?? 1) * (g.weather?.noiseMul ?? 1);
         g.noise(this.pos, loud, 'step'); g.sfx.step?.(floor, this.sprint ? 1.2 : this.crouch ? 0.4 : 0.8);
         if (floor === 3 && g.story.zone === 'fen') { g.smoke.emit([this.pos[0], 0.08, this.pos[2]], { count: 6, color: [0.25, 0.4, 0.4, 0.5], colorEnd: [0.2, 0.3, 0.3, 0], size: 0.08, grow: 2, spread: 0.6, up: 0.6, life: 0.6, jitter: 0.1 }); g.sfx.splash?.(); }
       }
@@ -99,7 +99,10 @@ export class Player {
     vis *= this.crouch ? 0.55 : 1; vis *= this.sprint ? 1.5 : this.speedNow < 0.4 ? 0.72 : 1;
     if (this.veilT > 0) { vis *= 0.28; this.veilT -= dt; }
     if (this.atk) vis = Math.max(vis, 0.85);
+    if (g.lantern?.on) vis = Math.max(vis, 0.8);
+    vis *= (this.mod?.vis ?? 1) * (g.status?.mul('vis') ?? 1); if (g.status?.inSmoke(this.pos)) vis *= 0.2;
     this.visibility = clamp(vis, 0.05, 1.6);
+    if (g.lantern?.on) this.lightLevel = Math.max(this.lightLevel, 0.6);
     // ember: dark places feed it
     if (this.lightLevel < 0.3) this.ember = Math.min(this.maxEmber, this.ember + dt * 1.6);
     // ---- combat & interaction
@@ -222,7 +225,7 @@ export class Player {
         this.playVm('BlockHit', 0.02, true); this.vmClip = 'Block';
         g.spark([this.pos[0] + this.flat[0] * 0.8, this.pos[1] + 1.3, this.pos[2] + this.flat[1] * 0.8], [-this.flat[0], 0, -this.flat[1]], parry ? 22 : 12);
         g.sfx.clang?.(parry ? 1.2 : 0.9); g.noise(this.pos, 12, 'clang');
-        if (parry) { this.stamina = Math.min(100, this.stamina + 8); this.riposteT = 1.3; g.flashText?.('PARRY'); g.slowmo = 0.3; g.shake = Math.max(g.shake, 0.3); return 'parried'; }
+        if (parry) { this.stamina = Math.min(100, this.stamina + 8); this.riposteT = 1.3; g.flashText?.('PARRY'); g.stats.parries = (g.stats.parries || 0) + 1; g.slowmo = 0.3; g.shake = Math.max(g.shake, 0.3); return 'parried'; }
         if (this.stamina <= 0) { this.stagger = 0.8; this.blocking = false; this.stamina = 0; g.sfx.grunt?.(); }
         return 'blocked';
       }
@@ -231,6 +234,7 @@ export class Player {
   }
   hurt(dmg, from, opts = {}) {
     if (this.dead) return;
+    if (!opts.fall) dmg *= 1 - Math.min(0.6, (this.mod?.armor || 0) + (this.g.status?.sum('armor') || 0));
     this.hp -= dmg; this.hurtT = 0.35; this.kick = 0.05; this.g.combatT = 6;
     this.g.sfx.hurt?.(); this.g.pix.hurt = 1;
     if (from && !opts.fall) { const dx = this.pos[0] - from[0], dz = this.pos[2] - from[1], d = Math.hypot(dx, dz) || 1; const kb = opts.shove ? 7 : 2.2; this.cc.velocity[0] += (dx / d) * kb; this.cc.velocity[2] += (dz / d) * kb; }

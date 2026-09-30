@@ -68,6 +68,12 @@ export const DIALOGUE = {
       { text: 'Buy Hexbane draught (45 gold)', next: 1, action: (G) => G.story.buy('hexbane', 45) },
       { text: 'Buy an Ember Flask (32 gold)', next: 1, action: (G) => G.story.buy('ember', 32) },
       { text: 'Buy Throwing knives ×4 (24 gold)', next: 1, action: (G) => G.story.buy('knife', 24, 4) },
+      { text: 'Buy Soft boots (70 gold)', next: 1, action: (G) => G.story.buy('softboots', 70) },
+      { text: 'Buy Leather cowl (45 gold)', next: 1, action: (G) => G.story.buy('cowl', 45) },
+      { text: 'Buy Padded jerkin (80 gold)', next: 1, action: (G) => G.story.buy('jerkin', 80) },
+      { text: 'Buy Lamp oil ×3 (14 gold)', next: 1, action: (G) => G.story.buy('oil', 14, 3) },
+      { text: 'Buy Smoke bomb (28 gold)', next: 1, action: (G) => G.story.buy('smoke', 28) },
+      { text: 'Buy Bear trap (40 gold)', next: 1, action: (G) => G.story.buy('beartrap', 40) },
       SELL, { text: 'Just passing.', next: 'end' }] }),
     L('A pleasure. Anything else?', { goto: 0 }),
   ],
@@ -84,6 +90,7 @@ export const DIALOGUE = {
       SELL, { text: 'Leave.', next: 'end' }] }),
     L('Take it. It is bitter, like everything worth having.', { goto: 0 }),
   ],
+  lamplighter: () => [L('Lamps out at dawn, lit at dusk. Nobody thanks the lamplighter until the lamps go out.'), L('Something comes up out of the dark when a lamp goes out. So I light them fast.', { end: true })],
   ilse: (g) => g.story.flags.ilseTold ? [L('Go on. The bell tolls thirteen. You know what to do.', { end: true })] : [L('Do not go near the gallows hill. They hang the dead there, now.', { mood: 'fear' }), L('...Do not mind me. I have had a long night. Three years of night.', { end: true })],
   brannoch: (g) => {
     const s = g.story;

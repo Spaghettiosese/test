@@ -59,6 +59,7 @@ P.updateInteraction = function updateInteraction(dt) {
     push(b.position[0], b.position[1], b.position[2], 2.4, take ? `Take the ${nm}` : `Pick up the ${nm}`, () => (take ? this.takeProp(b, take) : pl.grab(b)), 'prop', 0.82, b);
   }
   this.tools.hook(push, eye, f);
+  this.traps?.hook(push, eye); this.forage?.hook(push, eye); this.contracts?.hook(push, eye);
   let best = null, bs = 1e9;
   for (const t of c) {
     const dx = t.x - eye[0], dy = t.y - eye[1], dz = t.z - eye[2], d = Math.hypot(dx, dy, dz);
