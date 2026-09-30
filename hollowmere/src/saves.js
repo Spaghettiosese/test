@@ -8,6 +8,7 @@ export class Saves {
   info() { try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); return d ? { hours: d.hours, level: d.progress?.level || 1, area: d.zone, day: d.day } : null; } catch { return null; } }
   tick(dt) {
     const g = this.g; this.t -= dt; if (this.t > 0 || g.mode !== 'play') return;
+    if (g.opts && !g.opts.v.autosave) { this.t = 90; return; }
     if (g.combatT > 0 || g.alarmLevel > 0.1 || g.player.dead) { this.t = 8; return; }
     this.t = 90; this.save('auto');
   }
@@ -20,11 +21,11 @@ export class Saves {
       inv: { gold: inv.gold, lootValue: inv.lootValue, items: [...inv.items.entries()] },
       progress: g.progress.save(), rep: g.rep.save(), weather: g.weather.save(),
       quests: { state: g.quests.state, lit: [...g.quests.lit], kills: { role: g.quests.kills.role, id: [...g.quests.kills.id] } },
-      story: { flags: S.flags, objectives: S.objectives.map((o) => ({ id: o.id, text: o.text, sub: o.sub, done: o.done, side: !!o.side })), notes: [...S.notesFound], dukeState: S.dukeState, seenZones: [...(S.seenZones || [])], finale: S.finale },
+      story: { flags: S.flags, objectives: S.objectives.map((o) => ({ id: o.id, text: o.text, sub: o.sub, done: o.done, side: !!o.side })), notes: [...S.notesFound], dukeState: S.dukeState, seenZones: [...(S.seenZones || [])], finale: S.finale, tracked: S.tracked || null },
       stats: g.stats, dead: g.npcs.filter((n) => n.dead).map((n) => n.id),
       containers: g.level.containers.map((c) => (c.opened ? 1 : 0) + (c.locked ? 2 : 0)), doors: g.level.doors.map((d) => (d.locked ? 1 : 0)),
       status: g.status.save(), smith: g.smith.save(), jail: g.jail.save(), shrines: g.shrines.save(), stealth: g.stealth.save(), gear: g.gear.save(), codex: g.codex.save(), lantern: g.lantern.on,
-      pins: g.wmap.pins, map: b64(g.wmap.seen), tools: { sap: g.tools.sap, poisonHits: g.tools.poisonHits }, quick: g.difficulty,
+      extra: Object.fromEntries(Object.entries(g.savables).map(([k, m]) => [k, m.save()])), pins: g.wmap.pins, map: b64(g.wmap.seen), tools: { sap: g.tools.sap, poisonHits: g.tools.poisonHits }, quick: g.difficulty,
     };
   }
   save(why = '') {
@@ -40,7 +41,7 @@ export class Saves {
     g.gear.load(d.gear); g.smith.load(d.smith); g.jail.load(d.jail); g.shrines.load(d.shrines); g.stealth.load(d.stealth); g.status.load(d.status); g.codex.load(d.codex); g.lantern.on = !!d.lantern;
     g.progress.load(d.progress); g.rep.load(d.rep); g.weather.load(d.weather);
     g.quests.state = d.quests.state || {}; g.quests.lit = new Set(d.quests.lit || []); g.quests.kills = { role: d.quests.kills?.role || {}, id: new Set(d.quests.kills?.id || []) };
-    Object.assign(S.flags, d.story.flags || {}); S.notesFound = new Set(d.story.notes || []); S.dukeState = d.story.dukeState || S.dukeState; S.seenZones = new Set(d.story.seenZones || []); if (d.story.finale) S.finale = true;
+    Object.assign(S.flags, d.story.flags || {}); S.notesFound = new Set(d.story.notes || []); S.dukeState = d.story.dukeState || S.dukeState; S.seenZones = new Set(d.story.seenZones || []); if (d.story.finale) S.finale = true; S.tracked = d.story.tracked || null;
     for (const so of d.story.objectives) {
       let o = S.objectives.find((x) => x.id === so.id);
       if (!o) { o = { id: so.id, text: so.text, sub: so.sub, done: so.done, side: so.side }; const q = g.quests.def(so.id); if (q) o.target = () => g.quests.targetOf(q); S.objectives.push(o); }
@@ -53,6 +54,7 @@ export class Saves {
     for (const n of g.npcs) if (dead.has(n.id) && !n.dead) { n.dead = true; n.state = 'dead'; n.hp = 0; n.discovered = true; n.frozen = true; n.loot = []; n.setVisible(false); g.world.remove(n.body); }
     try { const bin = atob(d.map); for (let i = 0; i < bin.length && i < g.wmap.seen.length; i++) if (bin.charCodeAt(i)) g.wmap.paint(i % g.wmap.bw, Math.floor(i / g.wmap.bw)); } catch { /* map stays dark */ }
     g.wmap.pins = d.pins || [];
+    for (const [k, m] of Object.entries(g.savables)) { try { m.load(d.extra?.[k]); } catch (e) { console.warn('load', k, e); } }
     g.tools.sap = !!d.tools?.sap; g.tools.poisonHits = d.tools?.poisonHits | 0;
     for (const n of g.npcs) if (!n.dead && n.role !== 'hollow') { n.leaveActivity(); n.slotKey = ''; n.snapToSchedule(); }
     P.cc.position = [...d.pos]; P.cc.velocity = [0, 0, 0]; P.yaw = d.yaw; P.pitch = 0; P.hp = d.hp; P.ember = d.ember; g.checkpoint = d.checkpoint || d.pos; g.checkpointYaw = d.checkpointYaw || 0;

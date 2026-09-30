@@ -26,6 +26,14 @@ import { Fishing } from './fishing.js';
 import { Mining, Smith } from './mining.js';
 import { Jail } from './jail.js';
 import { Shrines } from './shrines.js';
+import { Options } from './options.js';
+import { Fauna } from './fauna.js';
+import { Horse } from './horse.js';
+import { Caravan } from './caravan.js';
+import { Treasure } from './treasure.js';
+import { Hideout } from './hideout.js';
+import { Encounters } from './encounters.js';
+import { Boss } from './boss.js';
 import { Gear } from './gear.js';
 import { Events } from './events.js';
 import { Saves } from './saves.js';
@@ -76,12 +84,13 @@ export class Game {
     this.weather = new Weather(this);
     this.events = new Events(this);
     this.saves = new Saves(this);
+    this.opts = new Options(this);
     this.difficulty = 1;
     this.input = { keys: new Set(), pressed: new Set(), dYaw: 0, dPitch: 0 };
     this.checkpoint = [0, 0.1, -40];
     this.indoorK = 0; this.areaName = 'The Road';
     this.pathBudget = 3;
-    this.toastQ = [];
+    this.toastQ = []; this.savables = {}; this.markers = [];
     this.stats = { kills: 0, guardKills: 0, civKills: 0, stabs: 0, deaths: 0, looted: 0, opened: 0, alarms: 0, snuffed: 0, seen: 0 };
   }
   // build the world in slices, so the loading screen can animate (roughly 3 s of work)
@@ -92,6 +101,10 @@ export class Game {
     this.level = buildLevel({ scene: this.scene, world: this.world });
     this.nav = this.level.nav; this.decor = this.level.decor;
     this.wmap = new WorldMap(this);
+    this.fauna = new Fauna(this);
+    this.horse = new Horse(this);
+    this.treasure = new Treasure(this); this.hideout = new Hideout(this); this.encounters = new Encounters(this); this.boss = new Boss(this);
+    this.caravan = new Caravan(this); this.markers.push(this.caravan, this.horse);
     this.level.trapSpots ||= [];
     this.traps = new Traps(this);
     this.stealth = new Stealth(this);
@@ -121,6 +134,7 @@ export class Game {
     progress(1, 'Ready');
     this.log(`built in ${(performance.now() - t0).toFixed(0)} ms: ${this.world.bodies.length} bodies, ${this.level.lights.length} lights, ${this.npcs.length} people`);
   }
+  reg(key, mod) { this.savables[key] = mod; }
   log(...a) { if (this.debug) console.log('[hollowmere]', ...a); }
 
   // ------------------------------------------------------------ resize
@@ -151,7 +165,7 @@ export class Game {
     this.tools.update(dt);
     this.status.update(dt);
     this.traps?.update(dt);
-    this.stealth.update(dt); this.jail.update(dt); this.lockdown.update(dt); this.lamps.update(dt); this.lantern.update(dt); this.hunters.update(dt); this.forage.update(dt); this.codex.update(dt);
+    this.opts.tick(dt); this.stealth.update(dt); this.jail.update(dt); this.lockdown.update(dt); this.lamps.update(dt); this.lantern.update(dt); this.hunters.update(dt); this.forage.update(dt); this.codex.update(dt); this.fauna?.update(dt); this.horse?.update(dt); this.caravan?.update(dt); this.encounters?.update(dt); this.boss?.update(dt);
     if (this.player.mod?.regen && this.player.hp < this.player.maxHp && this.combatT <= 0) this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.mod.regen * dt);
     this.weather.update(dt);
     this.events.update(dt);
@@ -197,7 +211,7 @@ export class Game {
     const under = ind === 2 ? 1 : 0;
     const k = this.indoorK;
     env.ambient = Math.max(env.ambient, env.night > 0.4 ? 0.62 : 0) * (1 - 0.42 * k) * (1 + 0.25 * under);
-    env.exposure *= 1.12;
+    env.exposure *= 1.12 * (this.opts?.v.bright ?? 1);
     env.sunIntensity *= 1 - 0.55 * k;
     env.fogDensity = 0.011 * (1 - k * 0.5) + (this.clock.night ? 0.004 : 0); env.fogHeight = 0.3 * (1 - k);
     env.godRays *= 1 - k; env.volumeDensity = 0.03 * (1 - k * 0.5);
@@ -336,6 +350,7 @@ export class Game {
       if (Math.abs(n.x - p[0]) > radius || Math.abs(n.z - p[2]) > radius) continue;
       n.hear(p, radius, kind, src);
     }
+    if (src === null || src === undefined || src === this.player) this.fauna?.hear(p, radius, kind);
   }
   alarm(pos, kind, src) {
     const p = [pos[0], pos[1] ?? 0, pos[2]];
@@ -393,7 +408,7 @@ export class Game {
   }
   playerDied() { this.mode = 'dead'; this.stats.deaths++; this.sfx.boom?.(0.6); this.ui.showDeath(); setTimeout(() => this.respawn(), 3800); }
   respawn() {
-    const P = this.player;
+    const P = this.player; this.horse?.forceReset(); this.boss?.reset();
     if (this.jail.shouldArrest() && this.jail.arrest()) { this.mode = 'play'; this.ui.hideDeath(); return; }
     P.dead = false; P.hp = P.maxHp; P.stamina = 100; P.ember = Math.max(P.ember, 40); P.atk = null; P.carried = null; P.veilT = 0;
     P.cc.position = [...this.checkpoint]; P.cc.velocity = [0, 0, 0]; P.yaw = this.checkpointYaw ?? 0; P.pitch = 0; P.invuln = 2;

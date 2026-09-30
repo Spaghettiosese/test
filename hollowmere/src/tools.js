@@ -21,6 +21,10 @@ export const RECIPES = [
   { id: 'oilf', name: 'Lamp oil', makes: ['oil', 3], needs: [['h_bog', 1]], desc: 'Render bogcap into lantern oil (L).' },
   { id: 'beart', name: 'Bear trap', makes: ['beartrap', 1], needs: [['scrap', 3]], desc: 'Set with H. Holds and hurts.' },
   { id: 'wiret', name: 'Tripwires', makes: ['wire', 2], needs: [['scrap', 1], ['cloth', 1]], desc: 'Set with H. Trips and stuns.' },
+  { id: 'jerky', name: 'Venison jerky', makes: ['jerky', 3], needs: [['rawmeat', 2]], desc: 'Dry and salt two cuts of venison. It keeps.' },
+  { id: 'stew', name: "Hunter's stew", makes: ['stew', 1], needs: [['cookedmeat', 1], ['bread', 1], ['h_bog', 1]], desc: 'Roast venison, bread and bogcap. +regen, +armour for a while.' },
+  { id: 'hidewraps', name: 'Deerhide wraps', makes: ['hidewraps', 1], needs: [['hide', 2]], desc: 'Soft, silent boots cut from deer hide.' },
+  { id: 'hidecloak', name: 'Hunter\'s cloak', makes: ['hidecloak', 1], needs: [['hide', 3], ['cloth', 1]], desc: 'A mottled cloak. Harder to spot, quieter to move in.' },
   { id: 'sap', name: 'Lead sap', makes: ['sap', 1], needs: [['sack', 0], ['gold', 15]], desc: 'A weighted cosh, for quiet work.', once: true },
 ];
 
@@ -122,6 +126,7 @@ export class Tools {
         if (hyp(x - n.x, z - n.z) < 0.42 && y > cy && y < top) { this.hitPerson(pr, n, y > cy + 1.45, dir); return true; }
       }
     }
+    if (pr.kind === 'knife' && g.fauna?.hitPoint(pr.p, 22)) { g.sfx.thud?.(0.5, pr.p); return true; }
     if (pr.kind === 'knife') for (const tt of g.level.torches) { if (!tt.lit || tt.small || Math.abs(tt.x - pr.p[0]) > 0.6 || Math.abs(tt.z - pr.p[2]) > 0.6 || Math.abs(tt.y - pr.p[1]) > 0.6) continue; tt.lit = false; tt.wasLit = true; tt.light.intensity = 0; if (tt.flame) tt.flame.visible = false; if (tt.flames) for (const f of tt.flames) f.visible = false; g.emitBurst([tt.x, tt.y, tt.z], 'poof'); g.sfx.glass?.([tt.x, tt.y, tt.z]); g.noise([tt.x, tt.y, tt.z], 6, 'clang'); g.stealth.st.lightsOut++; g.stealth.leave('light', tt.x, tt.z, 14); g.flashText('LIGHT OUT'); }
     const h = g.world.raycast(pr.p, dir, len + 0.05, { ignore: P.cc.body, mask: 0xffff & ~(2 | 4 | 8) });
     if (h || pr.p[1] + st[1] < 0.03) {
@@ -206,7 +211,7 @@ export class Tools {
   craft(id) {
     const r = RECIPES.find((x) => x.id === id), g = this.g, inv = g.player.inv; if (!r || !this.canCraft(r)) { g.sfx.deny?.(); return false; }
     for (const [it, n] of r.needs) if (n) { if (it === 'gold') inv.gold -= n; else inv.remove(it, n); }
-    const extra = Math.random() < (g.player.mod?.alch || 0) ? 1 : 0; inv.add(r.makes[0], r.makes[1] + extra); g.stats.crafted = (g.stats.crafted || 0) + r.makes[1]; g.sfx.coin?.(); g.toast(`Crafted ${r.makes[1]} × ${ITEMS[r.makes[0]].name}`); g.progress.addXp(8, 'craft'); return true;
+    const extra = (Math.random() < (g.player.mod?.alch || 0) ? 1 : 0) + (g.hideout?.atBench() && Math.random() < 0.4 ? 1 : 0); inv.add(r.makes[0], r.makes[1] + extra); g.stats.crafted = (g.stats.crafted || 0) + r.makes[1]; g.sfx.coin?.(); g.toast(`Crafted ${r.makes[1]} × ${ITEMS[r.makes[0]].name}`); g.progress.addXp(8, 'craft'); return true;
   }
   // ---------------------------------------------------------------- interactions
   hook(push, eye, f) {

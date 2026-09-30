@@ -19,8 +19,10 @@ The second update ("The Wide Valley") is listed in [FEATURES.md](FEATURES.md): a
 | Attack (3-hit combo, thrust) · block/parry | Left mouse · right mouse |
 | Skills: Shadow Veil, Umbral Dash, Gravebreaker | 1 · 2 · 3 |
 | Interact / loot / talk · hold to pick locks | E |
-| Pick up and throw props | F · left mouse |
-| Journal · perks · craft · map · lore | Tab · P · M |
+| Pick up a prop (E) · throw it | E · left mouse |
+| Mount · dismount · whistle for your horse | F |
+| Gallop · walk while mounted | Shift · C |
+| Journal · perks · craft · map · lore · stash | Tab · P · M · 1-9 |
 | Wraith Sight · poison blade | 4 · 5 |
 | Throw knife · coin · fire flask | G · V · X |
 | Sap · drag a body · drop disguise | B · hold Z · U |
@@ -42,6 +44,7 @@ Debug URL params: `?debug&nomenu&skipintro&at=x,y,z&yaw=&pitch=&hour=`.
 - Guard AI: sight cone, light and noise perception, investigate/search/chase, alarms, reactions to bodies and snuffed torches.
 - Physics: ragdoll deaths, lootable bodies, breakable and throwable props, doors, explosions via Gravebreaker.
 - Story: cutscenes, branching dialogue, notes, side quests, several endings paths, all synthesized audio.
+- Living wild: deer, wolves, crows, a horse to ride, a travelling caravan, buried treasure, roadside encounters, three boss fights and a leasable cabin with a stash (see the Round 6 section of FEATURES.md).
 
 ## Layout
 `src/` game code (`game.js`, `player.js`, `npc.js`, `story.js`, `ui.js`, `pixel.js`, ...), `src/people/` models and animation clips, `src/level/` procedural level, `tools/` dev viewers.

@@ -11,7 +11,10 @@ const RUMORS = [
   ['An old tower in the Mirewood has a cache in it. Nobody who went to fetch it has come back to talk about it.', 'Ruined Tower'], ['Under the swamp there is a shrine to a drowned saint. Drowned saints keep gifts.', 'Sunken Shrine'],
   ['The hunter Wulf hates the bandits. Do him a kindness and he will pay.', 'Hunter\'s Lodge'], ['The gallows on the hill are never empty. Never. Do not look up at night.', 'Hangman\'s Hill'],
 ];
-export const rumor = (g) => { const r = RUMORS[Math.floor(Math.random() * RUMORS.length)]; return { text: r[0], place: r[1] }; };
+export const rumor = (g) => {
+  if (g.caravan && Math.random() < 0.3) return { text: `Vesna's caravan is camped by ${g.caravan.site0.name} just now. She sells maps, if you want gold's worth of trouble.`, place: null, at: [g.caravan.site0.x, g.caravan.site0.z] };
+  const r = RUMORS[Math.floor(Math.random() * RUMORS.length)]; return { text: r[0], place: r[1] };
+};
 export const DIALOGUE = {
   gateguard: (g) => night(g)
     ? [L('Gates are barred till dawn. Captain\'s orders, and I like my head where it is.'), L('Whatever you\'re selling, sell it in the morning.', { end: true })]
@@ -29,7 +32,7 @@ export const DIALOGUE = {
       { text: 'Bet 5 gold.', next: 1, action: (G) => G.story.dice(5) }, { text: 'Bet 20 gold.', next: 1, action: (G) => G.story.dice(20) }, { text: 'Not today.', next: 2 }] }),
     L('The dice clatter across the table.', { onShow: (G) => G.story.diceReport(), goto: 0 }),
     L('Word of advice: don\'t whistle in the graveyard. Something whistles back.', { end: true })],
-  bard: (g) => [L(`♪ "...and the Duke went up to Ravenspire, and the Duke came down no more..." ♪`, { choices: [{ text: 'Play me a tune.', next: 1, action: (G) => G.sfx.lute?.() }, { text: 'Tell me a rumor.', next: 2 }, { text: 'Enough.', next: 3 }] }), L('♪ ♪ ♪', { goto: 0 }), (() => { const r = rumor(g); return L(r.text, { onShow: (G) => G.story.reveal(r.place), goto: 0 }); })(), L('Ah, a listener. A rarity. Do you know the ending? Nobody does. That\'s why it\'s so popular.', { end: true })],
+  bard: (g) => [L(`♪ "...and the Duke went up to Ravenspire, and the Duke came down no more..." ♪`, { choices: [{ text: 'Play me a tune.', next: 1, action: (G) => G.sfx.lute?.() }, { text: 'Tell me a rumor.', next: 2 }, { text: 'Enough.', next: 3 }] }), L('♪ ♪ ♪', { goto: 0 }), (() => { const r = rumor(g); return L(r.text, { onShow: (G) => G.story.reveal(r.place, r.at), goto: 0 }); })(), L('Ah, a listener. A rarity. Do you know the ending? Nobody does. That\'s why it\'s so popular.', { end: true })],
   smith: (g) => [L('Careful of the sparks. Or don\'t. I\'ve stopped caring.', { choices: [SELL, { text: `Reforge my blade (Lv ${g.smith.level}→${g.smith.level + 1}: ${g.smith.cost().ore} ore, ${g.smith.cost().gold} gold)`, next: 1, action: (G) => G.smith.upgrade() }, { text: 'Buy a whetstone (15 gold)', next: 1, action: (G) => G.story.buy('whetstone', 15) }, { text: 'Buy a pickaxe (30 gold)', next: 1, action: (G) => G.story.buy('pickaxe', 30) }, { text: 'Just talking.', next: 2 }] }), L('Done. Coin for the shiny, no questions asked.', { goto: 0 }), L('Yes, I buy steel, and I ask no questions. Mostly because the answers are always the same.', { end: true })],
   hilde: () => [L('Bread\'s from this morning, stranger. Nothing else is guaranteed.'), L('If you\'re hungry, there\'s a loaf on the table. If you\'re thieving, there\'s a loaf on the table. Either way, leave a coin.', { end: true })],
   osric: () => [L('Barrels, buckets, coffins. Three trades, one shop.'), L('People used to buy barrels. Now they order coffins by the dozen.', { end: true })],
@@ -49,7 +52,7 @@ export const DIALOGUE = {
   },
   tobbe: () => [L('Shh! You hear it? No? Good. Keep it that way.', { mood: 'fear' }), L('I bury them deep, hooded one. But lately they don\'t stay buried.', { end: true })],
   merchant: (g) => night(g) ? [L('Closing up. Come back at sunup.', { end: true })] : [L('Fresh as they come, stranger. Well... fresh-ish.'), L('Stalls close at the eighth bell. After that the market belongs to the rats.', { end: true })],
-  peasant: (g) => { const r = rumor(g); return [L('Curfew\'s coming. I\'d be indoors if I were you.', { choices: [{ text: 'Heard any rumors?', next: 1 }, { text: 'Good night.', next: 'end' }] }), L(r.text, { onShow: (G) => G.story.reveal(r.place), end: true })]; },
+  peasant: (g) => { const r = rumor(g); return [L('Curfew\'s coming. I\'d be indoors if I were you.', { choices: [{ text: 'Heard any rumors?', next: 1 }, { text: 'Good night.', next: 'end' }] }), L(r.text, { onShow: (G) => G.story.reveal(r.place, r.at), end: true })]; },
   peasant_old: (g) => [[L('Curfew\'s coming. I\'d be indoors if I were you.'), L('The watch is short-tempered these days. They say the Duke is afraid of his own shadow.', { end: true })], [L('Do you hear that ringing? No? Then I must be mad.'), L('Best I go home.', { end: true })]][Math.floor(Math.random() * 2)],
   beggar: () => [L('A copper for a man who has seen things?'), L('I saw them carry the boy\'s coffin up the hill. Very light, it was. Suspiciously light.', { end: true })],
   cook: () => [L('If you steal my bread, I will know. I always know.'), L('The Duke eats nothing but broth now. Broth! From my kitchen! Such a waste.', { end: true })],
@@ -100,6 +103,36 @@ export const DIALOGUE = {
       { text: 'Buy Lamp oil ×3 (14 gold)', next: 1, action: (G) => G.story.buy('oil', 14, 3) }, SELL, { text: 'Just passing.', next: 'end' }] }),
     L('There you are.', { goto: 0 }),
   ],
+  vesna: (g) => {
+    const c = g.caravan; if (!c) return [L('The road is long.', { end: true })];
+    const ch = c.stock.slice(0, 7).map((s, i) => ({ text: `${s.label}  (${Math.ceil(s.price * (g.story.priceMul?.() ?? 1))} gold)${c.sold.has(i) ? '  [sold]' : ''}`, next: 1, action: (G) => G.caravan.buy(i) }));
+    ch.push(SELL, { text: 'Where will you camp next?', next: 2 }, { text: 'Farewell.', next: 'end' });
+    return [
+      L(`Vesna's caravan. Maps, steel, and cures you will not find behind a wall. We move every couple of days; today it is ${c.site0.name}.`, { choices: ch }),
+      L('A pleasure doing business.', { goto: 0 }),
+      L('Wherever the roads are quiet and the guards are loud. Ask the innkeepers; they always know.', { goto: 0 }),
+    ];
+  },
+  encmerchant: (g) => { const c = g.encounters.cur; return c?.type === 'robbery' && !c.won ? [L('Two men took my mule and my purse! Kill them, or draw them off, please!', { mood: 'fear', end: true })] : [L('I owe you my life, and my purse. Travel safe.', { end: true })]; },
+  pilgrim: (g) => { const c = g.encounters.cur; if (c?.type === 'pilgrim' && c.escort) return [L('Lead on. I will keep close.', { end: true })]; return [L('I was walking to the chapel at Ashgate to pray for my sister, and I have lost the road. The dark is near. Will you take me to the gate? I will pay what I have.', { choices: [{ text: 'Follow me.', next: 1, action: (G) => G.encounters.acceptEscort() }, { text: 'Not now.', next: 'end' }] }), L('Lead on. I will keep close.', { end: true })]; },
+  pilgrimdone: () => [L('Ashgate. I can hear the chapel bell. Bless you, stranger.', { end: true })],
+  soldier: (g) => { const c = g.encounters.cur; if (c?.type === 'wounded' && !c.healed) return [L('Bandits... a dozen of them... I got a bolt in the thigh. A salve, if you have one. Please.', { mood: 'fear', choices: [{ text: g.player.inv.has('potion') ? 'Give a Red Salve.' : '(You have no Red Salve.)', next: 1, action: (G) => G.encounters.heal() }, { text: 'Leave him.', next: 'end' }] }), L('Bless you. Tell them Denn of the Watch was not a coward.', { end: true })]; return [L('You are a good sort, hooded or not. Stay off the roads at night.', { end: true })]; },
+  toll: (g) => { const pay = g.player.inv.gold >= 25; return [L('Road toll. Twenty-five gold and you go on your way. Or we can discuss it with steel.', { choices: [pay ? { text: 'Pay 25 gold.', next: 1, action: (G) => G.encounters.payToll() } : { text: '(You cannot pay.)', next: 'end' }, { text: 'Draw steel.', next: 'end', action: (G) => G.encounters.turnHostile() }, { text: 'Walk away.', next: 'end' }] }), L('Pleasure. Mind the road.', { end: true })]; },
+  cguard: () => [[L('Move along. Buy from the mistress if you are buying.', { end: true })], [L('We have done this road nine years. You are the first to ask us for a name.', { end: true })], [L('Touch the wagon and I will show you my spear.', { end: true })]][Math.floor(Math.random() * 3)],
+  orrin: (g) => {
+    const h = g.horse;
+    if (!h?.owned) return [
+      L('Steady. The grey mare is the best I have left. Four years old, sound, and she does not spook at torches.', { choices: [
+        { text: 'Buy the grey mare (180 gold)', next: 1, action: (G) => { if (!G.horse.buy()) G.ui.toast('Orrin shakes his head: 180 gold, no less'); } },
+        { text: 'Buy oats ×3 (12 gold)', next: 1, action: (G) => G.story.buy('oats', 12, 3) }, SELL, { text: 'Just looking.', next: 'end' }] }),
+      L('Mind her left flank when you mount.', { goto: 0 }),
+    ];
+    return [
+      L(`How is ${h.name}? Keep her fed and she will outrun anything in this duchy. Do not gallop her through the gates; the Watch frown on it.`, { choices: [
+        { text: 'Buy oats ×3 (12 gold)', next: 1, action: (G) => G.story.buy('oats', 12, 3) }, { text: 'Call my horse here', next: 1, action: (G) => G.horse.call() }, SELL, { text: 'Thanks, Orrin.', next: 'end' }] }),
+      L('Good.', { goto: 0 }),
+    ];
+  },
   garrick: () => [L('Stonehollow. Blue ore, thin seams and a foreman who is tired of burying people.'), L('Mind the deep end. There is a root down there and it hums.', { end: true })],
   miner: () => [L('Hear that tapping? That is not our picks.'), L('Keep away from the cavern.', { end: true })],
   lamplighter: () => [L('Lamps out at dawn, lit at dusk. Nobody thanks the lamplighter until the lamps go out.'), L('Something comes up out of the dark when a lamp goes out. So I light them fast.', { end: true })],

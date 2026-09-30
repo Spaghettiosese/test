@@ -398,6 +398,88 @@ This is the running list for the second update ("The Wide Valley"). Every line i
 355. **Bug fix:** barracks furniture no longer walls the sleepers off from their beds.
 356. **Bug fix:** hollows and loot are placed from the level data, so the new nests spawn correctly.
 
+## Round 6: the living wild
+
+**Wildlife and the hunt**
+357. Deer graze in herds in the Mirewood and on the farms, and bolt from noise, sprinting or a clear sight line.
+358. Crows perch on the gallows, fields and ruins, and explode into the sky when you come close. Their racket carries.
+359. Rats scurry through the town's alleys; bats circle in the mine and crypt and swing wide of your lantern.
+360. Wolf packs hunt the Mirewood, Blackfen and the ash country. They stalk at night, call their packmates and howl from the dark.
+361. Wolves bite, rattle you with fear, and flee when they are nearly dead.
+362. Hunt with the sword or with thrown knives; wolves and deer are real targets.
+363. Skin what you kill: venison, hides, wolf pelts and fangs.
+364. A lit fire now roasts venison as well as fish. A Well Fed effect heals slowly.
+365. Craft venison jerky, and Hunter's stew (regeneration, armour and stamina for a while).
+366. Craft Deerhide wraps (the quietest boots in the duchy) and a Hunter's cloak.
+367. Oats are sold at the stable and by the caravan.
+
+**The horse**
+368. A lean-to stable beside Fort Greywatch, with hay, a trough, bunks and a lamp. Stablemaster Orrin runs it.
+369. Buy the grey mare for 180 gold, from Orrin or at the hitching rail.
+370. F mounts, dismounts, or whistles her over when she is far away. She finds a path, or finds her own way round.
+371. Walk (C), trot, or gallop (Shift): three to twelve metres a second, and a wider field of view at full speed.
+372. Hoofbeats are loud: a gallop carries 24 m, more or less depending on the ground underfoot.
+373. A mounted rider is easier to spot, and the Stealth tab says so.
+374. Gallop into people to ride them down. Heavy blows can throw you from the saddle.
+375. She will not go indoors, you must dismount to pick locks, fish, mine or dig, and she softens falls.
+376. The longer you ride her, the faster and hardier she becomes. Oats make her gallop longer.
+377. Your horse is saved, marked on the map, and waits where you left her.
+
+**Vesna's caravan**
+378. A travelling caravan moves between seven camps, changing every couple of days while you are elsewhere.
+379. Wagon, two draft horses, campfire, bedrolls, a hanging lantern and two guards who take shifts at night.
+380. Vesna sells treasure maps, a shovel, fine gear, draughts and oats; her stock changes every day.
+381. Rifle the wagon (hold E) if no guard is watching. Somebody will report it if one is.
+382. Warm yourself at the caravan's campfire.
+383. Bards and peasants pass on rumours of where she is camped, and the map marks the spot.
+
+**Buried treasure**
+384. Fifteen caches across the duchy, each with its own riddle.
+385. A map reveals a dashed search area on the world map and a hint in the journal.
+386. Dig with a shovel (hold E); the noise carries.
+387. About one cache in five is cursed: hollows claw up out of the hole.
+388. Rewards are gold and a piece of gear or a gem.
+
+**Roadside encounters**
+389. A robbed merchant, held at sword-point by two highwaymen.
+390. A lost pilgrim who needs an escort to the gate of Ashgate. He follows you through the wilds.
+391. A wounded watchman who needs a Red Salve; he vouches for you and your bounty shrinks.
+392. A toll gang: pay 25 gold, walk away, or draw steel.
+393. At night, a pack of hollows clawing out of the ground near you.
+394. Encounters build their people over several frames so the road never hitches.
+395. NPCs can now follow the player (a new AI state), and can be made peaceful.
+
+**Boss fights**
+396. Red Cael grows bolder as he bleeds, drinks when near death, and rallies every bandit in earshot.
+397. The Warden of the Choir wakes in the mine: a floor slam you must jump or dash, hollows called at each quarter of his health, and a frenzy under a third of his health.
+398. The Drowned Saint rises at the sunken shrine: she blinks behind you, weeps homing tears and cries harder when hurt. Cut the tears out of the air with the sword.
+399. Bosses cannot be assassinated or knocked out, and their single blows are capped.
+400. A boss health bar with its name.
+401. Two new quests: What hums in the deep, and The weeping one.
+402. Unique drops: Crown of the Choir Root, Veil of the Drowned Saint, Red Cael's brand.
+403. Bestiary entries for the Warden and the Saint.
+
+**The hunter's cabin**
+404. Lease a cabin beside the old road (220 gold) and its door unlocks for good.
+405. A bed that binds where you wake after a death.
+406. A stash in the book (tab 9): store and take items, singly or in bulk. The Watch cannot confiscate it.
+407. A workbench: crafting there has a good chance of an extra item.
+408. A trophy shelf lights a gem for each boss you have beaten.
+409. The cabin shows on the map once you have seen it.
+
+**Systems and quality of life**
+410. An Options panel in the menu: field of view, resolution, head bob, inverted look, brightness, dither, saturation, minimap, threat ring, status bar, damage numbers, FPS counter, screen shake and autosave.
+411. Quest tracking: a Track button beside every objective sets the compass and the objective panel.
+412. New map markers: treasure areas, the caravan, your horse and your cabin.
+413. Modules now register themselves with the save system, so new features persist without touching the save code.
+414. Beds can move (the caravan's bedrolls), and the prompt follows them.
+415. Status pills for riding and for standing in your cabin.
+416. Eleven new deeds: Venison Supper, Hearth and Home, In the Saddle, Long Rider, Ridden Down, Road Trade, X Marks It, Good Samaritan, A Roof of Your Own, Giant Killer, Legend of the Duchy.
+417. Fast travel through a waystone dismounts you.
+418. New sounds: hoofbeats, a whistle, a neigh, a wolf's howl.
+419. **Bug fix:** the README listed F as "pick up props"; it is E, and F is now the horse.
+420. **Bug fix:** the stablemaster's and caravan's beds no longer leave phantom prompts behind when the camp moves.
+
 ## What was already there (Chapter I)
 
 - Ashgate, Ravenspire keep, catacombs, graveyard, tavern, smithy, chapel and 59 people on day and night schedules.

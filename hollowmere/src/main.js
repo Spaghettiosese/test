@@ -34,7 +34,7 @@ addEventListener('keydown', (e) => {
   if ((k === '=' || k === '+') && game.mode === 'play') { game.wmap.zoom = Math.min(3, game.wmap.zoom * 1.25); return; }
   if (k === '-' && game.mode === 'play') { game.wmap.zoom = Math.max(0.5, game.wmap.zoom / 1.25); return; }
   if (k === 'f5' && game.mode === 'play') { e.preventDefault(); game.saves.save('quick'); return; }
-  if (game.mode === 'journal') { if (k === 'escape') game.ui.toggleJournal(); else if (k >= '1' && k <= '8') game.ui.setTab(+k - 1); return; }
+  if (game.mode === 'journal') { if (k === 'escape') game.ui.toggleJournal(); else if (k >= '1' && k <= '9') game.ui.setTab(+k - 1); return; }
   if (k === ' ' || k === 'arrowup' || k === 'arrowdown') e.preventDefault();
   game.input.keys.add(k); if (!e.repeat) { game.input.pressed.add(k); if (k === 'e') { game.player.usePress = true; } }
   if (game.debug && !e.repeat) {
@@ -63,7 +63,7 @@ addEventListener('mousemove', (e) => {
   if (game.mode !== 'play') return;
   let dx = 0, dy = 0;
   if (locked()) { dx = e.movementX; dy = e.movementY; } else if (drag) { dx = e.clientX - drag.x; dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY; }
-  game.input.dYaw -= dx * sens(); game.input.dPitch -= dy * sens();
+  game.input.dYaw -= dx * sens(); game.input.dPitch -= dy * sens() * (game.opts.v.invertY ? -1 : 1);
 });
 document.addEventListener('pointerlockchange', () => {
   if (!locked() && game.mode === 'play') { pause(true); }
@@ -74,6 +74,7 @@ function pause(on) {
 }
 $('vol').oninput = (e) => { game.sfx.setVolume(+e.target.value); game.saves.saveSettings({ vol: +e.target.value }); };
 $('sens').oninput = (e) => game.saves.saveSettings({ sens: +e.target.value });
+$('optBtn').onclick = () => { const p = $('optsPanel'); p.hidden = !p.hidden; if (!p.hidden) game.opts.build(p); };
 $('diff').onchange = (e) => { game.difficulty = +e.target.value; game.saves.saveSettings({ diff: game.difficulty }); };
 $('cont').onclick = () => { game.sfx.unlock(); grabFocus(); if (game.mode !== 'menu') return; if (game.saves.load()) { $('menu').hidden = true; game.story.resume(); } else game.ui.toast('That save could not be loaded'); };
 $('play').onclick = () => { game.sfx.unlock(); if (game.mode === 'pause') pause(false); else start(); };
@@ -102,7 +103,7 @@ function frame(now) {
   } catch (e) { $('loading').hidden = true; $('fatal').hidden = false; $('fatal').textContent = 'Failed to build the world: ' + e.message; console.error(e); throw e; }
   game.story.spawnCryptHollows();
   $('loading').hidden = true;
-  game.mode = 'menu';
+  game.mode = 'menu'; game.opts.apply();
   { const st = game.saves.settings(); if (st.vol !== undefined) { $('vol').value = st.vol; game.sfx.setVolume(st.vol); } if (st.sens) $('sens').value = st.sens; if (st.diff !== undefined) { game.difficulty = st.diff; $('diff').value = st.diff; }
     const inf = game.saves.info(); if (inf) { $('cont').hidden = false; $('cont').textContent = `Continue · Lv ${inf.level} · Day ${inf.day + 1} · ${String(Math.floor(inf.hours)).padStart(2, '0')}:00`; } }
   if (q.has('skipintro') || q.has('nomenu')) { $('menu').hidden = true; game.story.beginPlay(); }

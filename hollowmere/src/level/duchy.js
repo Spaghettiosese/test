@@ -13,7 +13,7 @@ const arches = (list) => list.map(([side, at, w = 2.4]) => ({ side, at, w, kind:
 
 export function expandDuchy(B, keep) {
   B.oreVeins = []; B.hollowSpots = []; B.fishSpots = [];
-  fortGreywatch(B, keep); pellmouth(B, keep); stonehollow(B, keep); choirStones(B, keep);
+  fortGreywatch(B, keep); pellmouth(B, keep); stonehollow(B, keep); choirStones(B, keep); caravanPois(B); hideout(B, keep);
   B.useChunk('main');
 }
 
@@ -51,6 +51,46 @@ function fortGreywatch(B, keep) {
   B.route('fort_yard', [[14, -106], [30, -107.5], [30, -100.5], [14, -101]]);
   B.route('road_patrol', [[2, -110], [1, -98], [1, -88], [2, -98]]);
   trail(B, [[3, -109], [10, -109]], { w: 3 }); keep.rect(6, -124, 38, -94);
+  stable(B, keep);
+}
+
+// a lean-to stable west of the road: the only place in the duchy that sells a horse
+function stable(B, keep) {
+  const M = B.pal, k = B.kit('fort');
+  for (const [x, z] of [[-12, -117.6], [-4, -117.6], [-12, -105.4], [-4, -105.4]]) k.cyl(M.timber, [x, 1.6, z], 0.11, 3.2, [0, 0, 0], 6);
+  k.box(M.timber, [-8, 3.25, -111.5], [9.4, 0.14, 13.4]); k.box(M.roofSlate, [-8, 3.4, -111.5], [9.8, 0.1, 13.8]);
+  k.box(M.timber, [-12, 1.5, -111.5], [0.12, 3.0, 12]);
+  B.prop('hay', -5.0, 0, -107.4, { yaw: 40 }); B.prop('hay', -10.8, 0, -107.0, { yaw: 100 }); B.prop('barrel', -2.6, 0, -105.6, { yaw: 0 }); B.prop('crate', -3.6, 0, -105.4, { yaw: 12 });
+  for (let i = 0; i < 3; i++) B.bed(-11 + i * 3.1, -116.4, { dir: 0, id: i ? 'bed_stable_' + i : 'bed_stable', w: 0.95 });
+  k.box(M.plank, [-9.4, 0.45, -113.2], [0.5, 0.3, 2.2]);
+  k.box(M.timber, [-4.4, 0.95, -111.5], [0.1, 0.1, 5]);
+  B.lampPost(-2.6, -108, { chunk: 'fort' });
+  B.stable = { x: -7.6, z: -111.5, yaw: -90 };
+  keep.rect(-14, -119, -2, -104);
+  B.poi('stable_hand', -3.4, -109, { yaw: 90, type: 'stand' });
+}
+
+// the caravan's places are moved about by the Caravan system; these are only its first positions
+function caravanPois(B) {
+  const x = 8, z = -70;
+  B.poi('caravan_m', x + 3, z + 1, { yaw: 270, type: 'stand' }); B.poi('caravan_g1', x + 4.5, z - 3, { yaw: 0, type: 'stand' }); B.poi('caravan_g2', x + 4.5, z + 5, { yaw: 180, type: 'stand' });
+  B.poi('caravan_bed_m', x - 0.5, z + 4, { yaw: 90, type: 'sleep' }); B.poi('caravan_bed_g', x - 1.8, z - 3, { yaw: 90, type: 'sleep' });
+  B.caravanSeed = [x, z];
+}
+
+// a hunter's cabin beside the old road that anyone with the gold can lease: a bed, a stash, a bench
+function hideout(B, keep) {
+  const M = B.pal, X = -31, Z = -54, W = 8, D = 6;
+  const cab = B.house({ id: 'hideout', x: X, z: Z, w: W, d: D, h: 3.2, wall: 'plaster', door: { side: 'E', at: 3, w: 1.4, id: 'hideout_door', locked: true, keyId: 'hideoutkey', lockLevel: 4, name: 'cabin door' }, windows: [{ side: 'N', at: 4 }, { side: 'S', at: 4 }], roofMat: 'roofThatch' });
+  B.bed(X + 1.3, Z + 1.3, { dir: 0, id: 'bed_hideout', w: 0.95, chunk: cab.chunk });
+  B.hearth(X + 6.4, 0, Z + D - 0.9, { r: 0.35, range: 9, intensity: 8, chunk: cab.chunk });
+  B.table(X + 5.4, Z + 1.6, 2.0, 0.9, { chunk: cab.chunk });
+  B.torch(X + W - 0.3, 2.2, Z + 3, { dir: [-1, 0], chunk: cab.chunk, range: 6, intensity: 5 });
+  B.kit(cab.chunk).box(M.timber, [X + 1.0, 0.4, Z + D - 0.8], [1.3, 0.8, 0.7]); B.kit(cab.chunk).box(M.iron, [X + 1.0, 0.82, Z + D - 0.8], [1.34, 0.06, 0.74]);
+  B.kit(cab.chunk).box(M.plank, [X + 0.25, 1.4, Z + 3.4], [0.3, 0.06, 2.6]);
+  B.hideoutSpots = { stash: [X + 1.0, Z + D - 0.8], bench: [X + 5.4, Z + 1.6], plate: [X + 0.4, Z + 3.4], sign: [X + W + 0.7, Z + 1.4], door: 'hideout_door' };
+  keep.rect(X - 2, Z - 2, X + W + 3, Z + D + 2); keep.line([[X + W + 2, Z + 3], [-3, Z + 3]], 3.4);
+  trail(B, [[-3, Z + 3], [X + W + 1.6, Z + 3]], { w: 2.4 });
 }
 
 // ---------------------------------------------------------------------------- Pellmouth

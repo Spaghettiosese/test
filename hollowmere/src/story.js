@@ -43,14 +43,15 @@ export class Story {
     const P = this.g.player.pos, inKeep = P[2] > 92;
     return { town: [0, 13], court: inKeep ? [0, 98] : inCryptRect(P[0], P[2]) ? [121, 57] : [0, 91], keep: [0, 112], chamber: [10, 138], letter: [15.4, 139.6], escape: [13, 147.5], locket: [-22.5, 61.4], relic: [99.4, 57.6] }[o.id] || (o.target ? o.target() : null);
   }
-  currentObjective() { if (this.g.mode === 'boot') return null; return this.objectives.find((o) => !o.done) || null; }
+  currentObjective() { if (this.g.mode === 'boot') return null; const t = this.tracked && this.objectives.find((o) => o.id === this.tracked && !o.done); return t || this.objectives.find((o) => !o.done) || null; }
+  track(id) { this.tracked = this.tracked === id ? null : id; const o = this.objectives.find((x) => x.id === id); this.g.toast(this.tracked ? `Tracking: ${o?.text || id}` : 'Tracking cleared'); this.g.sfx.pick?.(); }
   complete(id) { const o = this.objectives.find((x) => x.id === id); if (o && !o.done) { o.done = true; this.g.ui.flashBanner('OBJECTIVE COMPLETE', 1800, true); this.g.sfx.coin?.(); } }
   // ------------------------------------------------------------ notes & extra interactables
   extraInteractables() {
     const L = this.g.level, note = (id, x, y, z, prompt = 'Read the note') => L.interactables.push({ kind: 'note', x, y, z, r: 1.9, obj: { id }, prompt: () => prompt, use: (g) => g.readNote(id) });
     for (const k of ['ws_road', 'ws_mire', 'ws_cinder', 'ws_gallows', 'ws_stones']) { const p = L.pois[k]; if (p) L.interactables.push({ kind: 'waystone', x: p.x, y: 1.2, z: p.z + 1.3, r: 2.6, obj: { id: k }, prompt: () => (this.g.quests.lit.has(k) ? 'Use the waystone' : 'Touch the waystone'), use: (g) => g.quests.waystone(k) }); }
     for (const l of LORE) { NOTES[l.id] = { title: l.title, text: l.text }; L.interactables.push({ kind: 'note', x: l.at[0], y: l.at[1], z: l.at[2], r: 2.2, obj: { id: l.id }, prompt: () => l.prompt, use: (g) => { const first = !this.notesFound.has(l.id); g.readNote(l.id); if (first) g.progress.addXp(12, 'lore'); } }); }
-    for (const [name, p] of Object.entries(L.pois)) if (p.type === 'sleep') L.interactables.push({ kind: 'bed', x: p.x, y: p.y + 0.4, z: p.z, r: 2.4, obj: { id: name }, prompt: () => (this.g.clock.night || this.g.player.hp < this.g.player.maxHp - 5 ? 'Rest in the bed' : 'Lie down for a while'), use: (g) => g.events.sleepMenu(name) });
+    for (const [name, p] of Object.entries(L.pois)) if (p.type === 'sleep') L.interactables.push({ kind: 'bed', get x() { return p.x; }, get y() { return p.y + 0.4; }, get z() { return p.z; }, r: 2.4, obj: { id: name }, prompt: () => (this.g.clock.night || this.g.player.hp < this.g.player.maxHp - 5 ? 'Rest in the bed' : 'Lie down for a while'), use: (g) => g.events.sleepMenu(name) });
     for (const f of L.fires) if (f.kind === 'hearth') L.interactables.push({ kind: 'fire', x: f.x, y: f.y + 0.6, z: f.z, r: 3.2, obj: f, prompt: () => (this.g.time - (f.warmAt ?? -99) > 90 ? 'Warm yourself at the fire' : null), use: (g) => { f.warmAt = g.time; const P = g.player; P.hp = Math.min(P.maxHp, P.hp + 25); P.ember = Math.min(P.maxEmber, P.ember + 15); g.toast('The fire warms you'); g.sfx.drink?.(); if (f.indoor === 0) g.saves.save('quick'); } });
     const fate = (kind, x, y, z, prompt) => L.interactables.push({ kind: 'note', x, y, z, r: 2.6, obj: { id: 'fate_' + kind }, prompt: () => (this.fate && !this.ended && this.g.player.inv.has('letter') ? prompt : null), use: () => this.ending(kind) });
     fate('saint', -190, 1.0, -233.5, 'Lay the letter on the drowned altar'); fate('unseal', 195, 1.0, 98.6, 'Break the seal at the plague ward gate');
@@ -91,7 +92,7 @@ export class Story {
     else this._dice = `Both roll ${me}. A push.`;
   }
   diceReport() { if (this._dice) this.g.toast(this._dice); }
-  reveal(place) { const L = LANDMARKS.find((l) => l.name === place); if (L) { this.g.wmap.reveal(L.x, L.z, 34); this.g.toast(`The map now shows ${place}`); this.g.progress.addXp(5, 'rumor'); } }
+  reveal(place, at = null) { if (at) { this.g.wmap.reveal(at[0], at[1], 30); if (this.g.caravan) this.g.caravan.known = true; this.g.toast('The map now shows where the caravan is camped'); this.g.progress.addXp(5, 'rumor'); return; } const L = LANDMARKS.find((l) => l.name === place); if (L) { this.g.wmap.reveal(L.x, L.z, 34); this.g.toast(`The map now shows ${place}`); this.g.progress.addXp(5, 'rumor'); } }
   startLocket() { this.flags.locketQuest = true; this.objectives.push({ id: 'locket', text: 'Marta\'s locket: find it (a mercenary pawned it)', sub: 'Try the smith\'s strongbox or the mercenary in the tavern.', done: false, side: true }); this.g.toast('New task: Marta\'s locket'); }
   giveLocket() { const g = this.g; g.player.inv.remove('locket', 1); g.player.inv.add('gold', 60); this.flags.locketReturned = true; const o = this.objectives.find((x) => x.id === 'locket'); if (o) o.done = true; g.toast('+60 gold'); g.sfx.coin?.(); }
   startRelic() { this.flags.relicQuest = true; this.objectives.push({ id: 'relic', text: 'Bring the Pale Saint\'s tear (a gem) from the crypt shrine to Father Ansel', sub: 'Through the mausoleum, past the ossuary.', done: false, side: true }); this.g.toast('New task: the Saint\'s tear'); }

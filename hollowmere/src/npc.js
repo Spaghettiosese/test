@@ -306,6 +306,12 @@ export class NPC {
       const t = this.reportTo;
       if (t && !t.dead && hyp(t.x - this.x, t.z - this.z) < 2.6) { this.g.rep.reported(this, t); this.state = 'routine'; this.slotKey = ''; this.anim = ''; }
       else if (this.reportT <= 0 || !t) { this.state = 'routine'; this.slotKey = ''; this.anim = ''; this.witness = null; }
+    } else if (this.state === 'follow') {
+      // walk with the player, a few paces behind; used for escorted strangers
+      this.repathT -= dt; const P = this.g.player.pos, d = hyp(P[0] - this.x, P[2] - this.z);
+      if (d > 3.4 && (this.repathT <= 0 || !this.path)) { this.repathT = 0.9; const q = this.g.nav.nearestWalkable(P[0], P[2], 3); if (q) this.goTo(q[0], q[1], d > 16 ? 4.6 : d > 8 ? 3.0 : 1.7); }
+      if (d <= 3.0) { this.stopMove(); this.speed = 0; this.yaw += ((Math.atan2(P[0] - this.x, P[2] - this.z) - this.yaw + Math.PI * 3) % (Math.PI * 2) - Math.PI) * Math.min(1, dt * 3); }
+      if (this.path) this.stepPath(dt); this.setLoco(this.speed);
     } else if (this.state === 'handsup') { this.speed = 0; }
   }
   pickFleeGoal() {
@@ -329,7 +335,7 @@ export class NPC {
 
   // ------------------------------------------------------------ guards: seeing & hearing
   perceive(dt) {
-    if (this.dead || this.stagger > 0.3) return;
+    if (this.dead || this.stagger > 0.3 || this.peaceful) return;
     const gm = this.g.mode; if (gm !== 'play' && gm !== 'talk' && gm !== 'read' && gm !== 'journal') return;
     this.percT -= dt; if (this.percT > 0) return; this.percT = 0.14 + Math.random() * 0.04;
     const g = this.g, P = g.player, eye = this.eye;
@@ -571,7 +577,9 @@ export class NPC {
   // ------------------------------------------------------------ being hurt
   takeHit(dmg, dir, opts = {}) {
     if (this.dead) return 'dead';
-    const unaware = (this.state === 'routine' || this.state === 'notice' || this.lying) && this.alert < 0.95 && !this.sees;
+    const boss = !!this.def.boss;
+    if (boss) { if (opts.sap) { dmg *= 0.25; opts = { ...opts, sap: false }; } dmg = Math.min(dmg, 75); }
+    const unaware = !boss && (this.state === 'routine' || this.state === 'notice' || this.lying) && this.alert < 0.95 && !this.sees;
     const behind = dir && ((dir[0] * this.fwd[0] + dir[1] * this.fwd[1]) > 0.1); // dir points from the player to us; same direction as we face => the player is behind us
     if (opts.sap) { if (unaware && (behind || this.lying || this.seated || this.asleep || this.surrender)) { this.knockOut(); return 'ko'; } dmg *= 0.3; }
     if (opts.from === 'player' && (unaware && (behind || opts.silentKill || this.lying || this.seated || this.asleep || this.surrender))) { dmg = 999; opts.backstab = true; }
@@ -598,6 +606,7 @@ export class NPC {
     return 'hit';
   }
   knockOut(secs = 55) {
+    if (this.def.boss) return;
     if (this.dead || this.state === 'ko') return;
     this.leaveActivity?.(); this.stopMove(); this.atk = null;
     this.state = 'ko'; this.koT = secs; this.lying = true; this.lyingPos = [this.x, this.y + 0.12, this.z]; this.lyingYaw = this.yaw / D2R; this.setAnim('Sleep', 0.1); this.showSword(false);

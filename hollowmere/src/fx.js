@@ -44,8 +44,8 @@ P.updateFx = function updateFx(dt) {
   this.smoke.update(dt); this.flames.update(dt); this.sparks.update(dt);
   for (const d of this.debris) { d.t -= dt; if (d.t <= 0) { this.world.remove(d.body); this.scene.remove(d.mesh); } }
   this.debris = this.debris.filter((d) => d.t > 0);
-  this.shake = Math.max(0, this.shake - dt * 2.4);
-  if (this.shake > 0.01) { const s = this.shake * 0.06; this.camera.position[0] += (Math.random() - 0.5) * s; this.camera.position[1] += (Math.random() - 0.5) * s; }
+  this.shake = Math.max(0, this.shake - dt * 2.4) ;
+  if (this.shake > 0.01) { const s = this.shake * 0.06 * (this.opts?.v.shake ?? 1); this.camera.position[0] += (Math.random() - 0.5) * s; this.camera.position[1] += (Math.random() - 0.5) * s; }
 };
 P.tracerLines = function tracerLines() { return []; };
 // a pot, jug or bottle bursts into shards

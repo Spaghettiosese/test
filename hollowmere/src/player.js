@@ -52,25 +52,27 @@ export class Player {
     this.yaw += input.dYaw; this.pitch = clamp(this.pitch + input.dPitch, -1.5, 1.5); this.dYaw = input.dYaw; this.dPitch = input.dPitch;
     input.dYaw = input.dPitch = 0;
     // ---- stance
-    const wantCrouch = input.keys.has('c') || input.keys.has('control');
+    const wantCrouch = (input.keys.has('c') || input.keys.has('control')) && !this.mount;
     this.cHold = wantCrouch ? (this.cHold || 0) + dt : 0;
     const wantStance = !wantCrouch ? 'stand' : (this.cHold > 0.7 || (this.prone && wantCrouch)) && !this.carried ? 'prone' : 'crouch';
     if (wantStance !== (this.prone ? 'prone' : this.crouch ? 'crouch' : 'stand')) this.setStance(wantStance);
     // ---- movement
     const k = input.keys;
     let ix = (k.has('a') ? 1 : 0) - (k.has('d') ? 1 : 0), iz = (k.has('w') ? 1 : 0) - (k.has('s') ? 1 : 0);
+    if (this.mount) ix *= 0.35;
     const moving = !!(ix || iz);
     if (this.stamina <= 0.5) this.exhausted = true; else if (this.stamina > 28) this.exhausted = false;
     this.noiseNow = Math.max(0, (this.noiseNow || 0) - dt * 5);
     this.creep = this.crouch && !this.prone && k.has('shift');
-    this.sprint = k.has('shift') && iz > 0 && !this.crouch && !this.exhausted && this.stamina > 4 && !this.blocking && !this.carried && !this.atk;
+    this.sprint = k.has('shift') && iz > 0 && !this.crouch && !this.exhausted && this.stamina > 4 && !this.blocking && !this.carried && !this.atk && !this.mount;
     let speed = (this.prone ? 0.95 : this.creep ? 1.0 : this.crouch ? 1.7 : this.sprint ? 5.8 : 3.5) * (g.status?.mul('speed') ?? 1);
+    if (this.mount) speed = this.mount.speedFor(k, iz, dt) * (g.status?.mul('speed') ?? 1);
     if (this.blocking) speed *= 0.55; if (this.carried) speed *= 0.6; if (this.g.tools?.dragging) speed *= 0.5; if (this.atk) speed *= 0.6; if (this.stagger > 0) speed *= 0.3; if (this.picking) speed = 0;
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw), lx = Math.cos(this.yaw), lz = -Math.sin(this.yaw);
     let wish = [0, 0];
     if (moving) { const d = [fx * iz + lx * ix, fz * iz + lz * ix], l = Math.hypot(d[0], d[1]); wish = [(d[0] / l) * speed, (d[1] / l) * speed]; }
     if (this.dashT > 0) { this.dashT -= dt; wish = [this.dashDir[0] * 15, this.dashDir[1] * 15]; this.cc.velocity[0] = wish[0]; this.cc.velocity[2] = wish[1]; }
-    if (k.has(' ') && this.prone) { this.setStance('crouch'); } else if (k.has(' ') && !this.crouch && this.stamina > 6) { if (this.cc.grounded) { this.cc.jump(4.5); this.stamina -= 6; g.sfx.jump?.(); g.noise(this.pos, 4, 'jump'); } }
+    if (k.has(' ') && this.prone) { this.setStance('crouch'); } else if (k.has(' ') && !this.crouch && this.stamina > 6) { if (this.cc.grounded) { this.cc.jump(this.mount ? 6.4 : 4.5); if (!this.mount) this.stamina -= 6; g.sfx.jump?.(); g.noise(this.pos, this.mount ? 9 : 4, 'jump'); } }
     this.cc.move(wish, dt);
     if (this.cc.position[1] < -20 || !isFinite(this.cc.position[1])) this.respawnNear();
     this.speedNow = Math.hypot(this.cc.velocity[0], this.cc.velocity[2]);
@@ -78,9 +80,9 @@ export class Player {
     if (this.cc.grounded && !this.wasGrounded && this.fallV < -6) { const dmg = Math.max(0, (-this.fallV - 8) * 9); if (dmg > 0) this.hurt(dmg, null, { fall: true }); g.noise(this.pos, clamp(-this.fallV * 1.6, 4, 16), 'land'); g.sfx.thud?.(0.8); this.kick = 0.05; }
     this.fallV = this.cc.velocity[1]; this.wasGrounded = this.cc.grounded;
     // stamina & footsteps
-    if (this.sprint && this.speedNow > 3) this.stamina = Math.max(0, this.stamina - dt * 11 * (this.mod?.sprintCost ?? 1)); else this.stamina = Math.min(100, this.stamina + dt * (this.blocking || this.atk ? 5 : 20) * (this.mod?.stam ?? 1));
+    if (this.sprint && this.speedNow > 3) this.stamina = Math.max(0, this.stamina - dt * 11 * (this.mod?.sprintCost ?? 1)); else if (!(this.mount && this.mount.want === 2 && iz > 0)) this.stamina = Math.min(100, this.stamina + dt * (this.blocking || this.atk ? 5 : 20) * (this.mod?.stam ?? 1));
     if (this.stamina <= 0.5 && this.sprint) this.sprint = false;
-    if (this.cc.grounded && this.speedNow > 0.4) {
+    if (this.cc.grounded && this.speedNow > 0.4 && !this.mount) {
       this.stepDist += this.speedNow * dt;
       const stride = this.sprint ? 1.9 : this.prone ? 0.9 : this.crouch ? 1.2 : 1.55;
       if (this.stepDist > stride) {
@@ -92,11 +94,11 @@ export class Player {
       }
     }
     // eye height & head bob
-    const eyeT = this.prone ? EYE_PRONE : this.crouch ? EYE_CROUCH : EYE_STAND;
+    const eyeT = (this.prone ? EYE_PRONE : this.crouch ? EYE_CROUCH : EYE_STAND) + (this.mount ? 0.85 : 0);
     this.eye += (eyeT - this.eye) * Math.min(1, dt * 10);
     this.bobT += dt * this.speedNow * (this.sprint ? 1.9 : 2.4);
     const bobAmp = this.cc.grounded ? Math.min(1, this.speedNow / 4) : 0;
-    this.bobY = Math.sin(this.bobT * 2) * 0.028 * bobAmp * (this.sprint ? 1.4 : 1) - this.kick;
+    this.bobY = Math.sin(this.bobT * 2) * 0.028 * bobAmp * (this.sprint ? 1.4 : 1) * (g.opts?.v.bob ?? 1) - this.kick;
     this.kick *= Math.exp(-dt * 12);
     // ---- light & visibility
     this.lightLevel += (g.lightAt(this.pos[0], this.pos[1] + 1.1, this.pos[2]) - this.lightLevel) * Math.min(1, dt * 6);
@@ -152,6 +154,7 @@ export class Player {
     if (input.pressed.has('2')) this.skillDash(input);
     if (input.pressed.has('3')) this.skillSlam();
     if (input.pressed.has('q')) this.kick2();
+    if (input.pressed.has('f')) this.g.horse?.interact();
     if (input.pressed.has('r')) this.g.useItem('potion');
     if (input.pressed.has('t')) this.g.useItem('ember');
     this.g.tools.keys(input, dt);
@@ -188,6 +191,8 @@ export class Player {
       const ho = { from: 'player', clip, heavy: clip !== 'Slash1' && clip !== 'Slash2', sap: g.tools.sap, bleed: clip === 'Slash3' || clip === 'Thrust' || rip }; const hr = g.hitNpc(n, dmg, [dx / (d || 1), dz / (d || 1)], ho); if (g.tools.poisonHits > 0 && hr !== 'blocked' && hr !== 'dead' && hr !== 'killed' && !g.tools.sap) { n.poison = 12 * (this.mod?.poison || 1); g.tools.poisonHits--; if (!g.tools.poisonHits) g.ui.toast('The poison on your blade is spent'); }
       hitSomething = true;
     }
+    if (g.fauna?.hit(this.pos, flat, reach, arc, dmg)) hitSomething = true;
+    if (g.boss?.slashOrbs(eye, f, reach)) hitSomething = true;
     // physics props: fling them
     const centre = [eye[0] + f[0] * 1.4, eye[1] + f[1] * 1.4 - 0.2, eye[2] + f[2] * 1.4];
     for (const b of g.world.overlapSphere(centre, 0.85)) {
@@ -243,12 +248,14 @@ export class Player {
   }
   hurt(dmg, from, opts = {}) {
     if (this.dead) return;
+    if (opts.fall && this.mount) dmg *= 0.35;
     if (!opts.fall) dmg *= 1 - Math.min(0.6, (this.mod?.armor || 0) + (this.g.status?.sum('armor') || 0));
     this.hp -= dmg; this.hurtT = 0.35; this.kick = 0.05; this.g.combatT = 6;
     this.g.sfx.hurt?.(); this.g.pix.hurt = 1;
     if (from && !opts.fall) { const dx = this.pos[0] - from[0], dz = this.pos[2] - from[1], d = Math.hypot(dx, dz) || 1; const kb = opts.shove ? 7 : 2.2; this.cc.velocity[0] += (dx / d) * kb; this.cc.velocity[2] += (dz / d) * kb; }
     if (dmg > 12 && !opts.fall) { this.stagger = 0.25; if (this.atk) { this.atk = null; this.playVm('Stagger', 0.03); } }
-    if (this.hp <= 0) { this.hp = 0; this.dead = true; this.g.playerDied(); }
+    if (this.mount && !opts.fall && dmg >= 18 && Math.random() < 0.3) this.mount.throwRider();
+    if (this.hp <= 0) { this.hp = 0; this.dead = true; this.mount?.forceReset(); this.g.playerDied(); }
   }
 
   // ------------------------------------------------------------ skills
@@ -300,6 +307,7 @@ export class Player {
   // ------------------------------------------------------------ lock picking
   startPicking(target, level, onDone, label = 'Picking the lock', o = {}) {
     if (this.picking) return;
+    if (this.mount) { this.g.toast('Dismount first (F)'); return; }
     if (!o.free && !this.inv.has('lockpick')) { this.g.toast('You need a lockpick'); return; }
     if (!o.free) this.g.rep.crime('lockpick', this.pos, { range: 16 });
     this.picking = { target, level, t: 0, need: (o.need ?? (1.6 + level * 1.5)) * (this.mod?.pick ?? 1), onDone, label, tick: 0, x: this.pos[0], z: this.pos[2], free: !!o.free, watch: o.watch };
@@ -332,7 +340,7 @@ export class Player {
     const eye = this.eyePos, { f, left, up } = this.basis();
     // camera roll from strafing & recoil
     camera.position.set(eye); camera.target.set([eye[0] + f[0] * 10, eye[1] + f[1] * 10, eye[2] + f[2] * 10]); camera.up.set(up);
-    camera.fov = fovBase * (1 + (this.dashT > 0 ? 0.12 : 0) + (this.sprint ? 0.04 : 0));
+    camera.fov = fovBase * (1 + (this.dashT > 0 ? 0.12 : 0) + (this.sprint ? 0.04 : 0) + (this.mount && this.mount.gait >= 2 ? 0.08 : 0));
     // viewmodel
     this.sway[0] += (clamp(-this.dYaw * 3.5, -0.05, 0.05) - this.sway[0]) * Math.min(1, dt * 9);
     this.sway[1] += (clamp(-this.dPitch * 3.5, -0.05, 0.05) - this.sway[1]) * Math.min(1, dt * 9);

@@ -63,6 +63,17 @@ export class WorldMap {
       const [x, y] = tx(L.x, L.z); ctx.fillStyle = '#e6dcc8'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3; ctx.strokeText(L.name, x, y - 5); ctx.fillText(L.name, x, y - 5); ctx.fillStyle = L.c || '#c8a8ff'; ctx.fillRect(x - 2, y - 2, 4, 4);
     }
     for (const k in (g.level.pois)) if (k.startsWith('ws_')) { const p = g.level.pois[k], [x, y] = tx(p.x, p.z + 1.3); this.diamond(ctx, x, y, 4, g.quests.lit.has(k) ? '#a56cff' : '#4a3a60'); }
+    const ppm = (this.bx(1) - this.bx(0)) * PX * sc;
+    for (const src of g.markers || []) for (const m of src.marks?.() || []) {
+      const [x, y] = tx(m.x, m.z); ctx.lineWidth = 2; ctx.strokeStyle = '#000';
+      if (m.shape === 'x') { ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,90,90,0.75)'; ctx.beginPath(); ctx.arc(x, y, Math.max(6, (m.r || 20) * ppm), 0, 6.283); ctx.stroke(); ctx.setLineDash([]); ctx.strokeStyle = '#ff5a5a'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4); ctx.moveTo(x + 4, y - 4); ctx.lineTo(x - 4, y + 4); ctx.stroke(); }
+      else if (m.shape === 'wagon') { ctx.fillStyle = '#e8b860'; ctx.fillRect(x - 4, y - 3, 8, 6); ctx.strokeRect(x - 4, y - 3, 8, 6); ctx.fillStyle = '#000'; ctx.fillRect(x - 3, y + 3, 2, 2); ctx.fillRect(x + 1, y + 3, 2, 2); }
+      else if (m.shape === 'horse') { ctx.fillStyle = '#c8d0e0'; ctx.fillRect(x - 3, y - 3, 7, 6); ctx.strokeRect(x - 3, y - 3, 7, 6); ctx.fillStyle = '#000'; ctx.fillText('H', x + 0.5, y + 3); }
+      else if (m.shape === 'home') { ctx.fillStyle = '#7ad0a0'; ctx.beginPath(); ctx.moveTo(x, y - 6); ctx.lineTo(x + 5, y + 1); ctx.lineTo(x - 5, y + 1); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillRect(x - 3, y + 1, 6, 4); }
+      else if (m.shape === 'skull') { ctx.fillStyle = '#e6dcc8'; ctx.beginPath(); ctx.arc(x, y, 4, 0, 6.283); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#000'; ctx.fillRect(x - 2, y - 1, 1.5, 2); ctx.fillRect(x + 1, y - 1, 1.5, 2); }
+      else if (m.shape === 'quest') { this.diamond(ctx, x, y, 4, m.color || '#ffe680'); }
+      if (labels && m.label) { ctx.fillStyle = '#e6dcc8'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3; ctx.strokeText(m.label, x, y + 15); ctx.fillText(m.label, x, y + 15); }
+    }
     const t = g.story.objectiveTarget?.(); if (t) { const [x, y] = tx(t[0], t[1]); this.diamond(ctx, x, y, 5, '#e0b450'); }
     this.pins.forEach(([x, z], i) => { const [a, b] = tx(x, z); ctx.fillStyle = '#ff5a5a'; ctx.strokeStyle = '#000'; ctx.fillRect(a - 1, b - 8, 2, 8); ctx.beginPath(); ctx.moveTo(a + 1, b - 8); ctx.lineTo(a + 7, b - 6); ctx.lineTo(a + 1, b - 4); ctx.closePath(); ctx.fill(); ctx.stroke(); });
     const [px, py] = tx(P.pos[0], P.pos[2]); this.arrow(ctx, px, py, P.yaw, 5);
@@ -116,7 +127,7 @@ export class WorldMap {
     const g = this.g, T = g.tools, ctx = canvas.getContext('2d'); if (!ctx) return;
     if (canvas.width !== innerWidth || canvas.height !== innerHeight) { canvas.width = innerWidth; canvas.height = innerHeight; }
     const W = canvas.width, H = canvas.height; ctx.clearRect(0, 0, W, H);
-    this.drawThreat(ctx, W, H);
+    if (g.opts.v.threat) this.drawThreat(ctx, W, H);
     if (T.sightT <= 0 || g.mode !== 'play') return;
     const cam = g.camera, f = g.player.forward, e = cam.position, a = Math.min(1, T.sightT / 1.5);
     ctx.globalAlpha = a; ctx.lineWidth = 2;

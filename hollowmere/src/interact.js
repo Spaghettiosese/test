@@ -59,7 +59,7 @@ P.updateInteraction = function updateInteraction(dt) {
     push(b.position[0], b.position[1], b.position[2], 2.4, take ? `Take the ${nm}` : `Pick up the ${nm}`, () => (take ? this.takeProp(b, take) : pl.grab(b)), 'prop', 0.82, b);
   }
   this.tools.hook(push, eye, f); this.stealth.hook(push, eye);
-  this.traps?.hook(push, eye); this.fishing?.hook(push, eye); this.mining?.hook(push, eye); this.shrines?.hook(push, eye); this.forage?.hook(push, eye); this.contracts?.hook(push, eye);
+  this.traps?.hook(push, eye); this.fishing?.hook(push, eye); this.mining?.hook(push, eye); this.shrines?.hook(push, eye); this.forage?.hook(push, eye); this.contracts?.hook(push, eye); this.fauna?.hook(push, eye); this.horse?.hook(push, eye); this.treasure?.hook(push, eye); this.hideout?.hook(push, eye); this.caravan?.hook(push, eye);
   let best = null, bs = 1e9;
   for (const t of c) {
     const dx = t.x - eye[0], dy = t.y - eye[1], dz = t.z - eye[2], d = Math.hypot(dx, dy, dz);
@@ -144,7 +144,7 @@ P.useItem = function useItem(id) {
   else if (id === 'poison') this.tools.applyPoison();
   else if (id === 'firebomb') this.toast('Press X to throw the flask');
   else if (id === 'book') { pl.inv.remove(id, 1); this.progress.addXp(10, 'read a book'); this.toast('You read a while. The old words settle in.'); }
-  else if (it.heal) { pl.inv.remove(id, 1); pl.hp = Math.min(pl.maxHp, pl.hp + it.heal); this.toast(`Ate the ${it.name}`); }
+  else if (it.heal) { pl.inv.remove(id, 1); pl.hp = Math.min(pl.maxHp, pl.hp + it.heal); this.toast(`Ate the ${it.name}`); this.sfx.drink?.(); if (it.buff) this.status.add(it.buff); this.stats.eaten = (this.stats.eaten || 0) + 1; }
 };
 
 // ------------------------------------------------------------ light

@@ -109,6 +109,7 @@ export class UI {
     this.el.inv.hidden = false;
   }
   floater(text, pos, color = '#ffe9a8') {
+    if (this.g.opts && !this.g.opts.v.numbers) return;
     const g = this.g, cam = g.camera, f = g.player.forward, e = cam.position;
     const dx = pos[0] - e[0], dy = pos[1] - e[1], dz = pos[2] - e[2]; if (dx * f[0] + dy * f[1] + dz * f[2] < 0.3) return;
     const p = cam.project(pos), d = document.createElement('div'); d.className = 'floater'; d.textContent = text; d.style.color = color;
@@ -132,6 +133,8 @@ export class UI {
     if (T.sap) pills.push(['Sap drawn (B)', 'warm']);
     if (T.sightT > 0) pills.push(['Wraith Sight ' + Math.ceil(T.sightT) + 's', 'good']);
     if (T.dragging) pills.push(['Dragging body', 'warm']);
+    if (P.mount) pills.push([(P.mount.gait >= 2 ? 'Galloping' : 'Riding') + ' · F dismounts', 'good']);
+    if (g.hideout?.atStash()) pills.push(['At your cabin: stash and bench', 'good']);
     const inv = P.inv, q = [['G', 'knife', 'Knives'], ['V', 'gold', 'Coin'], ['X', 'firebomb', 'Flasks'], ['5', 'poison', 'Oil']].map(([k, id, n]) => [k, n, inv.count(id)]).filter((x) => x[2] > 0).map((x) => `${x[0]}·${x[1]} ${x[2]}`).join('  ');
     if (q) pills.push([q, '']);
     if (g.weather && g.weather.label && g.weather.kind !== 'clear') pills.push([g.weather.label, '']);

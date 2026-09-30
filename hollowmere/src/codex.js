@@ -11,6 +11,8 @@ export const CODEX = [
   { id: 'hollow', name: 'The Hollow', test: (n) => n.role === 'hollow' && !n.def.hollowType, text: 'The emptied dead, risen where the bell tolled thirteen. They lie still until something living comes close.' },
   { id: 'brute', name: 'Brute Hollow', test: (n) => n.def.hollowType === 'brute', text: 'A hollow swollen by what fills it. Slow, hard to stagger, and it hits for half your health.' },
   { id: 'screamer', name: 'Screamer Hollow', test: (n) => n.def.hollowType === 'screamer', text: 'Thin and shrieking. It wakes every sleeper in earshot. Kill it first, and quickly.' },
+  { id: 'warden', name: 'Warden of the Choir', test: (n) => n.id === 'boss_warden', text: 'The thing the Choir Root grew from the mine\'s last foreman. It slams the floor in a ring; jump or dash clear, then strike while it recovers. It calls hollows when hurt.' },
+  { id: 'saint', name: 'The Drowned Saint', test: (n) => n.id === 'boss_saint', text: 'Pale, tall and weeping. She blinks behind you and sends tears that home on your heart. Cut them from the air with the sword.' },
   { id: 'villager', name: 'Townsfolk', test: (n) => n.role === 'villager', text: 'They run from violence and report what they see. A silenced witness cannot testify.' },
   { id: 'noble', name: 'The Household', test: (n) => n.role === 'noble', text: 'The Duke and those who serve him. Frightened people are the most dangerous kind.' },
 ];
@@ -44,6 +46,17 @@ export const DEEDS = [
   { id: 'jail1', name: 'Guest of the Duchy', desc: 'Be arrested.', test: (g) => (g.stats.arrests || 0) >= 1 },
   { id: 'escape1', name: 'Jailbreak', desc: 'Escape the gaol.', test: (g) => (g.stats.escapes || 0) >= 1 },
   { id: 'pick10', name: 'Tumbler Sense', desc: 'Pick ten locks.', test: (g) => (g.stats.picked || 0) >= 10 },
+  { id: 'hunt5', name: 'Venison Supper', desc: 'Hunt five deer.', test: (g) => (g.stats.hunted || 0) >= 5 },
+  { id: 'cook5', name: 'Hearth and Home', desc: 'Cook five meals.', test: (g) => (g.stats.cooked || 0) >= 5 },
+  { id: 'horse1', name: 'In the Saddle', desc: 'Buy a horse.', test: (g) => g.horse?.owned },
+  { id: 'ride2k', name: 'Long Rider', desc: 'Ride two thousand metres.', test: (g) => (g.stats.ridden || 0) >= 2000 },
+  { id: 'trample3', name: 'Ridden Down', desc: 'Trample three people.', test: (g) => (g.stats.trampled || 0) >= 3 },
+  { id: 'caravan', name: 'Road Trade', desc: 'Find the travelling caravan.', test: (g) => g.caravan?.known },
+  { id: 'dig3', name: 'X Marks It', desc: 'Dig up three treasures.', test: (g) => (g.stats.dug || 0) >= 3 },
+  { id: 'enc4', name: 'Good Samaritan', desc: 'Finish four roadside encounters.', test: (g) => (g.stats.encounters || 0) >= 4 },
+  { id: 'home', name: 'A Roof of Your Own', desc: 'Lease the hunter\'s cabin.', test: (g) => g.hideout?.owned },
+  { id: 'boss1', name: 'Giant Killer', desc: 'Defeat a boss.', test: (g) => (g.stats.bosses || 0) >= 1 },
+  { id: 'boss3', name: 'Legend of the Duchy', desc: 'Defeat Cael, the Warden and the Saint.', test: (g) => (g.stats.bosses || 0) >= 3 },
   { id: 'codex8', name: 'Naturalist', desc: 'Fill eight bestiary entries.', test: (g) => g.codex.seen.size >= 8 },
 ];
 export class Codex {

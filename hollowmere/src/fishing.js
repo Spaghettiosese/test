@@ -5,7 +5,8 @@ export class Fishing {
   hook(push, eye) {
     const g = this.g, P = g.player;
     for (const s of this.spots) if (hyp(s.x - eye[0], s.z - eye[2]) < 2.6) push(s.x, s.y + 0.4, s.z, 2.8, 'Fish (hold E)', () => this.cast(s), 'prop', 0.5, s);
-    if (P.inv.has('fish')) for (const f of g.level.fires) if (f.lit && hyp(f.x - eye[0], f.z - eye[2]) < 3) { push(f.x, f.y + 0.4, f.z, 3.2, 'Cook a fish', () => this.cook(), 'fire', 0.5, f); break; }
+    const raw = P.inv.has('rawmeat') ? 'rawmeat' : P.inv.has('fish') ? 'fish' : null;
+    if (raw) for (const f of g.level.fires) if (f.lit && hyp(f.x - eye[0], f.z - eye[2]) < 3) { push(f.x, f.y + 0.4, f.z, 3.2, raw === 'fish' ? 'Cook a fish' : 'Roast the venison', () => this.cook(raw), 'fire', 0.5, f); break; }
   }
   cast(s) {
     const g = this.g, P = g.player; let bite = false; const need = 3.2 + Math.random() * 3.6;
@@ -21,8 +22,8 @@ export class Fishing {
     else if (r < 0.14) { g.toast('You haul up an old boot'); P.inv.add('scrap', 1); }
     else { const n = 1 + (Math.random() < 0.2 ? 1 : 0) + bonus; P.inv.add('fish', n); g.toast(`Caught ${n} fish`); }
   }
-  cook() {
-    const g = this.g, P = g.player; if (!P.inv.remove('fish', 1)) return;
-    P.inv.add('cookedfish', 1); g.sfx.drink?.(); g.toast('Cooked a fish'); g.progress.addXp(2, '');
+  cook(raw = 'fish') {
+    const g = this.g, P = g.player; if (!P.inv.remove(raw, 1)) return;
+    const out = raw === 'fish' ? 'cookedfish' : 'cookedmeat'; P.inv.add(out, 1); g.sfx.drink?.(); g.toast(raw === 'fish' ? 'Cooked a fish' : 'Roasted the venison'); g.progress.addXp(2, ''); g.stats.cooked = (g.stats.cooked || 0) + 1;
   }
 }

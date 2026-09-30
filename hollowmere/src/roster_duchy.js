@@ -14,6 +14,11 @@ export function buildDuchyRoster(R) {
   g('fort_y3', 'Sparring Guard', [27.4, -106.4], 270, [S(6, 20, 'fort_spar_b', 'stand'), S(20, 6, 'bed_fort_2', 'sleep')], { hair: 'brown', beard: 'long' });
   g('fort_r1', 'Road Patrol', [2, -110], 0, [RT(6, 22, 'road_patrol', { pause: 4, speed: 1.3 }), S(22, 6, 'fort_parade', 'stand')], { hair: 'grey' });
   g('fort_r2', 'Road Crossbowman', [1, -98], 0, [RT(6, 22, 'road_patrol', { pause: 5, speed: 1.2 }), S(22, 6, 'fort_parade', 'stand')], { hair: 'black', weapon: 'crossbow', eyes: 1.2 });
+  v('orrin', 'Stablemaster Orrin', [-3.4, -109], [S(6, 20, 'stable_hand', 'stand'), S(20, 6, 'bed_stable', 'sleep')], { cloth: '#5a4a32', hair: 'grey', beard: 'short', cap: true, build: 1.05, dialogue: 'orrin', voice: 0.85, loot: [['gold', 25]] });
+  // ---- the travelling caravan (its places are moved about by caravan.js)
+  v('vesna', 'Caravan Master Vesna', [11, -69], [S(7, 21, 'caravan_m', 'stand'), S(21, 7, 'caravan_bed_m', 'sleep')], { outfit: 'woman', cloth: '#5a3a4a', cloth2: '#c8b890', hair: 'auburn', dialogue: 'vesna', voice: 1.05, hp: 45, loot: [['gold', 140], ['gem', 1], ['mendring', 1]] });
+  g('cg1', 'Caravan Guard', [12.5, -73], 0, [S(0, 24, 'caravan_g1', 'guard')], { hair: 'brown', beard: 'short', dialogue: 'cguard', weapon: 'spear', hp: 70, loot: [['gold', 25]] });
+  g('cg2', 'Caravan Guard', [12.5, -65], 180, [S(7, 21, 'caravan_g2', 'guard'), S(21, 7, 'caravan_bed_g', 'sleep')], { hair: 'black', dialogue: 'cguard', hp: 70, loot: [['gold', 25], ['knife', 2]] });
   // ---- Pellmouth
   v('ode', 'Harbourmaster Ode', [150.4, -152.6], [S(6, 20, 'pell_dock', 'stand'), S(20, 6, 'bed_pell_a', 'sleep')], { cloth: '#3a4a5a', hair: 'grey', beard: 'long', cap: true, build: 1.1, dialogue: 'ode', voice: 0.8 });
   v('fisher_1', 'Fisherman Bren', [181.4, -155], [S(5, 19, 'fish_pier', 'stand'), S(19, 22, 'pell_seat_1', 'drink'), S(22, 5, 'bed_pell_b', 'sleep')], { cloth: '#4a5a4a', hair: 'brown', cap: true, dialogue: 'fisher', voice: 0.85 });

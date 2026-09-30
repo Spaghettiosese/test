@@ -92,6 +92,14 @@ export const QUESTS = [
     offer: ['South-east of here, on the old road, stones stand in a ring. They sing at night. I want them quiet.', 'Go and see what sleeps there. Then end it.'],
     steps: [{ type: 'reach', poi: 'stones_altar', r: 6, text: 'Reach the Choir Stones (south-east, off the old road)' }, { type: 'kill', role: 'hollow', n: 3, text: 'Put down three hollows at the stones' }],
     done: ['I heard it stop. The lake is quiet. Thank you.'], reward: { gold: 80, items: [['sainttear', 1]] } },
+  { id: 'q_warden', giver: 'garrick', title: 'What hums in the deep', xp: 220, requires: 'q_miners', hint: [-240, 154],
+    offer: ['Something stands where the Choir Root is. It was a man once. It wears my brother\'s belt.', 'End it. Jump the floor when it raises its arms. Everyone who stood still is still down there.'],
+    steps: [{ type: 'kill', ids: ['boss_warden'], text: 'Kill the Warden of the Choir in the mine\'s deep cavern' }],
+    done: ['Quiet. I can hear the wind in the shaft for the first time in a year. Take this, and the crown it wore.'], reward: { gold: 160, items: [['mendring', 1], ['gem', 2]] } },
+  { id: 'q_saint', giver: 'sable', title: 'The weeping one', xp: 200, hint: [-190, -228],
+    offer: ['Past the boardwalk the drowned saint has risen, and she does not like visitors. The bog told me. Bring back her veil; I can use what is woven into it.', 'Cut down her tears with steel. Do not stand still when she vanishes.'],
+    steps: [{ type: 'kill', ids: ['boss_saint'], text: 'Lay the Drowned Saint to rest at the sunken shrine (Blackfen)' }],
+    done: ['The fen exhaled. Thank you. The veil is yours; I do not need the drowned for my cures any more.'], reward: { gold: 140, items: [['nightbloom', 2], ['d_ghost', 2]] } },
   { id: 'q_toll', giver: 'bosk', title: 'The smuggler\'s fee', xp: 80,
     offer: ['Every wagon pays at my bridge. The last carter refused and now my strongbox is light. I want that carter\'s goods back, and I do not care whose back they are on.', 'Look in the wrecked wagon on the road north of here. Bring me what is in the crate.'],
     steps: [{ type: 'have', item: 'potion', n: 1, text: 'Find the wrecked wagon crate on the Old Road' }],
@@ -117,7 +125,7 @@ export class Quests {
     const st = this.state[q.id]; if (!st) return null;
     if (st.status === 'ready') { const n = this.g.npcs.find((x) => x.id === (q.to || q.giver)); return n ? [n.x, n.z] : null; }
     const step = q.steps[st.step], P = this.g.level.pois;
-    if (step.type === 'kill' && step.ids) { const n = this.g.npcs.find((x) => x.id === step.ids[0] && !x.dead); return n ? [n.x, n.z] : null; }
+    if (step.type === 'kill' && step.ids) { const n = this.g.npcs.find((x) => x.id === step.ids[0] && !x.dead); return n ? [n.x, n.z] : (q.hint || null); }
     if (step.type === 'kill' && step.role) { let best = null, bd = 1e9; for (const n of this.g.npcs) if (n.role === step.role && !n.dead && n.dist < bd) { bd = n.dist; best = n; } return best ? [best.x, best.z] : null; }
     if (q.hintNpc) { const n = this.g.npcs.find((x) => x.id === q.hintNpc); if (n) return [n.x, n.z]; }
     if (q.hint) return q.hint;
@@ -191,7 +199,7 @@ export class Quests {
   }
   travel(pos) {
     const g = this.g, P = g.player;
-    g.pix.fade = 1; this.tf = 1.2; g.sfx.veil?.();
+    g.pix.fade = 1; this.tf = 1.2; g.sfx.veil?.(); g.horse?.forceReset();
     P.cc.position = [pos[0], pos[1], pos[2] + 2]; P.cc.velocity = [0, 0, 0];
     g.setCheckpoint(P.cc.position, P.yaw);
     g.ui.toast('The stones carry you');

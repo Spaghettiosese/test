@@ -9,7 +9,7 @@ import { GEAR, SLOTS } from './gear.js';
 import { CODEX, DEEDS } from './codex.js';
 
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-export const TABS = [['journal', 'Journal'], ['perks', 'Perks'], ['craft', 'Craft'], ['map', 'Map'], ['lore', 'Lore'], ['gear', 'Gear'], ['deeds', 'Deeds'], ['stealth', 'Stealth']];
+export const TABS = [['journal', 'Journal'], ['perks', 'Perks'], ['craft', 'Craft'], ['map', 'Map'], ['lore', 'Lore'], ['gear', 'Gear'], ['deeds', 'Deeds'], ['stealth', 'Stealth'], ['stash', 'Stash']];
 
 export function installPanels(UI) {
   const P = UI.prototype;
@@ -33,6 +33,9 @@ export function installPanels(UI) {
     else if (act === 'unequip') { g.gear.unequip(arg); this.renderBook(); }
     else if (act === 'use') { g.useItem(arg); this.renderBook(); }
     else if (act === 'lore') { this.loreOpen = arg; this.renderBook(); }
+    else if (act === 'sput' || act === 'sputall') { g.hideout.put(arg, act === 'sputall'); this.renderBook(); }
+    else if (act === 'stake' || act === 'stakeall') { g.hideout.take(arg, act === 'stakeall'); this.renderBook(); }
+    else if (act === 'track') { g.story.track(arg); this.renderBook(); }
   };
   P.renderBook = function renderBook() {
     const g = this.g, P = g.player, inv = P.inv, S = g.story, pr = g.progress, tab = this.tab;
@@ -43,9 +46,9 @@ export function installPanels(UI) {
       const li = (i) => `<li><span>${esc(i.name || i.id)}${i.n > 1 ? ' ×' + i.n : ''}</span><span>${i.heal || i.ember || i.id === 'poison' || i.id === 'firebomb' || i.id === 'book' ? `<button data-act="use:${i.id}" class="mini">use</button>` : esc(i.desc || (i.value ? i.value + ' gp' : ''))}</span></li>`;
       const main = S.objectives.filter((o) => !o.side), side = S.objectives.filter((o) => o.side);
       const st = g.stats, R = g.rep;
-      body = `<div class="cols"><div><h4>The Job</h4><ul>${main.map((o) => `<li class="${o.done ? 'done' : ''}"><span>${esc(o.text)}</span><span>${o.done ? 'done' : ''}</span></li>`).join('')}</ul>
-        <h4>Side tasks</h4><ul>${side.map((o) => `<li class="${o.done ? 'done' : ''}"><span>${esc(o.text)}</span><span>${o.done ? 'done' : ''}</span></li>`).join('') || '<li><span>None yet. Talk to people.</span></li>'}</ul>
-        <h4>Standing</h4><ul><li><span>Town Watch bounty</span><span>${Math.ceil(R.total('watch'))} g</span></li><li><span>Keep bounty</span><span>${Math.ceil(R.total('keep'))} g</span></li><li><span>Bandit grudge</span><span>${Math.ceil(R.total('bandits'))}</span></li><li><span>Waystones attuned</span><span>${g.quests.lit.size}/4</span></li></ul></div>
+      body = `<div class="cols"><div><h4>The Job</h4><ul>${main.map((o) => `<li class="${o.done ? 'done' : ''}"><span>${esc(o.text)}</span><span>${o.done ? 'done' : `<button class="mini" data-act="track:${o.id}">${S.tracked === o.id ? 'tracking' : 'track'}</button>`}</span></li>`).join('')}</ul>
+        <h4>Side tasks</h4><ul>${side.map((o) => `<li class="${o.done ? 'done' : ''}"><span>${esc(o.text)}</span><span>${o.done ? 'done' : `<button class="mini" data-act="track:${o.id}">${S.tracked === o.id ? 'tracking' : 'track'}</button>`}</span></li>`).join('') || '<li><span>None yet. Talk to people.</span></li>'}</ul>
+        <h4>Standing</h4><ul><li><span>Town Watch bounty</span><span>${Math.ceil(R.total('watch'))} g</span></li><li><span>Keep bounty</span><span>${Math.ceil(R.total('keep'))} g</span></li><li><span>Bandit grudge</span><span>${Math.ceil(R.total('bandits'))}</span></li><li><span>Waystones attuned</span><span>${g.quests.lit.size}/4</span></li></ul>${g.treasure?.journal?.() || ''}</div>
         <div><h4>Purse</h4><ul><li><span>Gold</span><span>${inv.gold}</span></li><li><span>Loot value</span><span>${inv.lootValue}</span></li></ul>
         <h4>Carried</h4><ul>${other.map(li).join('') || '<li><span>Nothing</span></li>'}</ul><h4>Keys</h4><ul>${keys.map(li).join('') || '<li><span>None</span></li>'}</ul>
         <h4>Deeds</h4><ul><li><span>Guards slain</span><span>${st.guardKills}</span></li><li><span>Silent kills</span><span>${st.stabs}</span></li><li><span>Torches snuffed</span><span>${st.snuffed}</span></li><li><span>Lore found</span><span>${[...S.notesFound].filter((x) => x.startsWith('l_')).length}/${LORE.length}</span></li><li><span>Fish caught</span><span>${st.fish || 0}</span></li><li><span>Ore mined</span><span>${st.mined || 0}</span></li><li><span>Blade level</span><span>${g.smith.level}/5</span></li><li><span>Arrests · escapes</span><span>${st.arrests || 0} · ${st.escapes || 0}</span></li></ul></div></div>`;
@@ -74,11 +77,13 @@ export function installPanels(UI) {
         <h4>How loud you are</h4><ul><li><span>Last footstep radius</span><span>${(P.noiseNow || 0).toFixed(1)} m</span></li><li><span>Crowd and weather mask</span><span>×${S.noiseMask(P.pos, 'step').toFixed(2)}</span></li><li><span>Surface</span><span>${['grass / dirt', 'cobbles', 'wood', 'gravel / metal / bog'][g.nav.noise[Math.max(0, g.nav.at(P.pos[0], P.pos[2]))] || 0]}</span></li></ul>
         <h4>Record</h4><ul><li><span>Times spotted</span><span>${st.spotted}</span></li><li><span>Zones cleared unseen</span><span>${st.unseenZones}</span></li><li><span>Silent chokes</span><span>${st.chokes}</span></li><li><span>Lights shot out</span><span>${st.lightsOut}</span></li><li><span>Evidence found by guards</span><span>${st.evidence}</span></li><li><span>Unseen time this run</span><span>${Math.round(st.unseenSecs / 60)} min</span></li></ul></div>
         <div><h4>Rules of the dark</h4><ul class="rules"><li><span>Guards see best straight ahead and worst at the edge of their cone.</span></li><li><span>Light is the biggest factor: snuff torches, shoot lamps with a knife (G), stay off lit cobbles.</span></li><li><span>Crouch (C) is 45% harder to see; hold C to go prone (55% smaller still and nearly silent). Crouch and hold Shift to creep.</span></li><li><span>Ferns, reeds, hay, barrels, crops and trees give cover. It counts double when crouched.</span></li><li><span>Crowds mask footsteps. Rain masks them more. Bare stone and bog make them worse.</span></li><li><span>Opened chests and forced locks are evidence. A guard who finds it goes looking.</span></li><li><span>Behind an unaware target, hold E to choke them out silently.</span></li><li><span>A ? above a guard is suspicion. A ! is a hunt. The ring round the crosshair shows where they are.</span></li><li><span>Cross an area without being seen for 25 seconds and you earn Unseen XP.</span></li></ul></div></div>`;
+    } else if (tab === 'stash') {
+      body = g.hideout.html(esc);
     } else if (tab === 'deeds') {
       body = `<div class="cols"><div><h4>Deeds (${g.codex.done.size}/${DEEDS.length})</h4><ul>${DEEDS.map((d) => `<li class="${g.codex.done.has(d.id) ? 'done' : ''}"><span>${esc(d.name)}<br><small style="color:var(--dim)">${esc(d.desc)}</small></span><span>${g.codex.done.has(d.id) ? 'done' : ''}</span></li>`).join('')}</ul></div>
         <div><h4>Bestiary (${g.codex.seen.size}/${CODEX.length})</h4><ul>${CODEX.map((c) => g.codex.seen.has(c.id) ? `<li><span><b>${esc(c.name)}</b><br><small style="color:var(--dim)">${esc(c.text)}</small></span></li>` : `<li><span style="color:var(--dim)">???</span></li>`).join('')}</ul></div></div>`;
     }
-    this.el.inv.innerHTML = head + `<div class="bookbody">${body}</div><div class="hint">Tab / Esc to close · 1-8 tabs · M map · P perks</div>`;
+    this.el.inv.innerHTML = head + `<div class="bookbody">${body}</div><div class="hint">Tab / Esc to close · 1-9 tabs · M map · P perks</div>`;
     this.el.inv.hidden = false;
   };
   const upd = P.update;
