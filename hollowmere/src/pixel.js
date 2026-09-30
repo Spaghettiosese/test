@@ -58,8 +58,8 @@ export class PixelDisplay {
     for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.NEAREST], [gl.TEXTURE_MAG_FILTER, gl.NEAREST], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
     this.vao = gl.createVertexArray();
     // look controls
-    this.levels = [9, 8, 7]; this.dither = 0.9; this.hurt = 0; this.fade = 0; this.veil = 0; this.grain = 0.012; this.edge = 0.5;
-    this.shadow = [0.32, 0.12, 0.5]; this.high = [0.35, 0.12, -0.1];
+    this.levels = [12, 11, 10]; this.dither = 0.62; this.hurt = 0; this.fade = 0; this.veil = 0; this.grain = 0.012; this.edge = 0.5;
+    this.shadow = [0.16, 0.14, 0.4]; this.high = [0.22, 0.08, -0.06];
     this.time = 0;
   }
   present(dt) {

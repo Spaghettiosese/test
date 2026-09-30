@@ -20,7 +20,7 @@ function materials(s) {
     skin: { color: skin[0], roughness: 0.6, pattern: 'skin', patternScale: 6, patternColor: skin[1], sheen: 0.25 },
     lips: { color: '#8a4a42', roughness: 0.5 },
     hair: { color: HAIR[s.hair?.color || 'brown'] || s.hair?.color, roughness: 0.65, pattern: 'hair', patternScale: 4, sheen: 0.4 },
-    eye: { color: '#e9e2da', roughness: 0.1, pattern: 'eye', patternColor: s.eyes || '#3d4d5c' },
+    eye: { color: s.glowEyes ? '#c8a0ff' : '#e9e2da', roughness: 0.1, pattern: 'eye', patternColor: s.eyes || '#3d4d5c', ...(s.glowEyes ? { emissive: '#a56cff', emissiveStrength: 3 } : {}) },
     cloth: { color: c.cloth || '#5a4a3c', roughness: 0.9, pattern: 'fabric', patternScale: 180, sheen: 0.5 },
     cloth2: { color: c.cloth2 || '#3a2f28', roughness: 0.9, pattern: 'fabric', patternScale: 200, sheen: 0.4, doubleSided: true },
     trim: { color: c.trim || '#b08a3a', roughness: 0.4, metallic: 0.8, pattern: 'metal', patternScale: 2 },

@@ -22,6 +22,7 @@ export function createPerson(spec, { detail = 0.5 } = {}) {
   ch.spec = spec;
   ch.upper = ch.mixer.addLayer('upper', { mask: E.boneMask(ch.skeleton, ['spine']) });
   ch.armL = ch.mixer.addLayer('armL', { mask: E.boneMask(ch.skeleton, ['shoulder.L']) });
+  ch.armR = ch.mixer.addLayer('armR', { mask: E.boneMask(ch.skeleton, ['shoulder.R']) });
   ch.holding = {};
   if (spec.weapon) ch.hold('R', spec.weapon);
   if (spec.offhand) ch.hold('L', spec.offhand);

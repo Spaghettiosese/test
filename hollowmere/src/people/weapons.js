@@ -23,7 +23,7 @@ function bladeOutline(len, w) { return [[0, 0], [w, 0.01], [w * 0.95, len * 0.7]
 
 export function makeSword(kind = 'arming') {
   const m = mats(), k = new E.Kit({});
-  const cfg = { arming: { len: 0.78, w: 0.024, blade: m.steel, guard: 0.2, mat: m.brass }, dark: { len: 0.82, w: 0.022, blade: m.dark, guard: 0.22, mat: m.steel }, nightfang: { len: 0.86, w: 0.021, blade: m.dark, guard: 0.24, mat: m.steel, rune: true }, captain: { len: 0.9, w: 0.026, blade: m.steel, guard: 0.26, mat: m.brass }, dagger: { len: 0.24, w: 0.016, blade: m.steel, guard: 0.09, mat: m.brass } }[kind] || {};
+  const cfg = { arming: { len: 0.78, w: 0.024, blade: m.steel, guard: 0.2, mat: m.brass }, dark: { len: 0.82, w: 0.022, blade: m.dark, guard: 0.22, mat: m.steel }, nightfang: { len: 0.86, w: 0.021, blade: m.steel, guard: 0.24, mat: m.steel, rune: true }, captain: { len: 0.9, w: 0.026, blade: m.steel, guard: 0.26, mat: m.brass }, dagger: { len: 0.24, w: 0.016, blade: m.steel, guard: 0.09, mat: m.brass } }[kind] || {};
   const { len, w, blade, guard, mat } = cfg;
   k.cyl(m.leather, [0, 0.055, 0], 0.014, 0.11, [0, 0, 0], 8);
   k.add(mat, E.sphere({ radius: 0.022, widthSegments: 8, heightSegments: 6 }), [0, -0.005, 0]);

@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hollowmere: The Duke's Seal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Silkscreen:wght@400;700&family=VT323&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --void: #0b0710; --ink: #140d1c; --panel: rgba(16, 10, 24, .84); --edge: #4a3560; --edge-hi: #8a6cb0;
+    --bone: #e6dcc8; --dim: #a89cb8; --ember: #ff9a48; --blood: #c8283a; --ok: #8bd07a; --violet: #a56cff; --gold: #e0b450;
+    --pixel: 'Pixelify Sans', 'VT323', ui-monospace, Menlo, Consolas, monospace;
+    --title: 'Silkscreen', 'Pixelify Sans', ui-monospace, monospace;
+  }
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--void); color: var(--bone); font: 400 17px/1.25 var(--pixel); -webkit-font-smoothing: none; user-select: none; }
+  canvas#screen { position: fixed; inset: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; background: #000; }
+  canvas#stage { position: fixed; left: -9999px; top: 0; }
+  .hud { position: fixed; pointer-events: none; z-index: 3; }
+  /* pixel bevelled panel */
+  .px { background: var(--panel); border: 3px solid var(--edge); box-shadow: 0 0 0 3px #000, inset 0 0 0 2px #000; }
+  .vitals { left: 18px; bottom: 18px; display: grid; gap: 7px; width: 250px; }
+  .bar { height: 14px; background: #000; border: 2px solid var(--edge); position: relative; }
+  .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: currentColor; box-shadow: inset 0 -4px 0 rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.28); transition: width .12s steps(8); }
+  .bar b { position: absolute; right: 5px; top: -2px; font: 400 12px var(--title); color: #fff; text-shadow: 1px 1px 0 #000; }
+  .bar.hp { color: var(--blood); } .bar.st { color: #6bbf6b; width: 78%; } .bar.em { color: var(--violet); width: 62%; }
+  .skills { left: 18px; bottom: 100px; display: flex; gap: 8px; }
+  .skill { width: 46px; height: 46px; position: relative; display: grid; place-items: center; font: 700 11px var(--title); color: var(--dim); }
+  .skill kbd { position: absolute; left: 3px; top: 1px; font: 700 10px var(--title); color: var(--gold); }
+  .skill svg { width: 30px; height: 30px; image-rendering: pixelated; }
+  .skill .cd { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.65); height: 0; }
+  .skill.off { opacity: .45; }
+  .top-right { right: 18px; top: 16px; text-align: right; display: grid; gap: 6px; justify-items: end; }
+  .clock { padding: 6px 12px; font: 700 20px var(--title); letter-spacing: .06em; }
+  .clock small { display: block; font: 400 12px var(--pixel); letter-spacing: .1em; color: var(--dim); text-transform: uppercase; }
+  .gem { width: 64px; height: 12px; border: 2px solid var(--edge); background: #000; position: relative; }
+  .gem i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #3b1e6e, #ffb45a); transition: width .15s steps(6); }
+  .gem-label { font: 400 11px var(--title); color: var(--dim); }
+  .objective { left: 18px; top: 16px; max-width: 360px; padding: 9px 13px; }
+  .objective h4 { margin: 0 0 3px; font: 700 12px var(--title); color: var(--gold); letter-spacing: .12em; text-transform: uppercase; }
+  .objective p { margin: 0; font-size: 17px; color: var(--bone); }
+  .objective small { display: block; margin-top: 4px; color: var(--dim); font-size: 14px; }
+  .detect { left: 50%; top: 14px; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; opacity: 0; transition: opacity .25s; }
+  .detect.on { opacity: 1; }
+  .detect .eye { width: 34px; height: 22px; }
+  .detect .meter { width: 120px; height: 10px; background: #000; border: 2px solid var(--edge); position: relative; }
+  .detect .meter i { position: absolute; inset: 0 auto 0 0; background: var(--ember); }
+  .detect.alert .meter i { background: var(--blood); }
+  .cross { left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; background: var(--bone); box-shadow: 0 0 0 2px #000; opacity: .75; transition: transform .1s, background .1s; }
+  .cross.use { transform: scale(1.7) rotate(45deg); background: var(--gold); opacity: 1; }
+  .prompt { left: 50%; bottom: 20%; transform: translateX(-50%); padding: 8px 16px; font-size: 20px; white-space: nowrap; }
+  .prompt kbd, .kbd { display: inline-block; min-width: 26px; padding: 0 6px; margin-right: 10px; border: 2px solid var(--gold); color: var(--gold); text-align: center; font: 700 15px var(--title); background: #000; }
+  .toasts { right: 18px; bottom: 18px; display: grid; gap: 5px; justify-items: end; max-width: 46vw; }
+  .toast { padding: 6px 12px; font-size: 17px; animation: toast 3.4s steps(20) forwards; }
+  @keyframes toast { 0%, 80% { opacity: 1; transform: none } 100% { opacity: 0; transform: translateY(-6px) } }
+  .barks { left: 50%; bottom: 8%; transform: translateX(-50%); display: grid; gap: 6px; justify-items: center; width: min(760px, 88vw); }
+  .bark { padding: 6px 14px; font-size: 20px; text-align: center; animation: bark 3.6s steps(20) forwards; }
+  .bark b { color: var(--ember); font: 700 13px var(--title); letter-spacing: .08em; margin-right: 8px; text-transform: uppercase; }
+  .bark.guard b { color: #ff6a6a; }
+  @keyframes bark { 0%, 85% { opacity: 1 } 100% { opacity: 0 } }
+  .banner { left: 50%; top: 24%; transform: translateX(-50%); font: 700 34px var(--title); letter-spacing: .14em; text-shadow: 3px 3px 0 #000, 0 0 18px rgba(165,108,255,.6); text-align: center; animation: banner 2.6s steps(26) forwards; color: var(--bone); white-space: nowrap; }
+  .banner.small { font-size: 22px; top: 32%; letter-spacing: .1em; color: var(--gold); }
+  @keyframes banner { 0% { opacity: 0; transform: translate(-50%, 8px) } 10%, 80% { opacity: 1; transform: translate(-50%, 0) } 100% { opacity: 0 } }
+  .area { left: 50%; top: 12%; transform: translateX(-50%); font: 400 26px var(--title); letter-spacing: .3em; text-transform: uppercase; color: var(--dim); text-shadow: 2px 2px 0 #000; animation: banner 3.4s steps(30) forwards; }
+  .lock { left: 50%; bottom: 26%; transform: translateX(-50%); padding: 10px 16px; width: 260px; text-align: center; }
+  .lock .track { height: 12px; border: 2px solid var(--edge); background: #000; margin-top: 6px; position: relative; }
+  .lock .track i { position: absolute; inset: 0 auto 0 0; background: var(--gold); }
+  /* letterbox for cutscenes */
+  .lb { position: fixed; left: 0; right: 0; height: 0; background: #000; z-index: 4; transition: height .8s steps(16); pointer-events: none; }
+  .lb.top { top: 0; } .lb.bot { bottom: 0; }
+  body.cut .lb { height: 12vh; }
+  body.cut .hud:not(.cutsub) { display: none; }
+  .subtitle { left: 50%; bottom: 14vh; transform: translateX(-50%); width: min(820px, 90vw); text-align: center; font-size: 24px; text-shadow: 2px 2px 0 #000; z-index: 6; }
+  .subtitle b { display: block; color: var(--ember); font: 700 14px var(--title); letter-spacing: .14em; margin-bottom: 2px; text-transform: uppercase; }
+  .subtitle span { background: rgba(0,0,0,.55); padding: 2px 10px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  .titlecard { position: fixed; inset: 0; display: grid; place-content: center; text-align: center; z-index: 7; pointer-events: none; }
+  .titlecard h1 { margin: 0; font: 700 clamp(40px, 8vw, 92px) var(--title); letter-spacing: .12em; color: var(--bone); text-shadow: 4px 4px 0 #000, 0 0 30px rgba(165,108,255,.7), 0 0 60px rgba(200,40,58,.4); }
+  .titlecard p { margin: 8px 0 0; font: 400 clamp(16px, 2.4vw, 26px) var(--title); letter-spacing: .4em; color: var(--dim); text-transform: uppercase; }
+  /* dialogue */
+  .dialog { left: 50%; bottom: 5%; transform: translateX(-50%); width: min(820px, 94vw); padding: 14px 16px; display: grid; grid-template-columns: 96px 1fr; gap: 16px; pointer-events: auto; z-index: 8; }
+  .dialog canvas { width: 96px; height: 96px; image-rendering: pixelated; border: 3px solid var(--edge); background: #120a1a; }
+  .dialog h3 { margin: 0 0 4px; font: 700 15px var(--title); letter-spacing: .12em; color: var(--ember); text-transform: uppercase; }
+  .dialog p { margin: 0; font-size: 22px; line-height: 1.25; min-height: 3.7em; }
+  .dialog .choices { display: grid; gap: 6px; margin-top: 10px; }
+  .dialog button, .menu button { font: 700 17px var(--pixel); color: var(--bone); background: #1b1226; border: 2px solid var(--edge); padding: 6px 12px; text-align: left; cursor: pointer; }
+  .dialog button:hover, .dialog button:focus-visible, .menu button:hover, .menu button:focus-visible { border-color: var(--gold); color: var(--gold); outline: none; }
+  .dialog .hint { position: absolute; right: 12px; bottom: 6px; font-size: 13px; color: var(--dim); }
+  /* note reader / journal */
+  .sheet { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(660px, 92vw); max-height: 84vh; overflow: auto; padding: 22px 26px; z-index: 9; pointer-events: auto; background: #d0c19a; color: #2a1f14; border: 4px solid #5a4630; box-shadow: 0 0 0 4px #000, inset 0 0 40px rgba(60,40,10,.35); font-size: 21px; line-height: 1.3; }
+  .sheet h2 { margin: 0 0 10px; font: 700 20px var(--title); letter-spacing: .1em; text-transform: uppercase; color: #4a2418; }
+  .sheet p { margin: 0 0 10px; white-space: pre-line; }
+  .sheet .hint { text-align: right; font-size: 14px; color: #6a5a40; }
+  .panel-inv { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(820px, 94vw); max-height: 86vh; overflow: auto; padding: 18px 22px; z-index: 9; pointer-events: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 26px; }
+  .panel-inv h2 { grid-column: 1 / -1; margin: 0; font: 700 22px var(--title); letter-spacing: .14em; color: var(--gold); }
+  .panel-inv h4 { margin: 8px 0 4px; font: 700 13px var(--title); letter-spacing: .12em; color: var(--violet); text-transform: uppercase; }
+  .panel-inv ul { margin: 0; padding: 0; list-style: none; } .panel-inv li { padding: 2px 0; border-bottom: 1px dashed #3a2a4a; display: flex; justify-content: space-between; gap: 10px; } .panel-inv li span:last-child { color: var(--dim); }
+  .panel-inv .done { color: var(--ok); text-decoration: line-through; opacity: .7; }
+  /* menus & overlays */
+  .menu { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 30%, rgba(11,7,16,.2), rgba(11,7,16,.92)); pointer-events: auto; text-align: center; }
+  .menu .card { width: min(560px, 92vw); display: grid; gap: 14px; padding: 8px; }
+  .menu h1 { margin: 0; font: 700 clamp(40px, 9vw, 84px) var(--title); letter-spacing: .1em; color: var(--bone); text-shadow: 4px 4px 0 #000, 0 0 34px rgba(165,108,255,.75), 0 0 70px rgba(200,40,58,.45); line-height: 1; }
+  .menu .sub { font: 400 clamp(13px, 2vw, 18px) var(--title); letter-spacing: .38em; color: var(--dim); text-transform: uppercase; margin-top: -6px; }
+  .menu .blurb { color: var(--dim); font-size: 19px; max-width: 46ch; margin: 0 auto; }
+  .menu button.go { font: 700 22px var(--title); letter-spacing: .12em; text-align: center; padding: 12px 20px; color: #fff; background: linear-gradient(#5a2a8a, #34164e); border-color: var(--violet); text-transform: uppercase; }
+  .menu button.go:hover { filter: brightness(1.25); color: #fff; border-color: var(--gold); }
+  .menu .keys { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px 22px; text-align: left; font-size: 16px; color: var(--dim); margin-top: 6px; }
+  .menu .keys div { display: flex; justify-content: space-between; border-bottom: 1px dashed #2a1c38; padding: 1px 0; } .menu .keys span:last-child { color: var(--bone); }
+  .menu label { color: var(--dim); font-size: 16px; display: flex; gap: 10px; align-items: center; justify-content: center; }
+  .menu input[type=range] { accent-color: var(--violet); width: 140px; }
+  .death { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; background: rgba(60, 0, 8, .55); font: 700 clamp(36px, 8vw, 80px) var(--title); letter-spacing: .2em; color: #ff5a6a; text-shadow: 4px 4px 0 #000; pointer-events: none; animation: fadein 1.4s steps(14) both; }
+  @keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
+  .end { position: fixed; inset: 0; z-index: 11; display: grid; place-items: center; background: rgba(6, 3, 10, .93); text-align: center; pointer-events: auto; }
+  .end .card { width: min(640px, 92vw); display: grid; gap: 14px; }
+  .end h2 { margin: 0; font: 700 clamp(28px, 6vw, 56px) var(--title); letter-spacing: .14em; color: var(--bone); text-shadow: 3px 3px 0 #000, 0 0 26px rgba(165,108,255,.6); }
+  .end table { margin: 0 auto; border-collapse: collapse; font-size: 19px; color: var(--dim); } .end td { padding: 2px 16px; } .end td:last-child { color: var(--gold); text-align: right; }
+  .fatal { position: fixed; inset: 0; display: grid; place-items: center; background: #000; color: var(--bone); z-index: 99; padding: 20px; text-align: center; font-size: 20px; }
+  .loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--void); z-index: 20; font: 400 22px var(--title); letter-spacing: .3em; color: var(--dim); }
+  .loading i { display: block; width: 240px; height: 10px; border: 2px solid var(--edge); margin: 14px auto 0; position: relative; } .loading i b { position: absolute; inset: 0 auto 0 0; background: var(--violet); width: 30%; animation: load 1.2s steps(10) infinite alternate; }
+  @keyframes load { to { left: 70%; } }
+  @media (max-width: 720px) { .vitals { width: 180px; } .skills { bottom: 88px; } .objective { max-width: 220px; } .dialog { grid-template-columns: 64px 1fr; } .dialog canvas { width: 64px; height: 64px; } .panel-inv { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { .toast, .bark, .banner, .area { animation-duration: 0.01s; animation-fill-mode: none; } }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<canvas id="screen" aria-label="Hollowmere, a first-person dark fantasy game"></canvas>
+
+<div class="hud cross" id="cross"></div>
+<div class="hud vitals px" id="vitals" hidden style="padding:9px 11px">
+  <div class="bar hp" id="hpBar"><i></i><b></b></div>
+  <div class="bar st" id="stBar"><i></i></div>
+  <div class="bar em" id="emBar"><i></i><b></b></div>
+</div>
+<div class="hud skills" id="skills" hidden>
+  <div class="skill px" id="sk1" title="Shadow Veil"><kbd>1</kbd><svg viewBox="0 0 10 10" shape-rendering="crispEdges"><path fill="#a56cff" d="M3 1h4v1h1v3h1v3H8v1H2V8H1V5h1V2h1z"/><path fill="#140d1c" d="M4 3h2v1H4zM3 5h1v2H3zm3 0h1v2H6z"/></svg><div class="cd"></div></div>
+  <div class="skill px" id="sk2" title="Umbral Dash"><kbd>2</kbd><svg viewBox="0 0 10 10" shape-rendering="crispEdges"><path fill="#6bc0ff" d="M1 4h5V2h1v1h1v1h1v2H8v1H7v1H6V6H1z"/></svg><div class="cd"></div></div>
+  <div class="skill px" id="sk3" title="Gravebreaker"><kbd>3</kbd><svg viewBox="0 0 10 10" shape-rendering="crispEdges"><path fill="#ff9a48" d="M4 0h2v3h1v1h2v2H7v1H6v3H4V7H3V6H1V4h2V3h1z"/></svg><div class="cd"></div></div>
+</div>
+<div class="hud objective px" id="objective" hidden><h4>Objective</h4><p id="objText"></p><small id="objSub"></small></div>
+<div class="hud top-right" id="topRight" hidden>
+  <div class="clock px" id="clock"></div>
+  <div style="display:flex;gap:8px;align-items:center"><span class="gem-label">LIGHT</span><div class="gem"><i id="gem"></i></div></div>
+  <div class="gem-label" id="goldText"></div>
+</div>
+<div class="hud detect px" id="detect" style="padding:5px 10px"><svg class="eye" viewBox="0 0 17 11" shape-rendering="crispEdges"><path fill="#e6dcc8" d="M5 0h7v1h3v1h2v1h-1v1h-1v1h1v1h1v1h-2v1h-3v1H5v-1H2V8H0V7h1V6h1V5H1V4H0V3h2V2h3z"/><circle cx="8.5" cy="5.5" r="2.6" fill="#140d1c"/><circle cx="8.5" cy="5.5" r="1.2" fill="#ff9a48" id="eyeIris"/></svg><div class="meter"><i id="detectFill"></i></div></div>
+<div class="hud prompt px" id="prompt" hidden></div>
+<div class="hud lock px" id="lock" hidden><span id="lockText">Picking the lock</span><div class="track"><i id="lockFill"></i></div></div>
+<div class="hud toasts" id="toasts"></div>
+<div class="hud barks" id="barks"></div>
+<div class="hud area" id="areaName" hidden></div>
+<div id="banners"></div>
+<div class="lb top"></div><div class="lb bot"></div>
+<div class="hud subtitle cutsub" id="subtitle" hidden></div>
+<div class="titlecard" id="titlecard" hidden><div><h1 id="tcH"></h1><p id="tcP"></p></div></div>
+<div class="hud dialog px" id="dialog" hidden><canvas id="portrait" width="32" height="32"></canvas><div><h3 id="dName"></h3><p id="dText"></p><div class="choices" id="dChoices"></div></div><span class="hint">Click / E to continue</span></div>
+<div class="hud sheet" id="sheet" hidden><h2 id="sheetH"></h2><p id="sheetP"></p><div class="hint">Press E, Esc or click to close</div></div>
+<div class="hud panel-inv px" id="inv" hidden></div>
+<div class="death" id="death" hidden>YOU DIED</div>
+<div class="menu" id="menu">
+  <div class="card">
+    <h1>HOLLOWMERE</h1>
+    <div class="sub">The Duke's Seal · Chapter I</div>
+    <p class="blurb">Ravenspire keep stands above the walled town of Ashgate. In its Duke's bedchamber lies a letter sealed in black wax. The Gray Hand wants it. You are the Gray Hand's knife.</p>
+    <button class="go" id="play">Begin the Job</button>
+    <label>Volume <input type="range" id="vol" min="0" max="1" step="0.05" value="0.6"></label>
+    <label>Mouse <input type="range" id="sens" min="0.3" max="2.5" step="0.05" value="1"></label>
+    <div class="keys">
+      <div><span>Move · sprint</span><span>WASD · Shift</span></div><div><span>Crouch · jump</span><span>C · Space</span></div>
+      <div><span>Sword · block/parry</span><span>LMB · RMB</span></div><div><span>Interact · lockpick</span><span>E (hold)</span></div>
+      <div><span>Veil · Dash · Slam</span><span>1 · 2 · 3</span></div><div><span>Salve · Ember flask</span><span>R · T</span></div>
+      <div><span>Throw held object</span><span>LMB</span></div><div><span>Journal · pause</span><span>Tab · Esc</span></div>
+    </div>
+  </div>
+</div>
+<div class="end" id="end" hidden><div class="card" id="endCard"></div></div>
+<div class="loading" id="loading">RAVENSPIRE<i><b></b></i></div>
+<div class="fatal" id="fatal" hidden></div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

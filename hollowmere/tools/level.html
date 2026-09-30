@@ -1,0 +1,31 @@
+<!doctype html><meta charset=utf-8><style>html,body{margin:0;background:#000;height:100%;overflow:hidden}canvas{position:fixed;inset:0;width:100%;height:100%}#src{left:-9999px;inset:auto}</style>
+<canvas id=src></canvas><canvas id=out></canvas>
+<script type=module>
+import * as E from '../../engine/index.js';
+import { PixelDisplay } from '../src/pixel.js';
+import { buildLevel } from '../src/level/index.js';
+const q = new URLSearchParams(location.search);
+const src = document.getElementById('src'), pix = q.get('pixel') !== '0';
+const W = +(q.get('w') || 480), H = +(q.get('h') || 270);
+src.style.cssText = `position:fixed;left:${pix ? '-9999px' : '0'};top:0;width:${pix ? W : innerWidth}px;height:${pix ? H : innerHeight}px`;
+const r = new E.Renderer(src, { pixelRatio: 1, msaa: pix ? 0 : 4, preserveDrawingBuffer: true });
+const pd = pix ? new PixelDisplay(document.getElementById('out'), src) : null;
+if (!pix) document.getElementById('out').style.display = 'none';
+const scene = new E.Scene(); const env = scene.environment;
+const world = new E.PhysicsWorld({ iterations: 8 });
+const t0 = performance.now();
+const L = buildLevel({ scene, world });
+console.log('level built in', (performance.now() - t0).toFixed(0), 'ms; bodies', world.bodies.length, 'lights', L.lights.length);
+const hour = +(q.get('hour') || 21);
+E.applyTimeOfDay(env, hour); env.fogDensity = 0.01; env.fogHeight = 0.2; env.shadowRadius = 30; env.shadowFar = 120;
+E.setNightLights(L.pal, env.night);
+const c = (q.get('cam') || '0,2,-20,0,2,40').split(',').map(Number);
+const cam = new E.Camera(); cam.position.set(c.slice(0, 3)); cam.target.set(c.slice(3, 6)); cam.fov = (+(q.get('fov') || 70)) * E.DEG; cam.far = 600; cam.near = 0.05;
+env.shadowCenter = [c[0], 1, c[2]];
+for (let i = 0; i < 4; i++) world.step(1 / 30);
+function f() {
+  for (const t of L.torches) if (t.lit) { t.light.intensity = t.base; }
+  r.render(scene, cam, { background: 'sky' }); if (pd) pd.present(1 / 60); window.__ready = true; requestAnimationFrame(f);
+}
+f();
+</script>
