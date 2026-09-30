@@ -24,6 +24,8 @@ The second update ("The Wide Valley") is listed in [FEATURES.md](FEATURES.md): a
 | Wraith Sight · poison blade | 4 · 5 |
 | Throw knife · coin · fire flask | G · V · X |
 | Sap · drag a body · drop disguise | B · hold Z · U |
+| Prone · creep | hold C · crouch + Shift |
+| Choke out an unaware target | hold E from behind |
 | Kick | Q |
 | Draughts (haste, ironhide, night eye, ghostwalk) | 6 · 7 · 8 · 9 |
 | Place a trap · smoke bomb · lantern | H · J · L |

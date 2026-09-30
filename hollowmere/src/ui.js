@@ -135,6 +135,7 @@ export class UI {
     const inv = P.inv, q = [['G', 'knife', 'Knives'], ['V', 'gold', 'Coin'], ['X', 'firebomb', 'Flasks'], ['5', 'poison', 'Oil']].map(([k, id, n]) => [k, n, inv.count(id)]).filter((x) => x[2] > 0).map((x) => `${x[0]}·${x[1]} ${x[2]}`).join('  ');
     if (q) pills.push([q, '']);
     if (g.weather && g.weather.label && g.weather.kind !== 'clear') pills.push([g.weather.label, '']);
+    { const v = P.visibility; pills.push([`${g.stealth.label(v)} ${Math.round(Math.min(1, v) * 100)}%${P.prone ? ' · prone' : P.creep ? ' · creeping' : P.crouch ? ' · crouched' : ''}`, v < 0.22 ? 'good' : v < 0.5 ? '' : 'bad']); }
     { const nz = P.noiseNow || 0; pills.push([`Noise ${nz < 2 ? '▮▯▯ quiet' : nz < 8 ? '▮▮▯ normal' : '▮▮▮ loud'}`, nz < 2 ? 'good' : nz < 8 ? '' : 'bad']); }
     if (g.lantern?.on) pills.push(['Lantern lit (L)', 'warm']); if (P.exhausted) pills.push(['Exhausted', 'bad']);
     for (const [id, t] of g.status.fx) pills.push([`${id} ${Math.ceil(t)}s`, 'good']);

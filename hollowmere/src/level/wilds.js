@@ -86,10 +86,10 @@ function birch(B, x, z, s = 1) {
   k.add(M.leafDead, E.superquadric({ rx: 1.5 * s, ry: 1.1 * s, rz: 1.5 * s, e1: 0.8, e2: 0.8, widthSegments: 7, heightSegments: 5 }), [x, h * 0.85, z]);
   B.lazyCollider(x - 0.18, 0, z - 0.18, x + 0.18, 5, z + 0.18, 'wood'); B.nav.block(x - 0.4, z - 0.4, x + 0.4, z + 0.4, 1);
 }
-function stump(B, x, z, s = 1) { cellKit(B, 'wood', x, z).cyl(B.pal.bark, [x, 0.25 * s, z], 0.3 * s, 0.5 * s, [0, 0, 0], 7); }
-function log(B, x, z, s = 1) { cellKit(B, 'wood', x, z).cyl(B.pal.bark, [x, 0.22 * s, z], 0.22 * s, 3 * s, [90, r(0, 180), 0], 7); }
-function fernPatch(B, x, z) { const k = cellKit(B, 'wood', x, z); for (let i = 0; i < 4; i++) k.add(B.pal.fern, E.cone({ radius: 0.5, height: 0.6, radialSegments: 5, heightSegments: 1 }), [x + r(-0.5, 0.5), 0.3, z + r(-0.5, 0.5)], [r(-20, 20), r(0, 360), r(-20, 20)]); }
-function reedClump(B, x, z) { const k = cellKit(B, 'fen', x, z); for (let i = 0; i < 5; i++) k.cyl(B.pal.reed, [x + r(-0.5, 0.5), 0.6, z + r(-0.5, 0.5)], 0.015, r(1.0, 1.6), [r(-8, 8), 0, r(-8, 8)], 4); }
+function stump(B, x, z, s = 1) { (B.coverPts ||= []).push([x, z, 1.1, 0.25]); cellKit(B, 'wood', x, z).cyl(B.pal.bark, [x, 0.25 * s, z], 0.3 * s, 0.5 * s, [0, 0, 0], 7); }
+function log(B, x, z, s = 1) { (B.coverPts ||= []).push([x, z, 1.4, 0.3]); cellKit(B, 'wood', x, z).cyl(B.pal.bark, [x, 0.22 * s, z], 0.22 * s, 3 * s, [90, r(0, 180), 0], 7); }
+function fernPatch(B, x, z) { (B.coverPts ||= []).push([x, z, 1.7, 0.5]); const k = cellKit(B, 'wood', x, z); for (let i = 0; i < 4; i++) k.add(B.pal.fern, E.cone({ radius: 0.5, height: 0.6, radialSegments: 5, heightSegments: 1 }), [x + r(-0.5, 0.5), 0.3, z + r(-0.5, 0.5)], [r(-20, 20), r(0, 360), r(-20, 20)]); }
+function reedClump(B, x, z) { (B.coverPts ||= []).push([x, z, 1.6, 0.55]); const k = cellKit(B, 'fen', x, z); for (let i = 0; i < 5; i++) k.cyl(B.pal.reed, [x + r(-0.5, 0.5), 0.6, z + r(-0.5, 0.5)], 0.015, r(1.0, 1.6), [r(-8, 8), 0, r(-8, 8)], 4); }
 function deadStick(B, x, z, s = 1) {
   const k = cellKit(B, 'fen', x, z), h = r(3, 5) * s;
   k.cyl(B.pal.bark, [x, h / 2, z], 0.1 * s, h, [r(-6, 6), r(0, 360), r(-6, 6)], 5);
@@ -219,7 +219,7 @@ export function buildWilds(B) {
   B.chest(32.6, -166.5, { dir: 180, loot: [['lockpick', 2], ['potion', 1], ['scrap', 4], ['beartrap', 1]], name: 'Tool chest', locked: true, lockLevel: 2, id: 'shed_chest', chunk: shed.chunk });
   keep.rect(26, -170, 36, -160);
   const fields = [[70, -140, 96, -112, 'crop'], [70, -108, 96, -92, 'cropG'], [36, -118, 66, -98, 'field'], [72, -170, 100, -150, 'crop']];
-  for (const [x0, z0, x1, z1, m] of fields) { B.ground('field', x0, z0, x1, z1, 0, 0.05, { chunk: 'fields' }); keep.rect(x0, z0, x1, z1); const k = B.kit('fields'); for (let x = x0 + 1; x < x1; x += 1.5) for (let z = z0 + 1; z < z1; z += 1.5) if (m !== 'field') k.cyl(M[m === 'crop' ? 'crop' : 'cropG'], [x + r(-0.3, 0.3), 0.4, z + r(-0.3, 0.3)], 0.06, m === 'crop' ? 0.9 : 0.35, [r(-8, 8), 0, r(-8, 8)], 4); }
+  for (const [x0, z0, x1, z1, m] of fields) { if (m !== 'field') for (let cx = x0 + 2; cx < x1; cx += 3) for (let cz = z0 + 2; cz < z1; cz += 3) (B.coverPts ||= []).push([cx, cz, 2.2, m === 'crop' ? 0.45 : 0.2]); B.ground('field', x0, z0, x1, z1, 0, 0.05, { chunk: 'fields' }); keep.rect(x0, z0, x1, z1); const k = B.kit('fields'); for (let x = x0 + 1; x < x1; x += 1.5) for (let z = z0 + 1; z < z1; z += 1.5) if (m !== 'field') k.cyl(M[m === 'crop' ? 'crop' : 'cropG'], [x + r(-0.3, 0.3), 0.4, z + r(-0.3, 0.3)], 0.06, m === 'crop' ? 0.9 : 0.35, [r(-8, 8), 0, r(-8, 8)], 4); }
   B.poi('field_a', 82, -126, { yaw: 0, type: 'stand' }); B.poi('field_b', 80, -100, { yaw: 90, type: 'stand' }); B.poi('field_c', 86, -160, { yaw: 180, type: 'stand' });
   B.route('farm_loop', [[36, -132], [56, -128], [70, -104], [64, -96], [46, -110], [36, -132]]);
   for (const [a, b, c, d] of [[34, -122, 68, -122], [68, -122, 68, -90], [34, -90, 68, -90]]) fenceRun(B, a, b, c, d, { gaps: [[52, -122, 2], [68, -106, 2]] });

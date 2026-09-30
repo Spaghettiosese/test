@@ -58,7 +58,7 @@ P.updateInteraction = function updateInteraction(dt) {
     const nm = PROP_NAME[b.userData.prop] || 'object', take = TAKE[b.userData.prop];
     push(b.position[0], b.position[1], b.position[2], 2.4, take ? `Take the ${nm}` : `Pick up the ${nm}`, () => (take ? this.takeProp(b, take) : pl.grab(b)), 'prop', 0.82, b);
   }
-  this.tools.hook(push, eye, f);
+  this.tools.hook(push, eye, f); this.stealth.hook(push, eye);
   this.traps?.hook(push, eye); this.forage?.hook(push, eye); this.contracts?.hook(push, eye);
   let best = null, bs = 1e9;
   for (const t of c) {
@@ -111,7 +111,7 @@ P.openContainer = function openContainer(c) {
     if (c.keyId && pl.inv.has(c.keyId)) { c.locked = false; this.toast(`Unlocked with the ${ITEMS[c.keyId].name}`); this.sfx.lockClick?.(); }
     else { pl.startPicking(c, c.lockLevel || 1, () => { c.locked = false; this.openContainer(c); }); return; }
   }
-  if (!c.opened) { c.opened = true; this.progress.addXp(4, 'looted'); this.rep.crime('theft', [c.x, c.y, c.z], { range: 14 }); this.stats.opened++; this.sfx.chest?.([c.x, c.y, c.z]); this.noise([c.x, 0, c.z], 4, 'step'); pl.playVm('Reach', 0.06); }
+  if (!c.opened) { c.opened = true; if ((this.nav.zone[Math.max(0, this.nav.at(c.x, c.z))] || 0) >= 1) this.stealth.leave('chest', c.x, c.z); this.progress.addXp(4, 'looted'); this.rep.crime('theft', [c.x, c.y, c.z], { range: 14 }); this.stats.opened++; this.sfx.chest?.([c.x, c.y, c.z]); this.noise([c.x, 0, c.z], 4, 'step'); pl.playVm('Reach', 0.06); }
   this.giveLoot(c.loot, c.name); c.loot = [];
   this.story.onContainer?.(c);
 };

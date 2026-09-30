@@ -82,12 +82,41 @@ export class WorldMap {
     ctx.save(); ctx.beginPath(); ctx.arc(W / 2, H / 2, W / 2 - 2, 0, 6.283); ctx.clip();
     ctx.drawImage(this.cv, W / 2 - mx * sc, H / 2 - my * sc, this.cv.width * sc, this.cv.height * sc);
     this.overlays(ctx, W / 2 - mx * sc, H / 2 - my * sc, sc, false);
+    // guards you can see right now, with the way they face
+    for (const n of this.g.stealth.seenNow) { if (n.dead) continue; const [ax, ay] = this.toMap(n.x, n.z), sx = W / 2 - mx * sc + ax * sc, sy = H / 2 - my * sc + ay * sc, hunt = n.state === 'chase' || n.state === 'attack'; ctx.fillStyle = hunt ? 'rgba(255,80,70,0.85)' : 'rgba(255,190,80,0.85)'; ctx.strokeStyle = 'rgba(255,190,80,0.3)'; ctx.beginPath(); ctx.arc(sx, sy, 2.4, 0, 6.283); ctx.fill(); const fx = Math.sin(n.yaw), fz = Math.cos(n.yaw); ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + (fx * Math.cos(0.5) - fz * Math.sin(0.5)) * 14, sy - (fz * Math.cos(0.5) + fx * Math.sin(0.5)) * 14); ctx.moveTo(sx, sy); ctx.lineTo(sx + (fx * Math.cos(-0.5) - fz * Math.sin(-0.5)) * 14, sy - (fz * Math.cos(-0.5) + fx * Math.sin(-0.5)) * 14); ctx.stroke(); }
     ctx.restore(); ctx.strokeStyle = '#4a3560'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(W / 2, H / 2, W / 2 - 1.5, 0, 6.283); ctx.stroke();
+  }
+  // ---------------------------------------------------------------- stealth feedback: who is suspicious, and where
+  drawThreat(ctx, W, H) {
+    const g = this.g, P = g.player; if (g.mode !== 'play' || P.dead) return;
+    const cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.27;
+    ctx.lineCap = 'round';
+    for (const n of g.npcs) {
+      if (n.dead || !n.guard || n.dist > 46) continue;
+      const hunt = n.state === 'chase' || n.state === 'attack', sus = n.state === 'investigate' || n.state === 'search' || n.state === 'notice';
+      if (!hunt && !sus && n.alert < 0.18) continue;
+      const a = Math.atan2(n.x - P.pos[0], n.z - P.pos[2]); let d = a - P.yaw; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+      const ang = -Math.PI / 2 - d, w = hunt ? 0.34 : 0.26, col = hunt ? '255,80,70' : sus ? '255,160,60' : '255,220,90', al = hunt ? 0.85 : Math.min(0.8, 0.25 + n.alert);
+      ctx.strokeStyle = `rgba(${col},${al})`; ctx.lineWidth = hunt ? 7 : 5; ctx.beginPath(); ctx.arc(cx, cy, R, ang - w, ang + w); ctx.stroke();
+    }
+    // above-head marks on guards you can see
+    const cam = g.camera, f = P.forward, e = cam.position; ctx.textAlign = 'center';
+    for (const n of g.stealth.seenNow) {
+      if (n.dead) continue; const hunt = n.state === 'chase' || n.state === 'attack', sus = n.state === 'investigate' || n.state === 'search' || n.state === 'notice';
+      if (!hunt && !sus && n.alert < 0.22) continue;
+      const hx = n.x, hy = n.y + 2.15, hz = n.z, dx = hx - e[0], dy = hy - e[1], dz = hz - e[2]; if (dx * f[0] + dy * f[1] + dz * f[2] < 0.5) continue;
+      const p = cam.project([hx, hy, hz]), sx = (p[0] * 0.5 + 0.5) * W, sy = (0.5 - p[1] * 0.5) * H;
+      const col = hunt ? '#ff5a4a' : sus ? '#ffa03c' : '#ffe05a'; const fill = hunt ? 1 : Math.min(1, n.alert);
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 3; ctx.fillStyle = col; ctx.font = 'bold 26px monospace'; const ch = hunt ? '!' : '?'; ctx.strokeText(ch, sx, sy); ctx.fillText(ch, sx, sy);
+      ctx.fillStyle = '#000'; ctx.fillRect(sx - 14, sy + 6, 28, 5); ctx.fillStyle = col; ctx.fillRect(sx - 13, sy + 7, 26 * fill, 3);
+    }
   }
   // ---------------------------------------------------------------- wraith sight overlay
   drawSight(canvas) {
     const g = this.g, T = g.tools, ctx = canvas.getContext('2d'); if (!ctx) return;
-    const W = canvas.width = innerWidth, H = canvas.height = innerHeight; ctx.clearRect(0, 0, W, H);
+    if (canvas.width !== innerWidth || canvas.height !== innerHeight) { canvas.width = innerWidth; canvas.height = innerHeight; }
+    const W = canvas.width, H = canvas.height; ctx.clearRect(0, 0, W, H);
+    this.drawThreat(ctx, W, H);
     if (T.sightT <= 0 || g.mode !== 'play') return;
     const cam = g.camera, f = g.player.forward, e = cam.position, a = Math.min(1, T.sightT / 1.5);
     ctx.globalAlpha = a; ctx.lineWidth = 2;

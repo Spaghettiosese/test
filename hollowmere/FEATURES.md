@@ -318,6 +318,31 @@ This is the running list for the second update ("The Wide Valley"). Every line i
 281. The controls list in the menu shows the new keys.
 282. The readme documents every new key.
 
+## Round 4: the stealth model
+
+283. **Named visibility factors.** How visible you are is a product of light, posture, motion, cover, Ember veil, smoke, fighting, lantern, dragging, gear and weather, each with its own multiplier.
+284. **The Stealth tab** shows every factor live, your footstep loudness, the surface under your feet, your record and the rules of the dark.
+285. **Prone.** Hold C to go prone: 58% harder to see than standing, nearly silent, very slow.
+286. **Creeping.** Crouch and hold Shift to creep at a whisper.
+287. **Cover.** Ferns, reeds, crops, logs, stumps, hay, barrels and crates all screen you. Cover counts double when crouched.
+288. **Trees.** Dense trunks around you give cover in the Mirewood.
+289. **Focus and periphery.** Guards notice you faster straight ahead and slower at the edge of their cone.
+290. **Fast movement** catches the eye.
+291. **Elite eyes.** Captains and bounty hunters see 20% better.
+292. **Crowd masking.** Six or more townsfolk nearby cut footstep range by 40%.
+293. **Weather masking.** Rain and storms quiet you and cloud the guards' view.
+294. **Evidence.** Opened chests, forced locks and shot-out lights are left behind for guards to find.
+295. **Guards act on evidence.** They bark, raise the alarm level a notch and go looking.
+296. **Silent choke.** Hold E behind an unaware target to knock them out without a sound. They can struggle, and a witness can report you.
+297. **Shoot out lights.** A thrown knife puts out a torch or lamp.
+298. **Suspicion marks.** A ? or ! with a fill bar floats over guards you can see.
+299. **Threat ring.** Red, orange and yellow arcs round the crosshair point to guards who are hunting, investigating or growing suspicious.
+300. **Minimap guards.** Guards you can see right now appear on the minimap with their facing.
+301. **A visibility pill** on the HUD reads Hidden, Cautious, Exposed or Blazing.
+302. **Unseen bonus.** Cross an area for 25 seconds without being spotted and you earn XP.
+303. **Stealth record** (times spotted, unseen zones, chokes, lights out, evidence found) shows in the book and on the ending screen.
+304. **Prone blocks attacks.** You must stand to fight.
+
 ## What was already there (Chapter I)
 
 - Ashgate, Ravenspire keep, catacombs, graveyard, tavern, smithy, chapel and 59 people on day and night schedules.

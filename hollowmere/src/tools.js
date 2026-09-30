@@ -122,6 +122,7 @@ export class Tools {
         if (hyp(x - n.x, z - n.z) < 0.42 && y > cy && y < top) { this.hitPerson(pr, n, y > cy + 1.45, dir); return true; }
       }
     }
+    if (pr.kind === 'knife') for (const tt of g.level.torches) { if (!tt.lit || tt.small || Math.abs(tt.x - pr.p[0]) > 0.6 || Math.abs(tt.z - pr.p[2]) > 0.6 || Math.abs(tt.y - pr.p[1]) > 0.6) continue; tt.lit = false; tt.wasLit = true; tt.light.intensity = 0; if (tt.flame) tt.flame.visible = false; if (tt.flames) for (const f of tt.flames) f.visible = false; g.emitBurst([tt.x, tt.y, tt.z], 'poof'); g.sfx.glass?.([tt.x, tt.y, tt.z]); g.noise([tt.x, tt.y, tt.z], 6, 'clang'); g.stealth.st.lightsOut++; g.stealth.leave('light', tt.x, tt.z, 14); g.flashText('LIGHT OUT'); }
     const h = g.world.raycast(pr.p, dir, len + 0.05, { ignore: P.cc.body, mask: 0xffff & ~(2 | 4 | 8) });
     if (h || pr.p[1] + st[1] < 0.03) {
       const d = h ? h.distance : 0, at = [pr.p[0] + dir[0] * d, Math.max(0.03, pr.p[1] + dir[1] * d), pr.p[2] + dir[2] * d];

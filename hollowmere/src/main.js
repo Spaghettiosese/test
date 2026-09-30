@@ -34,7 +34,7 @@ addEventListener('keydown', (e) => {
   if ((k === '=' || k === '+') && game.mode === 'play') { game.wmap.zoom = Math.min(3, game.wmap.zoom * 1.25); return; }
   if (k === '-' && game.mode === 'play') { game.wmap.zoom = Math.max(0.5, game.wmap.zoom / 1.25); return; }
   if (k === 'f5' && game.mode === 'play') { e.preventDefault(); game.saves.save('quick'); return; }
-  if (game.mode === 'journal') { if (k === 'escape') game.ui.toggleJournal(); else if (k >= '1' && k <= '7') game.ui.setTab(+k - 1); return; }
+  if (game.mode === 'journal') { if (k === 'escape') game.ui.toggleJournal(); else if (k >= '1' && k <= '8') game.ui.setTab(+k - 1); return; }
   if (k === ' ' || k === 'arrowup' || k === 'arrowdown') e.preventDefault();
   game.input.keys.add(k); if (!e.repeat) { game.input.pressed.add(k); if (k === 'e') { game.player.usePress = true; } }
   if (game.debug && !e.repeat) {

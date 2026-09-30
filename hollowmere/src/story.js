@@ -211,7 +211,7 @@ export class Story {
     this.timer += dt; if (this.timer < 0.2) { this.dukeUpdate(dt); return; } const step = this.timer; this.timer = 0;
     const p = g.player.pos, zone = this.zoneOf(p);
     if (zone !== this.zone) {
-      this.zone = zone; if (!(this.seenZones ||= new Set()).has(zone) && this.playTime > 20) { this.seenZones.add(zone); g.progress.addXp(15, 'discovered'); } else this.seenZones.add(zone);
+      g.stealth.zoneChanged(zone); this.zone = zone; if (!(this.seenZones ||= new Set()).has(zone) && this.playTime > 20) { this.seenZones.add(zone); g.progress.addXp(15, 'discovered'); } else this.seenZones.add(zone);
       const names = { road: 'The King\'s Road', town: 'Ashgate', graveyard: 'The Graveyard', court: 'Ravenspire Courtyard', hall: 'The Great Hall', ante: 'The Antechamber', study: 'The Duke\'s Study', chamber: 'The Duke\'s Bedchamber', backyard: 'Behind the Keep', crypt: 'The Catacombs', undercroft: 'Ravenspire Undercroft', farms: 'Tolliver Farms', mire: 'The Mirewood', fen: 'Blackfen', cinder: 'Cinderwick', bridge: 'Greywater Bridge' };
       if (!this.g.tele) g.ui.area(names[zone]);
       const cps = { town: [[0, 0.1, 16], 0], court: [[0, 0.1, 97.5], 0], hall: [[0, 0.1, 114.5], 0], chamber: [[9, 0.1, 137], 0.4], crypt: [[76, 0.1, 17], 1.57], graveyard: [[-40, 0.1, 64.5], 0] };
@@ -391,6 +391,8 @@ export class Story {
         <tr><td>Containers opened</td><td>${st.opened}</td></tr>
         <tr><td>Loot value</td><td>${P.inv.lootValue} gp</td></tr>
         <tr><td>The Duke</td><td>${dukeLine}</td></tr>
+        <tr><td>Times spotted</td><td>${g.stealth.st.spotted}</td></tr>
+        <tr><td>Zones cleared unseen</td><td>${g.stealth.st.unseenZones}</td></tr>
         <tr><td>Deaths</td><td>${st.deaths}</td></tr>
       </table>
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"><button class="go" style="min-width:0" onclick="window.__game.keepPlaying()">KEEP EXPLORING</button><button class="go" style="min-width:0" onclick="location.reload()">PLAY AGAIN</button></div>`);

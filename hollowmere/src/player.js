@@ -6,7 +6,7 @@ import { Inventory } from './items.js';
 
 const D2R = Math.PI / 180;
 const clamp = E.clamp;
-export const EYE_STAND = 1.62, EYE_CROUCH = 1.06;
+export const EYE_STAND = 1.62, EYE_CROUCH = 1.06, EYE_PRONE = 0.55;
 
 export class Player {
   constructor(game, spawn) {
@@ -53,21 +53,24 @@ export class Player {
     input.dYaw = input.dPitch = 0;
     // ---- stance
     const wantCrouch = input.keys.has('c') || input.keys.has('control');
-    if (wantCrouch !== this.crouch) this.setCrouch(wantCrouch);
+    this.cHold = wantCrouch ? (this.cHold || 0) + dt : 0;
+    const wantStance = !wantCrouch ? 'stand' : (this.cHold > 0.7 || (this.prone && wantCrouch)) && !this.carried ? 'prone' : 'crouch';
+    if (wantStance !== (this.prone ? 'prone' : this.crouch ? 'crouch' : 'stand')) this.setStance(wantStance);
     // ---- movement
     const k = input.keys;
     let ix = (k.has('a') ? 1 : 0) - (k.has('d') ? 1 : 0), iz = (k.has('w') ? 1 : 0) - (k.has('s') ? 1 : 0);
     const moving = !!(ix || iz);
     if (this.stamina <= 0.5) this.exhausted = true; else if (this.stamina > 28) this.exhausted = false;
     this.noiseNow = Math.max(0, (this.noiseNow || 0) - dt * 5);
+    this.creep = this.crouch && !this.prone && k.has('shift');
     this.sprint = k.has('shift') && iz > 0 && !this.crouch && !this.exhausted && this.stamina > 4 && !this.blocking && !this.carried && !this.atk;
-    let speed = (this.crouch ? 1.7 : this.sprint ? 5.8 : 3.5) * (g.status?.mul('speed') ?? 1);
+    let speed = (this.prone ? 0.95 : this.creep ? 1.0 : this.crouch ? 1.7 : this.sprint ? 5.8 : 3.5) * (g.status?.mul('speed') ?? 1);
     if (this.blocking) speed *= 0.55; if (this.carried) speed *= 0.6; if (this.g.tools?.dragging) speed *= 0.5; if (this.atk) speed *= 0.6; if (this.stagger > 0) speed *= 0.3; if (this.picking) speed = 0;
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw), lx = Math.cos(this.yaw), lz = -Math.sin(this.yaw);
     let wish = [0, 0];
     if (moving) { const d = [fx * iz + lx * ix, fz * iz + lz * ix], l = Math.hypot(d[0], d[1]); wish = [(d[0] / l) * speed, (d[1] / l) * speed]; }
     if (this.dashT > 0) { this.dashT -= dt; wish = [this.dashDir[0] * 15, this.dashDir[1] * 15]; this.cc.velocity[0] = wish[0]; this.cc.velocity[2] = wish[1]; }
-    if (k.has(' ') && !this.crouch && this.stamina > 6) { if (this.cc.grounded) { this.cc.jump(4.5); this.stamina -= 6; g.sfx.jump?.(); g.noise(this.pos, 4, 'jump'); } }
+    if (k.has(' ') && this.prone) { this.setStance('crouch'); } else if (k.has(' ') && !this.crouch && this.stamina > 6) { if (this.cc.grounded) { this.cc.jump(4.5); this.stamina -= 6; g.sfx.jump?.(); g.noise(this.pos, 4, 'jump'); } }
     this.cc.move(wish, dt);
     if (this.cc.position[1] < -20 || !isFinite(this.cc.position[1])) this.respawnNear();
     this.speedNow = Math.hypot(this.cc.velocity[0], this.cc.velocity[2]);
@@ -79,17 +82,17 @@ export class Player {
     if (this.stamina <= 0.5 && this.sprint) this.sprint = false;
     if (this.cc.grounded && this.speedNow > 0.4) {
       this.stepDist += this.speedNow * dt;
-      const stride = this.sprint ? 1.9 : this.crouch ? 1.2 : 1.55;
+      const stride = this.sprint ? 1.9 : this.prone ? 0.9 : this.crouch ? 1.2 : 1.55;
       if (this.stepDist > stride) {
         this.stepDist = 0;
         const floor = g.nav.noise[Math.max(0, g.nav.at(this.pos[0], this.pos[2]))] ?? 0;
-        const loud = (this.sprint ? 13 : this.crouch ? 1.3 : 6.5) * [0.8, 1.0, 1.15, 1.4][floor] * (this.mod?.quiet ?? 1) * (g.status?.mul('quiet') ?? 1) * (g.weather?.noiseMul ?? 1);
+        const loud = (this.sprint ? 13 : this.prone ? 0.6 : this.creep ? 0.8 : this.crouch ? 1.3 : 6.5) * [0.8, 1.0, 1.15, 1.4][floor] * (this.mod?.quiet ?? 1) * (g.status?.mul('quiet') ?? 1) * (g.weather?.noiseMul ?? 1);
         this.noiseNow = Math.max(this.noiseNow || 0, loud); g.noise(this.pos, loud, 'step'); g.sfx.step?.(floor, this.sprint ? 1.2 : this.crouch ? 0.4 : 0.8);
         if (floor === 3 && g.story.zone === 'fen') { g.smoke.emit([this.pos[0], 0.08, this.pos[2]], { count: 6, color: [0.25, 0.4, 0.4, 0.5], colorEnd: [0.2, 0.3, 0.3, 0], size: 0.08, grow: 2, spread: 0.6, up: 0.6, life: 0.6, jitter: 0.1 }); g.sfx.splash?.(); }
       }
     }
     // eye height & head bob
-    const eyeT = this.crouch ? EYE_CROUCH : EYE_STAND;
+    const eyeT = this.prone ? EYE_PRONE : this.crouch ? EYE_CROUCH : EYE_STAND;
     this.eye += (eyeT - this.eye) * Math.min(1, dt * 10);
     this.bobT += dt * this.speedNow * (this.sprint ? 1.9 : 2.4);
     const bobAmp = this.cc.grounded ? Math.min(1, this.speedNow / 4) : 0;
@@ -97,13 +100,8 @@ export class Player {
     this.kick *= Math.exp(-dt * 12);
     // ---- light & visibility
     this.lightLevel += (g.lightAt(this.pos[0], this.pos[1] + 1.1, this.pos[2]) - this.lightLevel) * Math.min(1, dt * 6);
-    let vis = 0.12 + this.lightLevel * 0.88;
-    vis *= this.crouch ? 0.55 : 1; vis *= this.sprint ? 1.5 : this.speedNow < 0.4 ? 0.72 : 1;
-    if (this.veilT > 0) { vis *= 0.28; this.veilT -= dt; }
-    if (this.atk) vis = Math.max(vis, 0.85);
-    if (g.lantern?.on) vis = Math.max(vis, 0.8);
-    vis *= (this.mod?.vis ?? 1) * (g.status?.mul('vis') ?? 1); if (g.status?.inSmoke(this.pos)) vis *= 0.2;
-    this.visibility = clamp(vis, 0.05, 1.6);
+    const vis = g.stealth.compute(this, dt);
+    this.visibility = vis;
     if (g.lantern?.on) this.lightLevel = Math.max(this.lightLevel, 0.6);
     // ember: dark places feed it
     if (this.lightLevel < 0.3) this.ember = Math.min(this.maxEmber, this.ember + dt * 1.6);
@@ -114,6 +112,14 @@ export class Player {
     this.lmbPress = false;
     // regeneration out of combat
     if (this.hp < this.maxHp && g.combatT <= 0) this.hp = Math.min(this.maxHp, this.hp + dt * 0.8);
+  }
+  setStance(s) {
+    if (s === 'stand' || s === 'crouch' && this.prone) { // need headroom
+      const hit = this.g.world.raycast([this.pos[0], this.pos[1] + (s === 'stand' ? 0.5 : 0.3), this.pos[2]], [0, 1, 0], s === 'stand' ? 1.35 : 0.8, { ignore: this.cc.body, mask: 0xffff & ~14 });
+      if (hit) return;
+    }
+    this.prone = s === 'prone'; this.crouch = s !== 'stand'; const cc = this.cc; cc.height = s === 'prone' ? 0.75 : s === 'crouch' ? 1.15 : 1.8;
+    cc.body.shape = new E.Capsule(cc.radius, Math.max(0.01, cc.height / 2 - cc.radius)); cc.body.position = cc._center();
   }
   setCrouch(on) {
     if (!on) { // need headroom
@@ -152,6 +158,7 @@ export class Player {
     input.pressed.clear();
   }
   attack() {
+    if (this.prone) { this.g.toast('Stand up to fight'); return; }
     if (this.stagger > 0 || this.stamina < 8 || this.dead) return;
     const g = this.g;
     // backstab prompt uses the same button: handled in resolveHit through npc awareness
@@ -305,7 +312,7 @@ export class Player {
     if (p.watch && !p.watch(dt)) { this.picking = null; this.playVm('Idle', 0.12); return; }
     if (p.tick > 0.55 && !p.free) { p.tick = 0; this.g.sfx.pick?.(); this.g.noise(this.pos, 3.2, 'pick');
       if (Math.random() < 0.05 * p.level * (this.mod?.snap ?? 1)) { this.inv.remove('lockpick', 1); this.g.toast('Your pick snapped'); this.g.sfx.deny?.(); this.picking = null; this.playVm('Idle', 0.1); return; } }
-    if (p.t >= p.need) { const done = p.onDone; this.picking = null; this.playVm('Idle', 0.1); done(); this.g.sfx.lockClick?.(); }
+    if (p.t >= p.need) { const done = p.onDone; if (!p.free && p.target && p.target.x !== undefined) this.g.stealth.leave('forced', p.target.x, p.target.z ?? p.target.z); this.picking = null; this.playVm('Idle', 0.1); done(); this.g.sfx.lockClick?.(); }
   }
 
   // ------------------------------------------------------------ camera & viewmodel matrix

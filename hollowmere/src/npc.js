@@ -349,7 +349,7 @@ export class NPC {
           const k = pd < 2.2 ? 2.2 : 1;
           gain = (1 - Math.min(1, pd / range)) ** 0.7 * (0.3 + P.visibility * 0.9) * (0.6 + 0.4 * Math.max(0, c)) * k;
           this.g.zoneBonus?.(this, P) && (gain *= 1.5);
-          gain *= this.g.rep.disguiseGain(this, pd);
+          gain *= this.g.rep.disguiseGain(this, pd) * g.stealth.detectMul(this, P, pd, c);
           if (this.g.rep.wanted(this.faction)) { gain *= 1.5; if (this.g.rep.total(this.faction) >= 150 && pd < 14) gain = Math.max(gain, 0.9); }
         }
       }
@@ -376,6 +376,7 @@ export class NPC {
       if (d > 14 || (dx * f[0] + dz * f[1]) / (d || 1) < 0.3) continue;
       if (g.canSee(eye, [n.x, n.y + 0.4, n.z], this.body)) { n.discovered = true; this.bark(n.dead ? 'A body! Sound the alarm!' : 'He is out cold. Wake him!'); if (n.state === 'ko') n.koT = Math.min(n.koT, 3); g.alarm([n.x, n.y, n.z], n.dead ? 'body' : 'combat', this); this.stim = [n.x, n.z]; this.state = 'investigate'; return; }
     }
+    if (this.state === 'routine' || this.state === 'notice') { const e = g.stealth.spot(this, eye); if (e) { this.bark(e.type === 'forced' ? 'This lock has been forced!' : e.type === 'chest' ? 'Somebody has been through this.' : 'Something is not right here.'); this.alert = Math.max(this.alert, 0.7); g.alarmLevel = Math.min(3, g.alarmLevel + 0.25); this.noticed([e.x, this.y, e.z], 'sight'); this.state = 'investigate'; this.investT = 20; this.stim = [e.x, e.z]; this.goTo(e.x, e.z, 1.8); return; } }
     if (this.state === 'routine') for (const t of g.level.torches) {
       if (t.lit || !t.wasLit || t.small || t.noticed > g.time - 25) continue;
       const dx = t.x - this.x, dz = t.z - this.z, d = hyp(dx, dz);
@@ -411,6 +412,7 @@ export class NPC {
     } else if (this.state === 'investigate') this.goTo(pos[0], pos[2], 2.2);
   }
   spotted() {
+    this.g.stealth.detectedNow();
     if (this.def.hollowType === 'screamer') { this.g.noise(this.pos, 48, 'scream', this); this.g.sfx.hollowCry?.(this.pos); this.g.ui.toast('A hollow screams'); for (const o of this.g.npcs) if (o.role === 'hollow' && o.dormant && o.dist < 45) { o.dormant = false; o.state = 'chase'; o.alert = 1; o.lastSeen = [...this.g.player.pos]; } }
     this.state = 'chase'; this.alert = 1; this.lostT = 0; this.repathT = 0; this.stopMove();
     this.bark(['Intruder!', 'Halt, thief!', 'There you are!', 'Alarm! Alarm!', 'Stop right there!'][Math.floor(Math.random() * 5)]);

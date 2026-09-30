@@ -21,6 +21,7 @@ import { Hunters } from './hunters.js';
 import { Foraging } from './foraging.js';
 import { Contracts } from './contracts.js';
 import { Codex } from './codex.js';
+import { Stealth } from './stealth.js';
 import { Gear } from './gear.js';
 import { Events } from './events.js';
 import { Saves } from './saves.js';
@@ -87,6 +88,7 @@ export class Game {
     this.wmap = new WorldMap(this);
     this.level.trapSpots ||= [];
     this.traps = new Traps(this);
+    this.stealth = new Stealth(this);
     this.lamps = new Lamps(this);
     this.forage = new Foraging(this);
     installFx(this);
@@ -142,7 +144,7 @@ export class Game {
     this.tools.update(dt);
     this.status.update(dt);
     this.traps?.update(dt);
-    this.lockdown.update(dt); this.lamps.update(dt); this.lantern.update(dt); this.hunters.update(dt); this.forage.update(dt); this.codex.update(dt);
+    this.stealth.update(dt); this.lockdown.update(dt); this.lamps.update(dt); this.lantern.update(dt); this.hunters.update(dt); this.forage.update(dt); this.codex.update(dt);
     if (this.player.mod?.regen && this.player.hp < this.player.maxHp && this.combatT <= 0) this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.mod.regen * dt);
     this.weather.update(dt);
     this.events.update(dt);
@@ -321,7 +323,7 @@ export class Game {
 
   // ------------------------------------------------------------ noise, alarms, sight
   noise(pos, radius, kind, src = null) {
-    const p = [pos[0], pos[1] ?? 0, pos[2]];
+    const p = [pos[0], pos[1] ?? 0, pos[2]]; radius *= this.stealth ? this.stealth.noiseMask(p, kind) : 1;
     for (const n of this.npcs) {
       if (n.dead || n === src) continue;
       if (Math.abs(n.x - p[0]) > radius || Math.abs(n.z - p[2]) > radius) continue;
