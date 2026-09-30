@@ -67,7 +67,7 @@ export class NPC {
   currentSlot() { const h = this.g.clock.hours; for (const s of this.schedule) if (s.h0 <= s.h1 ? h >= s.h0 && h < s.h1 : h >= s.h0 || h < s.h1) return s; return this.schedule[0] || null; }
   slotChanged(s) { this.slot = s; this.leaveActivity(); this.poi = null; this.route = null; this.stopMove(); this.timer = 0; this.wanderT = 0; this.pauseT = 0; this.g.wakeIfSleeping?.(this); }
   leaveActivity() {
-    if (this.lying || this.seated) { const p = this.poi; this.lying = false; this.seated = false; if (p) { this.x = p.approach[0]; this.z = p.approach[1]; } this.y = this.g.nav.floorAt(this.x, this.z); this.g.wakeSleeper?.(this); }
+    if (this.lying || this.seated) { const p = this.poi; this.lying = false; this.seated = false; if (p) { const w = p.walk || p.approach; this.x = w[0]; this.z = w[1]; } this.y = this.g.nav.floorAt(this.x, this.z); this.g.wakeSleeper?.(this); }
     this.activity = null; this.anim = ''; if (this.held) this.hold(null); this.ch.upper.fadeWeight?.(1, 0.1); this.showSword(true);
   }
   showSword(v) { const s = this.ch.holding?.R; if (s && this.armed) s.visible = v; }
@@ -78,7 +78,7 @@ export class NPC {
     const s = this.currentSlot(); if (!s) return;
     this.slotKey = (s.poi || s.route || s.wander || '') + s.act + s.h0; this.slot = s;
     const L = this.g.level;
-    if (s.poi && L.pois[s.poi]) { const p = L.pois[s.poi]; this.x = p.approach[0]; this.z = p.approach[1]; this.y = this.g.nav.floorAt(this.x, this.z); this.arrive(s, p); }
+    if (s.poi && L.pois[s.poi]) { const p = L.pois[s.poi]; const w = p.walk || (p.walk = this.g.nav.nearestWalkable(p.approach[0], p.approach[1], 4) || p.approach); this.x = w[0]; this.z = w[1]; this.y = this.g.nav.floorAt(this.x, this.z); this.arrive(s, p); }
     else if (s.route && L.routes[s.route]) { const R = L.routes[s.route]; this.routeI = Math.floor(Math.random() * R.pts.length); const t = R.pts[this.routeI]; this.x = t[0]; this.z = t[1]; this.y = s.y ?? this.g.nav.floorAt(this.x, this.z); this.routeI = (this.routeI + 1) % R.pts.length; }
     else if (s.wander) { const names = Object.keys(L.pois).filter((k) => k.startsWith(s.wander)); if (names.length) { const p = L.pois[names[Math.floor(Math.random() * names.length)]]; this.x = p.approach[0]; this.z = p.approach[1]; this.y = this.g.nav.floorAt(this.x, this.z); } }
     this.applyPose(); this.body.position = [this.x, this.y + 0.9, this.z];
@@ -158,18 +158,22 @@ export class NPC {
     if (this.state === 'notice') return;
     const g = this.g;
     // far away: teleport straight to the slot's place instead of walking the whole town
-    if (this.dist > 70 && !this.arrived && s.poi && !s.route) { const p = g.level.pois[s.poi]; if (p) { this.x = p.approach[0]; this.z = p.approach[1]; this.arrive(s, p); return; } }
+    if (this.dist > 70 && !this.arrived && s.poi && !s.route) { const p = g.level.pois[s.poi]; if (p) { const w = p.walk || (p.walk = g.nav.nearestWalkable(p.approach[0], p.approach[1], 4) || p.approach); this.x = w[0]; this.z = w[1]; this.arrive(s, p); return; } }
     if (s.route) return this.doRoute(s, dt);
     if (s.wander) return this.doWander(s, dt);
     const p = g.level.pois[s.poi];
     if (!p) { this.setLoco(0); return; }
     if (this.activity) { this.doActivity(dt); return; }
+    // walk to the nearest free cell to the place, then step into it
+    const w = p.walk || (p.walk = g.nav.nearestWalkable(p.approach[0], p.approach[1], 4) || p.approach);
+    const near = hyp(this.x - w[0], this.z - w[1]) < 0.6 || hyp(this.x - p.approach[0], this.z - p.approach[1]) < 0.7;
     if (!this.path && !this.goal) {
-      if (hyp(this.x - p.approach[0], this.z - p.approach[1]) < 0.5) this.arrive(s, p);
-      else this.goTo(p.approach[0], p.approach[1], s.speed || 1.25);
+      if (near) { this.arrive(s, p); return; }
+      this.goTo(w[0], w[1], s.speed || 1.25);
+      if (!this.path) { this.repathT = 3; }
     }
-    if (this.path) { if (this.stepPath(dt)) { this.goal = null; } this.setLoco(this.speed); if (!this.path && hyp(this.x - p.approach[0], this.z - p.approach[1]) < 0.9) this.arrive(s, p); }
-    else if (!this.activity) { this.setLoco(this.speed); if (this.repathT > 0) this.repathT -= dt; else if (hyp(this.x - p.approach[0], this.z - p.approach[1]) > 0.9) { this.goal = null; this.repathT = 2; } else this.arrive(s, p); }
+    if (this.path) { if (this.stepPath(dt)) this.goal = null; this.setLoco(this.speed); if (!this.path && (near || hyp(this.x - w[0], this.z - w[1]) < 1.6)) this.arrive(s, p); }
+    else { this.setLoco(this.speed); if (this.repathT > 0) this.repathT -= dt; else { this.goal = null; this.repathT = 2; } }
   }
   arrive(s, p) {
     this.arrived = true; this.stopMove(); this.poi = p; this.activity = s.act || 'stand';
@@ -486,4 +490,11 @@ export class NPC {
     }
   }
   setVisible(v) { if (this.visible === v) return; this.visible = v; this.ch.visible = v; }
+  // level of detail by distance: fingers and facial features go first, then shadows
+  setLod(l) {
+    if (this.lod === l) return; this.lod = l;
+    if (!this.fine) { this.fine = []; for (const p of this.ch.parts) if (/Finger|Thumb|Eyelid|Brow|Ear|Cheekbone|Nose|Chin|Mouth|^Eye|Buckle|Vambrace|Scar/.test(p.def.name)) this.fine.push(...p.meshes); }
+    for (const m of this.fine) m.visible = l === 0;
+    for (const p of this.ch.parts) for (const m of p.meshes) m.castShadow = l < 2 && p.def.castShadow !== false;
+  }
 }

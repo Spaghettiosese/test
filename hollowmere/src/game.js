@@ -42,26 +42,32 @@ export class Game {
     this.toastQ = [];
     this.stats = { kills: 0, guardKills: 0, civKills: 0, stabs: 0, deaths: 0, looted: 0, opened: 0, alarms: 0, snuffed: 0, seen: 0 };
   }
-  // build the world (slow: happens behind the title screen)
-  build() {
-    const t0 = performance.now();
+  // build the world in slices, so the loading screen can animate (roughly 3 s of work)
+  async build(progress = () => {}) {
+    const t0 = performance.now(), tick = () => new Promise((r) => requestAnimationFrame(() => r()));
+    progress(0.02, 'Raising Ashgate');
+    await tick();
     this.level = buildLevel({ scene: this.scene, world: this.world });
     this.nav = this.level.nav; this.decor = this.level.decor;
     installFx(this);
-    // dynamic effects
     this.ui = new UI(this); this.story = new Story(this);
-    // physics events → noise & breakage
     this.world.on('contact', (e) => this.onContact(e));
-    // the player, then the people
+    progress(0.25, 'Stitching the arms');
+    await tick();
     this.player = new Player(this, [0, 0.1, -46]);
     this.npcs = [];
-    for (const d of buildRoster()) this.npcs.push(new NPC(this, d));
+    const roster = buildRoster();
+    for (let i = 0; i < roster.length; i++) {
+      this.npcs.push(new NPC(this, roster[i]));
+      if (i % 4 === 3) { progress(0.35 + 0.6 * (i / roster.length), 'Waking the townsfolk'); await tick(); }
+    }
     this.player.yaw = 0;
     for (const n of this.npcs) n.snapToSchedule();
     this.setupTeleports();
     this.gatesOpen = true;
     this.updateGates(true);
     this.dynBodies = this.world.bodies.filter((b) => b.isDynamic && b.userData.kind === 'prop');
+    progress(1, 'Ready');
     this.log(`built in ${(performance.now() - t0).toFixed(0)} ms: ${this.world.bodies.length} bodies, ${this.level.lights.length} lights, ${this.npcs.length} people`);
   }
   log(...a) { if (this.debug) console.log('[hollowmere]', ...a); }
@@ -123,7 +129,7 @@ export class Game {
     this.indoorK += ((ind ? 1 : 0) - this.indoorK) * Math.min(1, dt * 3);
     const under = ind === 2 ? 1 : 0;
     const k = this.indoorK;
-    env.ambient = Math.max(env.ambient, env.night > 0.4 ? 0.62 : 0) * (1 - 0.42 * k - 0.15 * under);
+    env.ambient = Math.max(env.ambient, env.night > 0.4 ? 0.62 : 0) * (1 - 0.42 * k) * (1 + 0.25 * under);
     env.exposure *= 1.12;
     env.sunIntensity *= 1 - 0.55 * k;
     env.fogDensity = 0.011 * (1 - k * 0.5) + (this.clock.night ? 0.004 : 0); env.fogHeight = 0.3 * (1 - k);
@@ -221,7 +227,8 @@ export class Game {
       if (near) {
         n.acc = 0;
         n.update(dt); n.setVisible(true);
-        n.ch.update(dt);
+        if ((this.frame + n.ch.id) % 12 === 0) n.setLod(n.dist < 15 ? 0 : n.dist < 42 ? 1 : 2);
+        if (n.dist < 24 || (this.frame + n.ch.id) % 2 === 0) n.ch.update(n.dist < 24 ? dt : dt * 2);
       } else {
         n.acc = (n.acc || 0) + dt;
         const step = n.dist < 120 ? 0.25 : 1;

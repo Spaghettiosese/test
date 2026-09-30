@@ -137,6 +137,7 @@ export function buildTownWalls(B) {
   seg(-48, -33, 11); seg(-27, -9, 11); seg(9, 20, 11); seg(24, 48, 11);
   // the sewer outfall: a low arch under the wall
   seg(20, 24, 11, 'x', { openings: [{ at: 2, w: 1.5, top: 1.55, kind: 'arch' }], cap: null });
+  B.door({ axis: 'x', x: 22, z: 11, w: 1.5, h: 1.55, hinge: 'a', mat: 'iron', name: 'sewer grate', locked: true, lockLevel: 2, id: 'sewer_grate', chunk: ch, autoClose: false });
   // the breach: a collapsed stretch of wall, only rubble left
   B.wall({ axis: 'x', a: -33, b: -27, c: 11, h: 0.5, t: T, mat: 'stoneWall', chunk: ch, nav: false });
   for (let i = 0; i < 9; i++) {
@@ -188,13 +189,27 @@ export function buildTownGround(B) {
 }
 
 // ---------------------------------------------------------------- shared dressing
-function dressHome(B, b, { bed = true, hearth = true, table = true, chest = null, name = 'home', doorSide = 'E' } = {}) {
-  const [x0, z0, x1, z1] = b.inner;
-  if (bed) B.bed(x0 + 1.0, z0 + 1.4, { dir: 0, id: 'bed_' + b.id, chunk: b.chunk });
-  if (hearth) B.fireplace(x1 - 0.5, (z0 + z1) / 2, { dir: 270, w: 2.6, h: 2.4, chunk: b.chunk });
-  if (table) { B.table((x0 + x1) / 2 - 0.8, (z0 + z1) / 2 + 1, 1.6, 0.9, { chunk: b.chunk }); B.chair((x0 + x1) / 2 - 0.8, (z0 + z1) / 2 + 1.9, 180, { name: 'sit_' + b.id, chunk: b.chunk }); B.chair((x0 + x1) / 2 - 0.8, (z0 + z1) / 2 + 0.1, 0, { chunk: b.chunk }); B.prop('mug', (x0 + x1) / 2 - 0.5, 0.85, (z0 + z1) / 2 + 1.1); B.prop('bread', (x0 + x1) / 2 - 1.1, 0.85, (z0 + z1) / 2 + 0.9); }
-  if (chest) B.chest(x0 + 0.5, z1 - 0.5, { dir: 90, ...chest, chunk: b.chunk, w: 0.9, d: 0.55 });
-  B.candle((x0 + x1) / 2 - 0.8, 0.85, (z0 + z1) / 2 + 1, { chunk: b.chunk });
+// Furnish a one-room home. The layout is planned relative to the door: a clear lane inside the
+// door, the hearth on the far wall, the bed in the far corner away from the door, a table off to one side.
+function dressHome(B, b, { bed = true, hearth = true, table = true, chest = null, door = null } = {}) {
+  const [x0, z0, x1, z1] = b.inner, dd = door || b.doorInfo || { side: 'E', at: 4.5 };
+  const side = dd.side, S = side === 'S' || side === 'N';
+  const W = S ? x1 - x0 : z1 - z0, D = S ? z1 - z0 : x1 - x0, uDoor = dd.at - 1;
+  const map = (u, v) => (side === 'S' ? [x0 + u, z0 + v] : side === 'N' ? [x0 + u, z1 - v] : side === 'W' ? [x0 + v, z0 + u] : [x1 - v, z0 + u]);
+  const face = { S: 0, N: 180, W: 90, E: 270 }[side];            // direction pointing into the room
+  const headDir = { S: 180, N: 0, W: 270, E: 90 }[side];        // a bed with its head against the far wall
+  const away = uDoor < W / 2 ? 1 : -1;                          // which side of the room is away from the door
+  const ch = b.chunk;
+  if (hearth) { const [hx, hz] = map(W / 2 + (away < 0 ? 0.0 : 0.0), D - 0.45); B.fireplace(hx, hz, { dir: (face + 180) % 360, w: 2.6, h: 2.4, chunk: ch }); }
+  if (bed && W >= 5) { const [bx, bz] = map(away > 0 ? W - 1.0 : 1.0, D - 1.35); B.bed(bx, bz, { dir: headDir, id: 'bed_' + b.id, chunk: ch }); }
+  if (table) {
+    const tu = away > 0 ? W * 0.64 : W * 0.36, [tx, tz] = map(tu, D * 0.4), along = S ? [1.5, 0.9] : [0.9, 1.5];
+    B.table(tx, tz, along[0], along[1], { chunk: ch });
+    const off = S ? [[0, 0.95], [0, -0.95]] : [[0.95, 0], [-0.95, 0]];
+    B.chair(tx + off[0][0], tz + off[0][1], S ? 180 : 270, { name: 'sit_' + b.id, chunk: ch }); B.chair(tx + off[1][0], tz + off[1][1], S ? 0 : 90, { chunk: ch });
+    B.prop('mug', tx - 0.3, 0.85, tz + 0.1); B.prop('bread', tx + 0.3, 0.85, tz - 0.1); B.candle(tx, 0.85, tz, { chunk: ch });
+  }
+  if (chest) { const [cx, cz] = map(away > 0 ? W - 0.55 : 0.55, 0.75); B.chest(cx, cz, { dir: face, ...chest, chunk: ch, w: 0.9, d: 0.55 }); }
   return b;
 }
 
@@ -211,8 +226,8 @@ export function buildTavern(B) {
   B.bar(13, 24.4, 23, 25.4, { chunk: c });
   B.solid('timber', 22.9, 0, 24.4, 23.4, 1.4, 25.4, { chunk: c, nav: true });
   B.prop('mug', 15, 1.06, 24.9); B.prop('mug', 17.3, 1.06, 24.9); B.prop('bottle', 19, 1.06, 24.9); B.prop('jug', 20.5, 1.06, 24.95); B.prop('candlestick', 21.5, 1.06, 24.9);
-  B.shelf(15.5, 27.05, { dir: 180, w: 3.4, h: 2.4, chunk: c, books: false, loot: [['gold', 6]], name: 'bottle shelf' });
-  for (let i = 0; i < 5; i++) B.prop(i % 2 ? 'bottle' : 'jug', 14.2 + i * 0.66, 1.22 + (i % 3) * 0.02, 26.75, { sleep: true });
+  B.shelf(13.9, 27.05, { dir: 180, w: 2.8, h: 2.4, chunk: c, books: false, loot: [['gold', 6]], name: 'bottle shelf' });
+  for (let i = 0; i < 5; i++) B.prop(i % 2 ? 'bottle' : 'jug', 12.9 + i * 0.5, 1.22 + (i % 3) * 0.02, 26.75, { sleep: true });
   const seats = [[12.5, 17.5], [12.5, 21.5], [17.5, 16.7], [20.3, 17.5]];
   seats.forEach(([tx, tz], i) => {
     B.table(tx, tz, 1.8, 1.0, { chunk: c }); B.candle(tx, 0.85, tz, { chunk: c, range: 5, intensity: 3.6 }); B.prop('mug', tx - 0.4, 0.85, tz + 0.1); B.prop('mug', tx + 0.4, 0.85, tz - 0.1);
@@ -225,7 +240,7 @@ export function buildTavern(B) {
   B.poi('tav_door_in', 10.5, 23, { yaw: 90, type: 'stand' });
   // kitchen & storeroom
   B.hearth(22.5, 0, 29.3, { r: 0.5, range: 11, intensity: 10, chunk: c });
-  B.table(13, 29.5, 2.4, 1.0, { chunk: c }); B.prop('sack', 10.4, 0, 29.4); B.prop('sack', 10.5, 0, 30.2, { yaw: 40 }); B.prop('barrel', 24, 0, 30.2); B.prop('bread', 12.4, 0.85, 29.5); B.prop('bread', 13.4, 0.85, 29.7); B.prop('cheese', 14.1, 0.85, 29.4);
+  B.table(14.5, 29.5, 2.4, 1.0, { chunk: c }); B.prop('sack', 23.2, 0, 30.7); B.prop('sack', 24, 0, 30.3, { yaw: 40 }); B.prop('barrel', 22.6, 0, 30.8); B.prop('bread', 13.6, 0.85, 29.5); B.prop('bread', 14.6, 0.85, 29.7); B.prop('cheese', 15.3, 0.85, 29.4);
   B.chest(10.5, 28.6, { dir: 90, loot: [['gold', 24], ['cellarkey', 1]], locked: true, lockLevel: 1, name: 'Strongbox', id: 'tavern_strongbox', w: 0.9, d: 0.55, chunk: c });
   B.torch(24.5, 2.4, 27.8, { dir: [-1, 0], chunk: c, range: 8, intensity: 7 });
   B.poi('tav_cook', 20, 29.3, { yaw: 90, type: 'stand' });
@@ -258,7 +273,7 @@ export function buildSmithy(B) {
   // back room
   B.bed(-22.6, 52.2, { dir: 0, id: 'bed_smithy', chunk: c });
   B.table(-21, 59, 1.8, 0.9, { chunk: c }); B.chair(-21, 57.9, 0, { chunk: c }); B.candle(-21, 0.85, 59, { chunk: c }); B.prop('mug', -20.4, 0.85, 59.1);
-  B.chest(-22.5, 61.4, { dir: 90, loot: [['gold', 30], ['ring', 1]], locked: true, name: "Smith's strongbox", chunk: c, w: 0.9, d: 0.55 });
+  B.chest(-22.5, 61.4, { dir: 90, loot: [['gold', 30], ['locket', 1]], locked: true, name: "Smith's strongbox", chunk: c, w: 0.9, d: 0.55 });
   B.poi('sit_smithy', -21, 59, { yaw: 180, type: 'sit', y: 0.45, approach: [-21, 57.6] });
   // the shop table in front
   B.table(-6.6, 55, 1.0, 2.6, { chunk: 'street' }); B.prop('candlestick', -6.6, 0.85, 54.4);
@@ -280,24 +295,24 @@ export function buildHouses(B) {
   // the weaver: a loom and a bed
   b = out.weaver = B.house({ id: 'weaver', x: -16, z: 28, w: 8, d: 9, h: 4, zone: 1, door: { side: 'E', at: 4.5, w: 1.6, id: 'weaver_door' }, windows: [{ side: 'S', at: 2.5 }, { side: 'N', at: 3 }, { side: 'W', at: 5 }, { side: 'E', at: 1.5 }], roofMat: 'roofRed' });
   dressHome(B, b, { chest: { loot: [['gold', 14], ['cloth', 1]], name: 'Chest', locked: false } });
-  B.solid('timber', -15, 0, 34.5, -12.6, 1.8, 35.2, { chunk: b.chunk, kind: 'wood' }); B.vbox('linen', -14.9, 0.4, 34.7, -12.7, 1.5, 34.9, { chunk: b.chunk });
-  B.poi('loom', -13.8, 33.7, { yaw: 0, type: 'stand' });
+  B.solid('timber', -15, 0, 35.3, -12.6, 1.8, 35.9, { chunk: b.chunk, kind: 'wood' }); B.vbox('linen', -14.9, 0.4, 35.4, -12.7, 1.5, 35.6, { chunk: b.chunk });
+  B.poi('loom', -13.8, 34.6, { yaw: 0, type: 'stand' });
   // the cooper
   b = out.cooper = B.house({ id: 'cooper', x: -16, z: 39, w: 8, d: 8, h: 4, zone: 1, door: { side: 'E', at: 4, w: 1.6, id: 'cooper_door' }, windows: [{ side: 'S', at: 2.5 }, { side: 'W', at: 4 }, { side: 'N', at: 5 }], roofMat: 'roofSlate' });
   dressHome(B, b, { chest: { loot: [['gold', 9], ['jug', 1]], name: 'Tool chest' } });
   for (let i = 0; i < 4; i++) B.prop('barrel', -14.5 + i * 0.8, 0, 45.6, { yaw: r(0, 90) });
-  B.poi('cooper_work', -12, 44.5, { yaw: 180, type: 'stand' });
+  B.poi('cooper_work', -13, 44.4, { yaw: 180, type: 'stand' });
   // the baker
   b = out.baker = B.house({ id: 'baker', x: 10, z: 36, w: 10, d: 10, h: 4, zone: 1, door: { side: 'W', at: 5, w: 1.7, id: 'baker_door' }, doors: [], windows: [{ side: 'S', at: 3 }, { side: 'S', at: 7 }, { side: 'N', at: 5 }, { side: 'E', at: 5 }], roofMat: 'roofRed', chimney: [18, 44] });
   B.fireplace(18.6, 41.5, { dir: 270, w: 3.6, h: 2.4, chunk: b.chunk });
   B.hearth(18.2, 0, 41.5, { r: 0.5, range: 12, intensity: 12, chunk: b.chunk, stone: false });
-  B.table(13, 41, 2.6, 1.2, { chunk: b.chunk }); B.prop('bread', 12.2, 0.85, 40.8); B.prop('bread', 13, 0.85, 41.3); B.prop('bread', 13.8, 0.85, 40.9); B.prop('sack', 11, 0, 44.4); B.prop('sack', 11.6, 0, 44.9, { yaw: 30 });
-  B.bed(11.2, 37.4, { dir: 0, id: 'bed_baker', chunk: b.chunk }); B.candle(13, 0.85, 42, { chunk: b.chunk });
+  B.table(14.4, 39.6, 2.6, 1.2, { chunk: b.chunk }); B.prop('bread', 13.6, 0.85, 39.4); B.prop('bread', 14.4, 0.85, 39.9); B.prop('bread', 15.2, 0.85, 39.5); B.prop('sack', 11, 0, 44.4); B.prop('sack', 11.6, 0, 44.9, { yaw: 30 });
+  B.bed(11.2, 37.4, { dir: 0, id: 'bed_baker', chunk: b.chunk }); B.candle(14.4, 0.85, 39.6, { chunk: b.chunk });
   B.chest(16.4, 45.4, { dir: 180, loot: [['gold', 16], ['bread', 3]], name: 'Flour bin', chunk: b.chunk, w: 1.0, d: 0.6 });
-  B.poi('oven', 17.2, 41.5, { yaw: 90, type: 'stand' }); B.poi('baker_table', 13, 42.4, { yaw: 0, type: 'stand' });
+  B.poi('oven', 16.4, 41.5, { yaw: 90, type: 'stand' }); B.poi('baker_table', 14.4, 41.4, { yaw: 180, type: 'stand' });
   // the widow's cottage
   b = out.widow = B.house({ id: 'widow', x: 22, z: 38, w: 9, d: 9, h: 3.8, zone: 1, door: { side: 'S', at: 3, w: 1.6, id: 'widow_door' }, windows: [{ side: 'W', at: 4.5 }, { side: 'N', at: 4.5 }, { side: 'E', at: 4.5 }], roofMat: 'roofThatch', chimney: [29, 42] });
-  dressHome(B, b, { chest: { loot: [['gold', 8], ['locket', 1]], name: "Marta's chest", id: 'widow_chest' } });
+  dressHome(B, b, { chest: { loot: [['gold', 8]], name: "Marta's chest", id: 'widow_chest' } });
   // the granary: sacks, barrels and crates for the taking
   b = out.granary = B.house({ id: 'granary', x: 18, z: 52, w: 16, d: 15, h: 5, wall: 'plasterDark', zone: 1, door: { side: 'W', at: 7.5, w: 3, id: 'granary_door', locked: true, keyId: 'granarykey', lockLevel: 1, gate: true }, windows: [{ side: 'S', at: 4, w: 0.8 }, { side: 'N', at: 8, w: 0.8 }], roofMat: 'roofRed', floor: 'floorWood', noise: 2 });
   for (let i = 0; i < 5; i++) for (let j = 0; j < 2; j++) B.prop('sack', 20.5 + i * 0.7, 0, 62.5 + j * 0.7, { yaw: r(0, 90) });

@@ -78,8 +78,11 @@ function frame(now) {
   }
   requestAnimationFrame(frame);
 }
-setTimeout(() => {
-  try { game.build(); } catch (e) { $('loading').hidden = true; $('fatal').hidden = false; $('fatal').textContent = 'Failed to build the world: ' + e.message; console.error(e); throw e; }
+(async () => {
+  const bar = document.querySelector('#loading b'), label = $('loading');
+  try {
+    await game.build((p, msg) => { bar.style.animation = 'none'; bar.style.left = '0'; bar.style.width = Math.round(p * 100) + '%'; label.firstChild.textContent = msg.toUpperCase(); });
+  } catch (e) { $('loading').hidden = true; $('fatal').hidden = false; $('fatal').textContent = 'Failed to build the world: ' + e.message; console.error(e); throw e; }
   game.story.spawnCryptHollows();
   $('loading').hidden = true;
   game.mode = 'menu';
@@ -88,5 +91,5 @@ setTimeout(() => {
   if (q.has('hour')) { game.clock.hours = +q.get('hour'); for (const n of game.npcs) { n.leaveActivity(); n.snapToSchedule(); } }
   if (q.has('yaw')) game.player.yaw = +q.get('yaw') * Math.PI / 180;
   if (q.has('pitch')) game.player.pitch = +q.get('pitch') * Math.PI / 180;
-}, 60);
+})();
 requestAnimationFrame(frame);

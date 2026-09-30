@@ -39,6 +39,7 @@ P.house = function house(o) {
   if (o.roof !== false && !o.open) this.gableRoof({ x0: x - 0.2, z0: z - 0.2, x1: x + w + 0.2, z1: z + d + 0.2, y: y + h + 0.16, rise: o.rise ?? Math.min(w, d) * 0.42, mat: o.roofMat || 'roofSlate', ridge: o.ridge, chunk, over: 0.5 });
   if (o.chimney) { const [cx, cz] = o.chimney; this.solid('stoneDark', cx - 0.5, y + h, cz - 0.5, cx + 0.5, y + h + (o.rise ?? 3) + 2, cz + 0.5, { chunk, nav: false, collide: false }); }
   result.door = result.doors[0];
+  result.doorInfo = doors[0] ? { side: doors[0].side, at: doors[0].at } : null;
   return result;
 };
 export const inRect = (b, px, pz, m = 0) => px > b.bounds[0] + m && px < b.bounds[2] - m && pz > b.bounds[1] + m && pz < b.bounds[3] - m;

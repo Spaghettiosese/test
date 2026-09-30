@@ -6,6 +6,7 @@
   "license": "MIT",
   "scripts": {
     "start": "npx --yes http-server -p 8080 -c-1 .",
-    "test": "node tools/test-weapons.mjs && node tools/test-props.mjs"
+    "test": "node tools/test-weapons.mjs && node tools/test-props.mjs && node hollowmere/tools/test-hollowmere.mjs",
+    "test:hollowmere": "node hollowmere/tools/test-hollowmere.mjs"
   }
 }

@@ -80,7 +80,7 @@ function bake() {
 }
 
 export function createViewmodel() {
-  const def = personDefinition({ outfit: 'rogue', skin: 'pale', colors: { leather: '#3a2a20', glove: '#2c2018', cloth2: '#20182a' } });
+  const def = personDefinition({ outfit: 'rogue', skin: 'pale', poly: 0.8, colors: { leather: '#3a2a20', glove: '#2c2018', cloth2: '#20182a' } });
   def.parts = def.parts.filter((p) => KEEP.test(p.name));
   def.skeleton = BASE_SKELETON;
   def.clips = bake();
@@ -96,7 +96,7 @@ export function createViewmodel() {
   // the arms are always a little self-lit so they read against the dark
   const glow = (m, k) => { m.emissive = m.color; m.emissiveStrength = k; };
   for (const m of ch.materials.values()) glow(m, 0.22);
-  sword.traverse((n) => { if (n.material && n.material.name !== 'Rune') glow(n.material, 0.32); });
+  sword.traverse((n) => { if (n.material && n.material.name !== 'Rune') glow(n.material, 0.14); });
   ch.play('Idle', { fade: 0 });
   return ch;
 }

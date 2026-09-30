@@ -16,6 +16,7 @@ export const HAIR = { black: '#1c1714', brown: '#3b2a1f', auburn: '#5a2c1c', blo
 
 function materials(s) {
   const skin = SKIN[s.skin || 'fair'], c = s.colors || {};
+  if (s.outfit === 'hollow') { skin[0] = skin[0]; }
   return {
     skin: { color: skin[0], roughness: 0.6, pattern: 'skin', patternScale: 6, patternColor: skin[1], sheen: 0.25 },
     lips: { color: '#8a4a42', roughness: 0.5 },
@@ -133,9 +134,11 @@ const OUTFITS = {
       P('Vambrace', cyl(0.043, 0.036, 0.15, 12, { capTop: false, capBottom: false }), 'steel', { bone: 'foreArm.L' }, { position: [0.257, 1.0, 0.003], rotation: [0, 0, 7], mirror: true }),
       P('Gorget', cyl(0.07, 0.085, 0.06, 16, { capTop: false, capBottom: false }), 'steel', { bones: ['chest', 'neck'], falloff: 8 }, { position: [0, 1.52, 0.0] })];
     if (s.helm !== false) {
-      p.push(P('Helm', lathe([[0.122, 0.0], [0.125, 0.06], [0.117, 0.12], [0.085, 0.16], [0.035, 0.178], [0, 0.18]], 20, { smooth: 1 }), 'steel', { bone: 'head' }, { position: [0, 1.7, 0.005], scale: [1, 1, 1.06] }),
-        P('Helm Brim', lathe([[0.12, 0.0], [0.185, -0.018], [0.2, -0.01], [0.12, 0.016]], 24), 'steel', { bone: 'head' }, { position: [0, 1.71, 0.005], scale: [1, 1, 1.04] }),
-        P('Nasal', rbox(0.014, 0.085, 0.012, 0.003), 'steel', { bone: 'head' }, { position: [0, 1.705, 0.122] }));
+      p.push(P('Coif', sq(0.112, 0.13, 0.118, 0.85, 0.9, { thetaStart: 25, thetaLength: 150, phiStart: 95, phiLength: 170 }), 'mail', { bone: 'head' }, { position: [0, 1.665, 0.004], modifiers: [{ type: 'solidify', thickness: 0.006 }] }),
+        P('Helm', lathe([[0.121, -0.01], [0.126, 0.05], [0.119, 0.11], [0.09, 0.15], [0.04, 0.172], [0, 0.176]], 14, { smooth: 1 }), 'steel', { bone: 'head' }, { position: [0, 1.715, 0.006], scale: [1, 1, 1.06] }),
+        P('Helm Band', lathe([[0.128, 0.0], [0.133, 0.014], [0.128, 0.03], [0.122, 0.03], [0.122, 0.0]], 14), 'dark', { bone: 'head' }, { position: [0, 1.7, 0.006], scale: [1, 1, 1.06] }),
+        P('Nasal', rbox(0.016, 0.1, 0.014, 0.003), 'steel', { bone: 'head' }, { position: [0, 1.712, 0.128] }),
+        P('Cheek Plate', rbox(0.012, 0.075, 0.07, 0.003), 'steel', { bone: 'head' }, { position: [0.108, 1.68, 0.03], rotation: [0, -8, 0], mirror: true }));
     }
     return p;
   },
@@ -174,6 +177,16 @@ const OUTFITS = {
     if (s.hood) p.push(P('Hood', sq(0.112, 0.125, 0.12, 0.85, 0.9, { thetaStart: 0, thetaLength: 125, phiStart: 70, phiLength: 220 }), 'robe', { bone: 'head' }, { position: [0, 1.71, -0.005], modifiers: [{ type: 'solidify', thickness: 0.006 }] }), shoulderCape('robe'));
     return p;
   },
+  hollow(s) {
+    const p = [torso('cloth', 0.85), P('Rags', cyl(0.15, 0.22, 0.5, 8, { capTop: false, capBottom: false }), 'cloth2', { bones: ['hips', 'thigh.L', 'thigh.R'], falloff: 5 }, { position: [0, 0.8, 0], modifiers: [{ type: 'displace', amount: 0.03, scale: 12, seed: 3, octaves: 2 }, { type: 'solidify', thickness: 0.006 }] }),
+      P('Ragged Sleeve', tube([[0.165, 1.452, -0.01], [0.207, 1.33, -0.015], [0.235, 1.175, -0.02], [0.25, 1.05, -0.004], [0.262, 0.965, 0.007]], [0.036, 0.03, 0.026, 0.024, 0.022], { radialSegments: 8 }), 'skin', { bones: ['chest', 'shoulder.L', 'upperArm.L', 'foreArm.L'], falloff: 7 }, { mirror: true }),
+      pelvis('hose'), P('Bare Leg', tube([[0.092, 1.0, 0.0], [0.1, 0.76, 0.012], [0.105, 0.53, 0.02], [0.108, 0.33, 0.0], [0.11, 0.17, -0.012]], [0.05, 0.04, 0.034, 0.03, 0.034], { radialSegments: 8 }), 'skin', { bones: ['hips', 'thigh.L', 'thigh.R', 'shin.L', 'shin.R'], falloff: 7 }, { mirror: true }),
+      ...hands(s, 'skin'),
+      P('Skull Jaw', sq(0.06, 0.03, 0.06, 0.7, 0.8, { widthSegments: 10, heightSegments: 6 }), 'bone', { bone: 'head' }, { position: [0, 1.63, 0.048] }),
+      P('Socket', sphere(0.028, { widthSegments: 8, heightSegments: 6 }), 'dark', { bone: 'head' }, { position: [0.04, 1.72, 0.09], scale: [1, 1.2, 0.8], mirror: true, castShadow: false }),
+      P('Rib Cage', { type: 'torus', radius: 0.11, tube: 0.011, radialSegments: 5, tubularSegments: 14, arc: 360, tubeScaleY: 1 }, 'bone', { bones: ['spine', 'chest'], falloff: 6 }, { position: [0, 1.3, 0.02], rotation: [90, 0, 0], modifiers: [{ type: 'array', count: 4, offsetX: 0, offsetY: 0, offsetZ: 0.06, rotX: 0, rotY: 0, rotZ: 0, scaleStep: 0.94 }] })];
+    return p;
+  },
   smith(s) {
     return [torso('cloth', 1.15), sleeve('skin', 0.05), pelvis('hose'), legs('hose'), ...belt('leather', 'steel'), ...boots('leather', 0.16), ...hands(s, 'glove'),
       P('Apron', rbox(0.34, 0.75, 0.016, 0.006), 'leather', { bones: ['spine', 'hips', 'thigh.L', 'thigh.R'], falloff: 5 }, { position: [0, 0.98, 0.125] }),
@@ -193,10 +206,17 @@ const OUTFITS = {
   },
 };
 
+const SEG = ['widthSegments', 'heightSegments', 'radialSegments', 'tubularSegments', 'capSegments', 'segments', 'samples'];
+// The look is chunky on purpose (the game renders at 480x270): thin out the tessellation of every part.
+function lowpoly(parts, k) {
+  if (k >= 1) return parts;
+  for (const p of parts) for (const key of SEG) if (typeof p.shape[key] === 'number') p.shape[key] = Math.max(key === 'samples' ? 2 : 5, Math.round(p.shape[key] * k));
+  return parts;
+}
 export function personDefinition(spec) {
   const s = { ...spec };
   const outfit = OUTFITS[s.outfit || 'peasant'];
-  const parts = [...head(s), ...hair(s), ...outfit(s)];
+  const parts = lowpoly([...head(s), ...hair(s), ...outfit(s)], spec.poly ?? 0.55);
   const extra = [];
   const want = new Set();
   for (const p of parts) for (const b of [p.bind?.bone, ...(p.bind?.bones || [])]) if (b && SPRINGS[b]) want.add(b);

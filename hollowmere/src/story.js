@@ -275,7 +275,7 @@ export class Story {
   spawnHollow(x, z, rising = false, dormant = false) {
     const g = this.g;
     const n = new NPC(g, { id: 'hollow_' + (this.hollowSeq = (this.hollowSeq || 0) + 1), name: 'Hollow', role: 'hollow', hostile: true, pos: [x, z], yaw: 0, hp: 55, dmg: 1.05, block: 0, eyes: 0.9, weapon: null, detail: 0.4, schedule: [{ h0: 0, h1: 24, poi: 'shrine', act: 'stand' }],
-      spec: { outfit: 'peasant', skin: 'ashen', hair: { style: 'bald' }, glowEyes: true, colors: { cloth: '#2a2630', hose: '#1c1a22', cloth2: '#221e28' }, hood: true, height: 1.06, build: 0.92, weapon: null, voice: 0.4 } });
+      spec: { outfit: 'hollow', skin: 'ashen', hair: { style: 'bald' }, glowEyes: true, colors: { cloth: '#2a2630', hose: '#1c1a22', cloth2: '#221e28' }, height: 1.06, build: 0.92, weapon: null, voice: 0.4 } });
     g.npcs.push(n); n.dormant = dormant;
     if (!dormant) { n.state = 'chase'; n.alert = 1; n.lastSeen = [...g.player.pos]; if (rising) { n.rising = 1.8; n.setAnim('Cower', 0.1); } }
     g.sfx.hollowCry?.(n.pos); g.emitBurst([x, 0.1, z], 'dust');
