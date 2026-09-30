@@ -93,6 +93,10 @@ export function createViewmodel() {
   ch.sword = sword;
   // the game sets `local` (camera * shrink); no parent
   ch.updateWorld = function (pw) { if (pw) E.mat4.multiply(this.world, pw, this.local); else this.world.set(this.local); for (const c of this.children) c.updateWorld(this.world); };
+  // the arms are always a little self-lit so they read against the dark
+  const glow = (m, k) => { m.emissive = m.color; m.emissiveStrength = k; };
+  for (const m of ch.materials.values()) glow(m, 0.22);
+  sword.traverse((n) => { if (n.material && n.material.name !== 'Rune') glow(n.material, 0.32); });
   ch.play('Idle', { fade: 0 });
   return ch;
 }

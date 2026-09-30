@@ -143,11 +143,11 @@ P.chest = function chest(x, z, { y = 0, dir = 0, w = 1.0, d = 0.6, loot = [], lo
   this.nav.block(x - half[0], z - half[1], x + half[0], z + half[1], 1);
   const c = { kind: 'chest', name, x, y: y + 0.4, z, node: group, lid, loot: loot.slice(), locked, keyId, lockLevel, id, opened: false, lidAngle: 0, body: b, r: 1.7 };
   this.containers.push(c);
-  this.interactables.push({ kind: 'container', x, y: c.y, z, r: 1.9, obj: c, prompt: () => (c.opened ? (c.loot.length ? 'Take the rest' : null) : c.locked ? `Locked ${name.toLowerCase()}` : 'Open ' + name.toLowerCase()), use: (g) => g.openContainer(c) });
+  this.interactables.push({ kind: 'container', x, y: c.y, z, r: 2.7, obj: c, prompt: () => (c.opened ? (c.loot.length ? 'Take the rest' : null) : c.locked ? `Locked ${name.toLowerCase()}` : 'Open ' + name.toLowerCase()), use: (g) => g.openContainer(c) });
   return c;
 };
 // search a piece of furniture that is already built (cupboard, shelf, sack, coffin...)
-P.searchSpot = function searchSpot(x, y, z, { name = 'Search', loot = [], locked = false, keyId = null, id = null, r = 1.8, verb = 'Search', once = true } = {}) {
+P.searchSpot = function searchSpot(x, y, z, { name = 'Search', loot = [], locked = false, keyId = null, id = null, r = 2.7, verb = 'Search', once = true } = {}) {
   const c = { kind: 'spot', name, x, y, z, loot: loot.slice(), locked, keyId, id, opened: false, r };
   this.containers.push(c);
   this.interactables.push({ kind: 'container', x, y, z, r, obj: c, prompt: () => (c.opened ? null : c.locked ? `Locked ${name.toLowerCase()}` : `${verb} ${name.toLowerCase()}`), use: (g) => g.openContainer(c) });
@@ -196,7 +196,7 @@ P.bed = function bed(x, z, { dir = 0, y = 0, w = 1.1, l = 2.1, canopy = false, s
   if (poi) {
     // the sleeper lies with the head toward the bed's head end
     const hx = -Math.sin(rad(dir)), hz = -Math.cos(rad(dir));
-    this.pois[id] = { type: 'sleep', x: x - hx * (l / 2 - 0.3) * -1, z: z - hz * (l / 2 - 0.3) * -1, y: y + 0.52, yaw: dir, head: [x + hx * (l / 2 - 0.3), z + hz * (l / 2 - 0.3)], approach: [x + Math.cos(rad(dir)) * (w / 2 + 0.7), z - Math.sin(rad(dir)) * (w / 2 + 0.7)] };
+    this.pois[id] = { type: 'sleep', x: x - hx * 0.85, z: z - hz * 0.85, y: y + 0.52, yaw: dir, head: [x + hx * 0.85, z + hz * 0.85], approach: [x + Math.cos(rad(dir)) * (w / 2 + 0.75), z - Math.sin(rad(dir)) * (w / 2 + 0.75)] };
   }
   return g;
 };

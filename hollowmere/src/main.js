@@ -73,7 +73,7 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
   if (game.mode !== 'boot') {
-    if (game.mode !== 'pause') game.step(dt);
+    if (game.mode !== 'pause' && !game.manual) game.step(dt);
     game.render(dt);
   }
   requestAnimationFrame(frame);
@@ -85,7 +85,7 @@ setTimeout(() => {
   game.mode = 'menu';
   if (q.has('skipintro') || q.has('nomenu')) { $('menu').hidden = true; game.story.beginPlay(); }
   if (q.has('at')) { const [x, y, z] = q.get('at').split(',').map(Number); game.player.cc.position = [x, y || 0.1, z]; game.setCheckpoint([x, y || 0.1, z]); }
-  if (q.has('hour')) game.clock.hours = +q.get('hour');
+  if (q.has('hour')) { game.clock.hours = +q.get('hour'); for (const n of game.npcs) { n.leaveActivity(); n.snapToSchedule(); } }
   if (q.has('yaw')) game.player.yaw = +q.get('yaw') * Math.PI / 180;
   if (q.has('pitch')) game.player.pitch = +q.get('pitch') * Math.PI / 180;
 }, 60);

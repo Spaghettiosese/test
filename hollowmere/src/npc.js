@@ -193,7 +193,7 @@ export class NPC {
     if (a === 'work' && Math.random() < dt * 0.0) return;
     if (this.guard && this.idleT > 12 + (this.id.length % 5) * 3) { this.idleT = 0; this.ch.upper.playOnce('Look Around', { fadeIn: 0.3, fadeOut: 0.5 }); }
     // talk to a neighbour: face the player when he is close & we are just standing
-    if ((a === 'stand' || a === 'talk' || a === 'guard') && this.dist < 3.2 && !this.seated && !this.lying && this.g.player.visibility > 0.1) { const yaw = Math.atan2(this.g.player.pos[0] - this.x, this.g.player.pos[2] - this.z); this.yaw += angDiff(yaw, this.yaw) * Math.min(1, dt * 1.5) * -1 * -1; }
+    if ((a === 'stand' || a === 'talk') && !this.guard && this.dist < 3.2 && !this.seated && !this.lying && this.g.player.visibility > 0.1) { const yaw = Math.atan2(this.g.player.pos[0] - this.x, this.g.player.pos[2] - this.z); this.yaw += angDiff(yaw, this.yaw) * Math.min(1, dt * 1.5) * -1 * -1; }
   }
   doRoute(s, dt) {
     const R = this.g.level.routes[s.route]; if (!R) return;
@@ -268,6 +268,7 @@ export class NPC {
   // ------------------------------------------------------------ guards: seeing & hearing
   perceive(dt) {
     if (this.dead || this.stagger > 0.3) return;
+    const gm = this.g.mode; if (gm !== 'play' && gm !== 'talk' && gm !== 'read' && gm !== 'journal') return;
     this.percT -= dt; if (this.percT > 0) return; this.percT = 0.14 + Math.random() * 0.04;
     const g = this.g, P = g.player, eye = this.eye;
     let seen = false, gain = 0;
@@ -276,12 +277,13 @@ export class NPC {
     const range = (g.clock.night ? 13 : 20) * (0.45 + 0.75 * Math.min(1.2, P.visibility)) * (this.state === 'chase' ? 1.5 : 1) * (this.def.eyes || 1);
     if (!P.dead && pd < range + 2) {
       const dx = P.pos[0] - this.x, dz = P.pos[2] - this.z, f = this.fwd, c = (dx * f[0] + dz * f[1]) / (pd || 1);
-      const inCone = c > Math.cos(58 * D2R) || pd < 2.2 || (this.state !== 'routine' && c > Math.cos(110 * D2R));
+      const near = 1.7 * (P.crouch ? 0.6 : 1) * (P.veilT > 0 ? 0.5 : 1);
+      const inCone = c > Math.cos(58 * D2R) || (pd < near && c > -0.15) || (this.state !== 'routine' && this.state !== 'notice' && c > Math.cos(110 * D2R));
       if (inCone && Math.abs(P.pos[1] - this.y) < 4.5) {
         const head = [P.pos[0], P.pos[1] + (P.crouch ? 1.0 : 1.55), P.pos[2]];
         if (g.canSee(eye, head, this.body)) {
           seen = true;
-          const k = pd < 2.5 ? 2.5 : 1;
+          const k = pd < 2.2 ? 2.2 : 1;
           gain = (1 - Math.min(1, pd / range)) ** 0.7 * (0.3 + P.visibility * 0.9) * (0.6 + 0.4 * Math.max(0, c)) * k;
           this.g.zoneBonus?.(this, P) && (gain *= 1.5);
         }
@@ -326,7 +328,8 @@ export class NPC {
     const strong = ['clang', 'combat', 'scream', 'glass', 'crash', 'alarm', 'slam'].includes(kind);
     if (srcNpc === this) return;
     if (this.guard) {
-      this.alert = Math.min(1, Math.max(this.alert, (strong ? 0.6 : 0.34) * (0.5 + s)));
+      if (strong) this.alert = Math.min(1, Math.max(this.alert, 0.6 * (0.5 + s)));
+      else this.alert = Math.min(1, this.alert + (kind === 'step' ? 0.17 : 0.3) * (0.5 + s));
       if (kind === 'scream' || kind === 'alarm' || kind === 'slam') this.alert = Math.max(this.alert, 0.8);
       if (this.alert > 0.3) this.noticed(pos, kind);
     } else if (this.lying && strong && d < eff * 0.6) { this.g.wakeSleeper?.(this); this.lying = false; this.asleep = false; this.leaveActivity(); this.bark('Wh-what?'); }
@@ -413,14 +416,14 @@ export class NPC {
     const clip = ['Slash A', 'Slash B', 'Overhead', 'Thrust'][Math.floor(Math.random() * 4)];
     const dur = clip === 'Overhead' ? 1.1 : clip === 'Thrust' ? 0.95 : 0.9;
     this.atk = { clip, t: 0, dur, hit: false };
-    this.ch.upper.playOnce(clip, { fadeIn: 0.08, fadeOut: 0.25, speed: 1 });
+    this.ch.upper.playOnce(clip, { fadeIn: 0.08, fadeOut: 0.25, speed: 0.85 });
     this.g.sfx.swing?.(0.7);
   }
   strike() {
     const a = this.atk; if (!a) return; a.hit = true;
     const P = this.g.player, dx = P.pos[0] - this.x, dz = P.pos[2] - this.z, d = hyp(dx, dz), f = this.fwd;
     if (d > 2.5 || (dx * f[0] + dz * f[1]) / (d || 1) < 0.35) { this.g.sfx.swing?.(0.3); return; }
-    const dmg = (a.clip === 'Overhead' ? 22 : a.clip === 'Thrust' ? 18 : 14) * (this.def.dmg || 1) * (this.role === 'captain' ? 1.3 : 1);
+    const dmg = (a.clip === 'Overhead' ? 17 : a.clip === 'Thrust' ? 14 : 11) * (this.def.dmg || 1) * (this.role === 'captain' ? 1.3 : 1);
     const res = P.incoming(dmg, [this.x, this.z], { from: this });
     if (res === 'parried') { this.stagger = 1.3; this.state = 'stagger'; this.atk = null; this.ch.upper.playOnce('Stagger', { fadeIn: 0.04, fadeOut: 0.3 }); this.bark('Gah!'); }
     else if (res === 'hit') { this.g.sfx.slash?.(this.pos); }
@@ -428,7 +431,7 @@ export class NPC {
   // ------------------------------------------------------------ being hurt
   takeHit(dmg, dir, opts = {}) {
     if (this.dead) return 'dead';
-    const unaware = (this.state === 'routine' || this.state === 'notice' || this.lying) && this.alert < 0.85 && !this.sees;
+    const unaware = (this.state === 'routine' || this.state === 'notice' || this.lying) && this.alert < 0.95 && !this.sees;
     const behind = dir && ((dir[0] * this.fwd[0] + dir[1] * this.fwd[1]) > 0.1); // dir points from the player to us; same direction as we face => the player is behind us
     if (opts.from === 'player' && (unaware && (behind || this.lying || this.seated || this.asleep || this.surrender))) { dmg = 999; opts.backstab = true; }
     // guards sometimes block a frontal blow
@@ -458,7 +461,7 @@ export class NPC {
     if (this.lying) { this.lying = false; }
     this.seated = false; this.leaveActivity?.(); this.ch.position.set([this.x, this.y, this.z]); E.quat.fromEuler(this.ch.rotation, 0, this.yaw / D2R, 0);
     this.ch.upper.fadeWeight?.(0, 0.05); this.ch.armR.fadeWeight?.(0, 0.05); this.ch.armL.fadeWeight?.(0, 0.05);
-    const imp = dir ? [dir[0] * 90, 30, dir[1] * 90] : [0, 0, 0];
+    const k = opts.backstab ? 0.25 : 1, imp = dir ? [dir[0] * 90 * k, 30 * k, dir[1] * 90 * k] : [0, 0, 0];
     try { this.ragdoll = new E.Ragdoll(g.world, this.ch); this.ragdoll.activate({ impulse: imp, at: 'torso', velocity: [0, 0, 0] }); } catch (e) { console.warn('ragdoll failed', e); }
     g.sfx.die?.(this.pos);
     g.onKill(this, opts);

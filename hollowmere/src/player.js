@@ -14,7 +14,7 @@ export class Player {
     this.cc = new E.CharacterController(game.world, { position: [...spawn], radius: 0.32, height: 1.8, stepHeight: 0.38, maxSlope: 55, mask: 0xffff & ~4 });
     this.cc.body.userData.player = true; this.cc.body.group = 2;
     this.yaw = 0; this.pitch = 0; this.dYaw = 0; this.dPitch = 0;
-    this.hp = 100; this.maxHp = 100; this.stamina = 100; this.ember = 60; this.maxEmber = 100;
+    this.hp = 120; this.maxHp = 120; this.stamina = 100; this.ember = 60; this.maxEmber = 100;
     this.eye = EYE_STAND; this.crouch = false; this.sprint = false; this.speedNow = 0;
     this.bobT = 0; this.bobY = 0; this.kick = 0; this.recoil = 0; this.sway = [0, 0];
     this.inv = new Inventory(); this.inv.add('lockpick', 3); this.inv.add('potion', 1); this.inv.add('ember', 1);
@@ -80,7 +80,7 @@ export class Player {
       if (this.stepDist > stride) {
         this.stepDist = 0;
         const floor = g.nav.noise[Math.max(0, g.nav.at(this.pos[0], this.pos[2]))] ?? 0;
-        const loud = (this.sprint ? 13 : this.crouch ? 2.2 : 6.5) * [0.8, 1.0, 1.15, 1.4][floor];
+        const loud = (this.sprint ? 13 : this.crouch ? 1.3 : 6.5) * [0.8, 1.0, 1.15, 1.4][floor];
         g.noise(this.pos, loud, 'step'); g.sfx.step?.(floor, this.sprint ? 1.2 : this.crouch ? 0.4 : 0.8);
       }
     }
@@ -156,7 +156,6 @@ export class Player {
     this.stamina -= clip === 'Slash3' ? 16 : 10;
     this.playVm(clip, 0.04);
     g.sfx.swing?.(clip === 'Slash3' ? 0.8 : 1);
-    g.noise(this.pos, 5, 'swing');
   }
   resolveHit() {
     if (!this.atk || this.atk.hit) return; this.atk.hit = true;
@@ -194,8 +193,8 @@ export class Player {
   }
   // an incoming blow. returns 'hit' | 'blocked' | 'parried' | 'dodged'
   incoming(dmg, fromXZ, opts = {}) {
-    if (this.dead || this.invuln > 0) return 'dodged';
     const g = this.g;
+    if (this.dead || this.invuln > 0 || g.mode === 'cutscene' || g.mode === 'dead') return 'dodged';
     if (this.blocking && fromXZ) {
       const dx = fromXZ[0] - this.pos[0], dz = fromXZ[1] - this.pos[2], d = Math.hypot(dx, dz) || 1, c = (dx * this.flat[0] + dz * this.flat[1]) / d;
       if (c > 0.35 && !opts.unblockable) {

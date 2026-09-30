@@ -195,8 +195,8 @@ export function buildKeep(B) {
   // ---- BEDCHAMBER
   const bx = 4.5, by = 0;
   B.rug(11, 140, 10, 7, 'rug', 0.012);
-  B.bed(15.4, 142.3, { dir: 0, id: 'bed_duke', canopy: true, fancy: true, w: 1.9, l: 2.4, chunk: c });
-  B.chest(15.4, 139.4, { dir: 0, w: 1.3, d: 0.65, loot: [['letter', 1], ['gold', 120], ['ring', 1]], locked: true, lockLevel: 3, keyId: 'dukekey', name: "Duke's strongbox", id: 'duke_chest', chunk: c, metal: true, gold: true });
+  B.bed(15.4, 142.5, { dir: 180, id: 'bed_duke', canopy: true, fancy: true, w: 1.9, l: 2.4, chunk: c });
+  B.chest(15.4, 139.6, { dir: 0, w: 1.3, d: 0.65, loot: [['letter', 1], ['gold', 120], ['ring', 1]], locked: true, lockLevel: 3, keyId: 'dukekey', name: "Duke's strongbox", id: 'duke_chest', chunk: c, metal: true, gold: true });
   B.fireplace(10.2, 144.6, { dir: 180, w: 3.6, h: 2.8, chunk: c });
   B.shelf(6.4, 137, { dir: 90, w: 3, h: 2.6, chunk: c }); B.shelf(6.4, 141.5, { dir: 90, w: 3, h: 2.6, chunk: c, loot: [['gold', 40], ['potion', 1]], name: 'wardrobe' });
   B.table(7.6, 143.6, 1.6, 0.8, { chunk: c }); B.candle(7.6, 0.85, 143.6, { chunk: c, range: 6, intensity: 5 }); B.prop('mug', 7.2, 0.85, 143.7); B.prop('bottle', 8, 0.85, 143.5);

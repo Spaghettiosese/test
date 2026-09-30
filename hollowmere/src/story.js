@@ -31,6 +31,7 @@ export class Story {
       { id: 'escape', text: 'Escape through the balcony door', sub: 'The Choir is rising.', done: false }];
     this.timer = 0; this.zone = ''; this.cs = null; this.dukeMeter = 0; this.dukeState = 'normal'; this.finale = false; this.fin = null; this.hollowCount = 0; this.startTime = 0; this.playTime = 0;
     this.rook = null;
+    this.csLight = new E.Light('point', { color: '#ffb070', intensity: 7, range: 14 }); this.csLight.position.set([0, -50, 0]); game.scene.add(this.csLight);
     this.extraInteractables();
   }
   currentObjective() { if (this.g.mode === 'boot') return null; return this.objectives.find((o) => !o.done) || null; }
@@ -83,7 +84,7 @@ export class Story {
   play(beats, done) { this.cs = { beats, i: -1, t: 0, done, beat: null }; this.g.mode = 'cutscene'; this.g.ui.letterbox(true); this.g.ui.showHud(false); this.nextBeat(); if (document.pointerLockElement) document.exitPointerLock?.(); }
   nextBeat() {
     const c = this.cs; c.i++;
-    if (c.i >= c.beats.length) { const d = c.done; this.cs = null; this.g.ui.letterbox(false); this.g.ui.subtitle(null); d?.(); return; }
+    if (c.i >= c.beats.length) { const d = c.done; this.cs = null; this.csLight.position.set([0, -50, 0]); this.g.ui.letterbox(false); this.g.ui.subtitle(null); d?.(); return; }
     c.beat = c.beats[c.i]; c.t = 0;
     const b = c.beat; if (b.enter) b.enter(this);
     if (b.sub) this.g.ui.subtitle(b.sub[0], b.sub[1]); else if (!b.keepSub) this.g.ui.subtitle(null);
@@ -105,6 +106,7 @@ export class Story {
     if (b.fadeTo !== undefined) this.g.pix.fade += (b.fadeTo - this.g.pix.fade) * Math.min(1, dt * (b.fadeRate || 3));
     if (b.tick) b.tick(u, dt, this);
     if (this.rook?.visible) { this.rook.updateWorld(this.g.scene.world); }
+    { const t = b.cam?.track ? cam.target : cam.target; this.csLight.position.set([cam.position[0] + (t[0] - cam.position[0]) * 0.25, cam.position[1] + 0.4, cam.position[2] + (t[2] - cam.position[2]) * 0.25]); }
     if (c.t >= b.dur) { if (b.exit) b.exit(this); this.nextBeat(); }
   }
   // ------------------------------------------------------------ the opening
