@@ -15,7 +15,7 @@ const REST = {
   bones: { hips: [0, 0, 0], spine: [4, 0, 0], chest: [2, 0, 0], neck: [0, 0, 0], head: [0, 0, 0], 'shoulder*': [0, 0, 0], 'upperArm*': [3, 0, 6], 'foreArm*': [-14, 0, 0], 'hand*': [-6, 0, 0] },
   hips: [0, 0.965, 0], legs: { L: null, R: null }, hands: { L: 'relaxed', R: 'gunGrip' },
 };
-const IDLE_R = R([-0.23, 1.45, 0.5], [-76, 18, 12]);
+const IDLE_R = R([-0.27, 1.38, 0.5], [-66, 30, 26]);
 const IDLE_L = L([0.3, 1.3, 0.3], [-50, 0, -20]);
 
 function bake() {
@@ -23,7 +23,7 @@ function bake() {
   const K = (name, frames, o) => E.keyPoseClip(sk, name, frames, o);
   const idle = { ...REST, arms: { R: IDLE_R, L: IDLE_L } };
   const out = [];
-  out.push(K('Idle', [{ t: 0, ...idle }, { t: 1.6, arms: { R: R([-0.23, 1.46, 0.51], [-75, 18, 12]), L: IDLE_L }, bones: { chest: [3, 0, 0] } }, { t: 3.2, ...idle }], { loop: true }));
+  out.push(K('Idle', [{ t: 0, ...idle }, { t: 1.6, arms: { R: R([-0.27, 1.39, 0.51], [-65, 30, 26]), L: IDLE_L }, bones: { chest: [3, 0, 0] } }, { t: 3.2, ...idle }], { loop: true }));
   out.push(K('Slash1', [
     { t: 0, ...idle },
     { t: 0.14, arms: { R: R([-0.42, 1.52, 0.34], [-104, -34, 24]), L: L([0.3, 1.2, 0.2], [-40, 0, -20]) }, bones: { chest: [0, -18, 0], spine: [2, -8, 0] } },
@@ -88,7 +88,9 @@ export function createViewmodel() {
   ch.springs = false;
   for (const p of ch.parts) for (const m of p.meshes) { m.castShadow = false; }
   const sword = makeSword('nightfang');
-  ch.attach(sword, 'hand.R', HAND_SOCKET);
+  const sr = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('swrot')) || '';
+  const rot = sr ? sr.split(',').map(Number) : SWORD_ROT;
+  ch.attach(sword, 'hand.R', { position: HAND_SOCKET.position, rotation: rot });
   sword.traverse((n) => { if (n.geometry) n.castShadow = false; });
   ch.sword = sword;
   // the game sets `local` (camera * shrink); no parent
@@ -100,4 +102,5 @@ export function createViewmodel() {
   ch.play('Idle', { fade: 0 });
   return ch;
 }
+const SWORD_ROT = [72, 0, -32];
 export const VM = { EYE, SCALE: 0.62 };

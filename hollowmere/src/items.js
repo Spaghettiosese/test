@@ -10,7 +10,7 @@ export const ITEMS = {
   ring: { name: 'Silver ring', kind: 'valuable', value: 60 },
   locket: { name: "Marta's locket", kind: 'quest', value: 40, desc: 'A tarnished locket with a child\'s portrait.' },
   gem: { name: 'Uncut gem', kind: 'valuable', value: 120 },
-  book: { name: 'Old book', kind: 'valuable', value: 25 },
+  book: { name: 'Old book', kind: 'valuable', value: 25, desc: 'Sell it, or read it for XP.' },
   cloth: { name: 'Bolt of cloth', kind: 'valuable', value: 15 },
   sword: { name: 'Steel sword', kind: 'valuable', value: 50 },
   dagger: { name: 'Fine dagger', kind: 'valuable', value: 30 },

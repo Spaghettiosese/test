@@ -138,6 +138,9 @@ P.useItem = function useItem(id) {
   const it = ITEMS[id];
   if (id === 'potion') { if (pl.hp >= pl.maxHp - 1) { this.toast('You are not hurt'); return; } pl.inv.remove(id, 1); pl.hp = Math.min(pl.maxHp, pl.hp + it.heal); this.sfx.drink?.(); this.toast('Red Salve: +50 health'); }
   else if (id === 'ember') { if (pl.ember >= pl.maxEmber - 1) return; pl.inv.remove(id, 1); pl.ember = Math.min(pl.maxEmber, pl.ember + it.ember); this.sfx.drink?.(); this.toast('Ember Flask: +60 Ember'); }
+  else if (id === 'poison') this.tools.applyPoison();
+  else if (id === 'firebomb') this.toast('Press X to throw the flask');
+  else if (id === 'book') { pl.inv.remove(id, 1); this.progress.addXp(10, 'read a book'); this.toast('You read a while. The old words settle in.'); }
   else if (it.heal) { pl.inv.remove(id, 1); pl.hp = Math.min(pl.maxHp, pl.hp + it.heal); this.toast(`Ate the ${it.name}`); }
 };
 

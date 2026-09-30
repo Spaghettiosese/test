@@ -67,7 +67,7 @@ P.updateDoors = function updateDoors(dt, actors) {
 
 // ---------------------------------------------------------------- light sources
 // A wall torch: bracket, stick and flame, a flickering light, and a snuff interaction.
-P.torch = function torch(x, y, z, { dir = [0, 1], lit = true, range = 11, intensity = 11, color = '#ff9a48', chunk, name = 'torch', big = false, key = null } = {}) {
+P.torch = function torch(x, y, z, { dir = [0, 1], lit = true, range = 11, intensity = 11, color = '#ffb474', chunk, name = 'torch', big = false, key = null } = {}) {
   const k = this.kit(chunk), nx = dir[0], nz = dir[1];
   k.box(this.pal.iron, [x - nx * 0.05, y - 0.05, z - nz * 0.05], [0.07, 0.07, 0.07]);
   k.box(this.pal.iron, [x + nx * 0.06, y - 0.22, z + nz * 0.06], [0.05, 0.4, 0.05], [nz * 10, 0, -nx * 10]);
@@ -89,7 +89,7 @@ P.candle = function candle(x, y, z, { lit = true, range = 5.5, intensity = 4.2, 
   k.cyl(this.pal.candle, [x, y + 0.045, z], 0.014, 0.09, [0, 0, 0], 6);
   const flame = new E.Mesh(E.cone({ radius: 0.011, height: 0.045, radialSegments: 5, heightSegments: 1 }), this.pal.flame, 'Candle flame');
   flame.position.set([x, y + 0.11, z]); flame.castShadow = false; this.decor.add(flame);
-  const light = new E.Light('point', { color: '#ffb066', intensity: lit ? intensity : 0, range, flicker: 0.4 });
+  const light = new E.Light('point', { color: '#ffc088', intensity: lit ? intensity : 0, range, flicker: 0.4 });
   light.position.set([x, y + 0.2, z]); this.decor.add(light);
   const t = { x, y: y + 0.12, z, flame, light, lit, base: intensity, range, phase: Math.random() * 10, kind: 'candle', indoor: this.nav.indoorAt(x, z), snuffable: true, small: true };
   flame.visible = lit; this.torches.push(t); this.lights.push(light);
@@ -102,7 +102,7 @@ P.hearth = function hearth(x, y, z, { r = 0.5, stone = true, range = 14, intensi
   if (stone) for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2; k.box(this.pal.stoneDark, [x + Math.cos(a) * r * 1.15, y + 0.09, z + Math.sin(a) * r * 1.15], [0.24, 0.18, 0.2], [0, -a * 180 / Math.PI, 0], 0.03); }
   k.add(this.pal.ember, E.cylinder({ radiusTop: r * 0.8, radiusBottom: r * 0.9, height: 0.12, radialSegments: 10 }), [x, y + 0.06, z]);
   if (fuel) for (let i = 0; i < 4; i++) k.cyl(this.pal.bark, [x, y + 0.16, z], 0.05, r * 1.5, [90, i * 45, 0], 6);
-  const light = new E.Light('point', { color: '#ff8c3a', intensity, range, flicker: 0.6 }); light.position.set([x, y + 0.7, z]); this.decor.add(light);
+  const light = new E.Light('point', { color: '#ffa25e', intensity, range, flicker: 0.6 }); light.position.set([x, y + 0.7, z]); this.decor.add(light);
   const f = { x, y, z, r, light, base: intensity, lit: true, phase: Math.random() * 9, kind: 'hearth', indoor: this.nav.indoorAt(x, z) };
   this.fires.push(f); this.lights.push(light);
   return f;
@@ -111,7 +111,7 @@ P.chandelier = function chandelier(x, y, z, { r = 0.9, candles = 8, chunk } = {}
   const k = this.kit(chunk);
   k.add(this.pal.iron, E.torus({ radius: r, tube: 0.035, radialSegments: 6, tubularSegments: 24 }), [x, y, z], [90, 0, 0]);
   k.cyl(this.pal.iron, [x, y + 0.7, z], 0.02, 1.4, [0, 0, 0], 5);
-  const light = new E.Light('point', { color: '#ffae5a', intensity: 14, range: 15, flicker: 0.35 }); light.position.set([x, y + 0.25, z]); this.decor.add(light);
+  const light = new E.Light('point', { color: '#ffc488', intensity: 14, range: 15, flicker: 0.35 }); light.position.set([x, y + 0.25, z]); this.decor.add(light);
   const t = { x, y, z, light, lit: true, base: 14, range: 15, phase: Math.random() * 9, kind: 'chandelier', indoor: 1, flames: [] };
   for (let i = 0; i < candles; i++) {
     const a = (i / candles) * Math.PI * 2, cx = x + Math.cos(a) * r, cz = z + Math.sin(a) * r;

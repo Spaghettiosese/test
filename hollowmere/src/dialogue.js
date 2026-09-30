@@ -4,6 +4,14 @@ const L = (text, o = {}) => ({ text, ...o });
 const night = (g) => g.clock.night;
 const hasLetter = (g) => g.player.inv.has('letter');
 
+const SELL = { text: 'Sell my loot.', next: 1, action: (G) => G.story.sell() };
+const RUMORS = [
+  ['They say a witch keeps a hut on stilts in the Mirewood, and sells cures for what ails a thief.', 'Witch\'s Hut'], ['A bandit chief called Red Cael has a camp west of the Old Road. Fat purses, thin patience.', 'Bandit Camp'],
+  ['Cinderwick burned three years back. Something walks the ash at night. Not the villagers.', 'Cinderwick'], ['The Greywater toll house holds a strongbox and a captain who loves his key.', 'Greywater Bridge'],
+  ['An old tower in the Mirewood has a cache in it. Nobody who went to fetch it has come back to talk about it.', 'Ruined Tower'], ['Under the swamp there is a shrine to a drowned saint. Drowned saints keep gifts.', 'Sunken Shrine'],
+  ['The hunter Wulf hates the bandits. Do him a kindness and he will pay.', 'Hunter\'s Lodge'], ['The gallows on the hill are never empty. Never. Do not look up at night.', 'Hangman\'s Hill'],
+];
+export const rumor = (g) => { const r = RUMORS[Math.floor(Math.random() * RUMORS.length)]; return { text: r[0], place: r[1] }; };
 export const DIALOGUE = {
   gateguard: (g) => night(g)
     ? [L('Gates are barred till dawn. Captain\'s orders, and I like my head where it is.'), L('Whatever you\'re selling, sell it in the morning.', { end: true })]
@@ -17,9 +25,12 @@ export const DIALOGUE = {
     L('Duke Aldric Vorst. Pale as candle wax since the plague took his boy. He sleeps up in the tower room, behind two guards and a locked door. Sensible man. Terrified man. Same thing.', { goto: 0 }),
   ],
   drunk1: () => [L('*hic* ...have you seen my goat? No? Neither has the goat.'), L('Watch the shadows by the well, friend. They\'re getting longer. On their own.', { end: true })],
-  merc: () => [L('Move along, hood. I\'m paid to drink here, and I\'m very good at my job.', { mood: 'anger' }), L('Word of advice: don\'t whistle in the graveyard. Something whistles back.', { end: true })],
-  bard: (g) => [L(`♪ "...and the Duke went up to Ravenspire, and the Duke came down no more..." ♪`), L('Ah, a listener. A rarity. Do you know the ending? Nobody does. That\'s why it\'s so popular.', { end: true })],
-  smith: (g) => [L('Careful of the sparks. Or don\'t. I\'ve stopped caring.'), L('Yes, I buy steel, and I ask no questions. Mostly because the answers are always the same.', { end: true })],
+  merc: (g) => [L('Move along, hood. I\'m paid to drink here, and I\'m very good at my job. ...Fancy a throw of the bones? Two dice, high roll wins.', { mood: 'anger', choices: [
+      { text: 'Bet 5 gold.', next: 1, action: (G) => G.story.dice(5) }, { text: 'Bet 20 gold.', next: 1, action: (G) => G.story.dice(20) }, { text: 'Not today.', next: 2 }] }),
+    L('The dice clatter across the table.', { onShow: (G) => G.story.diceReport(), goto: 0 }),
+    L('Word of advice: don\'t whistle in the graveyard. Something whistles back.', { end: true })],
+  bard: (g) => [L(`♪ "...and the Duke went up to Ravenspire, and the Duke came down no more..." ♪`, { choices: [{ text: 'Play me a tune.', next: 1, action: (G) => G.sfx.lute?.() }, { text: 'Tell me a rumor.', next: 2 }, { text: 'Enough.', next: 3 }] }), L('♪ ♪ ♪', { goto: 0 }), (() => { const r = rumor(g); return L(r.text, { onShow: (G) => G.story.reveal(r.place), goto: 0 }); })(), L('Ah, a listener. A rarity. Do you know the ending? Nobody does. That\'s why it\'s so popular.', { end: true })],
+  smith: (g) => [L('Careful of the sparks. Or don\'t. I\'ve stopped caring.', { choices: [SELL, { text: 'Just talking.', next: 2 }] }), L('Done. Coin for the shiny, no questions asked.', { goto: 0 }), L('Yes, I buy steel, and I ask no questions. Mostly because the answers are always the same.', { end: true })],
   hilde: () => [L('Bread\'s from this morning, stranger. Nothing else is guaranteed.'), L('If you\'re hungry, there\'s a loaf on the table. If you\'re thieving, there\'s a loaf on the table. Either way, leave a coin.', { end: true })],
   osric: () => [L('Barrels, buckets, coffins. Three trades, one shop.'), L('People used to buy barrels. Now they order coffins by the dozen.', { end: true })],
   marta: (g) => {
@@ -38,7 +49,8 @@ export const DIALOGUE = {
   },
   tobbe: () => [L('Shh! You hear it? No? Good. Keep it that way.', { mood: 'fear' }), L('I bury them deep, hooded one. But lately they don\'t stay buried.', { end: true })],
   merchant: (g) => night(g) ? [L('Closing up. Come back at sunup.', { end: true })] : [L('Fresh as they come, stranger. Well... fresh-ish.'), L('Stalls close at the eighth bell. After that the market belongs to the rats.', { end: true })],
-  peasant: (g) => [[L('Curfew\'s coming. I\'d be indoors if I were you.'), L('The watch is short-tempered these days. They say the Duke is afraid of his own shadow.', { end: true })], [L('Do you hear that ringing? No? Then I must be mad.'), L('Best I go home.', { end: true })]][Math.floor(Math.random() * 2)],
+  peasant: (g) => { const r = rumor(g); return [L('Curfew\'s coming. I\'d be indoors if I were you.', { choices: [{ text: 'Heard any rumors?', next: 1 }, { text: 'Good night.', next: 'end' }] }), L(r.text, { onShow: (G) => G.story.reveal(r.place), end: true })]; },
+  peasant_old: (g) => [[L('Curfew\'s coming. I\'d be indoors if I were you.'), L('The watch is short-tempered these days. They say the Duke is afraid of his own shadow.', { end: true })], [L('Do you hear that ringing? No? Then I must be mad.'), L('Best I go home.', { end: true })]][Math.floor(Math.random() * 2)],
   beggar: () => [L('A copper for a man who has seen things?'), L('I saw them carry the boy\'s coffin up the hill. Very light, it was. Suspiciously light.', { end: true })],
   cook: () => [L('If you steal my bread, I will know. I always know.'), L('The Duke eats nothing but broth now. Broth! From my kitchen! Such a waste.', { end: true })],
   maid: () => [L('I only sweep. I don\'t see anything. I don\'t hear anything.', { mood: 'fear' }), L('...The Duke walks at night. Down to the cellar, and he doesn\'t come back up the same way.', { end: true })],
@@ -55,7 +67,8 @@ export const DIALOGUE = {
       { text: 'Buy Red Salve (28 gold)', next: 1, action: (G) => G.story.buy('potion', 28) },
       { text: 'Buy Hexbane draught (45 gold)', next: 1, action: (G) => G.story.buy('hexbane', 45) },
       { text: 'Buy an Ember Flask (32 gold)', next: 1, action: (G) => G.story.buy('ember', 32) },
-      { text: 'Just passing.', next: 'end' }] }),
+      { text: 'Buy Throwing knives ×4 (24 gold)', next: 1, action: (G) => G.story.buy('knife', 24, 4) },
+      SELL, { text: 'Just passing.', next: 'end' }] }),
     L('A pleasure. Anything else?', { goto: 0 }),
   ],
   pilgrim: () => [L('I walk from stone to stone. They say if you light all four, the road remembers you.'), L('I only made it to two. My knees light the rest.', { end: true })],
@@ -66,7 +79,9 @@ export const DIALOGUE = {
       { text: 'Buy Hexbane draught (40 gold)', next: 1, action: (G) => G.story.buy('hexbane', 40) },
       { text: 'Buy an Ember Flask (30 gold)', next: 1, action: (G) => G.story.buy('ember', 30) },
       { text: 'Buy Red Salve (26 gold)', next: 1, action: (G) => G.story.buy('potion', 26) },
-      { text: 'Leave.', next: 'end' }] }),
+      { text: 'Buy Nightshade oil (35 gold)', next: 1, action: (G) => G.story.buy('poison', 35) },
+      { text: 'Buy a Fire flask (38 gold)', next: 1, action: (G) => G.story.buy('firebomb', 38) },
+      SELL, { text: 'Leave.', next: 'end' }] }),
     L('Take it. It is bitter, like everything worth having.', { goto: 0 }),
   ],
   ilse: (g) => g.story.flags.ilseTold ? [L('Go on. The bell tolls thirteen. You know what to do.', { end: true })] : [L('Do not go near the gallows hill. They hang the dead there, now.', { mood: 'fear' }), L('...Do not mind me. I have had a long night. Three years of night.', { end: true })],
@@ -76,7 +91,8 @@ export const DIALOGUE = {
       { text: 'Buy a lockpick (12 gold)', next: 1, action: (G) => G.story.buy('lockpick', 12) },
       { text: 'Buy Red Salve (30 gold)', next: 1, action: (G) => G.story.buy('potion', 30) },
       { text: 'Buy an Ember Flask (35 gold)', next: 1, action: (G) => G.story.buy('ember', 35) },
-      { text: 'Remind me of the job.', next: 2 }, { text: 'Never mind.', next: 'end' }] }),
+      { text: 'Buy a lead sap (30 gold)', next: 1, action: (G) => G.story.buy('sap', 30) },
+      SELL, { text: 'Remind me of the job.', next: 2 }, { text: 'Never mind.', next: 'end' }] }),
       L('Pleasure doing business. Anything else?', { goto: 0 }),
       L('Ravenspire. The Duke\'s bedchamber, at the foot of his bed, a strongbox. A letter in black wax. Bring it out unopened. The gates shut at ten; the breach is west, the outfall east, and the crypt runs under the keep for those with a strong stomach.', { goto: 0 }),
     ];

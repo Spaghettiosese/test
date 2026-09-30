@@ -76,7 +76,7 @@
   .statusbar .xp { width: 150px; height: 8px; border: 2px solid var(--edge); background: #000; position: relative; } .statusbar .xp i { position: absolute; inset: 0 auto 0 0; background: var(--gold); }
   body.book .hud:not(.panel-inv) { visibility: hidden; } body.book #sightCv { display: none; }
   .minimap { right: 18px; top: 168px; width: 124px; height: 124px; image-rendering: pixelated; z-index: 3; }
-  .panel-inv { display: block !important; }
+  .panel-inv:not([hidden]) { display: block; }
   .panel-inv .tabs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
   .panel-inv .tabs button, .panel-inv .mini, .panel-inv .link { font: 700 15px var(--pixel); color: var(--bone); background: #1b1226; border: 2px solid var(--edge); padding: 3px 10px; cursor: pointer; }
   .panel-inv .tabs button.on { border-color: var(--gold); color: var(--gold); } .panel-inv .tabs kbd { color: var(--dim); margin-right: 6px; font: 400 12px var(--title); }

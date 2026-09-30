@@ -112,6 +112,7 @@ export class Audio {
     this.waterGain = c.createGain(); this.waterGain.gain.value = 0; s4.connect(f4); f4.connect(this.waterGain); this.waterGain.connect(this.master); s4.start();
     this._ambT = 0;
   }
+  lute() { if (!this.ctx) return; const t = this.t, seq = [[0, 262], [0.28, 330], [0.56, 392], [0.84, 349], [1.2, 294], [1.5, 330], [1.8, 262], [2.3, 196]]; for (const [o, f] of seq) { this._tone(t + o, { freq: f, dur: 0.6, gain: 0.09, type: 'triangle', decay: 0.55, attack: 0.01 }); this._tone(t + o, { freq: f * 2, dur: 0.3, gain: 0.03, type: 'sine', decay: 0.25 }); } }
   owl(p) { if (!this.ctx) return; const { g, pan } = this._s(p, 90); const t = this.t; for (const [o, f] of [[0, 380], [0.42, 330], [0.8, 330]]) this._tone(t + o, { freq: f, freqEnd: f * 0.92, dur: 0.32, gain: 0.05 * g, type: 'sine', decay: 0.3, attack: 0.05, pan }); }
   frog(p) { if (!this.ctx) return; const { g, pan } = this._s(p, 60); const t = this.t; for (let i = 0; i < 3 + Math.floor(Math.random() * 3); i++) this._tone(t + i * 0.11, { freq: 170 + Math.random() * 40, freqEnd: 120, dur: 0.09, gain: 0.05 * g, type: 'square', decay: 0.08, pan }); }
   rooster(p) { if (!this.ctx) return; const { g, pan } = this._s(p, 120); const t = this.t; [[0, 520, 720], [0.35, 640, 820], [0.7, 700, 500], [1.1, 560, 300]].forEach(([o, a, b]) => this._tone(t + o, { freq: a, freqEnd: b, dur: 0.4, gain: 0.05 * g, type: 'sawtooth', decay: 0.38, pan })); }

@@ -30,7 +30,7 @@ export class NPC {
     this.percT = Math.random() * 0.2; this.wanderT = 0; this.fleeFrom = null; this.discovered = false; this.loot = def.loot || []; this.hostile = this.guard; this.detect = 0;
     this.held = null; this.dist = 0; this.visible = true; this.knownDoor = null; this.tookHit = 0; this.surrender = false; this.spawn = { x: this.x, z: this.z };
     this.hand = null; this.ragdoll = null; this.frozen = false;
-    this.faction = def.faction || (this.role === 'bandit' ? 'bandits' : this.guard ? (['#2a1620', '#1a0e14'].includes(this.spec.colors?.tabard) ? 'keep' : 'watch') : 'town'); this.suspect = 0; this.witness = null; this.reportT = 0; this.burn = 0; this.poison = 0; this.koT = 0; this.pockets = def.pockets ?? (this.guard ? [['gold', 2 + Math.floor(Math.random() * 6)]] : Math.random() < 0.7 ? [['gold', 1 + Math.floor(Math.random() * 6)]] : []);
+    this.faction = def.faction || (this.role === 'bandit' ? 'bandits' : this.guard ? (['#2a1620', '#1a0e14'].includes(this.spec.colors?.tabard) ? 'keep' : 'watch') : 'town'); this.suspect = 0; this.witness = null; this.reportT = 0; this.burn = 0; this.bleed = 0; this.poison = 0; this.koT = 0; this.pockets = def.pockets ?? (this.guard ? [['gold', 2 + Math.floor(Math.random() * 6)]] : Math.random() < 0.7 ? [['gold', 1 + Math.floor(Math.random() * 6)]] : []);
     this.tactic = 'engage'; this.ringK = Math.floor(Math.random() * 3); this.tacticPt = null; this.dodgeCd = 0; this.dodgeT = 0; this.dodgeV = [0, 0]; this.ranged = this.spec.weapon === 'crossbow'; this.shotT = 1 + Math.random(); this.calledHelp = false;
     this.strafe = Math.random() < 0.5 ? 1 : -1; this.strafeT = 0; this.searchPt = null; this.lookT = 0; this.retreatT = 0; this.lastVel = [0, 0]; this.feintDone = false;
     if (def.weapon !== null && (this.guard || def.weapon)) { this.ch.hold('R', def.weapon || (this.role === 'captain' ? 'captain' : 'sword')); this.armed = true; }
@@ -145,6 +145,7 @@ export class NPC {
     const P = this.g.player;
     this.dist = hyp(this.x - P.pos[0], this.z - P.pos[2]);
     if (this.poison > 0) { this.poison -= dt; this.hp -= dt * (3.2 * (this.g.player.mod?.poison || 1)); if (Math.random() < dt * 0.35) { this.bark(['*cough*', 'I do not feel well...', 'My chest...'][Math.floor(Math.random() * 3)]); this.g.sfx.grunt?.(0.4, this.pos, 0.9); } if (this.hp <= 0) { this.die([0, 0], { poison: true }); return; } }
+    if (this.bleed > 0) { this.bleed -= dt; this.hp -= dt * 3.4; if (Math.random() < dt * 3) this.g.spawnBlood([this.x, this.y + 1.0, this.z], [0, 0], 2); if (this.hp <= 0) { this.die([0, 0], { poison: true }); return; } }
     if (this.burn > 0) { this.burn -= dt; this.hp -= dt * 11; if (Math.random() < dt * 2.5) this.g.flames.emit([this.x, this.y + 1.2, this.z], { count: 2, color: [4, 1.8, 0.4, 1], colorEnd: [1, 0.2, 0, 0], size: 0.18, grow: 0.3, spread: 0.3, up: 1.2, life: 0.5, jitter: 0.2 }); if (Math.random() < dt * 1.2) this.g.sfx.grunt?.(0.8, this.pos, 1.3); if (this.hp <= 0) { this.die([0, 0], { fire: true }); return; } if (!this.guard && this.state !== 'flee') this.scare(P.pos, 6); else if (this.guard && this.state === 'routine') { this.alert = 1; this.noticed(this.pos, 'combat'); } }
     if (this.state === 'ko') { this.koT -= dt; this.speed = 0; if (this.koT <= 0) this.wakeUp(); this.applyPose(); this.body.position[0] = this.x; this.body.position[1] = this.y + 0.3; this.body.position[2] = this.z; return; }
     if (this.pendingGoal && this.g.pathBudget > 0) this.goTo(...this.pendingGoal);
@@ -203,9 +204,16 @@ export class NPC {
     const a = this.activity;
     this.idleT += dt;
     if (a === 'work' && Math.random() < dt * 0.0) return;
+    if (this.guard && this.role !== 'bandit' && a !== 'sleep') this.chat(dt);
     if (this.guard && this.idleT > 12 + (this.id.length % 5) * 3) { this.idleT = 0; this.ch.upper.playOnce('Look Around', { fadeIn: 0.3, fadeOut: 0.5 }); }
     // talk to a neighbour: face the player when he is close & we are just standing
     if ((a === 'stand' || a === 'talk') && !this.guard && this.dist < 3.2 && !this.seated && !this.lying && this.g.player.visibility > 0.1) { const yaw = Math.atan2(this.g.player.pos[0] - this.x, this.g.player.pos[2] - this.z); this.yaw += angDiff(yaw, this.yaw) * Math.min(1, dt * 1.5) * -1 * -1; }
+  }
+  chat(dt) {
+    this.chatT = (this.chatT ?? 8 + Math.random() * 20) - dt; if (this.chatT > 0 || this.dist > 22) return; this.chatT = 30 + Math.random() * 40;
+    const o = this.g.nearNpcs(this, 6).find((x) => x.guard && !x.dead && x.state === 'routine' && !x.lying); if (!o) return;
+    const L = [['Quiet night.', 'Too quiet.'], ['Did you hear the bell?', 'I heard nothing. Nothing.'], ['My feet hurt.', 'Your feet always hurt.'], ['Captain says double the watch.', 'Captain says a lot of things.'], ['Any word from the keep?', 'Only that we are not to ask.'], ['I saw a hooded man on the road.', 'Everyone is hooded on the road.'], ['Stew tonight?', 'Stew every night.'], ['Do you believe the stories?', 'I believe the bell.']][Math.floor(Math.random() * 8)];
+    this.bark(L[0], this.spec.voice); setTimeout(() => { if (!o.dead && o.state === 'routine') o.bark(L[1], o.spec.voice); }, 2200);
   }
   doRoute(s, dt) {
     const R = this.g.level.routes[s.route]; if (!R) return;
@@ -538,6 +546,7 @@ export class NPC {
       this.g.spark([this.x + dir[0] * 0.5, this.y + 1.3, this.z + dir[1] * 0.5], [dir[0], 0, dir[1]], 12); this.g.sfx.clang?.(1, this.pos); this.g.noise(this.pos, 14, 'clang', this);
       this.ch.upper.playOnce('Block', { fadeIn: 0.05, fadeOut: 0.3 }); return 'blocked';
     }
+    if (opts.bleed && !opts.sap) this.bleed = 5;
     this.hp -= dmg; if (opts.sap && this.hp <= 0) this.hp = 1; this.tookHit = 0.4; this.alert = 1;
     if (this.hp <= 0) { this.die(dir, opts); return 'killed'; }
     this.g.sfx.grunt?.(1, this.pos, this.spec.voice || 1);

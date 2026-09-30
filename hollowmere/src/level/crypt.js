@@ -25,7 +25,7 @@ export function buildCrypt(B) {
   B.nav.clear(113.05, 51.05, 113.95, 52.95);
   B.useChunk('crypt');
   // ---- A: arrival
-  B.torch(73.3, 2.4, 14, { dir: [1, 0], chunk: 'crypt', range: 9, intensity: 8, name: 'crypt torch', color: '#ff9c58' });
+  B.torch(73.3, 2.4, 14, { dir: [1, 0], chunk: 'crypt', range: 9, intensity: 8, name: 'crypt torch', color: '#ffb884' });
   B.solid('stoneDark', 72.8, 0, 12.4, 74.2, 0.5, 15.2, { chunk: 'crypt' });
   for (let i = 0; i < 6; i++) B.prop('skull', 73.3 + (i % 3) * 0.2, 0.5 + Math.floor(i / 3) * 0.16, 12.8 + (i % 2) * 0.3);
   B.solid('stoneWall', 72.5, 0, 18, 74, 0.9, 21, { chunk: 'crypt', bevel: 0.05 });

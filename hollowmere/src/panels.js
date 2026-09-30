@@ -36,7 +36,7 @@ export function installPanels(UI) {
     let body = '';
     if (tab === 'journal') {
       const items = inv.list(), keys = items.filter((i) => i.kind === 'key'), other = items.filter((i) => i.kind !== 'key');
-      const li = (i) => `<li><span>${esc(i.name || i.id)}${i.n > 1 ? ' ×' + i.n : ''}</span><span>${i.heal || i.ember || i.id === 'poison' || i.id === 'firebomb' ? `<button data-act="use:${i.id}" class="mini">use</button>` : esc(i.desc || (i.value ? i.value + ' gp' : ''))}</span></li>`;
+      const li = (i) => `<li><span>${esc(i.name || i.id)}${i.n > 1 ? ' ×' + i.n : ''}</span><span>${i.heal || i.ember || i.id === 'poison' || i.id === 'firebomb' || i.id === 'book' ? `<button data-act="use:${i.id}" class="mini">use</button>` : esc(i.desc || (i.value ? i.value + ' gp' : ''))}</span></li>`;
       const main = S.objectives.filter((o) => !o.side), side = S.objectives.filter((o) => o.side);
       const st = g.stats, R = g.rep;
       body = `<div class="cols"><div><h4>The Job</h4><ul>${main.map((o) => `<li class="${o.done ? 'done' : ''}"><span>${esc(o.text)}</span><span>${o.done ? 'done' : ''}</span></li>`).join('')}</ul>

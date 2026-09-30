@@ -11,7 +11,7 @@ const FS = `#version 300 es
 precision highp float;
 in vec2 vUv; out vec4 o;
 uniform sampler2D uTex; uniform vec2 uRes; uniform vec3 uLevels; uniform float uDither, uTime, uHurt, uFade, uVeil, uGrain, uEdge;
-uniform vec3 uShadow, uHigh;
+uniform vec3 uShadow, uHigh; uniform float uSat, uContrast, uVig;
 float bayer(vec2 p) {
   ivec2 i = ivec2(mod(p, 8.0)); int x = i.x, y = i.y; int a = x ^ y;
   int v = ((a & 1) << 5) | ((y & 1) << 4) | ((a & 2) << 2) | ((y & 2) << 1) | ((a & 4) >> 1) | ((y & 4) >> 2);
@@ -27,11 +27,28 @@ void main() {
     float d = abs(l - luma(texture(uTex, uv + vec2(t.x, 0.0)).rgb)) + abs(l - luma(texture(uTex, uv + vec2(0.0, t.y)).rgb));
     c *= 1.0 - smoothstep(0.16, 0.5, d) * uEdge;
   }
+  // soft glow around bright pixels (torches, candles, the sky at the horizon)
+  { vec2 t = 2.0 / uRes; vec3 g = texture(uTex, uv + vec2(t.x, t.y)).rgb + texture(uTex, uv + vec2(-t.x, t.y)).rgb + texture(uTex, uv + vec2(t.x, -t.y)).rgb + texture(uTex, uv + vec2(-t.x, -t.y)).rgb;
+    g *= 0.25; c += max(luma(g) - 0.72, 0.0) * vec3(1.0, 0.78, 0.5) * 0.55; }
   float L = luma(c);
-  // split tone: violet shadows, ember highlights
+  // filmic shoulder: hot light rolls off to yellow-white instead of clipping to pure red
+  c = c / (1.0 + max(c - 0.55, 0.0) * 0.55);
+  vec3 hot = vec3(1.0, 0.86, 0.62) * L;
+  c = mix(c, hot, smoothstep(0.62, 1.25, L) * 0.55);
+  L = luma(c);
+  // cool the reds a little and pull saturation down so violet stone reads as stone, not neon
+  c.r *= 0.94; c.b *= 1.05;
+  c = mix(vec3(L), c, uSat);
+  // dark reds sink into violet-grey shadow instead of staying blood-coloured
+  c = mix(c, vec3(L) * vec3(0.9, 0.84, 1.18), (1.0 - smoothstep(0.02, 0.42, L)) * 0.7);
+  // split tone: violet-blue shadows, ember highlights
   c = mix(c, c * (vec3(1.0) + uHigh * 0.6), smoothstep(0.35, 0.9, L));
-  c += uShadow * pow(1.0 - clamp(L * 1.6, 0.0, 1.0), 2.0) * 0.22;
+  c += uShadow * pow(1.0 - clamp(L * 1.6, 0.0, 1.0), 2.0) * 0.30;
+  // gentle S-curve for contrast
+  c = c * c * (3.0 - 2.0 * c) * uContrast + c * (1.0 - uContrast);
   c = pow(max(c, 0.0), vec3(0.94));
+  // vignette
+  { vec2 q = vUv - 0.5; c *= 1.0 - dot(q, q) * uVig; }
   // stealth veil: everything drains towards cold blue-grey
   c = mix(c, vec3(L) * vec3(0.55, 0.7, 1.0) + vec3(0.02, 0.03, 0.08), uVeil * 0.55);
   // damage flash
@@ -53,12 +70,12 @@ export class PixelDisplay {
     const p = this.prog = gl.createProgram();
     gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
-    this.u = {}; for (const n of ['uTex', 'uRes', 'uLevels', 'uDither', 'uTime', 'uHurt', 'uFade', 'uVeil', 'uGrain', 'uEdge', 'uShadow', 'uHigh']) this.u[n] = gl.getUniformLocation(p, n);
+    this.u = {}; for (const n of ['uTex', 'uRes', 'uLevels', 'uDither', 'uTime', 'uHurt', 'uFade', 'uVeil', 'uGrain', 'uEdge', 'uShadow', 'uHigh', 'uSat', 'uContrast', 'uVig']) this.u[n] = gl.getUniformLocation(p, n);
     this.tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, this.tex);
     for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.NEAREST], [gl.TEXTURE_MAG_FILTER, gl.NEAREST], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
     this.vao = gl.createVertexArray();
     // look controls
-    this.levels = [12, 11, 10]; this.dither = 0.62; this.hurt = 0; this.fade = 0; this.veil = 0; this.grain = 0.012; this.edge = 0.5;
+    this.levels = [15, 13, 12]; this.dither = 0.5; this.sat = 0.9; this.contrast = 0.35; this.vig = 0.85; this.hurt = 0; this.fade = 0; this.veil = 0; this.grain = 0.008; this.edge = 0.5;
     this.shadow = [0.16, 0.14, 0.4]; this.high = [0.22, 0.08, -0.06];
     this.time = 0;
   }
@@ -74,6 +91,7 @@ export class PixelDisplay {
     gl.uniform1i(u.uTex, 0); gl.uniform2f(u.uRes, c.width, c.height);
     gl.uniform3fv(u.uLevels, this.levels); gl.uniform1f(u.uDither, this.dither); gl.uniform1f(u.uTime, this.time);
     gl.uniform1f(u.uHurt, this.hurt); gl.uniform1f(u.uFade, this.fade); gl.uniform1f(u.uVeil, this.veil); gl.uniform1f(u.uGrain, this.grain); gl.uniform1f(u.uEdge, this.edge);
+    gl.uniform1f(u.uSat, this.sat); gl.uniform1f(u.uContrast, this.contrast); gl.uniform1f(u.uVig, this.vig);
     gl.uniform3fv(u.uShadow, this.shadow); gl.uniform3fv(u.uHigh, this.high);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }

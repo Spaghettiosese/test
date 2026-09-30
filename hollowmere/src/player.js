@@ -19,7 +19,7 @@ export class Player {
     this.bobT = 0; this.bobY = 0; this.kick = 0; this.recoil = 0; this.sway = [0, 0];
     this.inv = new Inventory(); this.inv.add('lockpick', 3); this.inv.add('potion', 1); this.inv.add('ember', 1);
     this.atk = null; this.queued = false; this.combo = 0; this.comboT = 0; this.blocking = false; this.blockT = 0; this.stagger = 0;
-    this.veilT = 0; this.dashT = 0; this.dashDir = [0, 0]; this.cool = { veil: 0, dash: 0, slam: 0 };
+    this.veilT = 0; this.dashT = 0; this.dashDir = [0, 0]; this.cool = { veil: 0, dash: 0, slam: 0, kick: 0 }; this.riposteT = 0;
     this.carried = null; this.carryDist = 1.7; this.picking = null;
     this.lightLevel = 0.3; this.visibility = 0.3; this.hurtT = 0; this.dead = false; this.invuln = 0;
     this.stepDist = 0; this.airT = 0; this.wasGrounded = true; this.fallV = 0;
@@ -45,6 +45,7 @@ export class Player {
   update(dt, input) {
     const g = this.g;
     if (this.dead) { this.speedNow = 0; return; }
+    this.riposteT = Math.max(0, this.riposteT - dt);
     this.hurtT = Math.max(0, this.hurtT - dt); this.invuln = Math.max(0, this.invuln - dt); this.stagger = Math.max(0, this.stagger - dt);
     for (const k in this.cool) this.cool[k] = Math.max(0, this.cool[k] - dt);
     // ---- look
@@ -138,6 +139,7 @@ export class Player {
     if (input.pressed.has('1')) this.skillVeil();
     if (input.pressed.has('2')) this.skillDash(input);
     if (input.pressed.has('3')) this.skillSlam();
+    if (input.pressed.has('q')) this.kick2();
     if (input.pressed.has('r')) this.g.useItem('potion');
     if (input.pressed.has('t')) this.g.useItem('ember');
     this.g.tools.keys(input, dt);
@@ -162,7 +164,7 @@ export class Player {
     if (!this.atk || this.atk.hit) return; this.atk.hit = true;
     const g = this.g, eye = this.eyePos, f = this.forward, flat = this.flat, clip = this.atk.clip;
     const reach = clip === 'Thrust' ? 3.0 : 2.5, arc = Math.cos((clip === 'Thrust' ? 22 : clip === 'Slash3' ? 48 : 62) * D2R);
-    const dmg = (clip === 'Slash3' ? 36 : clip === 'Thrust' ? 32 : 24) * (this.mod?.dmg ?? 1);
+    let dmg = (clip === 'Slash3' ? 36 : clip === 'Thrust' ? 32 : 24) * (this.mod?.dmg ?? 1); const rip = this.riposteT > 0; if (rip) { dmg *= 2.2; this.riposteT = 0; g.flashText('RIPOSTE'); }
     let hitSomething = false;
     for (const n of g.npcs) {
       if (n.dead || !n.active) continue;
@@ -170,7 +172,7 @@ export class Player {
       if (d > reach + 0.3 || Math.abs(n.y - this.pos[1]) > 1.6) continue;
       const c = (dx * flat[0] + dz * flat[1]) / (d || 1);
       if (c < arc && d > 0.9) continue;
-      const ho = { from: 'player', clip, heavy: clip !== 'Slash1' && clip !== 'Slash2', sap: g.tools.sap }; const hr = g.hitNpc(n, dmg, [dx / (d || 1), dz / (d || 1)], ho); if (g.tools.poisonHits > 0 && hr !== 'blocked' && hr !== 'dead' && hr !== 'killed' && !g.tools.sap) { n.poison = 12 * (this.mod?.poison || 1); g.tools.poisonHits--; if (!g.tools.poisonHits) g.ui.toast('The poison on your blade is spent'); }
+      const ho = { from: 'player', clip, heavy: clip !== 'Slash1' && clip !== 'Slash2', sap: g.tools.sap, bleed: clip === 'Slash3' || clip === 'Thrust' || rip }; const hr = g.hitNpc(n, dmg, [dx / (d || 1), dz / (d || 1)], ho); if (g.tools.poisonHits > 0 && hr !== 'blocked' && hr !== 'dead' && hr !== 'killed' && !g.tools.sap) { n.poison = 12 * (this.mod?.poison || 1); g.tools.poisonHits--; if (!g.tools.poisonHits) g.ui.toast('The poison on your blade is spent'); }
       hitSomething = true;
     }
     // physics props: fling them
@@ -192,6 +194,21 @@ export class Player {
     }
     if (hitSomething) this.kick = 0.02;
   }
+  // shove with the boot: staggers whoever is in front, even through a guard
+  kick2() {
+    if (this.atk || this.stagger > 0 || this.cool.kick > 0 || this.carried || this.dead || this.stamina < 12) return;
+    this.cool.kick = 1.4; this.stamina -= 12; this.playVm('BlockHit', 0.03); this.g.sfx.swing?.(0.5);
+    const g = this.g, f = this.flat; let hit = false;
+    for (const n of g.npcs) {
+      if (n.dead || n.state === 'ko') continue;
+      const dx = n.x - this.pos[0], dz = n.z - this.pos[2], d = Math.hypot(dx, dz); if (d > 2.1 || (dx * f[0] + dz * f[1]) / (d || 1) < 0.5) continue;
+      hit = true; n.stagger = Math.max(n.stagger, 1.0); n.atk = null; if (n.guard && n.state !== 'chase' && n.state !== 'attack') { n.alert = 1; n.lastSeen = [...this.pos]; }
+      if (n.guard && (n.state === 'routine' || n.state === 'notice')) n.spotted(); if (n.guard) n.state = 'stagger';
+      n.ch.upper.playOnce('Stagger', { fadeIn: 0.04, fadeOut: 0.3 }); n.moveBy(dx / (d || 1) * 1.2, dz / (d || 1) * 1.2); g.sfx.thud?.(0.7, n.pos);
+      if (!n.guard && n.role !== 'hollow') g.rep.crime('assault', n.pos, { victim: n });
+    }
+    if (hit) { g.flashText('KICK'); g.noise(this.pos, 9, 'combat'); }
+  }
   // an incoming blow. returns 'hit' | 'blocked' | 'parried' | 'dodged'
   incoming(dmg, fromXZ, opts = {}) {
     const g = this.g;
@@ -204,7 +221,7 @@ export class Player {
         this.playVm('BlockHit', 0.02, true); this.vmClip = 'Block';
         g.spark([this.pos[0] + this.flat[0] * 0.8, this.pos[1] + 1.3, this.pos[2] + this.flat[1] * 0.8], [-this.flat[0], 0, -this.flat[1]], parry ? 22 : 12);
         g.sfx.clang?.(parry ? 1.2 : 0.9); g.noise(this.pos, 12, 'clang');
-        if (parry) { this.stamina = Math.min(100, this.stamina + 8); g.flashText?.('PARRY'); return 'parried'; }
+        if (parry) { this.stamina = Math.min(100, this.stamina + 8); this.riposteT = 1.3; g.flashText?.('PARRY'); return 'parried'; }
         if (this.stamina <= 0) { this.stagger = 0.8; this.blocking = false; this.stamina = 0; g.sfx.grunt?.(); }
         return 'blocked';
       }

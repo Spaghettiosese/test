@@ -15,6 +15,7 @@ const mats = () => ({
   rope: M('Rope', { color: '#a58f60', roughness: 0.9, pattern: 'hair', patternScale: 6 }),
   cloth: M('Rag', { color: '#2a211a', roughness: 0.95, pattern: 'fabric', patternScale: 60 }),
   flame: M('Flame', { color: '#ffcf7a', emissive: '#ff9a2a', emissiveStrength: 5 }),
+  nfSteel: M('Nightfang steel', { color: '#4c566c', emissive: '#2a1a5a', emissiveStrength: 0.5, metallic: 0.85, roughness: 0.32, pattern: 'metal', patternScale: 6, patternColor: '#1a1e2c', patternStrength: 0.7 }),
   pewter: M('Pewter', { color: '#8d8a85', metallic: 0.9, roughness: 0.4 }),
 });
 
@@ -23,7 +24,7 @@ function bladeOutline(len, w) { return [[0, 0], [w, 0.01], [w * 0.95, len * 0.7]
 
 export function makeSword(kind = 'arming') {
   const m = mats(), k = new E.Kit({});
-  const cfg = { arming: { len: 0.78, w: 0.024, blade: m.steel, guard: 0.2, mat: m.brass }, dark: { len: 0.82, w: 0.022, blade: m.dark, guard: 0.22, mat: m.steel }, nightfang: { len: 0.86, w: 0.021, blade: m.steel, guard: 0.24, mat: m.steel, rune: true }, captain: { len: 0.9, w: 0.026, blade: m.steel, guard: 0.26, mat: m.brass }, dagger: { len: 0.24, w: 0.016, blade: m.steel, guard: 0.09, mat: m.brass } }[kind] || {};
+  const cfg = { arming: { len: 0.78, w: 0.024, blade: m.steel, guard: 0.2, mat: m.brass }, dark: { len: 0.82, w: 0.022, blade: m.dark, guard: 0.22, mat: m.steel }, nightfang: { len: 0.72, w: 0.03, blade: m.nfSteel, guard: 0.24, mat: m.steel, rune: true }, captain: { len: 0.9, w: 0.026, blade: m.steel, guard: 0.26, mat: m.brass }, dagger: { len: 0.24, w: 0.016, blade: m.steel, guard: 0.09, mat: m.brass } }[kind] || {};
   const { len, w, blade, guard, mat } = cfg;
   k.cyl(m.leather, [0, 0.055, 0], 0.014, 0.11, [0, 0, 0], 8);
   k.add(mat, E.sphere({ radius: 0.022, widthSegments: 8, heightSegments: 6 }), [0, -0.005, 0]);
@@ -55,7 +56,7 @@ export function makeTorch() {
   k.add(m.cloth, E.sphere({ radius: 0.038, widthSegments: 8, heightSegments: 6 }), [0, 0.47, 0], [0, 0, 0], [1, 1.5, 1]);
   const flame = new E.Mesh(E.cone({ radius: 0.035, height: 0.13, radialSegments: 6, heightSegments: 1 }), m.flame, 'Flame'); flame.position.set([0, 0.52, 0]); flame.castShadow = false;
   const n = k.toNode('Torch'); n.add(flame); n.userData.flame = flame; n.userData.tip = [0, 0.6, 0];
-  const light = new E.Light('point', { color: '#ff9c4a', intensity: 9, range: 9, flicker: 0.6 }); light.position.set([0, 0.6, 0.05]); n.add(light); n.userData.light = light;
+  const light = new E.Light('point', { color: '#ffb676', intensity: 9, range: 9, flicker: 0.6 }); light.position.set([0, 0.6, 0.05]); n.add(light); n.userData.light = light;
   return n;
 }
 export function makeMug() {

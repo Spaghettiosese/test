@@ -3,8 +3,9 @@
 import * as E from '../../engine/index.js';
 import { createPerson } from './people/index.js';
 import { DIALOGUE } from './dialogue.js';
-import { regionAt, inCryptRect } from './level/wilds.js';
+import { regionAt, inCryptRect, LANDMARKS } from './level/wilds.js';
 import { LORE } from './lore.js';
+import { ITEMS } from './items.js';
 import { NPC } from './npc.js';
 
 const hyp = Math.hypot;
@@ -50,6 +51,7 @@ export class Story {
     for (const k of ['ws_road', 'ws_mire', 'ws_cinder', 'ws_gallows']) { const p = L.pois[k]; if (p) L.interactables.push({ kind: 'waystone', x: p.x, y: 1.2, z: p.z + 1.3, r: 2.6, obj: { id: k }, prompt: () => (this.g.quests.lit.has(k) ? 'Use the waystone' : 'Touch the waystone'), use: (g) => g.quests.waystone(k) }); }
     for (const l of LORE) { NOTES[l.id] = { title: l.title, text: l.text }; L.interactables.push({ kind: 'note', x: l.at[0], y: l.at[1], z: l.at[2], r: 2.2, obj: { id: l.id }, prompt: () => l.prompt, use: (g) => { const first = !this.notesFound.has(l.id); g.readNote(l.id); if (first) g.progress.addXp(12, 'lore'); } }); }
     for (const [name, p] of Object.entries(L.pois)) if (p.type === 'sleep') L.interactables.push({ kind: 'bed', x: p.x, y: p.y + 0.4, z: p.z, r: 2.4, obj: { id: name }, prompt: () => (this.g.clock.night || this.g.player.hp < this.g.player.maxHp - 5 ? 'Rest in the bed' : 'Lie down for a while'), use: (g) => g.events.sleepMenu(name) });
+    for (const f of L.fires) if (f.kind === 'hearth') L.interactables.push({ kind: 'fire', x: f.x, y: f.y + 0.6, z: f.z, r: 3.2, obj: f, prompt: () => (this.g.time - (f.warmAt ?? -99) > 90 ? 'Warm yourself at the fire' : null), use: (g) => { f.warmAt = g.time; const P = g.player; P.hp = Math.min(P.maxHp, P.hp + 25); P.ember = Math.min(P.maxEmber, P.ember + 15); g.toast('The fire warms you'); g.sfx.drink?.(); if (f.indoor === 0) g.saves.save('quick'); } });
     note('orders', -28.5, 0.9, 104.5, 'Read the orders'); note('ledger', -16.4, 1.0, 138.0, 'Read the ledger'); note('diary', -34.4, 0.8, 68.6, 'Read the diary'); note('choir', 104, 1.2, 27.4, 'Read the scrawl');
   }
   readNote(id) {
@@ -66,11 +68,27 @@ export class Story {
     npc.ch.upper.playOnce('Talk', { fadeIn: 0.3, fadeOut: 0.6 });
     this.g.ui.dialogue({ npc, lines });
   }
-  buy(id, price) {
+  buy(id, price, n = 1) {
     const inv = this.g.player.inv;
     if (inv.gold < price) { this.g.toast('Not enough gold'); this.g.sfx.deny?.(); return; }
-    inv.gold -= price; inv.add(id, 1); inv.lootValue -= 0; this.g.sfx.coin?.(); this.g.toast('Bought 1 ' + (id === 'potion' ? 'Red Salve' : id === 'ember' ? 'Ember Flask' : 'lockpick'));
+    inv.gold -= price; inv.add(id, n); this.g.sfx.coin?.(); this.g.toast(`Bought ${n} ${ITEMS[id]?.name || id}`);
   }
+  sell() {
+    const inv = this.g.player.inv; let sum = 0, cnt = 0;
+    for (const it of inv.list()) if ((it.kind === 'valuable' || it.kind === 'junk') && it.value) { const each = Math.max(1, Math.round(it.value * 0.6)); sum += each * it.n; cnt += it.n; inv.remove(it.id, it.n); }
+    if (!cnt) { this.g.toast('You have nothing worth selling'); this.g.sfx.deny?.(); return; }
+    inv.gold += sum; this.g.sfx.coin?.(); this.g.toast(`Sold ${cnt} item${cnt > 1 ? 's' : ''} for ${sum} gold`);
+  }
+  dice(bet) {
+    const inv = this.g.player.inv;
+    if (inv.gold < bet) { this._dice = 'You cannot cover that bet.'; this.g.sfx.deny?.(); return; }
+    const d = () => 1 + Math.floor(Math.random() * 6), me = d() + d(), him = d() + d();
+    if (me > him) { inv.gold += bet; this._dice = `You roll ${me}, he rolls ${him}. You win ${bet} gold.`; this.g.sfx.coin?.(); }
+    else if (me < him) { inv.gold -= bet; this._dice = `You roll ${me}, he rolls ${him}. You lose ${bet} gold.`; }
+    else this._dice = `Both roll ${me}. A push.`;
+  }
+  diceReport() { if (this._dice) this.g.toast(this._dice); }
+  reveal(place) { const L = LANDMARKS.find((l) => l.name === place); if (L) { this.g.wmap.reveal(L.x, L.z, 34); this.g.toast(`The map now shows ${place}`); this.g.progress.addXp(5, 'rumor'); } }
   startLocket() { this.flags.locketQuest = true; this.objectives.push({ id: 'locket', text: 'Marta\'s locket: find it (a mercenary pawned it)', sub: 'Try the smith\'s strongbox or the mercenary in the tavern.', done: false, side: true }); this.g.toast('New task: Marta\'s locket'); }
   giveLocket() { const g = this.g; g.player.inv.remove('locket', 1); g.player.inv.add('gold', 60); this.flags.locketReturned = true; const o = this.objectives.find((x) => x.id === 'locket'); if (o) o.done = true; g.toast('+60 gold'); g.sfx.coin?.(); }
   startRelic() { this.flags.relicQuest = true; this.objectives.push({ id: 'relic', text: 'Bring the Pale Saint\'s tear (a gem) from the crypt shrine to Father Ansel', sub: 'Through the mausoleum, past the ossuary.', done: false, side: true }); this.g.toast('New task: the Saint\'s tear'); }
