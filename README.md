@@ -2,6 +2,8 @@
 
 A tiny first-person sandbox built on the [ShapeForge Engine](https://github.com/Spaghettiosese/Engine): a covered firing line, three lanes and targets out to 200 m, and ten guns modelled, rigged and animated entirely inside the engine. It plays with a mouse and keyboard or on a phone or tablet with touch controls.
 
+See also [Hollowmere](hollowmere/README.md), a dark-fantasy stealth demo.
+
 ```bash
 npm start      # serves the folder on http://localhost:8080 (any static server works)
 npm test       # bakes every weapon clip and checks the gun states

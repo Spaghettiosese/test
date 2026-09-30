@@ -34,6 +34,12 @@ export class Story {
     this.csLight = new E.Light('point', { color: '#ffb070', intensity: 7, range: 14 }); this.csLight.position.set([0, -50, 0]); game.scene.add(this.csLight);
     this.extraInteractables();
   }
+  // where the compass should point
+  objectiveTarget() {
+    const o = this.currentObjective(); if (!o) return null;
+    const P = this.g.player.pos, inKeep = P[2] > 92;
+    return { town: [0, 13], court: inKeep ? [0, 98] : P[0] > 66 ? [121, 57] : [0, 91], keep: [0, 112], chamber: [10, 138], letter: [15.4, 139.6], escape: [13, 147.5], locket: [-22.5, 61.4], relic: [99.4, 57.6] }[o.id] || null;
+  }
   currentObjective() { if (this.g.mode === 'boot') return null; return this.objectives.find((o) => !o.done) || null; }
   complete(id) { const o = this.objectives.find((x) => x.id === id); if (o && !o.done) { o.done = true; this.g.ui.flashBanner('OBJECTIVE COMPLETE', 1800, true); this.g.sfx.coin?.(); } }
   // ------------------------------------------------------------ notes & extra interactables
@@ -183,8 +189,23 @@ export class Story {
     if (zone === 'chamber') this.complete('chamber');
     if (this.finale && zone === 'backyard' && !this.fin) this.startFinale();
     void step;
+    this.hourly();
+    this.hints();
     this.hollowUpdate(0.2);
     this.dukeUpdate(dt);
+  }
+  hourly() {
+    const h = Math.floor(this.g.clock.hours);
+    if (this.lastHour === undefined) this.lastHour = h;
+    if (h !== this.lastHour) {
+      this.lastHour = h;
+      const n = h === 0 ? 13 : h > 12 ? h - 12 : h || 12;
+      if (this.g.mode === 'play') { this.g.sfx.bell?.(Math.min(n, 4)); if (h === 0) this.g.ui.flashBanner('THE BELL TOLLS THIRTEEN', 3000, true); }
+    }
+  }
+  hints() {
+    if (!this.hintQ) this.hintQ = [[8, 'WASD to move · Shift to sprint · C to crouch'], [24, 'Left mouse swings your sword · right mouse blocks. Time a block to parry.'], [46, 'Guards see you by light and hear your footsteps. Crouch in the dark. E snuffs torches.'], [70, 'A sword in the back of an unaware guard kills silently. Bodies get found.'], [96, '1 Shadow Veil · 2 Umbral Dash · 3 Gravebreaker. Tab opens your journal.']];
+    const t = this.playTime; while (this.hintQ.length && t > this.hintQ[0][0]) this.g.ui.toast(this.hintQ.shift()[1]);
   }
   hollowUpdate() {
     // sleeping hollows wake when you get close

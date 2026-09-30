@@ -9,10 +9,22 @@ const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt
 export class UI {
   constructor(game) {
     this.g = game; this.dlg = null; this.sheetOpen = false; this.invOpen = false; this.objective = null;
-    this.el = {}; for (const id of ['vitals', 'hpBar', 'stBar', 'emBar', 'skills', 'sk1', 'sk2', 'sk3', 'objective', 'objText', 'objSub', 'topRight', 'clock', 'gem', 'goldText', 'detect', 'detectFill', 'prompt', 'lock', 'lockFill', 'lockText', 'toasts', 'barks', 'areaName', 'banners', 'subtitle', 'titlecard', 'tcH', 'tcP', 'dialog', 'portrait', 'dName', 'dText', 'dChoices', 'sheet', 'sheetH', 'sheetP', 'inv', 'death', 'end', 'endCard', 'cross']) this.el[id] = $(id);
+    this.el = {}; for (const id of ['vitals', 'hpBar', 'stBar', 'emBar', 'skills', 'sk1', 'sk2', 'sk3', 'objective', 'objText', 'objSub', 'topRight', 'clock', 'gem', 'goldText', 'detect', 'detectFill', 'prompt', 'lock', 'lockFill', 'lockText', 'toasts', 'barks', 'areaName', 'banners', 'subtitle', 'titlecard', 'tcH', 'tcP', 'dialog', 'portrait', 'dName', 'dText', 'dChoices', 'sheet', 'sheetH', 'sheetP', 'inv', 'death', 'end', 'endCard', 'cross', 'compass', 'compassCv', 'compassDist']) this.el[id] = $(id);
     this.lastKey = '';
   }
-  showHud(on) { for (const id of ['vitals', 'skills', 'objective', 'topRight']) this.el[id].hidden = !on; }
+  showHud(on) { for (const id of ['vitals', 'skills', 'objective', 'topRight', 'compass']) this.el[id].hidden = !on; }
+  hitMarker() { const c = this.el.cross; c.classList.remove('hit'); void c.offsetWidth; c.classList.add('hit'); }
+  // a strip of compass with a diamond over the direction of the current objective
+  drawCompass() {
+    const g = this.g, P = g.player, cv = this.el.compassCv, x = cv.getContext('2d'); if (!x) return;
+    const W = cv.width, H = cv.height; x.clearRect(0, 0, W, H); x.imageSmoothingEnabled = false;
+    const yaw = P.yaw, pxPerRad = W / 3.2;
+    const at = (a) => { let d = a - yaw; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return W / 2 - d * pxPerRad; };   // + angles turn left in our basis
+    x.fillStyle = '#a89cb8'; x.font = '10px monospace'; x.textAlign = 'center';
+    for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, px = at(a); if (px < 4 || px > W - 4) continue; x.fillRect(Math.round(px), i % 4 ? 14 : 11, 1, i % 4 ? 3 : 6); if (i % 4 === 0) { x.fillStyle = i === 0 ? '#ff9a48' : '#e6dcc8'; x.fillText(['N', 'E', 'S', 'W'][i / 4], Math.round(px), 9); x.fillStyle = '#a89cb8'; } }
+    const t = g.story.objectiveTarget?.();
+    if (t) { const dx = t[0] - P.pos[0], dz = t[1] - P.pos[2], a = Math.atan2(dx, dz), px = Math.max(8, Math.min(W - 8, at(a))); x.fillStyle = '#e0b450'; x.beginPath(); x.moveTo(px, 3); x.lineTo(px + 5, 9); x.lineTo(px, 15); x.lineTo(px - 5, 9); x.fill(); x.fillStyle = '#000'; x.fillRect(px - 1, 8, 2, 2); this.el.compassDist.textContent = Math.round(Math.hypot(dx, dz)) + ' m'; } else this.el.compassDist.textContent = '';
+  }
   // ------------------------------------------------------------ transient text
   toast(t) { const d = document.createElement('div'); d.className = 'toast px'; d.textContent = t; this.el.toasts.append(d); setTimeout(() => d.remove(), 3400); while (this.el.toasts.children.length > 4) this.el.toasts.firstChild.remove(); }
   bark(name, text, npc) {
@@ -122,5 +134,6 @@ export class UI {
     // objective sidebar refresh
     const O = g.story.currentObjective(); if (O && (!this.objective || this.objective.text !== O.text)) this.setObjective('Objective', O.text, O.sub || '');
     E.cross.style.display = (g.mode === 'play') ? '' : 'none';
+    this.drawCompass();
   }
 }

@@ -19,6 +19,7 @@ addEventListener('keydown', (e) => {
   if (game.ui.dlg) { e.preventDefault(); if (k === 'e' || k === ' ' || k === 'enter') game.ui.advanceDialogue(); else if (k >= '1' && k <= '9') game.ui.choose(+k - 1); else if (k === 'escape') game.ui.closeDialogue(); return; }
   if (game.ui.sheetOpen) { if (k === 'e' || k === 'escape' || k === ' ' || k === 'enter') { e.preventDefault(); game.ui.closeNote(); } return; }
   if (game.mode === 'cutscene') { if (k === 'escape' || k === 'enter') game.story.skip(); return; }
+  if (game.mode === 'play' && k === 'escape') { pause(true); return; }
   if (game.mode === 'end') return;
   if (k === 'tab') { e.preventDefault(); game.ui.toggleJournal(); return; }
   if (game.mode === 'journal') { if (k === 'escape') game.ui.toggleJournal(); return; }

@@ -289,6 +289,7 @@ export class Game {
     if (res === 'blocked') return res;
     this.sfx.slash?.(n.pos); this.spawnBlood(at, dir, res === 'killed' ? 26 : 12);
     if (opts.backstab) { this.flashText?.('ASSASSINATION'); this.stats.stabs++; }
+    this.ui.hitMarker();
     if (res !== 'dead') { this.combatT = Math.max(this.combatT, 5); if (!opts.backstab) this.noise(n.pos, 12, 'combat', n); this.player.kick = 0.02; }
     void before; return res;
   }

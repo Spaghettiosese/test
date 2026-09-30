@@ -32,7 +32,15 @@ P.emitBurst = function emitBurst(pos, kind) {
   else if (kind === 'dust') this.smoke.emit(pos, { count: 14, color: [0.55, 0.5, 0.45, 0.5], colorEnd: [0.55, 0.5, 0.45, 0], size: 0.2, grow: 4, spread: 2.2, up: 0.4, life: 1.2, jitter: 0.4 });
   else if (kind === 'poof') this.smoke.emit(pos, { count: 8, color: [0.3, 0.3, 0.3, 0.4], colorEnd: [0.3, 0.3, 0.3, 0], size: 0.1, grow: 3, spread: 0.3, up: 0.5, life: 1.4, jitter: 0.06, buoyancy: 0.5 });
 };
+// drifting ash: the air of a town that has been burning its dead
+P.updateAsh = function updateAsh(dt) {
+  const c = this.camera.position, ind = this.indoorK;
+  if (ind > 0.6) return;
+  const n = dt * 16 * (1 - ind);
+  for (let i = 0; i < n + Math.random(); i++) this.smoke.emit([c[0] + (Math.random() - 0.5) * 22, c[1] + Math.random() * 6 - 1.5, c[2] + (Math.random() - 0.5) * 22], { count: 1, color: [0.55, 0.5, 0.52, 0.55], colorEnd: [0.45, 0.42, 0.45, 0], size: 0.03, grow: 1, spread: 0.1, up: -0.25, life: 5, jitter: 0, vel: [0.35, -0.1, 0.1] });
+};
 P.updateFx = function updateFx(dt) {
+  if (this.mode !== 'boot') this.updateAsh(dt);
   this.smoke.update(dt); this.flames.update(dt); this.sparks.update(dt);
   for (const d of this.debris) { d.t -= dt; if (d.t <= 0) { this.world.remove(d.body); this.scene.remove(d.mesh); } }
   this.debris = this.debris.filter((d) => d.t > 0);

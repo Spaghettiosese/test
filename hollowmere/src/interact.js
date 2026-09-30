@@ -42,9 +42,9 @@ P.updateInteraction = function updateInteraction(dt) {
     push(d.x, d.y + 1.1, d.z, 2.7, this.doorPrompt(d), () => this.useDoor(d), 'door', 0.55, d);
   }
   for (const n of this.npcs) {
-    if (Math.abs(n.x - eye[0]) > 3 || Math.abs(n.z - eye[2]) > 3) continue;
+    if (Math.abs(n.x - eye[0]) > 3.8 || Math.abs(n.z - eye[2]) > 3.8) continue;
     if (n.dead) { if (n.loot.length && n.frozen !== undefined) push(n.x, n.y + 0.4, n.z, 2.4, `Search ${n.name.toLowerCase()}`, () => this.lootBody(n), 'body', 0.6, n); continue; }
-    if (n.talkable && (n.state === 'routine' || n.state === 'handsup') && !n.lying && n.alert < 0.6) push(n.x, n.y + 1.4, n.z, 2.6, `Talk to ${n.name}`, () => this.story.talk(n), 'talk', 0.8, n);
+    if (n.talkable && (n.state === 'routine' || n.state === 'handsup') && !n.lying && n.alert < 0.6) push(n.x, n.y + 1.4, n.z, 3.4, `Talk to ${n.name}`, () => this.story.talk(n), 'talk', 0.8, n);
     else if (n.guard || n.state !== 'flee') {
       // backstab hint for unaware people
       const dx = n.x - eye[0], dz = n.z - eye[2], d = hyp(dx, dz);
@@ -64,7 +64,7 @@ P.updateInteraction = function updateInteraction(dt) {
     if (d > t.r) continue;
     const cos = (dx * f[0] + dy * f[1] + dz * f[2]) / (d || 1);
     if (cos < t.cosMin && d > 0.9) continue;
-    const s = d * (2.4 - cos) + (t.kind === 'prop' ? 0.8 : 0);
+    const s = d * (2.4 - cos) * (t.kind === 'talk' ? 0.55 : t.kind === 'body' ? 0.8 : 1) + (t.kind === 'prop' ? 0.8 : 0);
     if (s < bs) { bs = s; best = t; }
   }
   if (best && best.kind !== 'stairs' && best.kind !== 'talk' && best.kind !== 'body' && best.kind !== 'backstab' && best.kind !== 'door') {
