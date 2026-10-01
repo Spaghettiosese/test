@@ -20,6 +20,8 @@ The second update ("The Wide Valley") is listed in [FEATURES.md](FEATURES.md): a
 | Skills: Shadow Veil, Umbral Dash, Gravebreaker | 1 · 2 · 3 |
 | Interact / loot / talk · hold to pick locks | E |
 | Pick up a prop (E) · throw it | E · left mouse |
+| Sheathe or draw the sword · hood up or down | Y · O |
+| Answer a guard who challenges you | E |
 | Mount · dismount · whistle for your horse | F |
 | Gallop · walk while mounted | Shift · C |
 | Journal · perks · craft · map · lore · stash | Tab · P · M · 1-9 |
@@ -44,6 +46,7 @@ Debug URL params: `?debug&nomenu&skipintro&at=x,y,z&yaw=&pitch=&hour=`.
 - Guard AI: sight cone, light and noise perception, investigate/search/chase, alarms, reactions to bodies and snuffed torches.
 - Physics: ragdoll deaths, lootable bodies, breakable and throwable props, doors, explosions via Gravebreaker.
 - Story: cutscenes, branching dialogue, notes, side quests, several endings paths, all synthesized audio.
+- Quiet life: sheathe the sword, change your hood, look like a citizen, talk your way past guards with odds on every choice; guards act on what you do and what they have been told, not on seeing you (see the Round 7 section of FEATURES.md).
 - Living wild: deer, wolves, crows, a horse to ride, a travelling caravan, buried treasure, roadside encounters, three boss fights and a leasable cabin with a stash (see the Round 6 section of FEATURES.md).
 
 ## Layout

@@ -21,6 +21,7 @@ export class Reputation {
       if (this.disguise && kind !== 'murder' && kind !== 'assault' && d > 6) continue; // a guard in uniform stealing: nobody looks twice
       wit.push(n);
     }
+    if (wit.length) { g.look.testify(wit, faction); g.social.incident(wit.some((n) => n.guard) ? 0.35 : 0.15); }
     for (const n of wit) {
       if (n.guard) {
         this.add(faction, sev, `${n.name} saw you`);
@@ -42,7 +43,10 @@ export class Reputation {
   }
   reported(witness, guard) {
     const w = witness.witness; if (!w) return;
-    witness.witness = null;
+    witness.witness = null; this.g.look.delivered(witness, guard);
+    if (w.kind === 'brandish') { // a frightened villager: the guard comes to have a word, nothing more
+      guard.bark('A man with a drawn blade? I will have a word.'); this.g.social.startChallenge(guard, { id: 'weapon', reason: 'Drawn weapon', w: 0.6, kind: 'challenge' }); return;
+    }
     this.add(w.faction, w.sev, 'reported');
     guard.bark('A crime, you say? Where?'); guard.lastSeen = [...this.g.player.pos]; guard.stim = [this.g.player.pos[0], this.g.player.pos[2]]; guard.stimKind = 'report';
     guard.alert = Math.max(guard.alert, 0.8); this.g.alarm(this.g.player.pos, 'combat', guard);
@@ -51,32 +55,37 @@ export class Reputation {
     const P = this.g.player, owe = Math.ceil(this.total(faction) * 1.0);
     if (owe <= 0) return 'none';
     if (P.inv.gold < owe) return 'short';
-    P.inv.gold -= owe; this.bounty[faction] = 0; this.g.sfx.coin?.(); this.g.ui.toast(`Paid ${owe} gold. Your name is clear.`);
+    P.inv.gold -= owe; this.bounty[faction] = 0; this.g.look.forget(faction); this.g.sfx.coin?.(); this.g.ui.toast(`Paid ${owe} gold. Your name is clear.`);
     return 'paid';
   }
   payDialogue(npc) {
-    if (!npc.guard || npc.role === 'bandit' || npc.role === 'hollow') return null;
-    const owe = Math.ceil(this.total(npc.faction)); if (owe <= 0) return null;
-    return [{ text: `You. I know your face. There is a price on it: ${owe} gold. Settle it, and I will forget I saw you.`, choices: [
-      { text: `Pay ${owe} gold.`, next: 1, action: (G) => { const r = G.rep.pay(npc.faction); G.rep._last = r; } },
+    if (!npc.guard || npc.role === 'bandit' || npc.role === 'hollow' || npc.faction === 'hunters') return null;
+    const f = npc.faction === 'keep' ? 'keep' : 'watch', owe = Math.ceil(this.total(f)); if (owe <= 0) return null;
+    const m = this.g.look.match(npc, npc.dist || 3); if (m < 0.35) return null;       // a guard who has not been told what to look for is only a guard
+    const known = m > 0.9 ? 'You. I know your face.' : 'You fit the description of a thief the Watch is after.';
+    return [{ text: `${known} There is a price on it: ${owe} gold. Settle it, and I will forget I saw you.`, choices: [
+      { text: `Pay ${owe} gold.`, next: 1, action: (G) => { const r = G.rep.pay(f); G.rep._last = r; } },
       { text: 'Not today.', next: 'end' }] },
       { text: 'Smart. Now move along.', end: true, onShow: (G) => { if (G.rep._last === 'short') { G.ui.toast('You cannot afford it'); } } }];
   }
-  // ---- disguises
-  wear(faction, label) { this.disguise = { faction, label }; this.g.ui.flashBanner('DISGUISED: ' + label.toUpperCase(), 1600, true); this.g.sfx.veil?.(); }
+  // ---- disguises: a uniform is a claim about who you are, and it holds only where that claim is believable
+  wear(faction, label, kind = faction, item = null) { this.disguise = { faction, label, kind, item }; this.g.ui.flashBanner('DISGUISED: ' + label.toUpperCase(), 1600, true); this.g.sfx.veil?.(); }
   remove() { if (!this.disguise) return; this.disguise = null; this.g.ui.toast('You put the uniform away'); }
-  blow() { if (!this.disguise) return; this.disguise = null; this.g.ui.flashBanner('COVER BLOWN', 1600, true); }
+  blow(by = null) {
+    const d = this.disguise; if (!d) return; this.disguise = null; this.g.ui.flashBanner('COVER BLOWN', 1600, true); this.g.social?.incident(0.5);
+    if (by) { const D = this.g.look.snapshot(by, by.dist || 3); D.f = by.faction === 'town' ? 'watch' : by.faction; D.uniform = d.kind || d.faction; D.cloak = 'uniform'; D.hood = false; this.g.look.add(D); }
+  }
   // how much a guard believes the uniform: 1 = not at all, 0 = completely
   disguiseGain(n, dist) {
-    const d = this.disguise, P = this.g.player; if (!d || n.role === 'bandit' || n.role === 'hollow') return 1;
-    const ok = d.faction === n.faction || (d.faction === 'keep' && n.faction === 'watch');
+    const d = this.disguise, P = this.g.player; if (!d || n.role === 'bandit' || n.role === 'hollow' || n.faction === 'hunters') return 1;
+    const kind = d.kind || d.faction, servant = kind === 'servant', acc = this.g.social.access(P.pos[0], P.pos[2]), actor = P.mod?.actor ?? 1;
+    const ok = servant || d.faction === n.faction || (d.faction === 'keep' && n.faction === 'watch');
     if (!ok) return 1;
-    if (P.atk || P.sprint || P.crouch && dist < 5 || P.carried) { if (P.atk) this.blow(); return 1; }
-    const zone = this.g.nav.zone[Math.max(0, this.g.nav.at(P.pos[0], P.pos[2]))] || 0;
-    if (zone >= 2) return 1;
-    if (dist < 4.2) { n.suspect = (n.suspect || 0) + 0.16 * (zone >= 1 && d.faction === 'watch' ? 1.6 : 0.6); if (n.suspect >= 1) { n.suspect = 0; n.bark('Wait. You are no guard of mine!'); this.blow(); return 1; } if (n.suspect > 0.5 && !n._sus) { n._sus = true; n.bark('Hm. Do I know you?'); } }
-    else n.suspect = Math.max(0, (n.suspect || 0) - 0.05);
-    return zone >= 1 && d.faction === 'watch' ? 0.35 : 0.08;
+    if (P.atk || P.sprint || P.crouch && dist < 5 || P.carried) { if (P.atk) this.blow(n); return 1; }
+    if (acc >= 3 || (servant && P.drawn)) return 1;
+    if (dist < 3.6) { n.suspect = (n.suspect || 0) + 0.04 * (servant ? 0.7 : acc >= 2 && d.faction === 'watch' ? 1.6 : 0.6) / actor; if (n.suspect >= 1) { n.suspect = 0; n.bark(servant ? 'You are no servant of this house!' : 'Wait. You are no guard of mine!'); this.blow(n); return 1; } if (n.suspect > 0.5 && !n._sus) { n._sus = true; n.bark('Hm. Do I know you?'); } }
+    else n.suspect = Math.max(0, (n.suspect || 0) - 0.02);
+    return servant ? (n.role === 'captain' ? 0.5 : acc >= 2 ? 0.3 : 0.15) : acc >= 2 && d.faction === 'watch' ? 0.35 : 0.08;
   }
   update(dt) {
     this.decayT -= dt; if (this.decayT > 0) return; this.decayT = 1;

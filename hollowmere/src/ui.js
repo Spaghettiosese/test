@@ -56,8 +56,9 @@ export class UI {
     if (document.pointerLockElement) document.exitPointerLock?.();
   }
   showLine() {
-    const D = this.dlg, L = D.lines[D.i]; if (!L) return this.closeDialogue();
-    D.line = L; D.typed = 0; D.full = false; D.t = 0;
+    const D = this.dlg; let L = D.lines[D.i]; if (!L) return this.closeDialogue();
+    if (typeof L.text === 'function') L = { ...L, text: L.text(this.g) }; // lines may compute their text when they are reached
+    D.line = L; D.vis = null; D.typed = 0; D.full = false; D.t = 0;
     const who = L.who || D.name || D.npc?.name || '';
     this.el.dName.textContent = who; drawPortrait(this.el.portrait, L.spec || D.spec || { outfit: 'peasant' }, L.mood || 'calm');
     this.el.dText.textContent = ''; this.el.dChoices.innerHTML = '';
@@ -74,13 +75,20 @@ export class UI {
   showChoices() {
     const D = this.dlg, L = D.line; if (!L.choices) return;
     this.el.dChoices.innerHTML = '';
-    L.choices.forEach((c, k) => { const b = document.createElement('button'); b.textContent = `${k + 1}. ${c.text}`; b.onclick = (e) => { e.stopPropagation(); this.choose(k); }; this.el.dChoices.append(b); });
+    // choices may hide themselves (when), compute their label (text as a function) and branch on a roll (next as a function)
+    const vis = L.choices.filter((c) => !c.when || c.when(this.g)); D.vis = vis;
+    vis.forEach((c, k) => { const b = document.createElement('button'); b.textContent = `${k + 1}. ${typeof c.text === 'function' ? c.text(this.g) : c.text}`; if (c.tag) b.dataset.tag = c.tag; b.onclick = (e) => { e.stopPropagation(); this.choose(k); }; this.el.dChoices.append(b); });
   }
   choose(k) {
-    const D = this.dlg, c = D.line.choices?.[k]; if (!c) return;
+    const D = this.dlg, c = (D.vis || D.line.choices)?.[k]; if (!c) return;
     if (c.action) c.action(this.g);
-    if (c.next === 'end' || c.next === undefined) return this.closeDialogue();
-    D.i = c.next; this.showLine();
+    if (this.dlg !== D) return;                                   // the action closed or replaced this conversation
+    let nx = c.next;
+    if (typeof nx === 'function') nx = nx(this.g);               // a roll decides where the talk goes
+    if (nx && typeof nx === 'object') { D.lines.push(nx); nx = D.lines.length - 1; } // or a line made on the spot
+    if (this.dlg !== D) return;
+    if (nx === 'end' || nx === undefined) return this.closeDialogue();
+    D.i = nx; this.showLine();
   }
   closeDialogue() {
     const D = this.dlg; this.dlg = null; this.el.dialog.hidden = true;
@@ -129,6 +137,8 @@ export class UI {
     const b = Math.max(R.total('watch'), R.total('keep')); if (b > 0) pills.push([`${b >= 60 ? 'WANTED' : 'Suspect'} · ${Math.ceil(b)}g`, 'bad']);
     if (R.total('bandits') > 0) pills.push(['Bandit grudge', 'bad']);
     if (R.disguise) pills.push(['Disguised: ' + R.disguise.label + ' (U)', 'good']);
+    if (P.drawn) pills.push(['Sword drawn (Y)', 'warm']);
+    { const sp = g.social?.status(); if (sp) pills.push(sp); if ((g.social?.vig || 0) >= 1) pills.push([`Town ${g.social.vigLabel().toLowerCase()}`, g.social.vig >= 2 ? 'bad' : 'warm']); }
     if (T.poisonHits > 0) pills.push(['Poisoned blade ×' + T.poisonHits, 'good']);
     if (T.sap) pills.push(['Sap drawn (B)', 'warm']);
     if (T.sightT > 0) pills.push(['Wraith Sight ' + Math.ceil(T.sightT) + 's', 'good']);

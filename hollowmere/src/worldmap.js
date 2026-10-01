@@ -65,6 +65,7 @@ export class WorldMap {
     for (const k in (g.level.pois)) if (k.startsWith('ws_')) { const p = g.level.pois[k], [x, y] = tx(p.x, p.z + 1.3); this.diamond(ctx, x, y, 4, g.quests.lit.has(k) ? '#a56cff' : '#4a3a60'); }
     const ppm = (this.bx(1) - this.bx(0)) * PX * sc;
     for (const src of g.markers || []) for (const m of src.marks?.() || []) {
+      if (m.shape === 'route') { ctx.save(); ctx.strokeStyle = 'rgba(255,170,60,0.85)'; ctx.lineWidth = 2; ctx.setLineDash([3, 3]); ctx.beginPath(); m.pts.forEach(([px, pz], i) => { const [a, b] = tx(px, pz); if (i) ctx.lineTo(a, b); else ctx.moveTo(a, b); }); if (m.loop) ctx.closePath(); ctx.stroke(); ctx.restore(); continue; }
       const [x, y] = tx(m.x, m.z); ctx.lineWidth = 2; ctx.strokeStyle = '#000';
       if (m.shape === 'x') { ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,90,90,0.75)'; ctx.beginPath(); ctx.arc(x, y, Math.max(6, (m.r || 20) * ppm), 0, 6.283); ctx.stroke(); ctx.setLineDash([]); ctx.strokeStyle = '#ff5a5a'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4); ctx.moveTo(x + 4, y - 4); ctx.lineTo(x - 4, y + 4); ctx.stroke(); }
       else if (m.shape === 'wagon') { ctx.fillStyle = '#e8b860'; ctx.fillRect(x - 4, y - 3, 8, 6); ctx.strokeRect(x - 4, y - 3, 8, 6); ctx.fillStyle = '#000'; ctx.fillRect(x - 3, y + 3, 2, 2); ctx.fillRect(x + 1, y + 3, 2, 2); }

@@ -112,6 +112,7 @@ export function addHelpers(B) {
     return g;
   };
   P.well = function well(x, z, { chunk = 'market' } = {}) {
+    (this.wells ||= []).push([x, z]);
     const k = this.kit(chunk);
     k.add(this.pal.stoneOld, E.cylinder({ radiusTop: 1.1, radiusBottom: 1.2, height: 1.0, radialSegments: 14, heightSegments: 2, capTop: false }), [x, 0.5, z]);
     k.add(this.pal.water, E.cylinder({ radiusTop: 0.95, radiusBottom: 0.95, height: 0.02, radialSegments: 14 }), [x, 0.55, z]);

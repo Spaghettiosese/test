@@ -25,6 +25,8 @@ export const RECIPES = [
   { id: 'stew', name: "Hunter's stew", makes: ['stew', 1], needs: [['cookedmeat', 1], ['bread', 1], ['h_bog', 1]], desc: 'Roast venison, bread and bogcap. +regen, +armour for a while.' },
   { id: 'hidewraps', name: 'Deerhide wraps', makes: ['hidewraps', 1], needs: [['hide', 2]], desc: 'Soft, silent boots cut from deer hide.' },
   { id: 'hidecloak', name: 'Hunter\'s cloak', makes: ['hidecloak', 1], needs: [['hide', 3], ['cloth', 1]], desc: 'A mottled cloak. Harder to spot, quieter to move in.' },
+  { id: 'papers', name: 'Travel papers', makes: ['papers', 1], needs: [['book', 1], ['gold', 12]], perk: ['forger', 1], desc: 'Forge transit papers. Talks you past curfew and the keep gate, once.' },
+  { id: 'ducalseal', name: 'Forged ducal seal', makes: ['ducalseal', 1], needs: [['papers', 1], ['ring', 1]], perk: ['forger', 2], desc: 'A seal impression good for one walk through restricted ground.' },
   { id: 'sap', name: 'Lead sap', makes: ['sap', 1], needs: [['sack', 0], ['gold', 15]], desc: 'A weighted cosh, for quiet work.', once: true },
 ];
 
@@ -45,7 +47,7 @@ export class Tools {
     if (k.has('v')) this.throwCoin();
     if (k.has('x')) this.throwBomb();
     if (k.has('b')) this.toggleSap();
-    if (k.has('u')) g.rep.remove();
+    if (k.has('u')) g.look.takeOff();
     if (k.has('l')) g.lantern.toggle();
     if (k.has('h')) g.traps?.drop();
     if (k.has('j')) this.throwSmoke();
@@ -207,7 +209,7 @@ export class Tools {
     } else if (n.state === 'ko') { n.x += (tx - n.x) * Math.min(1, dt * 6); n.z += (tz - n.z) * Math.min(1, dt * 6); n.lyingPos = [n.x, n.y + 0.12, n.z]; }
   }
   // ---------------------------------------------------------------- crafting
-  canCraft(r) { const inv = this.g.player.inv; return r.needs.every(([id, n]) => n === 0 || inv.count(id) >= n) && !(r.once && inv.has(r.makes[0])); }
+  canCraft(r) { const inv = this.g.player.inv; return r.needs.every(([id, n]) => n === 0 || inv.count(id) >= n) && !(r.once && inv.has(r.makes[0])) && (!r.perk || this.g.progress.rank(r.perk[0]) >= r.perk[1]); }
   craft(id) {
     const r = RECIPES.find((x) => x.id === id), g = this.g, inv = g.player.inv; if (!r || !this.canCraft(r)) { g.sfx.deny?.(); return false; }
     for (const [it, n] of r.needs) if (n) { if (it === 'gold') inv.gold -= n; else inv.remove(it, n); }
@@ -223,8 +225,14 @@ export class Tools {
         const dx = P.pos[0] - n.x, dz = P.pos[2] - n.z, d = hyp(dx, dz), back = (dx * n.fwd[0] + dz * n.fwd[1]) / (d || 1);
         if (d < 1.9 && back < -0.1 && (P.crouch || P.speedNow < 1.2)) push(n.x, n.y + 1.2, n.z, 1.9, 'Pickpocket (hold E)', () => this.pickpocket(n), 'pick', 0.7, n);
       }
+      if (n.seated && n.held === 'mug' && !n.spiked && P.inv.has('poison') && n.dist < 2.6 && !P.mount) push(n.x, n.y + 0.9, n.z, 2.6, 'Spike the drink (hold E)', () => this.spike(n), 'pick', 0.5, n);
       if (n.state === 'ko' && n.pockets.length) push(n.x, n.y + 0.3, n.z, 2.2, `Rifle ${n.name.toLowerCase()}'s pockets`, () => this.rifle(n), 'body', 0.6, n);
     }
+  }
+  spike(n) {
+    const g = this.g, P = g.player;
+    P.startPicking(n, 1, () => { if (!P.inv.remove('poison', 1)) return; n.spiked = true; n.spikeAt = g.time + 9 + Math.random() * 8; g.toast('A few drops of nightshade. Now walk away.'); g.sfx.drink?.(); g.progress.addXp(6, 'a spiked drink'); g.stats.spiked = (g.stats.spiked || 0) + 1; },
+      'Spiking the drink', { free: true, need: 1.3, watch: (dt) => { if (n.dead || !n.seated || n.dist > 3) return false; if (n.state !== 'routine' || n.alert > 0.6) { n.alert = Math.max(n.alert, 0.7); return false; } return P.speedNow < 0.7; } });
   }
   rifle(n) { const g = this.g; for (const [id, c] of n.pockets) { g.player.inv.add(id, c); g.toast(id === 'gold' ? `+${c} gold` : `Took ${ITEMS[id]?.name}`); } n.pockets = []; g.sfx.coin?.(); g.rep.crime('theft', n.pos, { victim: n, range: 14 }); }
   pickpocket(n) {

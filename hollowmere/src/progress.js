@@ -22,6 +22,12 @@ export const PERKS = [
   { id: 'emberleech', name: 'Ember Leech', max: 3, desc: 'Killing restores 6 Ember per rank.', tree: 'Ember' },
   { id: 'alchemist', name: 'Alchemist', max: 2, desc: '25% chance per rank to brew an extra item.', tree: 'Alchemy' },
   { id: 'forager', name: 'Forager', max: 2, desc: 'Gathering herbs yields +1 per rank sometimes.', tree: 'Alchemy' },
+  { id: 'silvertongue', name: 'Silver Tongue', max: 3, desc: 'Persuading and deceiving succeed 8% more often per rank.', tree: 'Silver Tongue' },
+  { id: 'presence', name: 'Imposing Presence', max: 3, desc: 'Intimidation succeeds 9% more often per rank.', tree: 'Silver Tongue' },
+  { id: 'haggler', name: 'Haggler', max: 3, desc: 'Bribes cost 15% less per rank.', tree: 'Silver Tongue' },
+  { id: 'forger', name: 'Forger', max: 2, desc: 'Craft travel papers (rank 1) and a forged ducal seal (rank 2). Papers are 6% likelier to pass per rank.', tree: 'Silver Tongue' },
+  { id: 'chameleon', name: 'Chameleon', max: 2, desc: 'A crowd hides you 25% better per rank, and you change your hood faster.', tree: 'Silver Tongue' },
+  { id: 'actor', name: 'Method Actor', max: 3, desc: 'Disguises hold up 20% longer under scrutiny per rank.', tree: 'Silver Tongue' },
   { id: 'sight', name: 'Wraith Eyes', max: 2, desc: 'Wraith Sight lasts longer and shows guard cones.', tree: 'Ember' },
 ];
 
@@ -55,6 +61,7 @@ export class Progress {
       hp: 15 * r('thickskin'), stam: 1 + 0.15 * r('fleet'), sprintCost: 1 - 0.1 * r('fleet'), ember: 20 * r('emberwell'), cd: 0.88 ** r('umbral'),
       trapsense: r('trapsense'), gold: 1 + 0.25 * r('deeppockets'), will: 1 - 0.4 * r('ironwill'), leechE: 6 * r('emberleech'), alch: 0.25 * r('alchemist'), forage: 0.4 * r('forager'),
       poison: 1 + 0.3 * r('toxicology'), fire: 1 + 0.35 * r('pyro'), sight: 1 + 0.5 * r('sight'),
+      speech: 0.08 * r('silvertongue'), presence: 0.09 * r('presence'), haggle: 0.15 * r('haggler'), forge: r('forger'), crowd: 1 + 0.25 * r('chameleon'), chameleon: r('chameleon'), actor: 1 + 0.2 * r('actor'),
     };
     this.g.gear?.apply(m); if (this.g.smith) m.dmg *= 1 + 0.08 * this.g.smith.level;
     const P = this.g.player; if (!P) { this.mod = m; return; }

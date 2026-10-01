@@ -103,6 +103,7 @@ export const DIALOGUE = {
       { text: 'Buy Lamp oil ×3 (14 gold)', next: 1, action: (G) => G.story.buy('oil', 14, 3) }, SELL, { text: 'Just passing.', next: 'end' }] }),
     L('There you are.', { goto: 0 }),
   ],
+  guardgeneric: (g) => { const v = g.social?.vig || 0, night = g.clock.night, pool = v > 1.5 ? ['Keep moving. We are on edge tonight.', 'There has been trouble. Do not give me a reason.', 'The captain wants everyone checked. Move along.'] : night ? ['Quiet night. Keep it that way.', 'The bell tolls wrong again. Mind yourself.', 'Go home. Nothing good happens out here after dark.'] : ['Move along, traveller.', 'Mind the market. Pickpockets.', 'Ashgate is a fine town for those who behave.', 'Keep your blade in its sheath and we will get on.']; return [L(pool[Math.floor(Math.random() * pool.length)], { end: true })]; },
   vesna: (g) => {
     const c = g.caravan; if (!c) return [L('The road is long.', { end: true })];
     const ch = c.stock.slice(0, 7).map((s, i) => ({ text: `${s.label}  (${Math.ceil(s.price * (g.story.priceMul?.() ?? 1))} gold)${c.sold.has(i) ? '  [sold]' : ''}`, next: 1, action: (G) => G.caravan.buy(i) }));

@@ -26,7 +26,7 @@ const NOTES = {
 export class Story {
   constructor(game) {
     this.g = game; this.flags = {}; this.notes = NOTES; this.notesFound = new Set(); this.busy = false;
-    this.objectives = [{ id: 'town', text: 'Get into Ashgate unseen', sub: 'The gate is watched. West of it the wall is broken; east, an outfall runs under it.', done: false },
+    this.objectives = [{ id: 'town', text: 'Get into Ashgate', sub: 'Walk in by the gate with your sword sheathed (Y) and nobody will look twice, or slip in by the broken wall to the west or the outfall to the east. Be inside before the gates bar at 22:00.', done: false },
       { id: 'court', text: 'Cross the town to Ravenspire and reach the courtyard', sub: 'The keep gate is guarded. The graveyard has a mausoleum. The dead do not talk.', done: false },
       { id: 'keep', text: 'Get inside the keep', sub: 'Doors are locked at night. Look for keys, or for a lock you can pick.', done: false },
       { id: 'chamber', text: 'Reach the Duke\'s bedchamber', sub: 'North of the great hall, past the antechamber guards.', done: false },
@@ -65,13 +65,16 @@ export class Story {
   // ------------------------------------------------------------ talking
   talk(npc) {
     const fn = DIALOGUE[npc.dialogue]; if (!fn) return;
-    const lines = (this.g.jail.active ? null : this.g.rep.payDialogue(npc)) || this.g.quests.dialogue(npc) || fn(this.g, npc); if (!lines) return;
+    if (!npc.guard && this.g.time - (npc.talkedAt || -99) > 60) { npc.talkedAt = this.g.time; this.g.social.bump(npc, 1); }   // a friendly word is remembered
+    const pay = this.g.jail.active ? null : this.g.rep.payDialogue(npc);
+    let lines = pay || this.g.quests.dialogue(npc) || fn(this.g, npc); if (!lines) return;
+    if (!pay) lines = this.g.social.decorate(npc, lines);   // guards offer more than small talk
     const want = Math.atan2(this.g.player.pos[0] - npc.x, this.g.player.pos[2] - npc.z);
     npc.yaw = want;
     npc.ch.upper.playOnce('Talk', { fadeIn: 0.3, fadeOut: 0.6 });
     this.g.ui.dialogue({ npc, lines });
   }
-  priceMul() { const g = this.g; return 1 + (g.rep.wanted('watch') || g.rep.wanted('keep') ? 0.3 : 0) - (Object.values(g.quests.state).filter((x) => x.status === 'done').length >= 6 ? 0.1 : 0); }
+  priceMul() { const g = this.g, att = g.ui.dlg?.npc ? g.social.attOf(g.ui.dlg.npc) : 0; return 1 + (g.rep.wanted('watch') || g.rep.wanted('keep') ? 0.3 : 0) - (Object.values(g.quests.state).filter((x) => x.status === 'done').length >= 6 ? 0.1 : 0) - (att >= 25 ? 0.08 : 0) + (att <= -25 ? 0.1 : 0); }
   buy(id, price, n = 1) {
     const inv = this.g.player.inv; price = Math.ceil(price * this.priceMul());
     if (inv.gold < price) { this.g.toast('Not enough gold'); this.g.sfx.deny?.(); return; }
@@ -181,7 +184,7 @@ export class Story {
   resume() {
     const g = this.g; if (this.rook) { this.rook.visible = false; this.g.scene.remove(this.rook); }
     g.mode = 'play'; g.ui.showHud(true); g.ui.letterbox(false); g.pix.fade = 0; g.canvasLock?.(); this.startTime = g.time; this.playTime = 60; this.hintQ = [];
-    g.player.playVm('Draw', 0.05); g.ui.toast('Game loaded');
+    g.player.playVm('Idle', 0.05); g.ui.toast('Game loaded');
   }
   beginPlay() {
     const g = this.g, P = g.player;
@@ -190,7 +193,7 @@ export class Story {
     g.setCheckpoint([9, 0.1, -35], -0.6);
     g.mode = 'play'; g.ui.showHud(true); g.ui.letterbox(false); g.pix.fade = 0; g.ui.area('The King\'s Road'); g.canvasLock?.();
     g.clock.hours = Math.max(g.clock.hours, 19.3); g.ui.toast('Brannoch slips you two lockpicks'); this.startTime = g.time;
-    P.playVm('Draw', 0.05);
+    P.playVm('Idle', 0.05); g.ui.toast('Sword sheathed, hood up. Y draws or sheathes the blade (attacking draws it for you); O lowers the hood. Behave, and the Watch will leave you be.');
   }
   // ------------------------------------------------------------ zones, objectives, the Duke
   zoneOf(p) {
@@ -353,7 +356,7 @@ export class Story {
   beginFate() {
     const g = this.g; g.mode = 'play'; g.ui.letterbox(false); g.ui.showHud(true); g.pix.fade = 0; g.canvasLock?.(); this.fate = true; this.fateT = 20;
     this.objectives.push({ id: 'fate', text: 'Decide the letter\'s fate', sub: 'Give it to Brannoch at the camp on the south road. Burn it on the drowned altar in Blackfen. Or break the seal at the plague ward in Cinderwick. Hollows are rising and the watch hunts you.', done: false, target: () => this.fateTarget() });
-    g.rep.add('keep', 260, 'the theft'); g.alarmLevel = 3; g.alarmT = 40; g.ui.toast('The bell tolls. Every hollow in the valley is waking.');
+    g.rep.add('keep', 260, 'the theft'); g.look.exposed('keep'); g.social.incident(3); g.alarmLevel = 3; g.alarmT = 40; g.ui.toast('The bell tolls. Every hollow in the valley is waking.');
     g.setCheckpoint(g.player.pos, g.player.yaw);
   }
   fateTarget() { const P = this.g.player.pos, C = [[11.6, -31.4], [-190, -226], [195, 97]]; let b = C[0], bd = 1e9; for (const c of C) { const d = hyp(c[0] - P[0], c[1] - P[2]); if (d < bd) { bd = d; b = c; } } return b; }

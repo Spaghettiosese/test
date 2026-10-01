@@ -62,7 +62,7 @@ function stable(B, keep) {
   k.box(M.timber, [-12, 1.5, -111.5], [0.12, 3.0, 12]);
   B.prop('hay', -5.0, 0, -107.4, { yaw: 40 }); B.prop('hay', -10.8, 0, -107.0, { yaw: 100 }); B.prop('barrel', -2.6, 0, -105.6, { yaw: 0 }); B.prop('crate', -3.6, 0, -105.4, { yaw: 12 });
   for (let i = 0; i < 3; i++) B.bed(-11 + i * 3.1, -116.4, { dir: 0, id: i ? 'bed_stable_' + i : 'bed_stable', w: 0.95 });
-  k.box(M.plank, [-9.4, 0.45, -113.2], [0.5, 0.3, 2.2]);
+  k.box(M.plank, [-9.4, 0.45, -113.2], [0.5, 0.3, 2.2]); (B.wells ||= []).push([-9.4, -113.2]);
   k.box(M.timber, [-4.4, 0.95, -111.5], [0.1, 0.1, 5]);
   B.lampPost(-2.6, -108, { chunk: 'fort' });
   B.stable = { x: -7.6, z: -111.5, yaw: -90 };

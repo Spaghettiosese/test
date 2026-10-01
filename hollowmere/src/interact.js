@@ -42,8 +42,11 @@ P.updateInteraction = function updateInteraction(dt) {
     push(d.x, d.y + 1.1, d.z, 2.7, this.doorPrompt(d), () => this.useDoor(d), 'door', 0.55, d);
   }
   for (const n of this.npcs) {
-    if (Math.abs(n.x - eye[0]) > 3.8 || Math.abs(n.z - eye[2]) > 3.8) continue;
+    const reachN = n.state === 'challenge' ? 16 : 3.8;
+    if (Math.abs(n.x - eye[0]) > reachN || Math.abs(n.z - eye[2]) > reachN) continue;
     if (n.dead) { if (n.loot.length && n.frozen !== undefined) push(n.x, n.y + 0.4, n.z, 2.4, `Search ${n.name.toLowerCase()}`, () => this.lootBody(n), 'body', 0.6, n); continue; }
+    if (n.state === 'challenge' && n.chal?.said && n.dist < (n.ranged ? 16 : 7)) { push(n.x, n.y + 1.4, n.z, n.ranged ? 16 : 7, 'Answer the guard', () => this.social.answer(n), 'talk', 0.1, n); continue; }
+    if (n.state === 'report' && n.witness && !n.guard && n.dist < 3.8) { push(n.x, n.y + 1.4, n.z, 3.8, 'Stop the witness', () => this.social.witnessTalk(n), 'talk', 0.5, n); continue; }
     if (n.talkable && (n.state === 'routine' || n.state === 'handsup') && !n.lying && n.alert < 0.6) push(n.x, n.y + 1.4, n.z, 3.4, `Talk to ${n.name}`, () => this.story.talk(n), 'talk', 0.8, n);
     else if (n.guard || n.state !== 'flee') {
       // backstab hint for unaware people
@@ -59,7 +62,7 @@ P.updateInteraction = function updateInteraction(dt) {
     push(b.position[0], b.position[1], b.position[2], 2.4, take ? `Take the ${nm}` : `Pick up the ${nm}`, () => (take ? this.takeProp(b, take) : pl.grab(b)), 'prop', 0.82, b);
   }
   this.tools.hook(push, eye, f); this.stealth.hook(push, eye);
-  this.traps?.hook(push, eye); this.fishing?.hook(push, eye); this.mining?.hook(push, eye); this.shrines?.hook(push, eye); this.forage?.hook(push, eye); this.contracts?.hook(push, eye); this.fauna?.hook(push, eye); this.horse?.hook(push, eye); this.treasure?.hook(push, eye); this.hideout?.hook(push, eye); this.caravan?.hook(push, eye);
+  this.traps?.hook(push, eye); this.fishing?.hook(push, eye); this.mining?.hook(push, eye); this.shrines?.hook(push, eye); this.forage?.hook(push, eye); this.contracts?.hook(push, eye); this.fauna?.hook(push, eye); this.look?.hook(push, eye); this.horse?.hook(push, eye); this.treasure?.hook(push, eye); this.hideout?.hook(push, eye); this.caravan?.hook(push, eye);
   let best = null, bs = 1e9;
   for (const t of c) {
     const dx = t.x - eye[0], dy = t.y - eye[1], dz = t.z - eye[2], d = Math.hypot(dx, dy, dz);

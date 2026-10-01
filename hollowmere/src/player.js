@@ -6,6 +6,9 @@ import { Inventory } from './items.js';
 
 const D2R = Math.PI / 180;
 const clamp = E.clamp;
+// first-person clips that have a twin for when the sword is in its sheath, and how long the one-shots last
+const VM_SHEATHED = new Set(['Stagger', 'Dash', 'Veil', 'Reach', 'Pinch', 'Carry']);
+const VM_ONE = { Stagger: 0.5, Dash: 0.4, Veil: 1.0, Reach: 0.7, Pinch: 0.7, BlockHit: 0.25 };
 export const EYE_STAND = 1.62, EYE_CROUCH = 1.06, EYE_PRONE = 0.55;
 
 export class Player {
@@ -27,7 +30,8 @@ export class Player {
     this.vm = createViewmodel(); this.vm.visible = true; game.scene.add(this.vm);
     this.vm.mixer.on((e) => this.onVmEvent(e));
     this.fill = new E.Light('point', { color: '#a08ad8', intensity: 2.2, range: 3.2 }); game.scene.add(this.fill);
-    this.vmClip = 'Idle';
+    this.vmClip = 'Idle'; this.vmEnd = 0;
+    this.drawn = false; this.drawing = null; this.sheathing = null;   // the sword starts in its sheath
   }
   get pos() { return this.cc.position; }
   get eyePos() { return [this.cc.position[0], this.cc.position[1] + this.eye + this.bobY, this.cc.position[2]]; }
@@ -38,7 +42,40 @@ export class Player {
     const f = [sy * cp, sp, cy * cp], left = [cy, 0, -sy];
     return { f, left, up: [f[1] * left[2] - f[2] * left[1], f[2] * left[0] - f[0] * left[2], f[0] * left[1] - f[1] * left[0]] };
   }
-  playVm(name, fade = 0.08, restart = true) { this.vm.play(name, { fade, restart }); this.vmClip = name; }
+  playVm(name, fade = 0.08, restart = true) {
+    let clip = name;
+    if (!this.drawn && !this.drawing) { if (name === 'Idle') clip = 'Hold'; else if (VM_SHEATHED.has(name)) clip = name + 'S'; }
+    this.vm.play(clip, { fade, restart }); this.vmClip = name; this.vmEnd = VM_ONE[name] ? this.g.time + VM_ONE[name] : 0;
+  }
+  // ---- the sword and its sheath: Y toggles; attacking or blocking with it sheathed draws it first
+  draw(then = null) {
+    if (this.drawn || this.drawing || this.dead) return false;
+    if (this.carried) { this.g.toast('Your hands are full'); return false; }
+    this.drawing = { t: 0, dur: 0.36, then, shown: false }; this.sheathing = null;
+    this.vm.play('Unsheathe', { fade: 0.04, restart: true }); this.vmClip = 'Unsheathe'; this.vmEnd = 0; return true;
+  }
+  sheathe() {
+    if (!this.drawn || this.sheathing || this.drawing || this.atk || this.dead) return false;
+    this.sheathing = { t: 0, dur: 0.52, done: false }; this.blocking = false;
+    this.vm.play('Sheathe', { fade: 0.04, restart: true }); this.vmClip = 'Sheathe'; this.vmEnd = 0; return true;
+  }
+  instantDraw() { this.drawn = true; this.drawing = null; this.sheathing = null; this.vm.sword.visible = true; }
+  setDrawn(on) { this.drawing = this.sheathing = null; this.drawn = on; this.vm.sword.visible = on; this.playVm('Idle', 0.05); }
+  toggleSheath() { return this.drawn ? this.sheathe() : this.draw(null); }
+  updateSheath(dt) {
+    const g = this.g;
+    if (this.drawing) {
+      const D = this.drawing; D.t += dt;
+      if (!D.shown && D.t >= 0.13) { D.shown = true; this.drawn = true; this.vm.sword.visible = true; g.sfx.unsheathe?.(); g.noise(this.pos, 5, 'step'); g.social?.sawWeapon?.(); }
+      if (D.t >= D.dur) { this.drawing = null; this.playVm('Idle', 0.05); if (D.then === 'attack') this.attack(); }
+    } else if (this.sheathing) {
+      const S = this.sheathing; S.t += dt;
+      if (!S.done && S.t >= 0.33) { S.done = true; this.drawn = false; this.vm.sword.visible = false; g.sfx.sheathe?.(); }
+      if (S.t >= S.dur) { this.sheathing = null; this.playVm('Idle', 0.08); }
+    }
+    // one-shot clips settle back to the resting pose, drawn or sheathed
+    if (this.vmEnd && g.time > this.vmEnd && !this.atk && !this.picking && !this.carried && !this.blocking && this.stagger <= 0) { this.vmEnd = 0; this.playVm('Idle', 0.2); }
+  }
   onVmEvent(e) { if (e.name === 'hit') this.resolveHit(); if (e.name === 'slam') this.g.gravebreak(); }
 
   // ------------------------------------------------------------ per-frame
@@ -136,7 +173,10 @@ export class Player {
   // ------------------------------------------------------------ combat
   updateCombat(dt, input) {
     const g = this.g;
-    this.blocking = this.rmb && !this.atk && !this.carried && this.stagger <= 0 && this.stamina > 3;
+    this.updateSheath(dt);
+    const wantBlock = this.rmb && !this.atk && !this.carried && this.stagger <= 0 && this.stamina > 3;
+    if (wantBlock && !this.drawn && !this.drawing && !this.sheathing) this.draw('block');
+    this.blocking = wantBlock && this.drawn && !this.drawing && !this.sheathing;
     if (this.blocking) { this.blockT += dt; if (this.vmClip !== 'Block' && this.vmClip !== 'BlockHit') this.playVm('Block', 0.07); } else this.blockT = 0;
     if (!this.blocking && (this.vmClip === 'Block' || this.vmClip === 'BlockHit')) this.playVm('Idle', 0.12);
     this.comboT = Math.max(0, this.comboT - dt);
@@ -154,6 +194,8 @@ export class Player {
     if (input.pressed.has('2')) this.skillDash(input);
     if (input.pressed.has('3')) this.skillSlam();
     if (input.pressed.has('q')) this.kick2();
+    if (input.pressed.has('y')) this.toggleSheath();
+    if (input.pressed.has('o')) this.g.look?.toggleHood();
     if (input.pressed.has('f')) this.g.horse?.interact();
     if (input.pressed.has('r')) this.g.useItem('potion');
     if (input.pressed.has('t')) this.g.useItem('ember');
@@ -161,6 +203,9 @@ export class Player {
     input.pressed.clear();
   }
   attack() {
+    if (this.drawing) { this.drawing.then = 'attack'; return; }
+    if (!this.drawn) { if (!this.sheathing && !this.dead && !this.carried) this.draw('attack'); return; }
+    if (this.sheathing) return;
     if (this.prone) { this.g.toast('Stand up to fight'); return; }
     if (this.stagger > 0 || this.stamina < 8 || this.dead) return;
     const g = this.g;
@@ -278,6 +323,7 @@ export class Player {
   }
   skillSlam() {
     if (this.cool.slam > 0 || this.atk || !this.spend(40)) return;
+    if (!this.drawn) this.instantDraw();
     this.cool.slam = 9 * (this.mod?.cd ?? 1); this.atk = { clip: 'Slam', t: 0, dur: 1.3, hit: true }; this.playVm('Slam', 0.05); this.g.sfx.swing?.(0.6);
   }
 

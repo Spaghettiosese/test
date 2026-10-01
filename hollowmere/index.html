@@ -115,6 +115,7 @@
   .dialog button, .menu button { font: 700 17px var(--pixel); color: var(--bone); background: #1b1226; border: 2px solid var(--edge); padding: 6px 12px; text-align: left; cursor: pointer; }
   .dialog button:hover, .dialog button:focus-visible, .menu button:hover, .menu button:focus-visible { border-color: var(--gold); color: var(--gold); outline: none; }
   .dialog .hint { position: absolute; right: 12px; bottom: 6px; font-size: 13px; color: var(--dim); }
+  .dialog:has(.choices button) .hint { display: none; }
   /* note reader / journal */
   .sheet { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(660px, 92vw); max-height: 84vh; overflow: auto; padding: 22px 26px; z-index: 9; pointer-events: auto; background: #d0c19a; color: #2a1f14; border: 4px solid #5a4630; box-shadow: 0 0 0 4px #000, inset 0 0 40px rgba(60,40,10,.35); font-size: 21px; line-height: 1.3; }
   .sheet h2 { margin: 0 0 10px; font: 700 20px var(--title); letter-spacing: .1em; text-transform: uppercase; color: #4a2418; }
@@ -217,6 +218,8 @@
       <div><span>Draughts</span><span>6 7 8 9</span></div><div><span>Trap · smoke · lantern</span><span>H · J · L</span></div>
       <div><span>Kick · map pin · zoom</span><span>Q · N · + -</span></div>
       <div><span>Prone · creep</span><span>hold C · C+Shift</span></div><div><span>Choke out</span><span>hold E behind</span></div>
+      <div><span>Sheathe or draw the sword</span><span>Y</span></div><div><span>Hood up or down</span><span>O</span></div>
+      <div><span>Answer a guard</span><span>E</span></div><div><span>Wear or drop a uniform</span><span>Gear tab · U</span></div>
       <div><span>Mount · dismount · whistle</span><span>F</span></div><div><span>Gallop · walk (mounted)</span><span>Shift · C</span></div>
       <div><span>Book tabs (incl. Stash)</span><span>1 - 9</span></div><div><span>Track a quest</span><span>Journal button</span></div>
     </div>

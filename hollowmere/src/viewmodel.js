@@ -74,6 +74,29 @@ function bake() {
   out.push(K('Veil', [{ t: 0, ...idle }, { t: 0.25, arms: { R: IDLE_R, L: L([0.14, 1.6, 0.5], [-88, 0, -20]) }, hands: { L: 'spread' }, bones: { chest: [-2, 6, 0] } }, { t: 0.7, arms: { R: IDLE_R, L: L([0.1, 1.55, 0.5], [-88, 0, -10]) } }, { t: 1.0, ...idle }], { events: [{ t: 0.3, name: 'cast' }] }));
   out.push(K('Reach', [{ t: 0, ...idle }, { t: 0.18, arms: { R: IDLE_R, L: L([0.06, 1.5, 0.66], [-82, 0, -8]) }, hands: { L: 'flat' } }, { t: 0.5, arms: { R: IDLE_R, L: L([0.06, 1.5, 0.66], [-82, 0, -8]) } }, { t: 0.7, ...idle }], { events: [{ t: 0.2, name: 'touch' }] }));
   out.push(K('Pinch', [{ t: 0, ...idle }, { t: 0.2, arms: { R: IDLE_R, L: L([0.05, 1.5, 0.62], [-85, 0, 0]) }, hands: { L: 'point' } }, { t: 0.4, arms: { R: IDLE_R, L: L([0.05, 1.5, 0.62], [-85, 0, 0]) }, hands: { L: 'fist' } }, { t: 0.7, ...idle }], { events: [{ t: 0.4, name: 'pinch' }] }));
+  // ---- the sword at rest in its sheath: arms hang easy, nothing in the hand
+  const HOLD_R = R([-0.26, 1.02, 0.2], [-24, 10, 8]), HOLD_L = L([0.26, 1.02, 0.2], [-24, -10, -8]);
+  const hold = { ...REST, arms: { R: HOLD_R, L: HOLD_L }, hands: { L: 'relaxed', R: 'relaxed' } };
+  out.push(K('Hold', [{ t: 0, ...hold }, { t: 1.8, arms: { R: R([-0.26, 1.03, 0.21], [-24, 10, 8]), L: HOLD_L }, bones: { chest: [3, 0, 0] } }, { t: 3.6, ...hold }], { loop: true }));
+  out.push(K('Unsheathe', [
+    { t: 0, ...hold },
+    { t: 0.14, arms: { R: R([-0.32, 0.96, 0.12], [-40, 10, 4]), L: HOLD_L }, hands: { R: 'gunGrip', L: 'relaxed' }, bones: { chest: [2, -6, 0] } },
+    { t: 0.34, arms: { R: R([-0.42, 1.45, 0.36], [-96, 20, 26]), L: IDLE_L }, hands: { R: 'gunGrip', L: 'relaxed' }, bones: { chest: [0, -10, 0] } },
+    { t: 0.5, ...idle },
+  ], { events: [{ t: 0.13, name: 'unsheathe' }] }));
+  out.push(K('Sheathe', [
+    { t: 0, ...idle },
+    { t: 0.2, arms: { R: R([-0.22, 1.2, 0.3], [-70, 20, 15]), L: IDLE_L }, bones: { chest: [2, -4, 0] } },
+    { t: 0.34, arms: { R: R([-0.32, 0.96, 0.12], [-40, 10, 4]), L: HOLD_L }, hands: { R: 'gunGrip', L: 'relaxed' } },
+    { t: 0.52, ...hold },
+  ], { events: [{ t: 0.33, name: 'sheathe' }] }));
+  // the same one-shots as above, but with the right hand empty and at the hip
+  out.push(K('StaggerS', [{ t: 0, ...hold }, { t: 0.1, arms: { R: R([-0.3, 1.0, 0.25], [-30, 10, 10]), L: L([0.4, 1.25, 0.2], [-30, 0, -40]) }, bones: { chest: [-8, 4, 3] } }, { t: 0.5, ...hold }]));
+  out.push(K('DashS', [{ t: 0, ...hold }, { t: 0.1, arms: { R: R([-0.3, 1.1, 0.1], [-40, 10, 10]), L: L([0.36, 1.2, 0.05], [-40, 0, -20]) }, bones: { chest: [14, 0, 0], spine: [8, 0, 0] } }, { t: 0.4, ...hold }]));
+  out.push(K('VeilS', [{ t: 0, ...hold }, { t: 0.25, arms: { R: HOLD_R, L: L([0.14, 1.6, 0.5], [-88, 0, -20]) }, hands: { L: 'spread' }, bones: { chest: [-2, 6, 0] } }, { t: 0.7, arms: { R: HOLD_R, L: L([0.1, 1.55, 0.5], [-88, 0, -10]) } }, { t: 1.0, ...hold }], { events: [{ t: 0.3, name: 'cast' }] }));
+  out.push(K('ReachS', [{ t: 0, ...hold }, { t: 0.18, arms: { R: HOLD_R, L: L([0.06, 1.5, 0.66], [-82, 0, -8]) }, hands: { L: 'flat' } }, { t: 0.5, arms: { R: HOLD_R, L: L([0.06, 1.5, 0.66], [-82, 0, -8]) } }, { t: 0.7, ...hold }], { events: [{ t: 0.2, name: 'touch' }] }));
+  out.push(K('PinchS', [{ t: 0, ...hold }, { t: 0.2, arms: { R: HOLD_R, L: L([0.05, 1.5, 0.62], [-85, 0, 0]) }, hands: { L: 'point' } }, { t: 0.4, arms: { R: HOLD_R, L: L([0.05, 1.5, 0.62], [-85, 0, 0]) }, hands: { L: 'fist' } }, { t: 0.7, ...hold }], { events: [{ t: 0.4, name: 'pinch' }] }));
+  out.push(K('CarryS', [{ t: 0, ...hold, arms: { R: HOLD_R, L: L([0.02, 1.32, 0.56], [-70, 0, -10]) }, hands: { L: 'claw', R: 'relaxed' } }, { t: 1, bones: { chest: [3, 0, 0] } }, { t: 2, bones: { chest: [2, 0, 0] } }], { loop: true }));
   out.push(K('Draw', [{ t: 0, ...idle, arms: { R: R([-0.3, 0.95, 0.2], [-30, 0, 0]), L: L([0.3, 1.0, 0.1], [-30, 0, 0]) } }, { t: 0.5, ...idle }]));
   out.push(K('Carry', [{ t: 0, ...idle, arms: { R: IDLE_R, L: L([0.02, 1.32, 0.56], [-70, 0, -10]) }, hands: { L: 'claw' } }, { t: 1, bones: { chest: [3, 0, 0] } }, { t: 2, bones: { chest: [2, 0, 0] } }], { loop: true }));
   return out;
@@ -99,7 +122,7 @@ export function createViewmodel() {
   const glow = (m, k) => { m.emissive = m.color; m.emissiveStrength = k; };
   for (const m of ch.materials.values()) glow(m, 0.22);
   sword.traverse((n) => { if (n.material && n.material.name !== 'Rune') glow(n.material, 0.14); });
-  ch.play('Idle', { fade: 0 });
+  sword.visible = false; ch.play('Hold', { fade: 0 });
   return ch;
 }
 const SWORD_ROT = [72, 0, -32];

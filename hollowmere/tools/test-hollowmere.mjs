@@ -80,5 +80,50 @@ for (const d of roster) for (const s of d.schedule) if (s.poi && L.pois[s.poi] &
 }
 ok(unreachable === 0, 'everyone can reach their places');
 
+// ---------------------------------------------------------------------------- the social model
+section('social');
+const { Social, TALK } = await import('../src/social.js');
+const { Look } = await import('../src/look.js');
+const { Speech } = await import('../src/speech.js');
+const so = new Social({ nav: L.nav, level: L, reg() {}, markers: [] });
+const acc = (x, z) => so.access(x, z);
+ok(acc(0, 40) === 0, 'the main street is open ground');
+ok(acc(15, 41) === 1, 'a baker\'s shop is a private home');
+ok(acc(0, 100) === 2, 'the keep courtyard is restricted');
+ok(acc(0, 120) === 2, 'the great hall is the household: restricted, not forbidden');
+ok(acc(0, 140) === 3, 'the Duke\'s apartments are forbidden');
+ok(acc(-28, 104) === 3, 'the keep barracks are forbidden');
+ok(acc(20, -104) === 2, 'the fort yard is restricted');
+ok(acc(28, -114) === 3, 'the gaol is forbidden');
+ok(acc(0, -60) === 0 && acc(-8, -111) === 0, 'the road and the stable are open ground');
+ok(so.inTown(0, 40) && !so.inTown(0, 120) && !so.inTown(0, -60), 'the town streets are between the wall and the keep');
+// every reason a guard can give has the lines the challenge dialogue needs
+for (const [id, T] of Object.entries(TALK)) ok(T.open?.length >= 2 && T.again && T.persuade && T.deceive && T.okP && T.okD && T.deadline > 0 && T.fee > 0 && T.ack, `challenge "${id}" has every line`);
+// what a witness remembers decides who can be recognised
+const gear = { eq: {} }, rep = { disguise: null, total: () => 100, bounty: { watch: 100, keep: 0, bandits: 0 } };
+const player = { drawn: true, pos: [0, 0, 0], mod: {} };
+const fakeG = { time: 100, gear, rep, player, lightAt: () => 1, level: L, social: { crowdK: 0 }, reg() {}, weather: { cur: { rain: 0 } }, toast() {}, pix: {}, sfx: {}, stats: {} };
+const look = new Look(fakeG);
+look.hood = true;
+const guardA = { id: 'ga', x: 0, z: 0, guard: true, faction: 'watch', role: 'guard', dist: 4 }, guardB = { id: 'gb', x: 0, z: 90, guard: true, faction: 'keep', role: 'guard', dist: 4 }, villager = { id: 'v1', x: 3, z: 3, guard: false, faction: 'town', role: 'villager', dist: 4 };
+const D = look.snapshot(guardA, 4); D.f = 'watch'; look.add(D);
+ok(!D.face, 'a hooded thief shows no face to a witness');
+ok(look.known(guardA, D), 'the witness knows what he saw');
+ok(!look.known(guardB, D), 'a guard at the other end of town has not heard yet');
+fakeG.time = 100 + 90 / 5 + 1; ok(look.known(guardB, D), 'the word reaches him at a walking pace (watch and keep share news)');
+ok(!look.known(villager, D), 'a villager who saw nothing knows nothing');
+const same = look.match(guardA, 4); ok(same > 0.7, `the same hood, cloak and drawn sword is a strong match (${same.toFixed(2)})`);
+look.hood = false; const hoodDown = look.match(guardA, 4); ok(hoodDown < same && hoodDown > 0.3, `lowering the hood weakens it (${hoodDown.toFixed(2)})`);
+gear.eq.body = 'nightcloak'; const newCloak = look.match(guardA, 4); ok(newCloak < hoodDown, `and a different cloak weakens it more (${newCloak.toFixed(2)})`);
+rep.disguise = { faction: 'watch', kind: 'watch', label: 'Watch uniform' }; const unif = look.match(guardA, 4); ok(unif < 0.3, `a Watch uniform defeats a description of a hooded man (${unif.toFixed(2)})`);
+rep.disguise = null; gear.eq = {}; look.hood = true;
+look.descs[0].face = true; look.hood = false; ok(look.match(guardA, 8) > 0.95, 'a face that was seen, shown again in view, is as good as certain'); look.hood = true;
+fakeG.time = 1000; ok(look.match(guardA, 4) < 0.1, 'old descriptions are forgotten');
+// the odds are bounded and respond to what you are carrying
+const sp = new Speech({ player: { drawn: false, hp: 100, maxHp: 100, mod: { speech: 0.24 } }, rep: { disguise: null }, look: { bloody: 0, match: () => 0 }, social: { attOf: () => 0, vig: 0 }, difficulty: 1 });
+const c1 = sp.chance('persuade', { chFails: 0, role: 'guard', faction: 'watch', dist: 3 });
+ok(c1 > 0.6 && c1 <= 0.95, `three ranks of Silver Tongue make persuading likely (${c1.toFixed(2)})`);
+ok(sp.chance('persuade', { chFails: 4, role: 'captain', faction: 'keep', dist: 3 }) >= 0.05, 'the odds never drop below five per cent');
+
 console.log(failed ? `\n${failed} checks failed` : '\nall Hollowmere checks passed');
 process.exit(failed ? 1 : 0);

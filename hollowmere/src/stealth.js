@@ -31,6 +31,8 @@ export class Stealth {
     const mot = P.sprint ? 1.5 : P.speedNow < 0.4 ? 0.72 : P.creep ? 0.8 : 1; if (mot !== 1) parts.push([P.sprint ? 'Sprinting' : P.speedNow < 0.4 ? 'Still' : 'Creeping', mot]); v *= mot;
     if (P.mount) { const hm = P.mount.gait >= 2 ? 1.55 : 1.3; parts.push([P.mount.gait >= 2 ? 'Galloping' : 'Mounted', hm]); v *= hm; }
     const cv = 1 - 0.6 * this.cover * (P.crouch ? 1 : 0.45); if (cv < 0.98) parts.push(['Cover', cv]); v *= cv;
+    if (P.drawn) { parts.push(['Drawn blade', 1.1]); v *= 1.1; }
+    if (g.look?.traits().hood && g.clock.night) { parts.push(['Hood up', 0.92]); v *= 0.92; }
     if (P.veilT > 0) { parts.push(['Shadow Veil', 0.28]); v *= 0.28; P.veilT -= dt; }
     if (g.status?.inSmoke(P.pos)) { parts.push(['Smoke', 0.2]); v *= 0.2; }
     if (P.atk) { if (v < 0.85) parts.push(['Fighting', 0.85 / v]); v = Math.max(v, 0.85); }

@@ -16,7 +16,7 @@ export class NPC {
   constructor(game, def) {
     this.g = game; this.def = def; this.id = def.id || 'npc' + NEXT_ID++; this.name = def.name || 'Villager'; this.role = def.role || 'villager';
     this.guard = this.role === 'guard' || this.role === 'captain' || def.hostile === true;
-    this.spec = def.spec; this.schedule = def.schedule || []; this.talkable = !!def.dialogue; this.dialogue = def.dialogue || null;
+    this.spec = def.spec; this.schedule = def.schedule || []; this.dialogue = def.dialogue || (this.role === 'guard' && def.hostile !== true && !def.boss ? 'guardgeneric' : null); this.talkable = !!this.dialogue;
     this.x = def.pos[0]; this.z = def.pos[1]; this.yaw = (def.yaw ?? 0) * D2R; this.y = game.nav.floorAt(this.x, this.z);
     this.maxHp = def.hp ?? (this.guard ? 60 : 30); this.hp = this.maxHp;
     this.ch = createPerson(this.spec, { detail: def.detail ?? 0.4 });
@@ -165,12 +165,14 @@ export class NPC {
     this.barkT = Math.max(0, this.barkT - dt); this.attackCd = Math.max(0, this.attackCd - dt); this.stagger = Math.max(0, this.stagger - dt); this.tookHit = Math.max(0, this.tookHit - dt);
     const P = this.g.player;
     this.dist = hyp(this.x - P.pos[0], this.z - P.pos[2]);
+    // somebody you are talking to stands still and listens
+    if (this.g.mode === 'talk' && this.g.ui.dlg?.npc === this) { this.speed = 0; this.setLoco(0); this.path = null; this.goal = null; this.applyPose(); this.body.position[0] = this.x; this.body.position[1] = this.y + 0.9; this.body.position[2] = this.z; return; }
     if (this.poison > 0) { this.poison -= dt; this.hp -= dt * (3.2 * (this.g.player.mod?.poison || 1)); if (Math.random() < dt * 0.35) { this.bark(['*cough*', 'I do not feel well...', 'My chest...'][Math.floor(Math.random() * 3)]); this.g.sfx.grunt?.(0.4, this.pos, 0.9); } if (this.hp <= 0) { this.die([0, 0], { poison: true }); return; } }
     if (this.bleed > 0) { this.bleed -= dt; this.hp -= dt * 3.4; if (Math.random() < dt * 3) this.g.spawnBlood([this.x, this.y + 1.0, this.z], [0, 0], 2); if (this.hp <= 0) { this.die([0, 0], { poison: true }); return; } }
     if (this.burn > 0) { this.burn -= dt; this.hp -= dt * 11; if (Math.random() < dt * 2.5) this.g.flames.emit([this.x, this.y + 1.2, this.z], { count: 2, color: [4, 1.8, 0.4, 1], colorEnd: [1, 0.2, 0, 0], size: 0.18, grow: 0.3, spread: 0.3, up: 1.2, life: 0.5, jitter: 0.2 }); if (Math.random() < dt * 1.2) this.g.sfx.grunt?.(0.8, this.pos, 1.3); if (this.hp <= 0) { this.die([0, 0], { fire: true }); return; } if (!this.guard && this.state !== 'flee') this.scare(P.pos, 6); else if (this.guard && this.state === 'routine') { this.alert = 1; this.noticed(this.pos, 'combat'); } }
-    if (!this.guard && this.role === 'villager' && this.state === 'routine' && !this.witness && this.dist < 8 && !this.lying && this.g.rep.wanted('watch')) {
+    if (!this.guard && this.role === 'villager' && this.state === 'routine' && !this.witness && this.dist < 8 && !this.lying && this.g.rep.wanted('watch') && this.g.look.descs.length) {
       this.recogT = (this.recogT || 0) - dt;
-      if (this.recogT <= 0) { this.recogT = 3; const dx = P.pos[0] - this.x, dz = P.pos[2] - this.z; if ((dx * this.fwd[0] + dz * this.fwd[1]) / (this.dist || 1) > 0.3 && this.g.canSee(this.eye, [P.pos[0], P.pos[1] + 1.4, P.pos[2]], this.body) && this.g.rep.disguiseGain(this, 99) >= 1) { this.bark('Wait... you are the one on the posters!', this.spec.voice); this.witness = { kind: 'wanted', sev: 15, faction: 'watch' }; this.state = 'report'; this.reportT = 25; this.path = null; this.goal = null; this.repathT = 0; } }
+      if (this.recogT <= 0) { this.recogT = 3; const dx = P.pos[0] - this.x, dz = P.pos[2] - this.z; if ((dx * this.fwd[0] + dz * this.fwd[1]) / (this.dist || 1) > 0.3 && this.g.canSee(this.eye, [P.pos[0], P.pos[1] + 1.4, P.pos[2]], this.body) && this.g.look.match(this, this.dist) > 0.55) { this.bark('Wait... you are the one on the posters!', this.spec.voice); this.witness = { kind: 'wanted', sev: 15, faction: 'watch' }; this.state = 'report'; this.reportT = 25; this.path = null; this.goal = null; this.repathT = 0; } }
     }
     if (this.snare > 0) { this.snare -= dt; this.speed = 0; this.stopMove(); this.setLoco(0); this.blind = Math.max(0, (this.blind || 0) - dt); this.applyPose(); this.body.position[0] = this.x; this.body.position[1] = this.y + 0.9; this.body.position[2] = this.z; if (this.guard && this.snare > 0.3) this.perceive(dt); return; }
     if (this.blind > 0) this.blind -= dt;
@@ -236,9 +238,21 @@ export class NPC {
       if (this.fidgetT <= 0) { this.fidgetT = 8 + Math.random() * 16; const c = this.guard ? ['Look Around', 'Arms Crossed'] : ['Look Around', 'Arms Crossed', 'Point', 'Talk']; this.ch.upper.playOnce(c[Math.floor(Math.random() * c.length)], { fadeIn: 0.4, fadeOut: 0.7 }); }
     }
     if (this.guard && this.role !== 'bandit' && a !== 'sleep') this.chat(dt);
+    else if (!this.guard && this.role === 'villager' && (a === 'stand' || a === 'talk' || a === 'warm')) this.gossip(dt);
     if (this.guard && this.idleT > 12 + (this.id.length % 5) * 3) { this.idleT = 0; this.ch.upper.playOnce('Look Around', { fadeIn: 0.3, fadeOut: 0.5 }); }
     // talk to a neighbour: face the player when he is close & we are just standing
     if ((a === 'stand' || a === 'talk') && !this.guard && this.dist < 3.2 && !this.seated && !this.lying && this.g.player.visibility > 0.1) { const yaw = Math.atan2(this.g.player.pos[0] - this.x, this.g.player.pos[2] - this.z); this.yaw += angDiff(yaw, this.yaw) * Math.min(1, dt * 1.5) * -1 * -1; }
+  }
+  // townsfolk talk about what the town is talking about: the weather, the bell, and whoever the Watch is after
+  gossip(dt) {
+    this.gossipT = (this.gossipT ?? 15 + Math.random() * 40) - dt; if (this.gossipT > 0 || this.dist > 18) return; this.gossipT = 70 + Math.random() * 70;
+    const o = this.g.nearNpcs(this, 5).find((x) => !x.guard && !x.dead && x.role === 'villager' && x.state === 'routine' && !x.lying && !x.seated); if (!o) return;
+    const g = this.g, L = g.look, bounty = Math.max(g.rep.total('watch'), g.rep.total('keep'));
+    const pool = [['The bread is dearer again.', 'Everything is dearer.'], ['Did you hear the bell last night?', 'Thirteen. I counted.'], ['My knees say rain.', 'Your knees say a lot.'], ['They say the Duke has not left his tower in a month.', 'Good for him.'], ['Has anyone seen the lamplighter?', 'Fenn? He is never late.'], ['I do not like the look of the graveyard lately.', 'Then do not look.']];
+    let pair = pool[Math.floor(Math.random() * pool.length)];
+    if (L.descs.length && bounty >= 30 && Math.random() < 0.75) pair = [`They say the Watch is after ${L.describe(L.descs[L.descs.length - 1])}.`, 'I would not like to be that man.'];
+    else if (g.social.vig > 1.2) pair = ['The guards are twitchy.', 'Keep your head down. Mine is.'];
+    this.bark(pair[0], this.spec.voice); setTimeout(() => { if (!o.dead && o.state === 'routine') o.bark(pair[1], o.spec.voice); }, 2400);
   }
   chat(dt) {
     this.chatT = (this.chatT ?? 8 + Math.random() * 20) - dt; if (this.chatT > 0 || this.dist > 22) return; this.chatT = 30 + Math.random() * 40;
@@ -340,7 +354,7 @@ export class NPC {
     this.percT -= dt; if (this.percT > 0) return; this.percT = 0.14 + Math.random() * 0.04;
     const g = this.g, P = g.player, eye = this.eye;
     if (this.blind > 0) { this.sees = false; this.alert = Math.max(0, this.alert - 0.02); return; }
-    let seen = false, gain = 0;
+    let seen = false, gain = 0; this.assessNow = null;
     const pd = this.dist;
     // asleep or out cold: nothing
     const range = (g.clock.night ? 13 : 20) * (0.45 + 0.75 * Math.min(1.2, P.visibility)) * (this.state === 'chase' ? 1.5 : 1) * (this.def.eyes || 1) * (g.weather?.sightMul ?? 1) * [0.85, 1, 1.15][g.difficulty ?? 1];
@@ -353,20 +367,27 @@ export class NPC {
         if (g.canSee(eye, head, this.body)) {
           seen = true;
           const k = pd < 2.2 ? 2.2 : 1;
-          gain = (1 - Math.min(1, pd / range)) ** 0.7 * (0.3 + P.visibility * 0.9) * (0.6 + 0.4 * Math.max(0, c)) * k;
-          this.g.zoneBonus?.(this, P) && (gain *= 1.5);
-          gain *= this.g.rep.disguiseGain(this, pd) * g.stealth.detectMul(this, P, pd, c);
-          if (this.g.rep.wanted(this.faction)) { gain *= 1.5; if (this.g.rep.total(this.faction) >= 150 && pd < 14) gain = Math.max(gain, 0.9); }
+          gain = (1 - Math.min(1, pd / range)) ** 0.7 * (0.3 + P.visibility * 0.9) * (0.6 + 0.4 * Math.max(0, c)) * k * g.stealth.detectMul(this, P, pd, c);
+          // how clearly he sees you is only half of it: what is there to be suspicious about?
+          const hunting = this.state === 'chase' || this.state === 'attack';
+          const a = hunting ? { w: 1, kind: 'hostile', reason: 'Enemy', id: 'enemy' } : g.social.assess(this, pd);
+          this.assessNow = a; gain *= a.w;
         }
       }
     }
     this.sees = seen;
     if (seen) {
       this.lostT = 0; this.lastSeen = [P.pos[0], P.pos[1], P.pos[2]];
-      this.alert = Math.min(1.2, this.alert + gain * 1.15 * (0.14 + 0.05) * 3.0);
-      this.detect = Math.max(this.detect, this.alert);
-      if (this.alert >= 1 && this.state !== 'chase' && this.state !== 'attack') this.spotted();
-      else if (this.alert > 0.3 && this.state === 'routine') this.noticed(this.lastSeen, 'sight');
+      const a = this.assessNow || { w: 1, kind: 'hostile' };
+      if (this.state === 'challenge') { /* the challenge decides what happens next */ }
+      else if (gain <= 0.001) { this.alert = Math.max(0, this.alert - 0.012); }   // he sees you and sees nothing wrong
+      else {
+        this.alert = Math.min(1.2, this.alert + gain * 1.15 * (0.14 + 0.05) * 3.0);
+        if (a.kind === 'curious') this.alert = Math.min(this.alert, 0.45);
+        this.detect = Math.max(this.detect, this.alert);
+        if (this.alert >= 1 && this.state !== 'chase' && this.state !== 'attack') { if (a.kind === 'hostile') this.spotted(); else if (a.kind === 'challenge') g.social.startChallenge(this, a); else this.alert = 0.45; }
+        else if (this.alert > 0.3 && this.state === 'routine') this.noticed(this.lastSeen, 'sight');
+      }
     } else {
       this.alert = Math.max(0, this.alert - 0.05 * 0.16 * (this.state === 'routine' ? 3 : 1));
       if (this.state === 'chase' || this.state === 'attack') { this.lostT += 0.16; if (this.lostT > 5) this.loseTrack(); }
@@ -399,6 +420,8 @@ export class NPC {
     const s = 1 - d / eff;
     const strong = ['clang', 'combat', 'scream', 'glass', 'crash', 'alarm', 'slam'].includes(kind);
     if (srcNpc === this) return;
+    if (srcNpc && srcNpc.activity === 'work' && kind === 'clang' && !srcNpc.guard) return;   // the smith at his anvil is not an alarm
+    if (this.guard && !srcNpc && (kind === 'step' || kind === 'jump' || kind === 'land' || kind === 'prop') && this.g.social.quiet && this.g.social.civil) return;   // a citizen's footsteps are no concern of the Watch
     if (this.guard) {
       if (strong) this.alert = Math.min(1, Math.max(this.alert, 0.6 * (0.5 + s)));
       else this.alert = Math.min(1, this.alert + (kind === 'step' ? 0.17 : 0.3) * (0.5 + s));
@@ -421,7 +444,7 @@ export class NPC {
     this.g.stealth.detectedNow();
     if (this.def.hollowType === 'screamer') { this.g.noise(this.pos, 48, 'scream', this); this.g.sfx.hollowCry?.(this.pos); this.g.ui.toast('A hollow screams'); for (const o of this.g.npcs) if (o.role === 'hollow' && o.dormant && o.dist < 45) { o.dormant = false; o.state = 'chase'; o.alert = 1; o.lastSeen = [...this.g.player.pos]; } }
     this.state = 'chase'; this.alert = 1; this.lostT = 0; this.repathT = 0; this.stopMove();
-    this.bark(['Intruder!', 'Halt, thief!', 'There you are!', 'Alarm! Alarm!', 'Stop right there!'][Math.floor(Math.random() * 5)]);
+    { const id = this.assessNow?.id, L = id === 'recognised' ? ['That is the man from the description!', 'There he is! Get him!'] : id === 'forbidden' ? ['Intruder! In the keep!', 'Who let you in here? Intruder!'] : id === 'body' ? ['He is dragging a body! Alarm!'] : id === 'lockpick' ? ['A thief! He is picking the lock!'] : ['Intruder!', 'Halt, thief!', 'There you are!', 'Alarm! Alarm!', 'Stop right there!']; this.bark(L[Math.floor(Math.random() * L.length)]); }
     this.g.alarm(this.lastSeen || this.pos, 'spotted', this);
     this.g.combatT = Math.max(this.g.combatT, 8);
   }
@@ -519,6 +542,7 @@ export class NPC {
       }
       case 'stagger': { this.stagger -= 0; this.speed *= 0.8; this.setLoco(0); if (this.stagger <= 0) { this.state = 'chase'; this.repathT = 0; } break; }
       case 'handsup': { this.setAnim('Hands Up', 0.25); this.speed = 0; break; }
+      case 'challenge': this.g.social.tickChallenge(this, dt); break;
       default: break;
     }
     if (this.state === 'routine' || this.state === 'flee' || this.state === 'cower') { /* handled */ }

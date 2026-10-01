@@ -34,6 +34,9 @@ import { Treasure } from './treasure.js';
 import { Hideout } from './hideout.js';
 import { Encounters } from './encounters.js';
 import { Boss } from './boss.js';
+import { Look } from './look.js';
+import { Social } from './social.js';
+import { Speech } from './speech.js';
 import { Gear } from './gear.js';
 import { Events } from './events.js';
 import { Saves } from './saves.js';
@@ -108,6 +111,7 @@ export class Game {
     this.level.trapSpots ||= [];
     this.traps = new Traps(this);
     this.stealth = new Stealth(this);
+    this.look = new Look(this); this.speech = new Speech(this); this.social = new Social(this);
     this.fishing = new Fishing(this); this.mining = new Mining(this); this.shrines = new Shrines(this);
     this.lamps = new Lamps(this);
     this.forage = new Foraging(this);
@@ -165,7 +169,7 @@ export class Game {
     this.tools.update(dt);
     this.status.update(dt);
     this.traps?.update(dt);
-    this.opts.tick(dt); this.stealth.update(dt); this.jail.update(dt); this.lockdown.update(dt); this.lamps.update(dt); this.lantern.update(dt); this.hunters.update(dt); this.forage.update(dt); this.codex.update(dt); this.fauna?.update(dt); this.horse?.update(dt); this.caravan?.update(dt); this.encounters?.update(dt); this.boss?.update(dt);
+    this.opts.tick(dt); this.stealth.update(dt); this.look.update(dt); this.social.update(dt); this.jail.update(dt); this.lockdown.update(dt); this.lamps.update(dt); this.lantern.update(dt); this.hunters.update(dt); this.forage.update(dt); this.codex.update(dt); this.fauna?.update(dt); this.horse?.update(dt); this.caravan?.update(dt); this.encounters?.update(dt); this.boss?.update(dt);
     if (this.player.mod?.regen && this.player.hp < this.player.maxHp && this.combatT <= 0) this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.mod.regen * dt);
     this.weather.update(dt);
     this.events.update(dt);
@@ -365,7 +369,7 @@ export class Game {
       if (kind === 'spotted' && d < 20) { n.lastSeen = p; }
       if (n.state === 'routine' || n.state === 'notice' || n.state === 'search') { n.state = 'investigate'; n.investT = 22; n.stopMove(); if (n.lying) { n.leaveActivity(); n.lying = false; n.asleep = false; } n.goTo(p[0], p[2], 2.8); n.bark(['To arms!', 'This way!', 'Intruder in the keep!', 'Find him!'][Math.floor(Math.random() * 4)]); }
     }
-    this.alarmLevel = Math.min(3, this.alarmLevel + (kind === 'spotted' ? 0.6 : kind === 'body' ? 0.9 : 0.25));
+    this.alarmLevel = Math.min(3, this.alarmLevel + (kind === 'spotted' ? 0.6 : kind === 'body' ? 0.9 : 0.25)); this.social?.incident(kind === 'body' ? 0.5 : kind === 'spotted' ? 0.3 : 0.12);
     this.alarmT = 25; this.combatT = Math.max(this.combatT, 4);
     if (kind === 'body' || (kind === 'spotted' && this.alarmLevel > 1.2)) this.sfx.alarmBell?.(pos);
     if (this.alarmLevel > 1.4 && !this._alarmShown) { this._alarmShown = true; this.ui.flashBanner('THE ALARM IS RAISED'); setTimeout(() => (this._alarmShown = false), 30000); }
@@ -388,6 +392,7 @@ export class Game {
     this.sfx.slash?.(n.pos); this.spawnBlood(at, dir, res === 'killed' ? 26 : 12);
     if (opts.from === 'player' && res !== 'dead') this.ui.floater?.(dmg >= 900 ? 'KILL' : Math.round(dmg), [n.x, n.y + 1.9, n.z], res === 'killed' ? '#ff5a5a' : '#ffe9a8');
     if (opts.from === 'player' && res !== 'dead' && !n.guard && n.role !== 'bandit' && n.role !== 'hollow') this.rep.crime(res === 'killed' ? 'murder' : 'assault', n.pos, { victim: n });
+    if (opts.from === 'player' && res !== 'blocked' && res !== 'dead') this.look.bleed(res === 'killed' ? 150 : 45);
     if (opts.backstab) { this.flashText?.('ASSASSINATION'); this.stats.stabs++; this.slowmo = 0.35; }
     this.hitStop = Math.max(this.hitStop || 0, res === 'killed' ? 0.09 : 0.045); this.shake = Math.max(this.shake, res === 'killed' ? 0.35 : 0.15);
     this.ui.hitMarker();
@@ -408,7 +413,7 @@ export class Game {
   }
   playerDied() { this.mode = 'dead'; this.stats.deaths++; this.sfx.boom?.(0.6); this.ui.showDeath(); setTimeout(() => this.respawn(), 3800); }
   respawn() {
-    const P = this.player; this.horse?.forceReset(); this.boss?.reset();
+    const P = this.player; this.horse?.forceReset(); this.boss?.reset(); P.drawing = P.sheathing = null; P.vm.sword.visible = P.drawn;
     if (this.jail.shouldArrest() && this.jail.arrest()) { this.mode = 'play'; this.ui.hideDeath(); return; }
     P.dead = false; P.hp = P.maxHp; P.stamina = 100; P.ember = Math.max(P.ember, 40); P.atk = null; P.carried = null; P.veilT = 0;
     P.cc.position = [...this.checkpoint]; P.cc.velocity = [0, 0, 0]; P.yaw = this.checkpointYaw ?? 0; P.pitch = 0; P.invuln = 2;

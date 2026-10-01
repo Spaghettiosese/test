@@ -480,6 +480,70 @@ This is the running list for the second update ("The Wide Valley"). Every line i
 419. **Bug fix:** the README listed F as "pick up props"; it is E, and F is now the horse.
 420. **Bug fix:** the stablemaster's and caravan's beds no longer leave phantom prompts behind when the camp moves.
 
+## Round 7: the quiet life
+
+**The sword and your hands**
+421. Y sheathes and draws the sword. You begin the game with it sheathed.
+422. New draw and sheathe animations and sounds. With the blade away your hands rest low and out of sight, and every one-handed gesture has a sheathed twin.
+423. Attacking or blocking with the sword sheathed draws it first and the swing follows. Gravebreaker draws it instantly.
+424. Drawing is a little noisy, and a drawn blade glints: it is slightly easier to see.
+425. A drawn blade in the town, the keep, the fort or Pellmouth is an offence.
+426. Villagers gasp, flinch and warn you. Keep it out and one runs for a guard, who comes to have a word.
+
+**Who you look like**
+427. O lowers and raises the hood. A hooded face is never seen, and the edges of the screen darken a little while the hood is up.
+428. The game tracks how you look: hood, cloak (or armour), uniform, drawn sword and blood.
+429. A witness remembers a description, not a name. Your face is in it only if the hood was down, they were close and there was light.
+430. A guard recognises you by how well what he sees fits what he has been told: the same hood, cloak, uniform and weapon, or a face he saw.
+431. A description spreads outward from the witness at a walking pace. A guard across town does not know yet.
+432. Change the hood, the cloak or put on a uniform and the match falls apart. Descriptions fade with time and with a bounty worked off; paying a fine wipes them.
+433. Townsfolk know what is on the notices once the price on you passes 100 gold.
+434. Fighting leaves blood on your clothes, and everyone can see it. Wash at a well, a trough or the shore; rain helps.
+435. Strip the uniform off an unconscious or dead guard, or a servant, with hold E. (The old notes promised this; the game never did it.)
+436. Servant's livery is a new disguise: it passes in the keep's household rooms, but not in the Duke's apartments.
+437. Disguises hold for seconds rather than a glance: standing close or acting out of character builds suspicion. Method Actor stretches it.
+438. The Gear tab has an Appearance block: hood, sword, blood, uniforms to wear or take off, and what the Watch is looking for.
+
+**Reading the room**
+439. Four levels of access: open ground, a private home, restricted (the keep's courtyard and great hall, the fort) and forbidden (the Duke's apartments, the barracks, the gaol and the crypts).
+440. Guards now act on offences rather than on the mere sight of you: being somewhere you should not, a drawn weapon, creeping about in a street, being out after curfew, a hood at night, blood, dragging a body, picking a lock, running.
+441. Seeing is not catching. A guard who sees you and sees nothing wrong does nothing; light, posture and distance still decide how fast he notices a real offence.
+442. A status pill says how you read: Blending in, Lost in the crowd, Drawn weapon, Out after curfew, Being recognised, Challenged with a countdown.
+443. Three or more townsfolk within six metres soften every minor offence. The Chameleon perk makes the crowd cover better.
+444. A curfew runs from 22:00 to 05:30: a lone figure in the streets is stopped. A lit lantern looks more honest.
+445. When the town is on edge, polite challenges turn into fights.
+446. Footsteps in a street are only footsteps; guards no longer go and investigate a citizen walking.
+447. Townsfolk greet you and remember a kind word when you behave like one of them.
+
+**Guards who ask first**
+448. A new challenge state: the guard walks up, says what he thinks is wrong and gives you a countdown with a second warning before he draws.
+449. Answer with E (or let it open by itself): persuade, deceive, bribe, show papers or a seal, comply, pay the fine, intimidate or fight. The odds are printed on each choice.
+450. Complying puts it right for you: it sheathes the sword, lowers the hood or stands you up.
+451. A persuaded guard leaves you alone for minutes; a bribed one overlooks small things for five. The guards around him take his word.
+452. Crossbowmen on the ramparts challenge from range, and can be answered from sixteen metres.
+453. Running from a challenge, two failed answers or a critical failure all end in a fight.
+454. Captains and the keep's garrison are harder to talk round and cost more to bribe.
+455. Talk to a guard and you can slip him a coin or ask about the patrols. The routes you learn are drawn on your map.
+456. Guards say why they came for you: the description, the forbidden ground, the body, the lock.
+457. A guard whose partner has vanished from his post notices after a minute and a half and goes to look.
+458. A guard who recognises you with a small price on your head asks for the fine. At 150 gold or after an alarm it is a fight.
+459. A witness running for the Watch can be stopped first: bribe them, talk them round, or frighten them.
+
+**The talker's tree**
+460. Persuade, Deceive, Intimidate, Bribe and Papers checks, with the odds shown on the choice.
+461. The odds respond to Silver Tongue, your disguise, a drawn sword, blood, how they feel about you, the captain's rank, the town's nerves and the difficulty setting.
+462. Six new perks in a Silver Tongue tree: Silver Tongue, Imposing Presence, Haggler, Forger, Chameleon and Method Actor.
+463. Forger lets you craft Travel papers and a Forged ducal seal.
+464. Everyone has an attitude from -100 to 100 and a temperament of their own. Kind words, bribes and good deeds raise it; failed lies and threats lower it. Friendly merchants charge less and hostile ones charge more.
+465. A critical failure does not just refuse you: it ends the conversation badly.
+466. Spike a seated drinker's cup with nightshade oil, walk away and let it work.
+467. Townsfolk gossip about the Watch's search for you, the town's nerves, and the weather.
+468. An option answers challenges for you automatically.
+469. The whole keep household recognises the thief who takes the Duke's letter.
+470. The opening objective now tells you that you can simply walk in by the gate.
+471. **Bug fix:** guards no longer turn into hunters at the mere sight of a traveller in the street.
+472. **Bug fix:** every guard has something to say, so the coin and the questions are always on offer.
+
 ## What was already there (Chapter I)
 
 - Ashgate, Ravenspire keep, catacombs, graveyard, tavern, smithy, chapel and 59 people on day and night schedules.
