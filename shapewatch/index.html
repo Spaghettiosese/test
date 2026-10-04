@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ShapeWatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&family=Barlow:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas class="stage" id="stage" aria-label="ShapeWatch 3D view"></canvas>
+
+<!-- ======================================================= HUD -->
+<div id="hud" hidden>
+  <div class="vignette" id="lowhp"></div>
+  <div class="hud xhair" id="xhair"><i></i><i></i><i></i><i></i><b></b></div>
+  <div class="hud hitmark" id="hitmark"><i></i><i></i><i></i><i></i></div>
+  <div class="hud dmgdirs" id="dmgdirs"></div>
+  <div class="hud scope" id="scope" hidden><svg viewBox="-100 -100 200 200" preserveAspectRatio="xMidYMid slice"><defs><mask id="lens"><rect x="-400" y="-400" width="800" height="800" fill="#fff"/><circle r="74" fill="#000"/></mask></defs><rect x="-400" y="-400" width="800" height="800" fill="#05080d" mask="url(#lens)"/><circle r="74" fill="none" stroke="#000" stroke-width="1.2"/><g stroke="#000" stroke-width=".3"><line x1="-74" y1="0" x2="-3" y2="0"/><line x1="3" y1="0" x2="74" y2="0"/><line x1="0" y1="-74" x2="0" y2="-3"/><line x1="0" y1="3" x2="0" y2="74"/></g><circle r=".6" fill="#ff4a4a"/><path id="scopeCharge" d="" fill="none" stroke="#6fffe0" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+
+  <!-- objective bar -->
+  <div class="hud objbar" id="objbar">
+    <div class="ob-row"><div class="ob-dist atk"><b id="obPushed">0.0</b><small>M</small></div><div class="ob-time" id="obTime">5:00<i id="obOT"></i></div><div class="ob-dist def"><b id="obLeft">188</b><small>M</small></div></div>
+    <div class="ob-track" id="obTrack"><div class="ob-fill" id="obFill"></div><div class="ob-cp" style="left:39.4%"></div><div class="ob-cp" style="left:78.7%"></div><div class="ob-pay" id="obPay"><span id="obPushers">0</span></div></div>
+    <div class="ob-status" id="obStatus"></div>
+  </div>
+  <div class="hud mutator" id="mutBar" hidden><b id="mutName"></b><span id="mutDesc"></span><em id="mutT"></em></div>
+  <div class="hud team" id="teamList"></div>
+  <div class="hud feed" id="feed"></div>
+  <div class="hud popups" id="popups"></div>
+  <div class="hud banner" id="banner"></div>
+  <div class="hud marks" id="marks"></div>
+
+  <!-- bottom left: health -->
+  <div class="hud vitals" id="vitals">
+    <div class="v-portrait"><canvas id="vPortrait" width="128" height="128"></canvas></div>
+    <div class="v-info">
+      <div class="v-nums"><b id="vHp">200</b><span id="vMax">/ 200</span></div>
+      <div class="v-bar" id="vBar"></div>
+      <div class="v-name"><span id="vHero">SABRE</span> <em id="vPlayer">YOU</em></div>
+    </div>
+  </div>
+  <!-- bottom right: ammo and abilities -->
+  <div class="hud kit" id="kit">
+    <div class="ammo"><div class="a-count"><b id="ammo">30</b><span id="ammoMax">/ 30</span></div><div class="a-name" id="wName">PULSE RIFLE</div><div class="a-hint" id="wHint"></div></div>
+    <div class="abil" id="abil1"><canvas width="96" height="96"></canvas><kbd>SHIFT</kbd><em></em><small></small></div>
+    <div class="abil" id="abil2"><canvas width="96" height="96"></canvas><kbd>E</kbd><em></em><small></small></div>
+    <div class="abil sec" id="abilW2"><canvas width="96" height="96"></canvas><kbd>RMB</kbd><em></em><small></small></div>
+    <div class="ult" id="ultBtn"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="42"/><circle class="ring" id="ultRing" cx="50" cy="50" r="42" pathLength="100"/></svg><canvas width="96" height="96" id="ultIcon"></canvas><b id="ultPct">0</b><kbd>Q</kbd></div>
+  </div>
+  <div class="hud respawn" id="respawn" hidden>
+    <div class="rs-top">ELIMINATED</div><div class="rs-by" id="rsBy"></div>
+    <div class="rs-bar"><i id="rsKillerHp"></i></div>
+    <div class="rs-timer">RESPAWNING IN <b id="rsT">7</b></div>
+    <button class="btn ghost" id="rsHero" type="button">CHANGE HERO <kbd>H</kbd></button>
+  </div>
+  <div class="hud prompt" id="prompt"></div>
+  <div class="hud fps" id="fps"></div>
+</div>
+
+<!-- ======================================================= touch controls -->
+<div class="tctl" id="touch" hidden>
+  <div class="stick" id="stick"><i></i></div>
+  <button class="tbtn fire" id="tFire" type="button">FIRE</button>
+  <button class="tbtn sec" id="tAlt" type="button">ALT</button>
+  <button class="tbtn jump" id="tJump" type="button">JUMP</button>
+  <button class="tbtn a1" id="tA1" type="button">A1</button>
+  <button class="tbtn a2" id="tA2" type="button">A2</button>
+  <button class="tbtn ultb" id="tUlt" type="button">ULT</button>
+  <button class="tbtn rel" id="tRel" type="button">R</button>
+  <button class="tbtn tb" id="tTab" type="button">TAB</button>
+</div>
+
+<!-- ======================================================= scoreboard -->
+<div class="screen" id="score" hidden><div class="sc-card" id="scCard"></div></div>
+
+<!-- ======================================================= hero select -->
+<div class="screen" id="select" hidden>
+  <div class="sel-lat" id="selLat">LATENCY: 0 MS</div>
+  <div class="sel-mode"><small>UNRANKED</small><b id="selSide">ATTACK</b><span><i></i><u id="selMap">FROSTGATE</u></span></div>
+  <div class="sel-hero"><div class="sel-name"><i id="selRole" class="ricon"></i><b id="selName">SABRE</b></div><small>SELECT SKIN</small><select id="selSkin"></select></div>
+  <div class="sel-assemble"><span>ASSEMBLE YOUR TEAM</span><b id="selT">22</b></div>
+  <div class="sel-team" id="selTeam"></div>
+  <div class="sel-info" id="selInfo"></div>
+  <div class="sel-line"></div>
+  <div class="sel-roles" id="selRoles"></div>
+  <button class="btn ready" id="selReady" type="button">READY</button>
+  <div class="sel-keys"><span><kbd>ENTER</kbd> CHAT</span><span><kbd>F1</kbd> HERO DETAILS</span></div>
+  <div class="sel-keys r"><span><kbd>J</kbd> JOIN TEAM CHAT</span><span><kbd>ESC</kbd> MENU</span></div>
+</div>
+
+<!-- ======================================================= hero gallery -->
+<div class="screen" id="gallery" hidden>
+  <header class="g-head"><button class="btn ghost" id="gBack" type="button">&larr; BACK</button><h2>HEROES</h2><span>Ten heroes to start. More soon.</span></header>
+  <div class="g-grid" id="gGrid"></div>
+  <aside class="g-detail" id="gDetail"></aside>
+</div>
+
+<!-- ======================================================= main menu -->
+<div class="screen" id="menu">
+  <div class="m-logo"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" class="l1"/><path d="M50 14 L82 68 H18 Z" class="l2"/><circle cx="50" cy="50" r="12" class="l3"/></svg><div><b>SHAPE<i>WATCH</i></b><small>A SHAPEFORGE HERO SHOOTER</small></div></div>
+  <nav class="m-nav">
+    <button class="m-btn primary" id="mPlay" type="button">PLAY <small>5v5 PAYLOAD ESCORT</small></button>
+    <button class="m-btn" id="mHeroes" type="button">HEROES <small>MEET THE ROSTER</small></button>
+    <button class="m-btn" id="mHelp" type="button">HOW TO PLAY <small>CONTROLS AND TWISTS</small></button>
+  </nav>
+  <div class="m-opts panel">
+    <label>SIDE<select id="oSide"><option value="0">ATTACK</option><option value="1">DEFEND</option></select></label>
+    <label>BOT SKILL<select id="oDiff"><option value="0">EASY</option><option value="1" selected>NORMAL</option><option value="2">HARD</option></select></label>
+    <label>RIFT SURGES<select id="oMut"><option value="1" selected>ON</option><option value="0">OFF</option></select></label>
+  </div>
+  <div class="m-foot">Built on the ShapeForge Engine &middot; every hero, map and sound is generated in code</div>
+</div>
+<div class="screen" id="help" hidden>
+  <div class="h-card panel">
+    <h2>HOW TO PLAY</h2>
+    <p>Two teams of five fight over a payload. <b>Attackers</b> push it down Frostgate Street to the goal before the clock runs out; <b>defenders</b> stand on it to stop it. Reach a checkpoint and the clock refills.</p>
+    <div class="h-cols">
+      <div><h3>CONTROLS</h3><div class="keys">
+        <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>Move</span></div><div><kbd>SPACE</kbd><span>Jump</span></div>
+        <div><kbd>LMB</kbd><span>Primary fire</span></div><div><kbd>RMB</kbd><span>Secondary</span></div>
+        <div><kbd>SHIFT</kbd><span>Ability 1</span></div><div><kbd>E</kbd><span>Ability 2</span></div>
+        <div><kbd>Q</kbd><span>Ultimate</span></div><div><kbd>R</kbd><span>Reload</span></div>
+        <div><kbd>TAB</kbd><span>Scoreboard</span></div><div><kbd>H</kbd><span>Change hero (at spawn)</span></div>
+        <div><kbd>ESC</kbd><span>Pause</span></div></div></div>
+      <div><h3>THE TWISTS</h3>
+        <p><b>Rift Surges.</b> Every minute or so the storm rewrites the rules for half a minute: low gravity, overclocked cooldowns, glass-cannon damage or a payload surge.</p>
+        <p><b>Echo Cores.</b> Every elimination drops a core. Grab one for your team to gain ultimate charge and a burst of health.</p>
+        <p><b>Skins.</b> Pick a palette on the hero select screen; the 3D model updates live.</p></div>
+    </div>
+    <button class="btn" id="hBack" type="button">GOT IT</button>
+  </div>
+</div>
+
+<!-- ======================================================= pause, end -->
+<div class="screen" id="pause" hidden>
+  <div class="p-card panel">
+    <h2>PAUSED</h2>
+    <label>MOUSE SENSITIVITY <input id="sens" type="range" min="0.3" max="2.5" step="0.05" value="1"></label>
+    <label>FIELD OF VIEW <input id="fov" type="range" min="70" max="105" step="1" value="90"></label>
+    <label>VOLUME <input id="vol" type="range" min="0" max="1" step="0.05" value="0.6"></label>
+    <div class="p-btns"><button class="btn" id="pResume" type="button">RESUME</button><button class="btn ghost" id="pHero" type="button">CHANGE HERO</button><button class="btn ghost" id="pQuit" type="button">QUIT TO MENU</button></div>
+  </div>
+</div>
+<div class="screen" id="end" hidden>
+  <div class="e-banner" id="eBanner"><b id="eTitle">VICTORY</b><span id="eWhy"></span></div>
+  <div class="e-potg panel" id="ePotg"></div>
+  <div class="e-btns"><button class="btn" id="eAgain" type="button">PLAY AGAIN</button><button class="btn ghost" id="eMenu" type="button">MAIN MENU</button></div>
+</div>
+<div class="screen" id="loading"><div class="ld"><b>SHAPE<i>WATCH</i></b><span id="ldMsg">Forging heroes&hellip;</span><div class="ld-bar"><i id="ldBar"></i></div></div></div>
+<div class="fatal" id="fatal" hidden></div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
