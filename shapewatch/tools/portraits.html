@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><title>portraits</title>
+<style>body{margin:0;background:#0b1020;color:#fff;font:12px sans-serif}#grid{display:flex;flex-wrap:wrap;gap:4px;padding:4px}.c{position:relative}.c b{position:absolute;left:4px;bottom:2px;text-shadow:0 0 3px #000}</style>
+<div id="grid"></div>
+<script type="module">
+import { Portraits } from '../src/portraits.js';
+import { HEROES } from '../src/heroes.js';
+const q = new URLSearchParams(location.search), only = q.get('only')?.split(',');
+const p = new Portraits(); await p.generate(null, only);
+for (const h of HEROES) { if (only && !only.includes(h.id)) continue; const w = document.createElement('div'); w.className = 'c'; w.append(p.canvas(h.id, 192)); w.insertAdjacentHTML('beforeend', `<b>${h.name}</b>`); document.getElementById('grid').append(w); }
+window.__done = true;
+</script>

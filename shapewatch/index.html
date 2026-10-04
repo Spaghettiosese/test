@@ -14,49 +14,70 @@
 <!-- ======================================================= HUD -->
 <div id="hud" hidden>
   <div class="vignette" id="lowhp"></div>
-  <div class="hud xhair" id="xhair"><i></i><i></i><i></i><i></i><b></b></div>
+  <div class="whiteout" id="whiteout"></div>
+  <div class="hud xhair cross" id="xhair"><i></i><i></i><i></i><i></i><b></b></div>
   <div class="hud hitmark" id="hitmark"><i></i><i></i><i></i><i></i></div>
+  <div class="hud healout" id="healOut"></div>
   <div class="hud dmgdirs" id="dmgdirs"></div>
   <div class="hud scope" id="scope" hidden><svg viewBox="-100 -100 200 200" preserveAspectRatio="xMidYMid slice"><defs><mask id="lens"><rect x="-400" y="-400" width="800" height="800" fill="#fff"/><circle r="74" fill="#000"/></mask></defs><rect x="-400" y="-400" width="800" height="800" fill="#05080d" mask="url(#lens)"/><circle r="74" fill="none" stroke="#000" stroke-width="1.2"/><g stroke="#000" stroke-width=".3"><line x1="-74" y1="0" x2="-3" y2="0"/><line x1="3" y1="0" x2="74" y2="0"/><line x1="0" y1="-74" x2="0" y2="-3"/><line x1="0" y1="3" x2="0" y2="74"/></g><circle r=".6" fill="#ff4a4a"/><path id="scopeCharge" d="" fill="none" stroke="#6fffe0" stroke-width="1.6" stroke-linecap="round"/></svg></div>
 
-  <!-- objective bar -->
-  <div class="hud objbar" id="objbar">
-    <div class="ob-row"><div class="ob-dist atk"><b id="obPushed">0.0</b><small>M</small></div><div class="ob-time" id="obTime">5:00<i id="obOT"></i></div><div class="ob-dist def"><b id="obLeft">188</b><small>M</small></div></div>
-    <div class="ob-track" id="obTrack"><div class="ob-fill" id="obFill"></div><div class="ob-cp" style="left:39.4%"></div><div class="ob-cp" style="left:78.7%"></div><div class="ob-pay" id="obPay"><span id="obPushers">0</span></div></div>
-    <div class="ob-status" id="obStatus"></div>
-  </div>
+  <div class="hud objbar" id="objbar"></div>
   <div class="hud mutator" id="mutBar" hidden><b id="mutName"></b><span id="mutDesc"></span><em id="mutT"></em></div>
   <div class="hud team" id="teamList"></div>
+  <div class="hud minimap" id="mmWrap"><canvas id="minimap" width="200" height="200"></canvas></div>
   <div class="hud feed" id="feed"></div>
   <div class="hud popups" id="popups"></div>
   <div class="hud banner" id="banner"></div>
   <div class="hud marks" id="marks"></div>
+  <div class="hud subs" id="subs"></div>
 
   <!-- bottom left: health -->
   <div class="hud vitals" id="vitals">
     <div class="v-portrait"><canvas id="vPortrait" width="128" height="128"></canvas></div>
     <div class="v-info">
-      <div class="v-nums"><b id="vHp">200</b><span id="vMax">/ 200</span></div>
+      <div class="v-status" id="vStatus"></div>
+      <div class="v-res" id="vRes" hidden><span></span><div class="rbar"><i></i></div></div>
+      <div class="v-nums"><b id="vHp">200</b><span id="vMax">/ 200</span><strong class="v-heal" id="vHeal"></strong></div>
       <div class="v-bar" id="vBar"></div>
-      <div class="v-name"><span id="vHero">SABRE</span> <em id="vPlayer">YOU</em></div>
+      <div class="v-name"><span id="vHero">SABRE</span><span class="v-sub" id="vSub"></span><em id="vPlayer">YOU</em></div>
     </div>
   </div>
   <!-- bottom right: ammo and abilities -->
   <div class="hud kit" id="kit">
-    <div class="ammo"><div class="a-count"><b id="ammo">30</b><span id="ammoMax">/ 30</span></div><div class="a-name" id="wName">PULSE RIFLE</div><div class="a-hint" id="wHint"></div></div>
+    <div class="ammo"><div class="a-count"><b id="ammo">30</b><span id="ammoMax">/ 30</span></div><div class="a-name"><canvas id="wIcon" width="48" height="48"></canvas><span id="wName">PULSE RIFLE</span></div><div class="a-hint" id="wHint"></div></div>
     <div class="abil" id="abil1"><canvas width="96" height="96"></canvas><kbd>SHIFT</kbd><em></em><small></small></div>
     <div class="abil" id="abil2"><canvas width="96" height="96"></canvas><kbd>E</kbd><em></em><small></small></div>
     <div class="abil sec" id="abilW2"><canvas width="96" height="96"></canvas><kbd>RMB</kbd><em></em><small></small></div>
     <div class="ult" id="ultBtn"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="42"/><circle class="ring" id="ultRing" cx="50" cy="50" r="42" pathLength="100"/></svg><canvas width="96" height="96" id="ultIcon"></canvas><b id="ultPct">0</b><kbd>Q</kbd></div>
   </div>
   <div class="hud respawn" id="respawn" hidden>
-    <div class="rs-top">ELIMINATED</div><div class="rs-by" id="rsBy"></div>
+    <div class="rs-top">ELIMINATED BY</div><div class="rs-by" id="rsBy"></div>
     <div class="rs-bar"><i id="rsKillerHp"></i></div>
+    <div class="rs-recap" id="rsRecap"></div>
     <div class="rs-timer">RESPAWNING IN <b id="rsT">7</b></div>
+    <div class="rs-spec" id="rsSpec"></div>
     <button class="btn ghost" id="rsHero" type="button">CHANGE HERO <kbd>H</kbd></button>
   </div>
   <div class="hud prompt" id="prompt"></div>
   <div class="hud fps" id="fps"></div>
+  <div class="hint-keys" id="hintKeys"><span><kbd>C</kbd> COMMS</span><span><kbd>Z</kbd> PING</span><span><kbd>TAB</kbd> SCORE</span><span><kbd>M</kbd> MAP</span></div>
+</div>
+
+<!-- communication wheel (hold C) -->
+<div class="wheel" id="wheel" hidden></div>
+
+<!-- kill cam and play of the game -->
+<div class="cam-overlay" id="killcam" hidden>
+  <div class="cam-bars"></div>
+  <div class="kc-tag"><b>KILL CAM</b><span id="kcName"></span></div>
+  <div class="kc-card" id="kcCard"></div>
+  <div class="cam-foot"><div class="cam-bar"><i id="kcBar"></i></div><span><kbd>SPACE</kbd> SKIP</span></div>
+</div>
+<div class="cam-overlay potg" id="potg" hidden>
+  <div class="cam-bars"></div>
+  <div class="pg-title"><small>PLAY OF THE GAME</small><b id="potgTitle"></b></div>
+  <div class="pg-who" id="potgWho"></div>
+  <div class="cam-foot"><div class="cam-bar"><i id="potgBar"></i></div><span id="potgHint"><kbd>SPACE</kbd> CONTINUE</span></div>
 </div>
 
 <!-- ======================================================= touch controls -->
@@ -70,84 +91,64 @@
   <button class="tbtn ultb" id="tUlt" type="button">ULT</button>
   <button class="tbtn rel" id="tRel" type="button">R</button>
   <button class="tbtn tb" id="tTab" type="button">TAB</button>
+  <button class="tbtn ping" id="tPing" type="button">PING</button>
 </div>
 
-<!-- ======================================================= scoreboard -->
+<!-- ======================================================= screens -->
 <div class="screen" id="score" hidden><div class="sc-card" id="scCard"></div></div>
 
-<!-- ======================================================= hero select -->
 <div class="screen" id="select" hidden>
   <div class="sel-lat" id="selLat">LATENCY: 0 MS</div>
-  <div class="sel-mode"><small>UNRANKED</small><b id="selSide">ATTACK</b><span><i></i><u id="selMap">FROSTGATE</u></span></div>
-  <div class="sel-hero"><div class="sel-name"><i id="selRole" class="ricon"></i><b id="selName">SABRE</b></div><small>SELECT SKIN</small><select id="selSkin"></select></div>
+  <div class="sel-mode"><small id="selModeName">ESCORT</small><b id="selSide">ATTACK</b><span><i></i><u id="selMap">FROSTGATE</u></span></div>
+  <div class="sel-hero"><div class="sel-name"><i id="selRole" class="ricon"></i><b id="selName">SABRE</b></div><div class="sel-sub" id="selSub"></div><small>SELECT SKIN</small><select id="selSkin"></select><button class="btn ghost small" id="selVoice" type="button">▶ HEAR VOICE</button></div>
   <div class="sel-assemble"><span>ASSEMBLE YOUR TEAM</span><b id="selT">22</b></div>
+  <div class="sel-comp" id="selComp"></div>
   <div class="sel-team" id="selTeam"></div>
   <div class="sel-info" id="selInfo"></div>
   <div class="sel-line"></div>
   <div class="sel-roles" id="selRoles"></div>
   <button class="btn ready" id="selReady" type="button">READY</button>
-  <div class="sel-keys"><span><kbd>ENTER</kbd> CHAT</span><span><kbd>F1</kbd> HERO DETAILS</span></div>
-  <div class="sel-keys r"><span><kbd>J</kbd> JOIN TEAM CHAT</span><span><kbd>ESC</kbd> MENU</span></div>
+  <div class="sel-keys"><span><kbd>ENTER</kbd> READY</span><span><kbd>&larr; &rarr;</kbd> BROWSE</span></div>
+  <div class="sel-keys r"><span><kbd>ESC</kbd> MENU</span></div>
 </div>
 
-<!-- ======================================================= hero gallery -->
-<div class="screen" id="gallery" hidden>
-  <header class="g-head"><button class="btn ghost" id="gBack" type="button">&larr; BACK</button><h2>HEROES</h2><span>Ten heroes to start. More soon.</span></header>
-  <div class="g-grid" id="gGrid"></div>
-  <aside class="g-detail" id="gDetail"></aside>
-</div>
+<div class="screen" id="gallery" hidden></div>
+<div class="screen" id="career" hidden></div>
+<div class="screen" id="play" hidden></div>
+<div class="screen" id="settings" hidden></div>
+<div class="screen" id="menu"></div>
 
-<!-- ======================================================= main menu -->
-<div class="screen" id="menu">
-  <div class="m-logo"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" class="l1"/><path d="M50 14 L82 68 H18 Z" class="l2"/><circle cx="50" cy="50" r="12" class="l3"/></svg><div><b>SHAPE<i>WATCH</i></b><small>A SHAPEFORGE HERO SHOOTER</small></div></div>
-  <nav class="m-nav">
-    <button class="m-btn primary" id="mPlay" type="button">PLAY <small>5v5 PAYLOAD ESCORT</small></button>
-    <button class="m-btn" id="mHeroes" type="button">HEROES <small>MEET THE ROSTER</small></button>
-    <button class="m-btn" id="mHelp" type="button">HOW TO PLAY <small>CONTROLS AND TWISTS</small></button>
-  </nav>
-  <div class="m-opts panel">
-    <label>SIDE<select id="oSide"><option value="0">ATTACK</option><option value="1">DEFEND</option></select></label>
-    <label>BOT SKILL<select id="oDiff"><option value="0">EASY</option><option value="1" selected>NORMAL</option><option value="2">HARD</option></select></label>
-    <label>RIFT SURGES<select id="oMut"><option value="1" selected>ON</option><option value="0">OFF</option></select></label>
-  </div>
-  <div class="m-foot">Built on the ShapeForge Engine &middot; every hero, map and sound is generated in code</div>
-</div>
 <div class="screen" id="help" hidden>
   <div class="h-card panel">
     <h2>HOW TO PLAY</h2>
-    <p>Two teams of five fight over a payload. <b>Attackers</b> push it down Frostgate Street to the goal before the clock runs out; <b>defenders</b> stand on it to stop it. Reach a checkpoint and the clock refills.</p>
+    <p>Two teams of five (or eight heroes in a free-for-all) fight over an objective. Pick a hero, learn their kit, and use the systems below: roles, subclasses, crits, pings and the comm wheel, echo cores and rift surges.</p>
     <div class="h-cols">
       <div><h3>CONTROLS</h3><div class="keys">
         <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>Move</span></div><div><kbd>SPACE</kbd><span>Jump</span></div>
         <div><kbd>LMB</kbd><span>Primary fire</span></div><div><kbd>RMB</kbd><span>Secondary</span></div>
         <div><kbd>SHIFT</kbd><span>Ability 1</span></div><div><kbd>E</kbd><span>Ability 2</span></div>
         <div><kbd>Q</kbd><span>Ultimate</span></div><div><kbd>R</kbd><span>Reload</span></div>
-        <div><kbd>TAB</kbd><span>Scoreboard</span></div><div><kbd>H</kbd><span>Change hero (at spawn)</span></div>
-        <div><kbd>ESC</kbd><span>Pause</span></div></div></div>
-      <div><h3>THE TWISTS</h3>
-        <p><b>Rift Surges.</b> Every minute or so the storm rewrites the rules for half a minute: low gravity, overclocked cooldowns, glass-cannon damage or a payload surge.</p>
-        <p><b>Echo Cores.</b> Every elimination drops a core. Grab one for your team to gain ultimate charge and a burst of health.</p>
-        <p><b>Skins.</b> Pick a palette on the hero select screen; the 3D model updates live.</p></div>
+        <div><kbd>Z</kbd> / <kbd>MMB</kbd><span>Ping what you aim at</span></div><div><kbd>C</kbd><span>Hold: communication wheel</span></div>
+        <div><kbd>TAB</kbd><span>Scoreboard</span></div><div><kbd>M</kbd><span>Toggle minimap</span></div>
+        <div><kbd>H</kbd><span>Change hero (at spawn)</span></div><div><kbd>ESC</kbd><span>Pause</span></div></div></div>
+      <div><h3>SYSTEMS</h3>
+        <p><b>Roles and subclasses.</b> Tanks, Damage and Support, each split into subclasses (Bruiser, Initiator, Stalwart · Flanker, Sharpshooter, Specialist, Recon · Medic, Tactician, Survivor) with their own strengths and counters.</p>
+        <p><b>Crits.</b> Headshots always crit. Every hero also has a chance to crit on body shots (gold numbers and a bright hit marker).</p>
+        <p><b>Pings and comms.</b> Ping enemies, health packs and objectives. Your bot team reacts to your pings and callouts, and calls out the same things back, in their own voices.</p>
+        <p><b>Kill cam and Play of the Game.</b> See how you died through the killer's eyes. After the match, the best moment is replayed.</p>
+        <p><b>Echo cores, rift surges, medals and challenges</b> keep every match different. Your career is saved on this device.</p></div>
     </div>
     <button class="btn" id="hBack" type="button">GOT IT</button>
   </div>
 </div>
 
-<!-- ======================================================= pause, end -->
 <div class="screen" id="pause" hidden>
   <div class="p-card panel">
     <h2>PAUSED</h2>
-    <label>MOUSE SENSITIVITY <input id="sens" type="range" min="0.3" max="2.5" step="0.05" value="1"></label>
-    <label>FIELD OF VIEW <input id="fov" type="range" min="70" max="105" step="1" value="90"></label>
-    <label>VOLUME <input id="vol" type="range" min="0" max="1" step="0.05" value="0.6"></label>
-    <div class="p-btns"><button class="btn" id="pResume" type="button">RESUME</button><button class="btn ghost" id="pHero" type="button">CHANGE HERO</button><button class="btn ghost" id="pQuit" type="button">QUIT TO MENU</button></div>
+    <div class="p-btns"><button class="btn" id="pResume" type="button">RESUME</button><button class="btn ghost" id="pSettings" type="button">SETTINGS</button><button class="btn ghost" id="pHero" type="button">CHANGE HERO</button><button class="btn ghost" id="pQuit" type="button">QUIT TO MENU</button></div>
   </div>
 </div>
-<div class="screen" id="end" hidden>
-  <div class="e-banner" id="eBanner"><b id="eTitle">VICTORY</b><span id="eWhy"></span></div>
-  <div class="e-potg panel" id="ePotg"></div>
-  <div class="e-btns"><button class="btn" id="eAgain" type="button">PLAY AGAIN</button><button class="btn ghost" id="eMenu" type="button">MAIN MENU</button></div>
-</div>
+<div class="screen" id="end" hidden></div>
 <div class="screen" id="loading"><div class="ld"><b>SHAPE<i>WATCH</i></b><span id="ldMsg">Forging heroes&hellip;</span><div class="ld-bar"><i id="ldBar"></i></div></div></div>
 <div class="fatal" id="fatal" hidden></div>
 <script type="module" src="src/main.js"></script>

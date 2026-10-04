@@ -60,6 +60,12 @@ export class Sfx {
       case 'orbit': T({ freq: 700, freqEnd: 120, dur: 0.25, gain: 0.35, decay: 0.28, type: 'triangle' }); N({ dur: 0.2, gain: 0.25, freq: 800, decay: 0.2, type: 'bandpass' }); break;
       case 'rocket': N({ dur: 0.45, gain: 0.5, type: 'bandpass', freq: 1500, freqEnd: 300, decay: 0.4 }); T({ freq: 400, freqEnd: 150, dur: 0.3, gain: 0.25, decay: 0.3, type: 'sawtooth' }); break;
       case 'burst': N({ dur: 0.35, gain: 0.8, freq: 1800, freqEnd: 200, decay: 0.3 }); T({ freq: 140, freqEnd: 40, dur: 0.3, gain: 0.6, decay: 0.3 }); break;
+      case 'punch': N({ dur: 0.18, gain: 0.9, freq: 500, freqEnd: 120, decay: 0.16 }); T({ freq: 90, freqEnd: 35, dur: 0.16, gain: 0.8, decay: 0.18 }); break;
+      case 'minigun': N({ dur: 0.07, gain: 0.5, freq: 3000, freqEnd: 900, decay: 0.05 }); T({ freq: 190, freqEnd: 100, dur: 0.05, gain: 0.35, decay: 0.05, type: 'square' }); break;
+      case 'cannon': N({ dur: 0.35, gain: 0.9, freq: 1600, freqEnd: 200, decay: 0.3 }); T({ freq: 120, freqEnd: 35, dur: 0.3, gain: 0.8, decay: 0.32 }); break;
+      case 'smg': N({ dur: 0.08, gain: 0.32, freq: 5200, freqEnd: 1400, decay: 0.05 }); T({ freq: 380, freqEnd: 160, dur: 0.05, gain: 0.14, decay: 0.05 }); break;
+      case 'rifle2': N({ dur: 0.4, gain: 0.85, freq: 3800, freqEnd: 500, decay: 0.28 }); N({ dur: 0.5, gain: 0.4, freq: 260, decay: 0.4 }); T({ freq: 120, freqEnd: 45, dur: 0.2, gain: 0.55, decay: 0.2 }); break;
+      case 'beam': N({ dur: 0.06, gain: 0.16, type: 'bandpass', freq: 2400, freqEnd: 2000, decay: 0.05, q: 2 }); T({ freq: 520, freqEnd: 500, dur: 0.05, gain: 0.06, decay: 0.06, type: 'sine' }); break;
       case 'sentry': N({ dur: 0.08, gain: 0.3, freq: 3500, freqEnd: 900, decay: 0.06 }); break;
       default: N({ dur: 0.15, gain: 0.5, freq: 3000, freqEnd: 800, decay: 0.1 });
     }
@@ -70,9 +76,13 @@ export class Sfx {
     this._tone(t, { freq: big ? 80 : 120, freqEnd: 28, dur: big ? 0.7 : 0.35, gain: big ? 0.9 : 0.6, decay: big ? 0.8 : 0.4, o });
   }
   whoosh(pos, f0 = 300, f1 = 1500) { if (!this.ctx) return; const t = this.ctx.currentTime, o = this._out(pos, 0.7, 18); this._noise(t, { dur: 0.35, gain: 0.45, type: 'bandpass', freq: f0, freqEnd: f1, decay: 0.32, q: 1.2, attack: 0.06, o }); }
-  hit(head) { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: head ? 1700 : 1150, dur: 0.06, gain: head ? 0.34 : 0.25, decay: 0.09, type: 'triangle' }); if (head) this._tone(t, { freq: 2300, dur: 0.06, gain: 0.18, decay: 0.1, type: 'sine' }); }
+  crit() { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 2600, dur: 0.05, gain: 0.3, decay: 0.12, type: 'square' }); this._tone(t + 0.04, { freq: 3300, dur: 0.08, gain: 0.25, decay: 0.2, type: 'triangle' }); this._noise(t, { dur: 0.1, gain: 0.25, type: 'highpass', freq: 5000, decay: 0.1 }); }
+  hit(head, crit = false) { if (!this.ctx) return; if (crit) this.crit(); const t = this.ctx.currentTime; this._tone(t, { freq: head ? 1700 : 1150, dur: 0.06, gain: head ? 0.34 : 0.25, decay: 0.09, type: 'triangle' }); if (head) this._tone(t, { freq: 2300, dur: 0.06, gain: 0.18, decay: 0.1, type: 'sine' }); }
   kill() { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 620, dur: 0.12, gain: 0.35, decay: 0.16, type: 'square' }); this._tone(t + 0.07, { freq: 930, dur: 0.18, gain: 0.35, decay: 0.28, type: 'square' }); this._noise(t, { dur: 0.2, gain: 0.3, freq: 800, decay: 0.2 }); }
   hurt() { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 140, freqEnd: 70, dur: 0.15, gain: 0.35, decay: 0.18, type: 'sawtooth' }); }
+  ping() { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 1320, dur: 0.08, gain: 0.2, decay: 0.14, type: 'sine' }); this._tone(t + 0.07, { freq: 1760, dur: 0.12, gain: 0.2, decay: 0.3, type: 'sine' }); }
+  capture() { if (!this.ctx) return; const t = this.ctx.currentTime; [392, 523, 659, 784].forEach((f, i) => this._tone(t + i * 0.07, { freq: f, dur: 0.18, gain: 0.28, decay: 0.4, type: 'triangle' })); }
+  stinger(kind = 'potg') { if (!this.ctx) return; const t = this.ctx.currentTime; const seq = { potg: [392, 523, 659, 784, 1046], killcam: [220, 196], round: [523, 659, 784] }[kind] || [440]; seq.forEach((f, i) => this._tone(t + i * 0.1, { freq: f, dur: 0.3, gain: 0.3, decay: 0.5, type: kind === 'killcam' ? 'sawtooth' : 'triangle' })); }
   heal(pos) { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 880, dur: 0.1, gain: 0.07, decay: 0.2, type: 'sine' }); }
   reload() { if (!this.ctx) return; const t = this.ctx.currentTime; this._noise(t, { dur: 0.05, gain: 0.4, freq: 2400, decay: 0.05 }); this._noise(t + 0.45, { dur: 0.05, gain: 0.5, freq: 1800, decay: 0.06 }); }
   empty() { if (!this.ctx) return; this._noise(this.ctx.currentTime, { dur: 0.04, gain: 0.3, freq: 3000, decay: 0.04 }); }
@@ -87,7 +97,7 @@ export class Sfx {
   ui(kind = 'click') { if (!this.ctx) return; const t = this.ctx.currentTime; if (kind === 'hover') this._tone(t, { freq: 1400, dur: 0.03, gain: 0.07, decay: 0.05, type: 'sine' }); else if (kind === 'select') { this._tone(t, { freq: 700, dur: 0.08, gain: 0.25, decay: 0.12, type: 'triangle' }); this._tone(t + 0.06, { freq: 1050, dur: 0.1, gain: 0.25, decay: 0.2, type: 'triangle' }); } else if (kind === 'ready') { [392, 523, 659].forEach((f, i) => this._tone(t + i * 0.08, { freq: f, dur: 0.15, gain: 0.3, decay: 0.3, type: 'square' })); } else this._tone(t, { freq: 900, dur: 0.05, gain: 0.2, decay: 0.08, type: 'triangle' }); }
   announce(kind) {
     if (!this.ctx) return; const t = this.ctx.currentTime;
-    const seq = { start: [440, 440, 660], win: [523, 659, 784, 1046], lose: [392, 311, 233], checkpoint: [523, 784], overtime: [660, 660, 660], surge: [330, 495, 330, 660] }[kind] || [600];
+    const seq = { start: [440, 440, 660], win: [523, 659, 784, 1046], lose: [392, 311, 233], checkpoint: [523, 784], overtime: [660, 660, 660], surge: [330, 495, 330, 660], round: [523, 659, 784], capture: [392, 523, 659], victory: [523, 659, 784, 1046], defeat: [392, 311, 233] }[kind] || [600];
     seq.forEach((f, i) => this._tone(t + i * 0.13, { freq: f, dur: 0.2, gain: 0.3, decay: 0.3, type: 'sawtooth' }));
   }
   tick(n) { if (!this.ctx) return; this._tone(this.ctx.currentTime, { freq: n <= 3 ? 880 : 660, dur: 0.06, gain: 0.2, decay: 0.1, type: 'square' }); }

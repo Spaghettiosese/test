@@ -1,0 +1,167 @@
+// Vector icons: role and subclass badges (inline SVG) and an ability glyph for every power in the
+// roster (drawn on a 96x96 canvas). Nothing here is bitmap art.
+import { HERO } from './heroes.js';
+
+// ------------------------------------------------------------------ role and subclass badges (24x24 viewBox)
+const ROLE_PATH = {
+  tank: '<path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z"/>',
+  damage: '<g><rect x="4.4" y="7" width="3.8" height="13" rx="1.5"/><rect x="10.1" y="3" width="3.8" height="17" rx="1.5"/><rect x="15.8" y="7" width="3.8" height="13" rx="1.5"/></g>',
+  support: '<path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/>',
+};
+const SUB_PATH = {
+  fist: '<path d="M6 10c0-1.4 1-2.4 2.3-2.4.4-1.2 1.6-1.9 2.8-1.6 1 .2 1.7.9 2 1.7 1.3-.3 2.6.5 2.8 1.8.2 1 .1 2 .1 3.3v2.4c0 2.4-2 4.3-4.4 4.3H11c-2.6 0-5-2-5-4.6z"/>',
+  arrow: '<path d="M12 2 20 12h-5v10H9V12H4z"/>',
+  tower: '<path d="M5 4h3v2h2V4h4v2h2V4h3v6l-2 2v7l2 2v1H5v-1l2-2v-7l-2-2z"/>',
+  chevrons: '<path d="M3 5l8 7-8 7v-4l4-3-4-3zM12 5l8 7-8 7v-4l4-3-4-3z"/>',
+  crosshair: '<g fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><path d="M12 1v6M12 17v6M1 12h6M17 12h6"/></g><circle cx="12" cy="12" r="1.8"/>',
+  gear: '<path d="M10.2 2h3.6l.6 2.5 1.8.8 2.2-1.4 2.5 2.5-1.4 2.2.8 1.8L22 10.2v3.6l-2.5.6-.8 1.8 1.4 2.2-2.5 2.5-2.2-1.4-1.8.8-.6 2.5h-3.6l-.6-2.5-1.8-.8-2.2 1.4-2.5-2.5 1.4-2.2-.8-1.8L2 13.8v-3.6l2.5-.6.8-1.8-1.4-2.2 2.5-2.5 2.2 1.4 1.8-.8zM12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z" fill-rule="evenodd"/>',
+  eye: '<path d="M12 5C6.6 5 2.7 9 1 12c1.7 3 5.6 7 11 7s9.3-4 11-7c-1.7-3-5.6-7-11-7zm0 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" fill-rule="evenodd"/><circle cx="12" cy="12" r="1.8"/>',
+  heart: '<path d="M12 21 3.6 12.6A5.2 5.2 0 0 1 11 5.3l1 1 1-1a5.2 5.2 0 0 1 7.4 7.3z"/>',
+  flag: '<path d="M5 2h2v20H5zM8 3h12l-3 4.5L20 12H8z"/>',
+  drop: '<path d="M12 2s7 7.2 7 12.2A7 7 0 0 1 5 14.2C5 9.2 12 2 12 2z"/>',
+};
+export const ROLE_COLORS = { tank: '#7fb8ff', damage: '#ff7a6a', support: '#7dffb0' };
+export const roleSvg = (role, size = 20, color = 'currentColor') => `<svg class="ico" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" style="color:${color}" aria-hidden="true">${ROLE_PATH[role] || ''}</svg>`;
+export const subSvg = (key, size = 20, color = 'currentColor') => `<svg class="ico" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" style="color:${color}" aria-hidden="true">${SUB_PATH[key] || ''}</svg>`;
+export const roleUri = (role, color = '#fff') => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}">${ROLE_PATH[role]}</svg>`);
+
+// ------------------------------------------------------------------ ability glyphs
+const ICONS = {
+  bulwark: { w1: 'cannon', w2: 'shield', a1: 'charge', a2: 'shout', ult: 'dome' },
+  mauler: { w1: 'scatter', w2: 'hook', a1: 'leap', a2: 'brace', ult: 'meteor' },
+  orbit: { w1: 'orb', w2: 'pull', a1: 'hover', a2: 'bubble', ult: 'hole' },
+  wrecker: { w1: 'fists', w2: 'block', a1: 'rocketpunch', a2: 'uppercut', ult: 'quake' },
+  bastille: { w1: 'minigun', w2: 'bunker', a1: 'fortify', a2: 'wallshield', ult: 'artillery' },
+  sabre: { w1: 'rifle', w2: 'rockets', a1: 'slide', a2: 'syringe', ult: 'overdrive' },
+  ranger: { w1: 'revolver', w2: 'fan', a1: 'roll', a2: 'flashbang', ult: 'noon' },
+  cinder: { w1: 'flame', w2: 'burst', a1: 'step', a2: 'wall', ult: 'inferno' },
+  vesper: { w1: 'rail', w2: 'scope', a1: 'grapple', a2: 'sonar', ult: 'lance' },
+  flicker: { w1: 'pistols', w2: 'blade', a1: 'blink', a2: 'rewind', ult: 'bomb' },
+  shade: { w1: 'smg', w2: 'hack', a1: 'cloak', a2: 'beacon', ult: 'emp' },
+  trapper: { w1: 'boltrifle', w2: 'trap', a1: 'caltrops', a2: 'mark', ult: 'pit' },
+  skyhawk: { w1: 'launcher', w2: 'concuss', a1: 'jet', a2: 'jetpack', ult: 'barrage' },
+  riftwalker: { w1: 'riftgun', w2: 'warp', a1: 'portalA', a2: 'portalB', ult: 'stasis' },
+  halo: { w1: 'pistol', w2: 'beam', a1: 'wing', a2: 'sanct', ult: 'resurge' },
+  serene: { w1: 'biorifle', w2: 'scope', a1: 'dart', a2: 'grenade', ult: 'nano' },
+  pylon: { w1: 'rivet', w2: 'repair', a1: 'pylon', a2: 'turret', ult: 'grid' },
+  zephyr: { w1: 'sonic', w2: 'note', a1: 'pulse', a2: 'wdash', ult: 'barrier' },
+  cantor: { w1: 'shard', w2: 'harmony', a1: 'discord', a2: 'kick', ult: 'transcend' },
+  siphon: { w1: 'drain', w2: 'healorb', a1: 'fade', a2: 'decay', ult: 'coal' },
+};
+const arc = (g, x, y, r, a0 = 0, a1 = 7) => { g.beginPath(); g.arc(x, y, r, a0, a1); };
+const line = (g, ...p) => { g.beginPath(); g.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) g.lineTo(p[i], p[i + 1]); g.stroke(); };
+const poly = (g, ...p) => { g.beginPath(); g.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) g.lineTo(p[i], p[i + 1]); g.closePath(); g.fill(); };
+const dot = (g, x, y, r) => { arc(g, x, y, r); g.fill(); };
+const ring = (g, x, y, r) => { arc(g, x, y, r); g.stroke(); };
+const GLYPH = {
+  circle: (g) => ring(g, 48, 48, 22),
+  cannon: (g) => { g.strokeRect(18, 38, 40, 20); g.fillRect(58, 42, 22, 12); line(g, 80, 48, 90, 48); },
+  scatter: (g) => { for (const [x, y] of [[30, 48], [48, 34], [48, 62], [66, 48], [66, 28], [66, 68]]) dot(g, x, y, 5); },
+  shield: (g) => { g.beginPath(); g.moveTo(48, 14); g.lineTo(78, 26); g.lineTo(74, 56); g.quadraticCurveTo(66, 78, 48, 86); g.quadraticCurveTo(30, 78, 22, 56); g.lineTo(18, 26); g.closePath(); g.stroke(); g.globalAlpha = 0.35; g.fill(); },
+  charge: (g) => { line(g, 14, 30, 54, 48, 14, 66); line(g, 40, 30, 80, 48, 40, 66); },
+  shout: (g) => { for (const r of [14, 26, 38]) { arc(g, 48, 48, r, -0.9, 0.9); g.stroke(); arc(g, 48, 48, r, Math.PI - 0.9, Math.PI + 0.9); g.stroke(); } dot(g, 48, 48, 6); },
+  dome: (g) => { arc(g, 48, 62, 34, Math.PI, 0); g.stroke(); line(g, 14, 62, 82, 62); arc(g, 48, 62, 14, Math.PI, 0); g.fill(); },
+  hook: (g) => { line(g, 20, 20, 48, 48); arc(g, 56, 56, 16, Math.PI, Math.PI * 2.6); g.stroke(); poly(g, 72, 60, 80, 70, 66, 68); },
+  leap: (g) => { g.beginPath(); g.moveTo(16, 74); g.quadraticCurveTo(46, 6, 80, 70); g.stroke(); poly(g, 80, 70, 68, 66, 78, 56); },
+  brace: (g) => { g.strokeRect(24, 24, 48, 48); line(g, 24, 24, 72, 72); line(g, 72, 24, 24, 72); },
+  meteor: (g) => { dot(g, 60, 60, 14); line(g, 10, 10, 52, 52); line(g, 26, 8, 54, 40); line(g, 8, 26, 40, 54); },
+  orb: (g) => { dot(g, 48, 48, 14); g.beginPath(); g.ellipse(48, 48, 34, 12, -0.5, 0, 7); g.stroke(); },
+  pull: (g) => { for (const a of [0, 1.2, 2.4, 3.6, 4.8]) line(g, 48 + Math.cos(a) * 36, 48 + Math.sin(a) * 36, 48 + Math.cos(a) * 12, 48 + Math.sin(a) * 12); dot(g, 48, 48, 6); },
+  hover: (g) => { g.beginPath(); g.moveTo(48, 12); g.lineTo(70, 40); g.lineTo(56, 40); g.lineTo(56, 70); g.lineTo(40, 70); g.lineTo(40, 40); g.lineTo(26, 40); g.closePath(); g.stroke(); line(g, 30, 82, 66, 82); },
+  bubble: (g) => { ring(g, 48, 48, 30); g.globalAlpha = 0.3; g.fill(); g.globalAlpha = 1; dot(g, 36, 36, 6); },
+  hole: (g) => { dot(g, 48, 48, 10); for (const r of [20, 30, 40]) { arc(g, 48, 48, r, 0.4, 4.4); g.stroke(); } },
+  fists: (g) => { for (const x of [12, 52]) { g.beginPath(); g.roundRect(x, 30, 32, 38, 8); g.stroke(); for (const k of [0, 1, 2]) line(g, x + 8 + k * 8, 30, x + 8 + k * 8, 44); } },
+  block: (g) => { g.beginPath(); g.roundRect(18, 22, 60, 52, 10); g.stroke(); line(g, 34, 22, 34, 74); line(g, 62, 22, 62, 74); line(g, 18, 48, 78, 48); },
+  rocketpunch: (g) => { g.beginPath(); g.roundRect(46, 28, 36, 40, 8); g.fill(); line(g, 8, 36, 36, 36); line(g, 8, 48, 40, 48); line(g, 8, 60, 36, 60); },
+  uppercut: (g) => { g.beginPath(); g.roundRect(32, 22, 34, 40, 8); g.fill(); line(g, 48, 90, 48, 68); line(g, 34, 86, 38, 70); line(g, 62, 86, 58, 70); },
+  quake: (g) => { line(g, 10, 74, 28, 58, 40, 76, 54, 56, 68, 76, 86, 60); line(g, 48, 10, 48, 44); poly(g, 38, 38, 58, 38, 48, 54); for (const r of [26, 38]) { arc(g, 48, 78, r, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); } },
+  minigun: (g) => { for (const y of [32, 40, 48, 56, 64]) g.fillRect(34, y - 2, 52, 4); g.fillRect(14, 28, 22, 40); g.strokeRect(36, 26, 14, 44); },
+  bunker: (g) => { g.beginPath(); g.moveTo(14, 70); g.lineTo(14, 44); g.lineTo(48, 24); g.lineTo(82, 44); g.lineTo(82, 70); g.closePath(); g.stroke(); g.fillRect(30, 50, 36, 8); line(g, 8, 78, 88, 78); },
+  fortify: (g) => { g.beginPath(); g.moveTo(48, 12); g.lineTo(76, 24); g.lineTo(72, 56); g.quadraticCurveTo(64, 76, 48, 84); g.quadraticCurveTo(32, 76, 24, 56); g.lineTo(20, 24); g.closePath(); g.stroke(); line(g, 36, 46, 46, 56, 62, 36); },
+  wallshield: (g) => { for (const x of [14, 38, 62]) g.strokeRect(x, 28, 20, 40); line(g, 8, 78, 88, 78); },
+  artillery: (g) => { for (const [x, y] of [[26, 22], [52, 14], [72, 30]]) { line(g, x, y, x + 8, y + 22); poly(g, x + 2, y + 26, x + 14, y + 26, x + 8, y + 38); } line(g, 8, 82, 88, 82); },
+  rifle: (g) => { g.fillRect(14, 42, 56, 10); g.fillRect(70, 45, 16, 4); g.fillRect(28, 52, 8, 16); g.fillRect(44, 34, 14, 8); },
+  rockets: (g) => { for (const y of [28, 48, 68]) { g.lineWidth = 6; line(g, 16, y, 66, y); g.lineWidth = 5; poly(g, 62, y - 7, 80, y, 62, y + 7); } },
+  slide: (g) => { line(g, 14, 30, 80, 30); line(g, 24, 48, 80, 48); line(g, 34, 66, 80, 66); poly(g, 80, 18, 92, 48, 80, 78); },
+  syringe: (g) => { g.save(); g.translate(48, 48); g.rotate(-0.8); g.strokeRect(-24, -8, 40, 16); g.fillRect(16, -2, 18, 4); g.fillRect(-34, -10, 6, 20); g.fillRect(-12, -4, 18, 8); g.restore(); },
+  overdrive: (g) => { ring(g, 48, 48, 30); line(g, 48, 12, 48, 84); line(g, 12, 48, 84, 48); dot(g, 48, 48, 8); },
+  revolver: (g) => { g.fillRect(14, 36, 50, 10); g.fillRect(64, 39, 20, 5); g.beginPath(); g.arc(34, 52, 12, 0, 7); g.stroke(); g.fillRect(14, 46, 8, 22); dot(g, 34, 52, 3); },
+  fan: (g) => { for (let i = 0; i < 5; i++) { const a = -0.9 + i * 0.45; line(g, 20, 70, 20 + Math.cos(a) * 62, 70 + Math.sin(a) * 62); } dot(g, 20, 70, 8); },
+  roll: (g) => { arc(g, 48, 48, 28, 0.4, 5.2); g.stroke(); poly(g, 62, 12, 76, 30, 54, 30); line(g, 14, 76, 34, 66); },
+  flashbang: (g) => { g.fillRect(36, 30, 24, 40); g.fillRect(40, 22, 16, 8); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; line(g, 48 + Math.cos(a) * 32, 50 + Math.sin(a) * 32, 48 + Math.cos(a) * 42, 50 + Math.sin(a) * 42); } },
+  noon: (g) => { ring(g, 48, 48, 32); line(g, 48, 48, 48, 22); line(g, 48, 48, 66, 58); dot(g, 48, 48, 5); for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; line(g, 48 + Math.cos(a) * 36, 48 + Math.sin(a) * 36, 48 + Math.cos(a) * 42, 48 + Math.sin(a) * 42); } },
+  flame: (g) => { g.beginPath(); g.moveTo(48, 12); g.quadraticCurveTo(80, 42, 62, 66); g.quadraticCurveTo(54, 82, 48, 84); g.quadraticCurveTo(26, 78, 28, 56); g.quadraticCurveTo(30, 40, 40, 36); g.quadraticCurveTo(40, 24, 48, 12); g.fill(); },
+  burst: (g) => { for (let i = 0; i < 7; i++) { const a = -0.9 + i * 0.3; line(g, 24, 48, 24 + Math.cos(a) * 58, 48 + Math.sin(a) * 58); } dot(g, 24, 48, 8); },
+  step: (g) => { dot(g, 24, 48, 8); g.setLineDash([6, 6]); line(g, 32, 48, 64, 48); g.setLineDash([]); ring(g, 74, 48, 12); },
+  wall: (g) => { for (const x of [18, 34, 50, 66]) { g.beginPath(); g.moveTo(x, 78); g.quadraticCurveTo(x + 12, 52, x + 6, 22); g.quadraticCurveTo(x + 22, 48, x + 14, 78); g.fill(); } },
+  inferno: (g) => { GLYPH.flame(g); g.globalAlpha = 0.6; ring(g, 48, 70, 34); },
+  rail: (g) => { g.fillRect(10, 44, 70, 8); g.fillRect(80, 46, 10, 4); line(g, 20, 30, 60, 30); line(g, 20, 66, 60, 66); },
+  scope: (g) => { ring(g, 48, 48, 30); line(g, 48, 10, 48, 86); line(g, 10, 48, 86, 48); dot(g, 48, 48, 5); },
+  grapple: (g) => { g.beginPath(); g.moveTo(16, 80); g.quadraticCurveTo(40, 40, 70, 28); g.stroke(); poly(g, 66, 14, 86, 28, 66, 44); },
+  sonar: (g) => { dot(g, 48, 48, 8); for (const r of [20, 32, 44]) ring(g, 48, 48, r); },
+  lance: (g) => { g.lineWidth = 8; line(g, 8, 88, 86, 10); g.lineWidth = 3; line(g, 22, 88, 88, 22); line(g, 8, 74, 74, 8); },
+  pistols: (g) => { for (const y of [34, 58]) { g.fillRect(16, y, 34, 10); g.fillRect(22, y + 10, 8, 14); g.fillRect(50, y + 3, 24, 4); } },
+  blade: (g) => { poly(g, 16, 80, 80, 16, 72, 40, 40, 72); g.fillRect(14, 70, 18, 8); },
+  blink: (g) => { ring(g, 22, 48, 10); line(g, 36, 48, 60, 48); line(g, 54, 36, 70, 48, 54, 60); dot(g, 78, 48, 10); },
+  rewind: (g) => { arc(g, 48, 48, 28, 0.5, 5.4); g.stroke(); poly(g, 66, 16, 60, 36, 80, 34); line(g, 48, 32, 48, 48, 60, 54); },
+  bomb: (g) => { dot(g, 46, 54, 22); g.beginPath(); g.moveTo(58, 36); g.quadraticCurveTo(70, 22, 80, 24); g.stroke(); dot(g, 82, 22, 5); },
+  smg: (g) => { g.fillRect(14, 38, 44, 12); g.fillRect(58, 41, 26, 6); g.fillRect(22, 50, 8, 26); g.fillRect(40, 50, 8, 18); },
+  hack: (g) => { g.strokeRect(20, 24, 56, 40); line(g, 30, 36, 40, 44, 30, 52); line(g, 48, 52, 60, 52); g.fillRect(36, 70, 24, 6); line(g, 28, 70, 68, 70); },
+  cloak: (g) => { g.beginPath(); g.moveTo(24, 78); g.lineTo(24, 40); g.quadraticCurveTo(24, 16, 48, 16); g.quadraticCurveTo(72, 16, 72, 40); g.lineTo(72, 78); g.lineTo(60, 68); g.lineTo(48, 78); g.lineTo(36, 68); g.closePath(); g.stroke(); dot(g, 38, 42, 4); dot(g, 58, 42, 4); },
+  beacon: (g) => { dot(g, 48, 62, 8); line(g, 48, 54, 48, 18); ring(g, 48, 18, 6); for (const r of [20, 32]) { arc(g, 48, 62, r, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); } },
+  emp: (g) => { poly(g, 54, 8, 28, 54, 46, 54, 38, 88, 70, 38, 52, 38); for (const r of [38]) { arc(g, 48, 48, r, 0.4, 1.4); g.stroke(); arc(g, 48, 48, r, 3.5, 4.5); g.stroke(); } },
+  boltrifle: (g) => { g.fillRect(8, 46, 80, 6); g.fillRect(8, 52, 26, 10); g.fillRect(40, 38, 22, 8); line(g, 66, 40, 78, 32); dot(g, 80, 30, 3); },
+  trap: (g) => { ring(g, 48, 56, 26); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; poly(g, 48 + Math.cos(a) * 20, 56 + Math.sin(a) * 20, 48 + Math.cos(a + 0.2) * 32, 56 + Math.sin(a + 0.2) * 32, 48 + Math.cos(a - 0.2) * 32, 56 + Math.sin(a - 0.2) * 32); } },
+  caltrops: (g) => { for (const [x, y] of [[28, 62], [52, 70], [66, 48], [38, 38]]) { line(g, x - 10, y + 6, x + 10, y - 6); line(g, x - 6, y - 10, x + 6, y + 10); line(g, x, y - 6, x, y + 12); } },
+  mark: (g) => { ring(g, 48, 48, 26); line(g, 48, 10, 48, 28); line(g, 48, 68, 48, 86); line(g, 10, 48, 28, 48); line(g, 68, 48, 86, 48); poly(g, 48, 36, 60, 48, 48, 60, 36, 48); },
+  pit: (g) => { g.beginPath(); g.ellipse(48, 56, 38, 16, 0, 0, 7); g.stroke(); for (let i = 0; i < 7; i++) { const x = 18 + i * 10; poly(g, x - 4, 56, x + 4, 56, x, 30 + (i % 2) * 8); } },
+  launcher: (g) => { g.fillRect(10, 40, 60, 16); g.beginPath(); g.moveTo(70, 36); g.lineTo(84, 48); g.lineTo(70, 60); g.closePath(); g.fill(); g.fillRect(28, 56, 8, 16); g.fillRect(22, 30, 14, 8); },
+  concuss: (g) => { for (const r of [14, 26, 38]) { arc(g, 30, 48, r, -0.8, 0.8); g.stroke(); } dot(g, 30, 48, 8); poly(g, 76, 40, 90, 48, 76, 56); },
+  jet: (g) => { poly(g, 48, 10, 66, 40, 56, 40, 56, 62, 40, 62, 40, 40, 30, 40); for (let i = 0; i < 3; i++) line(g, 38 + i * 10, 70, 38 + i * 10, 84 - i % 2 * 6); },
+  jetpack: (g) => { g.strokeRect(24, 16, 18, 46); g.strokeRect(54, 16, 18, 46); for (const x of [33, 63]) { poly(g, x - 8, 66, x + 8, 66, x, 88); } },
+  barrage: (g) => { for (const [x, y] of [[22, 20], [46, 12], [70, 24], [34, 40], [58, 44]]) { line(g, x, y, x + 6, y + 22); poly(g, x + 1, y + 26, x + 11, y + 26, x + 6, y + 36); } line(g, 8, 84, 88, 84); },
+  riftgun: (g) => { g.fillRect(14, 40, 40, 12); g.fillRect(20, 52, 10, 20); ring(g, 66, 46, 12); ring(g, 78, 46, 7); },
+  warp: (g) => { dot(g, 18, 48, 6); line(g, 26, 48, 50, 48); ring(g, 66, 48, 16); ring(g, 66, 48, 8); },
+  portalA: (g) => { g.beginPath(); g.ellipse(48, 48, 22, 36, 0, 0, 7); g.stroke(); g.fillRect(40, 34, 6, 28); line(g, 40, 34, 56, 34); line(g, 40, 48, 56, 48); line(g, 56, 34, 56, 48); },
+  portalB: (g) => { g.beginPath(); g.ellipse(48, 48, 22, 36, 0, 0, 7); g.stroke(); line(g, 42, 32, 42, 64); line(g, 42, 32, 54, 36, 54, 46, 42, 48); line(g, 42, 48, 56, 52, 56, 62, 42, 64); },
+  stasis: (g) => { ring(g, 48, 48, 32); line(g, 48, 22, 48, 74); line(g, 25, 35, 71, 61); line(g, 25, 61, 71, 35); dot(g, 48, 48, 6); },
+  pistol: (g) => { g.fillRect(18, 34, 46, 12); g.fillRect(24, 46, 12, 22); g.fillRect(64, 37, 18, 6); },
+  beam: (g) => { g.beginPath(); g.moveTo(14, 70); g.bezierCurveTo(30, 20, 60, 90, 82, 30); g.lineWidth = 6; g.stroke(); dot(g, 14, 70, 7); poly(g, 74, 24, 88, 30, 78, 42); },
+  wing: (g) => { g.beginPath(); g.moveTo(48, 70); g.quadraticCurveTo(14, 60, 10, 20); g.quadraticCurveTo(34, 34, 48, 50); g.quadraticCurveTo(62, 34, 86, 20); g.quadraticCurveTo(82, 60, 48, 70); g.fill(); },
+  sanct: (g) => { ring(g, 48, 48, 34); poly(g, 40, 22, 56, 22, 56, 40, 74, 40, 74, 56, 56, 56, 56, 74, 40, 74, 40, 56, 22, 56, 22, 40, 40, 40); },
+  resurge: (g) => { GLYPH.wing(g); ring(g, 48, 14, 8); },
+  biorifle: (g) => { g.fillRect(8, 46, 78, 8); g.fillRect(8, 54, 22, 10); ring(g, 50, 36, 8); line(g, 50, 28, 50, 44); line(g, 42, 36, 58, 36); },
+  dart: (g) => { g.lineWidth = 6; line(g, 14, 80, 74, 22); g.lineWidth = 5; poly(g, 66, 10, 86, 14, 82, 34); g.lineWidth = 3; g.strokeRect(20, 52, 18, 18); },
+  grenade: (g) => { dot(g, 48, 56, 22); g.fillRect(40, 22, 16, 10); line(g, 56, 24, 70, 14); ring(g, 74, 12, 5); line(g, 38, 50, 58, 50); line(g, 48, 40, 48, 60); },
+  nano: (g) => { ring(g, 48, 48, 32); poly(g, 54, 12, 30, 52, 46, 52, 40, 84, 68, 40, 52, 40); },
+  rivet: (g) => { g.fillRect(14, 38, 44, 14); g.fillRect(58, 42, 22, 6); g.fillRect(22, 52, 10, 18); for (const x of [22, 36, 50]) { g.save(); g.fillStyle = '#000'; dot(g, x, 45, 2); g.restore(); } },
+  repair: (g) => { line(g, 16, 80, 56, 40); g.lineWidth = 6; arc(g, 66, 30, 14, 0.9, 5.8); g.stroke(); g.lineWidth = 5; line(g, 60, 12, 76, 18); },
+  pylon: (g) => { g.fillRect(36, 30, 24, 46); dot(g, 48, 24, 14); g.fillRect(24, 76, 48, 8); },
+  turret: (g) => { g.fillRect(26, 42, 40, 22); g.fillRect(66, 46, 22, 5); g.fillRect(66, 56, 22, 5); line(g, 34, 64, 22, 86); line(g, 58, 64, 70, 86); },
+  grid: (g) => { for (let i = 0; i < 4; i++) { line(g, 20 + i * 18, 18, 20 + i * 18, 78); line(g, 18, 20 + i * 18, 78, 20 + i * 18); } dot(g, 48, 48, 8); },
+  sonic: (g) => { poly(g, 14, 38, 32, 38, 52, 22, 52, 74, 32, 58, 14, 58); for (const r of [16, 28]) { arc(g, 52, 48, r, -0.8, 0.8); g.stroke(); } },
+  note: (g) => { dot(g, 34, 68, 12); g.fillRect(44, 18, 6, 52); g.beginPath(); g.moveTo(50, 18); g.quadraticCurveTo(76, 24, 74, 48); g.lineWidth = 6; g.stroke(); },
+  pulse: (g) => { dot(g, 20, 48, 8); for (const r of [22, 40, 58]) { arc(g, 20, 48, r, -0.7, 0.7); g.stroke(); } },
+  wdash: (g) => { GLYPH.slide(g); },
+  barrier: (g) => { for (const r of [14, 26, 38]) ring(g, 48, 48, r); poly(g, 48, 36, 56, 52, 40, 52); },
+  shard: (g) => { poly(g, 48, 10, 62, 48, 48, 86, 34, 48); line(g, 48, 10, 48, 86); line(g, 34, 48, 62, 48); },
+  harmony: (g) => { dot(g, 48, 48, 12); ring(g, 48, 48, 28); line(g, 76, 48, 90, 38); line(g, 76, 48, 90, 58); g.setLineDash([4, 5]); line(g, 8, 48, 20, 48); g.setLineDash([]); },
+  discord: (g) => { dot(g, 48, 48, 12); ring(g, 48, 48, 28); line(g, 24, 24, 36, 36); line(g, 72, 24, 60, 36); line(g, 24, 72, 36, 60); line(g, 72, 72, 60, 60); },
+  kick: (g) => { g.beginPath(); g.moveTo(18, 70); g.lineTo(48, 70); g.lineTo(64, 52); g.lineTo(80, 52); g.lineTo(80, 64); g.lineTo(60, 80); g.lineTo(18, 80); g.closePath(); g.fill(); line(g, 70, 22, 88, 14); line(g, 74, 36, 92, 32); },
+  transcend: (g) => { ring(g, 48, 40, 18); dot(g, 48, 40, 6); line(g, 48, 58, 48, 80); line(g, 30, 70, 66, 70); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; line(g, 48 + Math.cos(a) * 26, 40 + Math.sin(a) * 26, 48 + Math.cos(a) * 36, 40 + Math.sin(a) * 36); } },
+  drain: (g) => { g.beginPath(); g.moveTo(14, 70); g.bezierCurveTo(24, 20, 56, 90, 76, 36); g.lineWidth = 6; g.stroke(); g.lineWidth = 5; dot(g, 14, 70, 7); poly(g, 70, 18, 90, 26, 76, 44); },
+  healorb: (g) => { dot(g, 48, 40, 14); line(g, 48, 56, 48, 72); line(g, 38, 66, 58, 66); for (const r of [26, 36]) { arc(g, 48, 70, r, Math.PI * 1.15, Math.PI * 1.85); g.stroke(); } },
+  fade: (g) => { dot(g, 22, 48, 10); g.globalAlpha = 0.6; dot(g, 42, 48, 10); g.globalAlpha = 0.35; dot(g, 62, 48, 10); g.globalAlpha = 0.18; dot(g, 80, 48, 10); },
+  decay: (g) => { dot(g, 48, 44, 14); for (const [x, y] of [[26, 72], [48, 78], [70, 72]]) { line(g, x, y - 12, x, y + 6); poly(g, x - 5, y + 6, x + 5, y + 6, x, y + 14); } },
+  coal: (g) => { line(g, 10, 48, 86, 48); g.lineWidth = 9; g.globalAlpha = 0.5; line(g, 10, 48, 86, 48); g.globalAlpha = 1; g.lineWidth = 5; dot(g, 12, 48, 9); poly(g, 80, 36, 92, 48, 80, 60); for (const x of [30, 52, 72]) { line(g, x, 40, x, 24); line(g, x, 56, x, 72); } },
+};
+export function drawGlyph(canvas, kind, color = '#fff') {
+  const g = canvas.getContext('2d');
+  g.clearRect(0, 0, canvas.width, canvas.height); g.save(); g.scale(canvas.width / 96, canvas.height / 96);
+  g.strokeStyle = color; g.fillStyle = color; g.lineWidth = 5; g.lineCap = g.lineJoin = 'round'; g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = 4;
+  (GLYPH[kind] || GLYPH.circle)(g); g.restore();
+}
+export function drawIcon(canvas, heroId, slot, color = '#fff') { drawGlyph(canvas, ICONS[heroId]?.[slot] || 'circle', color); }
+export const glyphKinds = () => Object.keys(GLYPH);
+export const heroGlyphs = (id) => ICONS[id];
+export const iconCheck = () => Object.keys(HERO).filter((id) => id !== 'announcer').flatMap((id) => ['w1', 'w2', 'a1', 'a2', 'ult'].filter((s) => !GLYPH[ICONS[id]?.[s]]).map((s) => id + '.' + s));

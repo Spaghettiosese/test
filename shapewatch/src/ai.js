@@ -21,7 +21,7 @@ function skillAt(x) {
   return o;
 }
 // rock-paper-scissors between subclasses (+ good matchup for the row against the column)
-const MATCHUP = {
+export const MATCHUP = {
   Bruiser: { Flanker: 1, Recon: 1, Sharpshooter: -1, Specialist: 0, Stalwart: 0, Medic: 1, Tactician: 0, Survivor: 0 },
   Initiator: { Recon: 1, Sharpshooter: 1, Medic: 1, Stalwart: -1, Flanker: -0.5, Specialist: 0 },
   Stalwart: { Sharpshooter: 1, Flanker: 0.5, Specialist: -1, Bruiser: -0.5, Recon: -0.5, Initiator: 0.5 },
