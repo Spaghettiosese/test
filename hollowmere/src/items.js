@@ -80,6 +80,7 @@ export const ITEMS = {
   clapper: { name: 'The bell\'s tongue', kind: 'quest', desc: 'The iron clapper of Ravenspire\'s bell. Without it, the bell cannot toll thirteen.' },
   echo: { name: 'Choir echo', kind: 'quest', desc: 'A splinter of the Choir\'s song, caught in violet glass. Thirteen were scattered when the Binder sealed the hill.' },
   salve_gh: { name: 'Gray Hand salve', kind: 'consumable', heal: 70, value: 30, desc: 'Strong-smelling paste in a tin. Closes wounds that would kill a lesser man.' },
+  crossbow: { name: 'Hand crossbow', kind: 'tool', value: 60, desc: 'I raises it. Left button looses, right button aims, the wheel or K changes the bolt.' },
   bolt: { name: 'Crossbow bolt', kind: 'ammo', value: 2, desc: 'Broadhead. Kills quietly, if it kills.' },
   bolt_water: { name: 'Water bolt', kind: 'ammo', value: 4, desc: 'A glass head full of water: puts out a torch or a brazier from thirty paces.' },
   bolt_fire: { name: 'Fire bolt', kind: 'ammo', value: 6, desc: 'Pitch and a fuse. Lights whatever it hits, including people.' },

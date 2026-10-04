@@ -7,9 +7,11 @@ import { QUESTS } from './quests.js';
 import { LORE } from './lore.js';
 import { GEAR, SLOTS } from './gear.js';
 import { CODEX, DEEDS } from './codex.js';
+import { CHAPTERS, VERSES } from './campaign.js';
+import { ECHOES } from './echoes.js';
 
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-export const TABS = [['journal', 'Journal'], ['perks', 'Perks'], ['craft', 'Craft'], ['map', 'Map'], ['lore', 'Lore'], ['gear', 'Gear'], ['deeds', 'Deeds'], ['stealth', 'Stealth'], ['stash', 'Stash']];
+export const TABS = [['journal', 'Journal'], ['story', 'Story'], ['perks', 'Perks'], ['craft', 'Craft'], ['map', 'Map'], ['lore', 'Lore'], ['gear', 'Gear'], ['deeds', 'Deeds'], ['stealth', 'Stealth'], ['stash', 'Stash']];
 
 export function installPanels(UI) {
   const P = UI.prototype;
@@ -55,6 +57,21 @@ export function installPanels(UI) {
         <div><h4>Purse</h4><ul><li><span>Gold</span><span>${inv.gold}</span></li><li><span>Loot value</span><span>${inv.lootValue}</span></li></ul>
         <h4>Carried</h4><ul>${other.map(li).join('') || '<li><span>Nothing</span></li>'}</ul><h4>Keys</h4><ul>${keys.map(li).join('') || '<li><span>None</span></li>'}</ul>
         <h4>Deeds</h4><ul><li><span>Guards slain</span><span>${st.guardKills}</span></li><li><span>Silent kills</span><span>${st.stabs}</span></li><li><span>Torches snuffed</span><span>${st.snuffed}</span></li><li><span>Lore found</span><span>${[...S.notesFound].filter((x) => x.startsWith('l_')).length}/${LORE.length}</span></li><li><span>Fish caught</span><span>${st.fish || 0}</span></li><li><span>Ore mined</span><span>${st.mined || 0}</span></li><li><span>Blade level</span><span>${g.smith.level}/5</span></li><li><span>Arrests · escapes</span><span>${st.arrests || 0} · ${st.escapes || 0}</span></li></ul></div></div>`;
+    } else if (tab === 'story') {
+      const C = g.campaign, F = C.facts, ci = C.index(), dk = g.npcs.find((n) => n.id === 'duke');
+      const fact = (label, val) => `<li><span>${esc(label)}</span><span>${esc(val)}</span></li>`;
+      const known = [
+        fact('Brannoch', F.brannochSaved ? 'saved' : C.isDone('c2_brannoch') || C.isDone('c2_note') ? 'lost' : ci >= 1 ? 'waiting at the camp' : 'hired you'),
+        fact('The Duke', !dk || dk.dead || S.dukeState === 'dead' ? 'dead' : F.dukeTalked ? 'told you his debt' : S.dukeState === 'surrender' || S.dukeState === 'fled' ? 'spared' : 'alive'),
+        ...(ci >= 1 ? [fact('Vane', F.vaneSpared ? 'stood aside' : F.vaneBeaten ? 'beaten' : 'in the Rookery')] : []),
+        ...(ci >= 2 ? [fact('Captain Harl', F.pardoned ? 'pardoned you' : F.truceRefused ? 'refused' : F.siegeFailed ? 'abandoned' : 'offered a truce'), fact('The Bone', F.boneTaken ? 'in your pack' : 'in the catacombs'), fact('The Bell', F.bellTaken ? 'its tongue is yours' : 'still tolls')] : []),
+        ...(ci >= 3 ? [fact('Sable', F.sableRedeemed ? 'went home' : F.sableBeaten ? 'beaten' : 'at the Stones')] : []),
+      ];
+      body = `<div class="cols"><div><h4>Chapters</h4><ul>${CHAPTERS.map((c, i) => `<li class="${i < ci ? 'done' : ''}"><span><b>${c.n}. ${i <= ci ? esc(c.title) : '???'}</b>${i === ci ? `<br><small style="color:var(--dim)">${esc(c.blurb)}</small>` : ''}</span><span>${i < ci ? 'done' : i === ci ? 'now' : ''}</span></li>`).join('')}</ul>
+        <h4>Choices and debts</h4><ul>${known.join('')}</ul>
+        <h4>Choir echoes (${g.echoes?.found.size || 0}/13)</h4><ul>${ECHOES.filter((e) => g.echoes?.found.has(e.id)).map((e) => `<li><span><small style="color:var(--dim)">${esc(e.where)}:</small> ${esc(e.text)}</span></li>`).join('') || '<li><span>None yet. They hum when you are near.</span></li>'}</ul></div>
+        <div><h4>The three verses (${C.verses.size}/3)</h4><ul>${Object.entries(VERSES).map(([k, v]) => C.verses.has(k) ? `<li><span><b>${esc(v.name)}</b><br><small style="color:var(--bone)">${esc(v.text)}</small></span></li>` : `<li><span style="color:var(--dim)">${esc(v.name)}: unknown</span></li>`).join('')}</ul>
+        <h4>Trophies</h4><ul><li><span>Earned across every game</span><span>${g.achievements.count()} / 40</span></li></ul></div></div>`;
     } else if (tab === 'perks') {
       const trees = [...new Set(PERKS.map((p) => p.tree))];
       body = `<p class="sub">You have <b>${pr.points}</b> perk point${pr.points === 1 ? '' : 's'}. Levels come from kills (silent ones pay more), quests, discoveries, lore and crafting.</p><div class="cols3">${trees.map((t) => `<div><h4>${t}</h4>${PERKS.filter((p) => p.tree === t).map((p) => `<div class="perk"><div><b>${p.name}</b> <span class="pips">${'●'.repeat(pr.rank(p.id))}${'○'.repeat(p.max - pr.rank(p.id))}</span></div><small>${p.desc}</small><button data-act="perk:${p.id}" ${pr.points < 1 || pr.rank(p.id) >= p.max ? 'disabled' : ''} class="mini">${pr.rank(p.id) >= p.max ? 'max' : 'learn'}</button></div>`).join('')}</div>`).join('')}</div>`;

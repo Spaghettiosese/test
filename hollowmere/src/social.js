@@ -39,7 +39,7 @@ export class Social {
   // 0 open ground, 1 somebody's home, 2 restricted (the keep, the fort, a barracks), 3 forbidden
   access(x, z) {
     const nav = this.g.nav, zone = nav.zone[Math.max(0, nav.at(x, z))] || 0;
-    if (z > 280) return 2;   // the deep places: nobody's home, everybody's business
+    if (z > 280) return x < -100 ? 2 : 0;   // the Rookery and the belfry are somebody's; the Deep is nobody's
     if (x > 10 && x < 34 && z > -120 && z < -98) return zone >= 2 ? 3 : 2;   // Fort Greywatch: the yard, the barracks, and the gaol
     if (zone === 0) return 0;
     const keep = x > -35 && x < 35 && z > 94 && z < 152;
@@ -84,7 +84,8 @@ export class Social {
       for (const o of this.off) if (o.id === 'lockpick' || o.id === 'body' || o.id === 'bloody') if (o.w > w) { w = o.w; id = o.id; reason = o.reason; }
       return w ? { w, kind: 'hostile', reason, id } : { w: 0, kind: null, reason: null, id: null };
     }
-    const trust = (n.trustUntil || 0) > g.time, bribed = (n.bribedUntil || 0) > g.time, afraid = (n.afraidUntil || 0) > g.time;
+    const F = g.campaign?.facts || {}, crown = n.faction === 'watch' || n.faction === 'keep';
+    const trust = (n.trustUntil || 0) > g.time || (crown && (F.pardoned || F.truce)), bribed = (n.bribedUntil || 0) > g.time, afraid = (n.afraidUntil || 0) > g.time;
     let w = 0, kind = null, reason = null, id = null;
     const dg = g.rep.disguise ? g.rep.disguiseGain(n, pd) : 1;
     for (const o of this.off) {
@@ -96,7 +97,7 @@ export class Social {
       if (ow > w) { w = ow; kind = o.kind; reason = o.reason; id = o.id; }
     }
     // recognition is personal: does what he sees fit what he has been told?
-    const m = L.match(n, pd);
+    const m = (crown && F.pardoned) ? 0 : L.match(n, pd);
     if (m > 0.2) {
       const near = clamp(1.2 - pd / 18, 0.15, 1), rw = Math.pow(m, 1.1) * near * (1 + 0.15 * vig);
       const bounty = Math.max(g.rep.total('watch'), g.rep.total('keep')), hot = bounty >= 150 || g.alarmLevel >= 1;   // a small price on your head is a conversation; a big one is a fight

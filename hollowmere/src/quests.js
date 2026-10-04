@@ -104,6 +104,27 @@ export const QUESTS = [
     offer: ['Every wagon pays at my bridge. The last carter refused and now my strongbox is light. I want that carter\'s goods back, and I do not care whose back they are on.', 'Look in the wrecked wagon on the road north of here. Bring me what is in the crate.'],
     steps: [{ type: 'have', item: 'potion', n: 1, text: 'Find the wrecked wagon crate on the Old Road' }],
     done: ['That is the carter\'s stock. Fine. I never saw you.'], reward: { gold: 45 }, take: [['potion', 1]] },
+  // ---- Round 8: work that only exists after the theft
+  { id: 'q_restless', giver: 'ansel', title: 'The restless dead', xp: 140, when: (g) => g.campaign.index() >= 1 && g.campaign.verses.has('saint'),
+    offer: ['Every night more of them climb out of the north row. Some of them I christened.', 'Lay six of them to rest, thief, and I will pray for you, which is more than anyone else in Ashgate will do.'],
+    steps: [{ type: 'kill', role: 'hollow', n: 6, text: 'Put down six hollows' }],
+    done: ['Six souls quiet. The Saint keeps her own accounts; you are a little less in debt to her now.'], reward: { gold: 90, items: [['potion', 2], ['hexbane', 1]] } },
+  { id: 'q_masks', giver: 'harl', title: 'Masks in my town', xp: 150, when: (g) => !!g.campaign.facts.pardoned,
+    offer: ['The Gray Hand walked into my town on the Hollow Night while my men were dying at the gate. I want to know how many.', 'Bring me two of their masks. I do not care how you get them off the faces.'],
+    steps: [{ type: 'have', item: 'uni_hand', n: 2, text: 'Bring Captain Harl two Gray Hand masks (strip them from their dead)' }],
+    done: ['Two. Then there are two fewer. Take this, and a seal that opens my gates without questions.'], reward: { gold: 120, items: [['ducalseal', 1]] }, take: [['uni_hand', 2]] },
+  { id: 'q_knights', giver: 'brask', title: 'The dead in plate', xp: 200, when: (g) => g.campaign.index() >= 2,
+    offer: ['My scouts swear the dead have knights now. Black plate, no faces, swings like a falling door.', 'Put down two of them and I will believe it, and pay for the privilege.'],
+    steps: [{ type: 'stat', key: 'knights', n: 2, text: 'Put down two Hollow Knights' }],
+    done: ['Two. Gods. Then it is true. Take this, and pray there are not twenty.'], reward: { gold: 160, items: [['d_iron', 2], ['whetstone', 2]] } },
+  { id: 'q_echoes', giver: 'hermit', title: 'Echoes of the hill', xp: 160, when: (g) => g.campaign.index() >= 1,
+    offer: ['You hear them now, do you not? Splinters of the song, caught in glass. They were scattered when the Binder sealed the hill.', 'Bring four of them into your keeping and I will teach you what the stones taught me.'],
+    steps: [{ type: 'stat', key: 'echoes', n: 4, text: 'Find four Choir echoes (they hum when you are near; Wraith Sight shows them on the map)' }],
+    done: ['Four voices, held still. Good. Take the ring; it hums in tune with them.'], reward: { gold: 60, ember: 30, items: [['embering', 1]] } },
+  { id: 'q_lamp', giver: 'sable', title: 'A lamp in the window', xp: 90, when: (g) => !!g.campaign.facts.witchMessage,
+    offer: ['I promised her a lamp, and lamps need oil. The bog gives it, if you know which cap to cut.', 'Bring me three flasks of lamp oil. If she ever comes home, she will see it burning.'],
+    steps: [{ type: 'have', item: 'oil', n: 3, text: 'Bring Old Sable three flasks of lamp oil' }],
+    done: ['There. It will burn all night now. Take these; you will need to see in the dark where you are going.'], reward: { gold: 30, items: [['d_night', 2], ['d_ghost', 1]] }, take: [['oil', 3]] },
 ];
 
 export class Quests {
@@ -129,7 +150,7 @@ export class Quests {
     if (step.type === 'kill' && step.role) { let best = null, bd = 1e9; for (const n of this.g.npcs) if (n.role === step.role && !n.dead && n.dist < bd) { bd = n.dist; best = n; } return best ? [best.x, best.z] : null; }
     if (q.hintNpc) { const n = this.g.npcs.find((x) => x.id === q.hintNpc); if (n) return [n.x, n.z]; }
     if (q.hint) return q.hint;
-    return { q_bloom: [-190, -228], q_diary: [162, 66], q_ring: [196, 122], q_stones: [5, -83], q_toll: [-6, -60], q_fish: [170, -155], q_ore: [-236, 138], q_miners: [-237, 152], q_singing: [80, -200] }[q.id] || null;
+    return { q_bloom: [-190, -228], q_diary: [162, 66], q_ring: [196, 122], q_stones: [5, -83], q_toll: [-6, -60], q_fish: [170, -155], q_ore: [-236, 138], q_miners: [-237, 152], q_singing: [80, -200], q_restless: [-42, 74], q_echoes: null }[q.id] || null;
   }
   onKill(n) {
     this.kills.role[n.role] = (this.kills.role[n.role] || 0) + 1; this.kills.id.add(n.id);
@@ -178,7 +199,7 @@ export class Quests {
   }
   // dialogue lines for an NPC that gives quests (null when none apply)
   dialogue(npc) {
-    const mine = QUESTS.filter((q) => q.giver === npc.id && !(q.requires && this.status(q.requires) !== 'done'));
+    const mine = QUESTS.filter((q) => q.giver === npc.id && !(q.requires && this.status(q.requires) !== 'done') && (!q.when || q.when(this.g) || this.status(q.id) !== 'new'));
     const turn = QUESTS.filter((q) => q.to === npc.id && this.status(q.id) === 'ready');
     for (const q of turn) return [...q.done.slice(0, -1).map((t) => L(t)), L(q.done[q.done.length - 1], { end: true, onShow: (G) => G.quests.turnIn(q.id) })];
     for (const q of mine) if (this.status(q.id) === 'ready' && !q.to) return [...q.done.slice(0, -1).map((t) => L(t)), L(q.done[q.done.length - 1], { end: true, onShow: (G) => G.quests.turnIn(q.id) })];

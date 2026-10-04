@@ -1,11 +1,11 @@
 // Options: field of view, pixel resolution, look of the grade, comfort and HUD switches.
 // Saved with the other settings and applied at once.
-const DEFAULTS = { fov: 74, res: 270, bob: 1, invertY: false, bright: 1, dither: 0.5, sat: 0.9, minimap: true, threat: true, status: true, numbers: true, fps: false, shake: 1, autosave: true, autoAnswer: true };
+const DEFAULTS = { fov: 74, res: 270, bob: 1, invertY: false, bright: 1, dither: 0.5, sat: 0.9, minimap: true, threat: true, status: true, numbers: true, fps: false, shake: 1, autosave: true, autoAnswer: true, dodge: true };
 const SPEC = [
   ['Field of view', 'fov', 'range', 60, 100, 1, (v) => v + '°'], ['Pixel height', 'res', 'select', [[180, 'Chunky (180)'], [270, 'Normal (270)'], [360, 'Fine (360)'], [480, 'Crisp (480)']]],
   ['Brightness', 'bright', 'range', 0.8, 1.4, 0.02, (v) => Math.round(v * 100) + '%'], ['Dither strength', 'dither', 'range', 0, 1, 0.05, (v) => Math.round(v * 100) + '%'], ['Colour saturation', 'sat', 'range', 0.5, 1.3, 0.05, (v) => Math.round(v * 100) + '%'],
   ['Head bob', 'bob', 'range', 0, 1.5, 0.1, (v) => Math.round(v * 100) + '%'], ['Screen shake', 'shake', 'range', 0, 1.5, 0.1, (v) => Math.round(v * 100) + '%'], ['Invert look (Y)', 'invertY', 'check'],
-  ['Minimap', 'minimap', 'check'], ['Threat ring and ? marks', 'threat', 'check'], ['Status pills', 'status', 'check'], ['Damage numbers', 'numbers', 'check'], ['Autosave', 'autosave', 'check'], ['Answer guards automatically', 'autoAnswer', 'check'], ['Show frame rate', 'fps', 'check'],
+  ['Minimap', 'minimap', 'check'], ['Threat ring and ? marks', 'threat', 'check'], ['Status pills', 'status', 'check'], ['Damage numbers', 'numbers', 'check'], ['Autosave', 'autosave', 'check'], ['Answer guards automatically', 'autoAnswer', 'check'], ['Double-tap to sidestep', 'dodge', 'check'], ['Show frame rate', 'fps', 'check'],
 ];
 export class Options {
   constructor(g) { this.g = g; this.v = { ...DEFAULTS, ...(g.saves.settings().opts || {}) }; this.fpsT = 0; this.frames = 0; }

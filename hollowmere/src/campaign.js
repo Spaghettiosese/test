@@ -21,8 +21,8 @@ export const VERSES = {
 // what a chapter started from the menu hands you
 const LOADOUT = {
   c2: { level: 4, gold: 140, items: [['letter', 1], ['potion', 2], ['ember', 1], ['lockpick', 4], ['knife', 4], ['smoke', 1]], gear: ['cowl'], hours: 23.4, pos: [13, 0.1, 150.5], yaw: Math.PI, area: 'Behind the Keep', blade: 2 },
-  c3: { level: 7, gold: 260, items: [['letter', 1], ['potion', 3], ['ember', 2], ['lockpick', 5], ['knife', 6], ['smoke', 2], ['firebomb', 1], ['hexbane', 1]], gear: ['cowl', 'jerkin', 'softboots'], hours: 19.2, pos: [140, 0.1, -150], yaw: Math.PI, area: 'Pellmouth', blade: 3, verses: ['saint', 'witch'], flags: { brannochSaved: true, c2done: true } },
-  c4: { level: 10, gold: 400, items: [['letter', 1], ['potion', 4], ['ember', 3], ['lockpick', 5], ['knife', 8], ['smoke', 2], ['firebomb', 2], ['hexbane', 2], ['binderskull', 1], ['clapper', 1]], gear: ['cowl', 'jerkin', 'softboots'], hours: 22.6, pos: [80, 0.1, -184], yaw: Math.PI, area: 'The Choir Stones', blade: 4, verses: ['saint', 'witch', 'father'], flags: { brannochSaved: true, c2done: true, c3done: true, pardoned: true } },
+  c3: { level: 7, gold: 260, items: [['letter', 1], ['crossbow', 1], ['bolt', 12], ['bolt_water', 4], ['potion', 3], ['ember', 2], ['lockpick', 5], ['knife', 6], ['smoke', 2], ['firebomb', 1], ['hexbane', 1]], gear: ['cowl', 'jerkin', 'softboots'], hours: 19.2, pos: [140, 0.1, -150], yaw: Math.PI, area: 'Pellmouth', blade: 3, verses: ['saint', 'witch'], flags: { brannochSaved: true, c2done: true } },
+  c4: { level: 10, gold: 400, items: [['letter', 1], ['crossbow', 1], ['bolt', 16], ['bolt_fire', 4], ['bolt_sleep', 3], ['potion', 4], ['ember', 3], ['lockpick', 5], ['knife', 8], ['smoke', 2], ['firebomb', 2], ['hexbane', 2], ['binderskull', 1], ['clapper', 1]], gear: ['cowl', 'jerkin', 'softboots'], hours: 22.6, pos: [80, 0.1, -184], yaw: Math.PI, area: 'The Choir Stones', blade: 4, verses: ['saint', 'witch', 'father'], flags: { brannochSaved: true, c2done: true, c3done: true, pardoned: true } },
 };
 
 export class Campaign {
@@ -45,6 +45,8 @@ export class Campaign {
   has(id) { return !!this.g.story.objectives.find((x) => x.id === id); }
   isDone(id) { return !!this.g.story.objectives.find((x) => x.id === id && x.done); }
   done(id) { this.g.story.complete(id); }
+  slash(eye, f, reach, dmg) { return !!this.part?.slash?.(eye, f, reach, dmg); }
+  onNpcDeath(n) { for (const p of Object.values(this.parts)) p.onNpcDeath?.(n); }
   // chapters can add things to press E on, and change what people say
   hook(push, eye) { for (const p of Object.values(this.parts)) p.hook?.(push, eye); }
   dialogue(npc) { const order = [this.part, ...Object.values(this.parts).filter((p) => p !== this.part)]; for (const p of order) { const l = p?.dialogue?.(npc); if (l) return l; } return null; }
@@ -83,7 +85,7 @@ export class Campaign {
     const g = this.g, L = LOADOUT[id], P = g.player, S = g.story;
     if (!L) { S.intro(); return; }
     for (const o of S.objectives) if (!o.side) o.done = true;
-    S.finale = true; S.fin = true; S.flags.letterTime = g.time; S.dukeState = 'fled';
+    S.finale = true; S.fin = true; S.fate = true; S.fateT = 60; S.flags.letterTime = g.time; S.dukeState = 'fled';
     const pr = g.progress; while (pr.level < L.level) { pr.level++; pr.points++; }
     P.inv.gold = L.gold; for (const [it, n] of L.items) P.inv.add(it, n); for (const it of L.gear || []) { P.inv.add(it, 1); g.gear.equip?.(it, true); }
     if (L.blade && g.smith) g.smith.level = Math.max(g.smith.level, L.blade);

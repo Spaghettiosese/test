@@ -147,6 +147,12 @@
   .end .card { width: min(640px, 92vw); display: grid; gap: 14px; }
   .end h2 { margin: 0; font: 700 clamp(28px, 6vw, 56px) var(--title); letter-spacing: .14em; color: var(--bone); text-shadow: 3px 3px 0 #000, 0 0 26px rgba(165,108,255,.6); }
   .end table { margin: 0 auto; border-collapse: collapse; font-size: 19px; color: var(--dim); } .end td { padding: 2px 16px; } .end td:last-child { color: var(--gold); text-align: right; }
+  .end .epi { font-size: clamp(18px, 2.2vw, 23px); color: var(--bone); max-width: 58ch; margin: 4px auto 6px; line-height: 1.35; }
+  .end .epi-k { color: var(--gold); font: 700 13px var(--title); letter-spacing: .2em; text-transform: uppercase; margin: 0; }
+  .end .credits { height: 52vh; overflow: hidden; position: relative; mask-image: linear-gradient(transparent, #000 15%, #000 85%, transparent); -webkit-mask-image: linear-gradient(transparent, #000 15%, #000 85%, transparent); }
+  .end .credits .roll { position: absolute; left: 0; right: 0; top: 100%; animation: roll 26s linear forwards; display: grid; gap: 6px; }
+  .end .credits .roll p { margin: 0 0 14px; font-size: 20px; color: var(--bone); }
+  @keyframes roll { to { transform: translateY(calc(-100% - 52vh)); } }
   .fatal { position: fixed; inset: 0; display: grid; place-items: center; background: #000; color: var(--bone); z-index: 99; padding: 20px; text-align: center; font-size: 20px; }
   .loading { position: fixed; inset: 0; display: grid; place-content: center; text-align: center; background: var(--void); z-index: 20; font: 400 22px var(--title); letter-spacing: .3em; color: var(--dim); }
   .loading i { display: block; margin-left: auto; margin-right: auto; width: 240px; height: 10px; border: 2px solid var(--edge); margin: 14px auto 0; position: relative; } .loading i b { position: absolute; inset: 0 auto 0 0; background: var(--violet); width: 30%; animation: load 1.2s steps(10) infinite alternate; }
@@ -247,7 +253,10 @@
       <div><span>Sheathe or draw the sword</span><span>Y</span></div><div><span>Hood up or down</span><span>O</span></div>
       <div><span>Answer a guard</span><span>E</span></div><div><span>Wear or drop a uniform</span><span>Gear tab · U</span></div>
       <div><span>Mount · dismount · whistle</span><span>F</span></div><div><span>Gallop · walk (mounted)</span><span>Shift · C</span></div>
-      <div><span>Book tabs (incl. Stash)</span><span>1 - 9</span></div><div><span>Track a quest</span><span>Journal button</span></div>
+      <div><span>Book tabs (Story is 2, Stash is 0)</span><span>1 - 9 · 0</span></div><div><span>Track a quest</span><span>Journal button</span></div>
+      <div><span>Heavy blow (breaks shields)</span><span>hold LMB</span></div><div><span>Sidestep</span><span>double-tap WASD</span></div>
+      <div><span>Execute a broken foe</span><span>E</span></div><div><span>Crossbow up / down</span><span>I</span></div>
+      <div><span>Crossbow: loose · aim</span><span>LMB · RMB</span></div><div><span>Change bolt</span><span>K · wheel</span></div>
     </div>
   </div>
 </div>

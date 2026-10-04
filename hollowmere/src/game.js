@@ -40,6 +40,8 @@ import { Speech } from './speech.js';
 import { Profile } from './profile.js';
 import { Achievements } from './achievements.js';
 import { Campaign } from './campaign.js';
+import { Echoes } from './echoes.js';
+import { Crossbow } from './crossbow.js';
 import { Gear } from './gear.js';
 import { Events } from './events.js';
 import { Saves } from './saves.js';
@@ -52,6 +54,7 @@ import { UI } from './ui.js';
 import { Story } from './story.js';
 import { installInteractionMethods } from './interact.js';
 import { installPlaces } from './places.js';
+import { ARCH } from './archetypes.js';
 import { installFx, installFxMethods } from './fx.js';
 
 const hyp = Math.hypot;
@@ -92,13 +95,14 @@ export class Game {
     this.events = new Events(this);
     this.saves = new Saves(this);
     this.opts = new Options(this);
-    this.profile = new Profile(); this.achievements = new Achievements(this);
+    this.profile = new Profile(); this.achievements = new Achievements(this); this.archKnight = ARCH.knight;
     this.difficulty = 1;
     this.input = { keys: new Set(), pressed: new Set(), dYaw: 0, dPitch: 0 };
     this.checkpoint = [0, 0.1, -40];
     this.indoorK = 0; this.areaName = 'The Road';
     this.pathBudget = 3;
     this.toastQ = []; this.savables = {}; this.markers = []; this.timers = [];
+    this.xbow = new Crossbow(this);
     this.stats = { kills: 0, guardKills: 0, civKills: 0, stabs: 0, deaths: 0, looted: 0, opened: 0, alarms: 0, snuffed: 0, seen: 0 };
   }
   // build the world in slices, so the loading screen can animate (roughly 3 s of work)
@@ -121,7 +125,7 @@ export class Game {
     this.lamps = new Lamps(this);
     this.forage = new Foraging(this);
     installFx(this);
-    this.ui = new UI(this); this.story = new Story(this); this.campaign = new Campaign(this);
+    this.ui = new UI(this); this.story = new Story(this); this.campaign = new Campaign(this); this.echoes = new Echoes(this); this.markers.push(this.echoes);
     this.world.on('contact', (e) => this.onContact(e));
     progress(0.25, 'Stitching the arms');
     await tick();
@@ -188,7 +192,7 @@ export class Game {
     this.rep.update(dt);
     this.world.step(dt);
     this.updateProps(dt);
-    this.story.update(dt); this.campaign.update(dt); this.achievements.update(dt);
+    this.story.update(dt); this.campaign.update(dt); this.achievements.update(dt); this.echoes?.update(dt);
     this.updateFx(dt);
     if (playing) { this.updateInteraction(dt); P.updateView(this.camera, dt, this.baseFov); }
     else if (cut) { P.vm.visible = false; this.story.cameraUpdate(this.camera, dt); }
@@ -200,6 +204,8 @@ export class Game {
     { let nf = 0; const c = this.camera.position; for (const f of this.level.fires) { if (!f.lit) continue; const d = Math.hypot(f.x - c[0], f.z - c[2]); if (d < 14) nf = Math.max(nf, 1 - d / 14); } this.sfx.mood.fire = nf; }
     this.sfx.mood.indoor = this.indoorK > 0.5 ? 1 : 0; this.sfx.mood.night = this.clock.night ? 1 : 0;
     this.sfx.mood.area = this.area();
+    this.sfx.mood.boss = this.boss && !this.boss.el.hidden ? 1 : 0;
+    { const z = this.story?.zone; this.sfx.mood.choir = z === 'choir' ? 1 : z === 'deep' ? 0.6 : this.campaign?.facts.redMoon && this.clock.night && this.story?.zone === 'stones' ? 0.45 : 0; }
     this.sfx.update(dt);
     this.ui.update(dt);
   }
@@ -234,8 +240,12 @@ export class Game {
     E.setNightLights(this.level.pal, env.night);
     this.weather.apply(env);
     // the deep places beyond the mountains: no sky, a violet murk, and only the light you bring
-    if (c[2] > 280) { env.ambient *= 0.42; env.fogColor = c[0] > -100 ? [0.09, 0.05, 0.13] : [0.08, 0.06, 0.05]; env.fogDensity = 0.028; env.sunIntensity = 0; env.godRays = 0; env.volumeDensity = 0.05; }
+    if (c[2] > 280) { env.ambient *= 0.42; env.fogColor = c[0] > -100 ? [0.09, 0.05, 0.13] : [0.08, 0.06, 0.05]; env.fogDensity = c[0] > 3 && c[2] > 321 ? 0.016 : 0.026; env.sunIntensity = 0; env.godRays = 0; env.volumeDensity = 0.05; }
     this.campaign?.env?.(env);
+    // the grade follows the land: warm town, cold keep, green fen, ash at Cinderwick, violet below, blood under the red moon
+    { const z = this.story?.zone || 'town', red = this.campaign?.facts.redMoon && env.night > 0.4 && c[2] < 280;
+      const G = red ? [[0.3, 0.06, 0.12], [0.3, 0.04, -0.04]] : z === 'deep' || z === 'choir' ? [[0.24, 0.08, 0.4], [0.2, 0.0, 0.18]] : z === 'fen' ? [[0.08, 0.2, 0.24], [0.1, 0.14, -0.04]] : z === 'mire' ? [[0.1, 0.18, 0.22], [0.14, 0.12, -0.04]] : z === 'cinder' ? [[0.2, 0.12, 0.12], [0.26, 0.1, -0.1]] : ['hall', 'ante', 'study', 'chamber', 'court', 'backyard', 'belfry'].includes(z) ? [[0.12, 0.12, 0.42], [0.18, 0.06, 0.0]] : z === 'crypt' || z === 'undercroft' ? [[0.12, 0.12, 0.36], [0.12, 0.04, 0.1]] : z === 'rookery' ? [[0.14, 0.12, 0.3], [0.24, 0.12, -0.08]] : [[0.16, 0.14, 0.4], [0.22, 0.08, -0.06]];
+      const k = Math.min(1, dt * 0.8); for (let i = 0; i < 3; i++) { this.pix.shadow[i] += (G[0][i] - this.pix.shadow[i]) * k; this.pix.high[i] += (G[1][i] - this.pix.high[i]) * k; } }
     env.shadowRadius = 26; env.shadowFar = 90;
   }
   area() {
@@ -349,7 +359,14 @@ export class Game {
       else if (it.body && d > 58) { this.world.remove(it.body); it.body = null; }
     }
   }
-  keepPlaying() { this.ui.el.end.hidden = true; this.mode = 'play'; this.ui.showHud(true); this.ui.letterbox(false); this.pix.fade = 0; this.canvasLock?.(); this.ui.toast('The valley is yours to wander. F5 saves.'); }
+  keepPlaying() {
+    this.ui.el.end.hidden = true; this.mode = 'play'; this.ui.showHud(true); this.ui.letterbox(false); this.pix.fade = 0; this.canvasLock?.();
+    if (this.player.pos[2] > 280) { const q = this.nav.nearestWalkable(80, -190, 4) || [80, -190]; this.player.cc.position = [q[0], 0.1, q[1]]; this.player.cc.velocity = [0, 0, 0]; this.setCheckpoint(this.player.cc.position); this.ui.area('The Choir Stones'); }
+    for (const n of this.npcs) if (n.role === 'hollow' && !n.dead && this.story.ended && this.campaign.facts.ending !== 'unseal' && this.campaign.facts.ending !== 'gray') n.die([0, 0], { byNpc: true });
+    this.ui.toast('The valley is yours to wander. F5 saves.');
+  }
+  newGamePlus() { this.profile.setPending({ ngplus: true }); location.reload(); }
+  toTitle() { this.profile.setPending({ title: true }); location.reload(); }
   flashText(t) { this.ui.flashBanner(t, 900, true); }
   updateProps(dt) {
     for (const b of this.dynBodies) {

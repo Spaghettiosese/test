@@ -7,6 +7,7 @@ import { regionAt, inCryptRect, LANDMARKS } from './level/wilds.js';
 import { LORE } from './lore.js';
 import { ITEMS } from './items.js';
 import { NPC } from './npc.js';
+import { playEnding } from './endings.js';
 
 const hyp = Math.hypot;
 const ease = (t) => t * t * (3 - 2 * t);
@@ -333,7 +334,7 @@ export class Story {
   }
   spawnHollow(x, z, rising = false, dormant = false, type = null) {
     const g = this.g;
-    type = type || (Math.random() < 0.18 ? 'brute' : Math.random() < 0.1 ? 'screamer' : null);
+    type = type === 'plain' ? null : type || (Math.random() < 0.18 ? 'brute' : Math.random() < 0.1 ? 'screamer' : null);
     const n = new NPC(g, { id: 'hollow_' + (this.hollowSeq = (this.hollowSeq || 0) + 1), name: 'Hollow', role: 'hollow', hollowType: type, speedMul: type === 'brute' ? 0.75 : type === 'screamer' ? 1.2 : 1, hostile: true, pos: [x, z], yaw: 0, hp: type === 'brute' ? 140 : type === 'screamer' ? 28 : 55, dmg: type === 'brute' ? 1.7 : 1.05, block: 0, eyes: 0.9, weapon: null, detail: 0.4, schedule: [{ h0: 0, h1: 24, poi: 'shrine', act: 'stand' }],
       spec: { outfit: 'hollow', skin: 'ashen', hair: { style: 'bald' }, glowEyes: true, colors: { cloth: '#2a2630', hose: '#1c1a22', cloth2: '#221e28' }, height: type === 'brute' ? 1.28 : 1.06, build: type === 'brute' ? 1.25 : 0.92, weapon: null, voice: type === 'screamer' ? 1.6 : 0.4 } });
     g.npcs.push(n); n.dormant = dormant;
@@ -369,19 +370,7 @@ export class Story {
     const P = g.player.pos, a = Math.random() * 6.283, r = 18 + Math.random() * 12, q = g.nav.nearestWalkable(P[0] + Math.cos(a) * r, P[2] + Math.sin(a) * r, 8);
     if (q && g.nav.indoorAt(q[0], q[1]) === 0) { this.spawnHollow(q[0], q[1], true, false); g.ui.toast('Something claws out of the ground nearby'); }
   }
-  ending(kind) {
-    const g = this.g; if (this.ended) return; this.ended = true; this.complete('fate'); g.player.inv.remove('letter', 1);
-    const T = {
-      gray: { h: 'THE GRAY HAND\'S KNIFE', line: 'You hand the letter to Brannoch. Sable opens it in a room without windows. The bell tolls thirteen once more, and this time the whole valley answers. You were paid. You will spend it somewhere very quiet.', tag: 'Ending: The Gray Hand' },
-      saint: { h: 'THE QUIET BELL', line: 'You lay the letter on the Pale Saint\'s drowned altar and it burns black without smoke. In Ashgate the hollows sit down where they stand. The bell does not toll. Somewhere far below, a door swings shut for the last time.', tag: 'Ending: The Quiet Bell' },
-      unseal: { h: 'KEY OF THE CHOIR', line: 'You break the seal at the plague ward gate. The letter reads you, not the other way. The choir of Cinderwick rises and knows your name, and you understand that you were never the thief. You were the door.', tag: 'Ending: The Choir' },
-    }[kind];
-    g.mode = 'cutscene'; g.ui.letterbox(true); g.ui.showHud(false); const P = g.player;
-    this.play([
-      { dur: 3.4, fadeTo: 0.3, sub: ['', T.line.split('. ')[0] + '.'], cam: { p0: [P.pos[0], P.pos[1] + 1.7, P.pos[2]], p1: [P.pos[0], P.pos[1] + 2.4, P.pos[2] + 0.5], l0: [P.pos[0] + Math.sin(P.yaw) * 6, P.pos[1] + 1.6, P.pos[2] + Math.cos(P.yaw) * 6], fov: 60 }, enter: () => { g.sfx.bell?.(3); if (kind === 'unseal') g.sfx.hollowCry?.(P.pos); if (kind === 'saint') g.sfx.veil?.(); } },
-      { dur: 4.4, fadeTo: 0.85, fadeRate: 1.4, title: [T.h, T.tag], cam: { p0: [P.pos[0], P.pos[1] + 2.4, P.pos[2] + 0.5], p1: [P.pos[0], P.pos[1] + 5, P.pos[2] + 2], l0: [P.pos[0], P.pos[1] + 6, P.pos[2] + 10], fov: 66 } },
-    ], () => this.showEnd(T));
-  }
+  ending(kind) { playEnding(this.g, kind); }
   showEnd(T = null) {
     const g = this.g, st = g.stats, P = g.player, mins = Math.round(this.playTime / 60);
     const unseen = st.kills === 0 && g.alarmCount === 0;

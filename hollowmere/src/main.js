@@ -36,7 +36,7 @@ addEventListener('keydown', (e) => {
   if ((k === '=' || k === '+') && game.mode === 'play') { game.wmap.zoom = Math.min(3, game.wmap.zoom * 1.25); return; }
   if (k === '-' && game.mode === 'play') { game.wmap.zoom = Math.max(0.5, game.wmap.zoom / 1.25); return; }
   if (k === 'f5' && game.mode === 'play') { e.preventDefault(); game.saves.save('quick'); return; }
-  if (game.mode === 'journal') { if (k === 'escape') game.ui.toggleJournal(); else if (k >= '1' && k <= '9') game.ui.setTab(+k - 1); return; }
+  if (game.mode === 'journal') { if (k === 'escape') game.ui.toggleJournal(); else if (k >= '1' && k <= '9') game.ui.setTab(+k - 1); else if (k === '0') game.ui.setTab(9); return; }
   if (k === ' ' || k === 'arrowup' || k === 'arrowdown') e.preventDefault();
   game.input.keys.add(k); if (!e.repeat) { game.input.pressed.add(k); if (k === 'e') { game.player.usePress = true; } }
   if (game.debug && !e.repeat) {
@@ -99,6 +99,7 @@ $('vol').oninput = (e) => { game.sfx.setVolume(+e.target.value); game.saves.save
 $('sens').oninput = (e) => game.saves.saveSettings({ sens: +e.target.value });
 $('diff').onchange = (e) => { game.difficulty = +e.target.value; game.saves.saveSettings({ diff: game.difficulty }); };
 addEventListener('resize', () => game.resize());
+addEventListener('wheel', (e) => { if (game.mode === 'play' && game.xbow?.up) game.xbow.cycle(e.deltaY > 0 ? 1 : -1); }, { passive: true });
 
 // ---------------------------------------------------------------- boot
 let last = performance.now();
@@ -123,6 +124,7 @@ function frame(now) {
   menu.sel.diff = game.difficulty; menu.showTitle();
   const pend = game.profile.takePending();
   if (pend?.load) loadSlot(pend.load);
+  else if (pend?.ngplus && game.profile.d.carry) { menu.sel.ng = true; menu.panel('new'); }
   if (q.has('chapter')) { $('menu').hidden = true; game.campaign.startAt(q.get('chapter')); }
   else if (q.has('skipintro') || q.has('nomenu')) { $('menu').hidden = true; game.story.beginPlay(); }
   if (q.has('at')) { const [x, y, z] = q.get('at').split(',').map(Number); game.player.cc.position = [x, y || 0.1, z]; game.setCheckpoint([x, y || 0.1, z]); }

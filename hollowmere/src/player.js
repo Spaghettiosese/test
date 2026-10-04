@@ -176,6 +176,7 @@ export class Player {
   // ------------------------------------------------------------ combat
   updateCombat(dt, input) {
     const g = this.g;
+    if (g.xbow?.up) { if (input.pressed.has('y')) { g.xbow.lower(); input.pressed.delete('y'); this.draw(null); } else { g.xbow.update(dt, input); this.blocking = false; this.lmbDown = false; return this.combatKeys(input, dt); } }
     this.updateSheath(dt);
     const wantBlock = this.rmb && !this.atk && !this.carried && this.stagger <= 0 && this.stamina > 3;
     if (wantBlock && !this.drawn && !this.drawing && !this.sheathing) this.draw('block');
@@ -213,6 +214,9 @@ export class Player {
     // double-tap a direction to step aside
     for (const key of ['a', 'd', 's', 'w']) if (input.pressed.has(key)) { const last = this.taps[key] ?? -9; this.taps[key] = g.time; if (g.time - last < 0.26 && (g.opts?.v.dodge ?? true)) { this.dodge(key); this.taps[key] = -9; } }
     if (this.stagger > 0 && this.vmClip !== 'Stagger' && !this.atk) this.playVm('Stagger', 0.05);
+    this.combatKeys(input, dt);
+  }
+  combatKeys(input, dt) {
     // skills on keys
     if (input.pressed.has('1')) this.skillVeil();
     if (input.pressed.has('2')) this.skillDash(input);
@@ -306,6 +310,7 @@ export class Player {
     }
     if (g.fauna?.hit(this.pos, flat, reach, arc, dmg)) hitSomething = true;
     if (g.boss?.slashOrbs(eye, f, reach)) hitSomething = true;
+    if (g.campaign?.slash?.(eye, f, reach, dmg)) hitSomething = true;
     // physics props: fling them
     const centre = [eye[0] + f[0] * 1.4, eye[1] + f[1] * 1.4 - 0.2, eye[2] + f[2] * 1.4];
     for (const b of g.world.overlapSphere(centre, 0.85)) {
@@ -392,6 +397,7 @@ export class Player {
   }
   skillSlam() {
     if (this.cool.slam > 0 || this.atk || !this.spend(40)) return;
+    if (this.g.xbow?.up) this.g.xbow.lower();
     if (!this.drawn) this.instantDraw();
     this.cool.slam = 9 * (this.mod?.cd ?? 1); this.atk = { clip: 'Slam', t: 0, dur: 1.3, hit: true }; this.playVm('Slam', 0.05); this.g.sfx.swing?.(0.6);
   }
@@ -455,7 +461,7 @@ export class Player {
     const eye = this.eyePos, { f, left, up } = this.basis();
     // camera roll from strafing & recoil
     camera.position.set(eye); camera.target.set([eye[0] + f[0] * 10, eye[1] + f[1] * 10, eye[2] + f[2] * 10]); camera.up.set(up);
-    camera.fov = fovBase * (1 + (this.dashT > 0 ? 0.12 : 0) + (this.sprint ? 0.04 : 0) + (this.mount && this.mount.gait >= 2 ? 0.08 : 0));
+    camera.fov = fovBase * (1 + (this.dashT > 0 ? 0.12 : 0) + (this.sprint ? 0.04 : 0) + (this.mount && this.mount.gait >= 2 ? 0.08 : 0)) * (this.g.xbow?.aim ? 0.6 : 1);
     // viewmodel
     this.sway[0] += (clamp(-this.dYaw * 3.5, -0.05, 0.05) - this.sway[0]) * Math.min(1, dt * 9);
     this.sway[1] += (clamp(-this.dPitch * 3.5, -0.05, 0.05) - this.sway[1]) * Math.min(1, dt * 9);

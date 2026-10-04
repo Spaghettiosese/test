@@ -28,6 +28,10 @@ export const RECIPES = [
   { id: 'papers', name: 'Travel papers', makes: ['papers', 1], needs: [['book', 1], ['gold', 12]], perk: ['forger', 1], desc: 'Forge transit papers. Talks you past curfew and the keep gate, once.' },
   { id: 'ducalseal', name: 'Forged ducal seal', makes: ['ducalseal', 1], needs: [['papers', 1], ['ring', 1]], perk: ['forger', 2], desc: 'A seal impression good for one walk through restricted ground.' },
   { id: 'sap', name: 'Lead sap', makes: ['sap', 1], needs: [['sack', 0], ['gold', 15]], desc: 'A weighted cosh, for quiet work.', once: true },
+  { id: 'bolts', name: 'Broadhead bolts', makes: ['bolt', 6], needs: [['scrap', 1], ['gold', 6]], desc: 'Six bolts for the crossbow (I).' },
+  { id: 'bolt_water', name: 'Water bolts', makes: ['bolt_water', 3], needs: [['bolt', 3], ['jug', 1]], desc: 'Glass heads full of water: put out torches and fires from range.' },
+  { id: 'bolt_fire', name: 'Fire bolts', makes: ['bolt_fire', 3], needs: [['bolt', 3], ['oil', 1]], desc: 'Pitch and a fuse: they light what they hit.' },
+  { id: 'bolt_sleep', name: 'Sleep bolts', makes: ['bolt_sleep', 2], needs: [['bolt', 2], ['poison', 1]], desc: 'Poppy and nightshade: down without dead.' },
 ];
 
 export class Tools {
@@ -51,6 +55,7 @@ export class Tools {
     if (k.has('l')) g.lantern.toggle();
     if (k.has('h')) g.traps?.drop();
     if (k.has('j')) this.throwSmoke();
+    if (k.has('i')) g.xbow?.toggle();
     for (const [key, id, ef] of [['6', 'd_haste', 'haste'], ['7', 'd_iron', 'iron'], ['8', 'd_night', 'night'], ['9', 'd_ghost', 'ghost']]) if (k.has(key)) this.drink(id, ef);
     this.dragUpdate(input.keys.has('z'), dt);
   }
@@ -116,7 +121,7 @@ export class Tools {
   }
   step(pr, dt) {
     const g = this.g, P = g.player; pr.life -= dt; if (pr.life <= 0) return true;
-    pr.v[1] -= (pr.kind === 'knife' ? 4 : 13) * dt;
+    pr.v[1] -= (pr.kind === 'knife' ? 4 : pr.kind === 'xbolt' ? 2.2 : 13) * dt;
     const st = [pr.v[0] * dt, pr.v[1] * dt, pr.v[2] * dt], len = hyp(...st) || 1e-6, dir = [st[0] / len, st[1] / len, st[2] / len];
     // people first
     for (const n of g.npcs) {
@@ -125,19 +130,20 @@ export class Tools {
       // sample along the step
       for (let t = 0; t <= 1.001; t += 0.5) {
         const x = pr.p[0] + st[0] * t, y = pr.p[1] + st[1] * t, z = pr.p[2] + st[2] * t;
-        if (hyp(x - n.x, z - n.z) < 0.42 && y > cy && y < top) { this.hitPerson(pr, n, y > cy + 1.45, dir); return true; }
+        if (hyp(x - n.x, z - n.z) < 0.42 && y > cy && y < top) { if (pr.kind === 'xbolt') g.xbow.hit(pr, n, y > cy + 1.45, dir); else this.hitPerson(pr, n, y > cy + 1.45, dir); return true; }
       }
     }
-    if (pr.kind === 'knife' && g.fauna?.hitPoint(pr.p, 22)) { g.sfx.thud?.(0.5, pr.p); return true; }
+    if ((pr.kind === 'knife' || pr.kind === 'xbolt') && g.fauna?.hitPoint(pr.p, pr.kind === 'xbolt' ? 40 : 22)) { g.sfx.thud?.(0.5, pr.p); return true; }
+    if (pr.kind === 'xbolt' && pr.bolt === 'bolt_water') for (const tt of g.level.torches) if (tt.lit && Math.abs(tt.x - pr.p[0]) < 0.7 && Math.abs(tt.z - pr.p[2]) < 0.7 && Math.abs(tt.y - pr.p[1]) < 0.7) { g.snuff(tt); g.sfx.splash?.(); return true; }
     if (pr.kind === 'knife') for (const tt of g.level.torches) { if (!tt.lit || tt.small || Math.abs(tt.x - pr.p[0]) > 0.6 || Math.abs(tt.z - pr.p[2]) > 0.6 || Math.abs(tt.y - pr.p[1]) > 0.6) continue; tt.lit = false; tt.wasLit = true; tt.light.intensity = 0; if (tt.flame) tt.flame.visible = false; if (tt.flames) for (const f of tt.flames) f.visible = false; g.emitBurst([tt.x, tt.y, tt.z], 'poof'); g.sfx.glass?.([tt.x, tt.y, tt.z]); g.noise([tt.x, tt.y, tt.z], 6, 'clang'); g.stealth.st.lightsOut++; g.stealth.leave('light', tt.x, tt.z, 14); g.flashText('LIGHT OUT'); }
     const h = g.world.raycast(pr.p, dir, len + 0.05, { ignore: P.cc.body, mask: 0xffff & ~(2 | 4 | 8) });
     if (h || pr.p[1] + st[1] < 0.03) {
       const d = h ? h.distance : 0, at = [pr.p[0] + dir[0] * d, Math.max(0.03, pr.p[1] + dir[1] * d), pr.p[2] + dir[2] * d];
-      this.land(pr, at, h ? h.normal : [0, 1, 0], dir); return true;
+      if (pr.kind === 'xbolt') g.xbow.land(pr, at, h ? h.normal : [0, 1, 0], dir); else this.land(pr, at, h ? h.normal : [0, 1, 0], dir); return true;
     }
     pr.p[0] += st[0]; pr.p[1] += st[1]; pr.p[2] += st[2];
     pr.mesh.position.set(pr.p);
-    if (pr.kind === 'knife') E.quat.fromEuler(pr.mesh.rotation, -Math.atan2(pr.v[1], hyp(pr.v[0], pr.v[2])) / (Math.PI / 180), Math.atan2(pr.v[0], pr.v[2]) / (Math.PI / 180), 0);
+    if (pr.kind === 'knife' || pr.kind === 'xbolt') E.quat.fromEuler(pr.mesh.rotation, -Math.atan2(pr.v[1], hyp(pr.v[0], pr.v[2])) / (Math.PI / 180), Math.atan2(pr.v[0], pr.v[2]) / (Math.PI / 180), 0);
     else if (pr.spin) pr.mesh.rotation[0] += pr.spin * dt;
     if (pr.kind === 'bomb' && Math.random() < dt * 30) g.flames.emit(pr.p, { count: 1, color: [4, 1.6, 0.3, 1], colorEnd: [1, 0.2, 0, 0], size: 0.1, grow: 0.2, spread: 0.05, up: 0.3, life: 0.35, jitter: 0.05 });
     return false;

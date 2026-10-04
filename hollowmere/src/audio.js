@@ -136,13 +136,22 @@ export class Audio {
     this._chordSets = { default: [[55, 82.4, 110, 130.8], [43.65, 65.4, 87.3, 110], [49, 73.4, 98, 123.5], [41.2, 61.7, 82.4, 103.8]], fen: [[46.2, 69.3, 92.4, 110], [43.65, 65.4, 82.4, 116.5], [41.2, 61.7, 77.8, 98], [46.2, 65.4, 87.3, 103.8]], cinder: [[55, 58.3, 110, 116.5], [49, 51.9, 98, 103.8], [46.2, 49, 92.4, 98], [55, 65.4, 110, 123.5]], mire: [[65.4, 98, 130.8, 155.6], [58.3, 87.3, 116.5, 146.8], [61.7, 92.4, 123.5, 146.8], [65.4, 98, 130.8, 174.6]] };
     this._chords = this._chordSets.default;
     this._chord = 0; this._musT = 0; this._pulseT = 0;
+    this._chordSets.choir = [[55, 82.4, 103.8, 130.8], [51.9, 77.8, 98, 123.5], [46.2, 69.3, 87.3, 110], [49, 73.4, 92.4, 116.5]];
+    // the Choir's own voice: three sawtooth voices through vowel formants, swelling under everything when it is near
+    this.choirGain = c.createGain(); this.choirGain.gain.value = 0; this.choirGain.connect(this.musicBus);
+    const vib = c.createOscillator(), vg = c.createGain(); vib.frequency.value = 5.2; vg.gain.value = 4; vib.connect(vg); vib.start();
+    this.choirVoices = [220, 261.6, 329.6].map((f, i) => {
+      const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = (i - 1) * 9; vg.connect(o.detune);
+      for (const [ff, q, a] of [[700, 6, 0.06], [1150, 8, 0.035]]) { const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = ff; bp.Q.value = q; const gg = c.createGain(); gg.gain.value = a; o.connect(bp); bp.connect(gg); gg.connect(this.choirGain); }
+      o.start(); return o;
+    });
   }
   update(dt) {
     if (!this.ctx) return;
     const c = this.ctx, m = this.mood, now = c.currentTime;
     // score: slow chord changes, brighter and pulsing when guards are hunting you
     this._musT -= dt;
-    if (this._musT <= 0) { this._musT = 14; this._chords = this._chordSets[m.area] || this._chordSets.default; this._chord = (this._chord + 1) % 4; const ch = this._chords[this._chord]; this.voices.forEach((o, i) => o.frequency.setTargetAtTime(ch[i], now, 3)); if (m.area === 'crypt' || Math.random() < 0.3) this.bellNote(); }
+    if (this._musT <= 0) { this._musT = m.boss ? 7 : 14; this._chords = (m.choir > 0.4 && this._chordSets.choir) || this._chordSets[m.area] || this._chordSets.default; this._chord = (this._chord + 1) % 4; const ch = this._chords[this._chord]; this.voices.forEach((o, i) => o.frequency.setTargetAtTime(ch[i], now, 3)); if (m.area === 'crypt' || Math.random() < 0.3) this.bellNote(); }
     const base = m.area === 'crypt' ? 0.2 : m.area === 'keep' ? 0.17 : 0.13;
     this.padGain.gain.setTargetAtTime(base + m.tension * 0.18, now, 1.5);
     this.padFilter.frequency.setTargetAtTime(380 + m.tension * 900 + (m.indoor ? 0 : 120), now, 1.2);
@@ -150,7 +159,8 @@ export class Audio {
     this.hearthGain.gain.setTargetAtTime(Math.max(m.indoor ? 0.16 : 0.0, (m.fire || 0) * 0.14), now, 1.0);
     this.rainGain.gain.setTargetAtTime((m.rain || 0) * (m.indoor ? 0.03 : 0.11), now, 1.2);
     this.waterGain.gain.setTargetAtTime(m.area === 'bridge' ? 0.09 : m.area === 'pell' ? 0.06 : m.area === 'fen' ? 0.035 : 0, now, 1.5);
-    if (m.tension > 0.5) { this._pulseT -= dt; if (this._pulseT <= 0) { this._pulseT = 0.66; this._tone(now, { freq: 60, freqEnd: 34, dur: 0.25, gain: 0.35 * m.tension, decay: 0.25 }); } }
+    if (m.tension > 0.5 || m.boss) { this._pulseT -= dt; if (this._pulseT <= 0) { this._pulseT = m.boss ? 0.43 : 0.66; this._tone(now, { freq: m.boss ? 66 : 60, freqEnd: 34, dur: 0.25, gain: 0.35 * Math.max(m.tension, m.boss ? 0.9 : 0), decay: 0.25 }); if (m.boss && Math.random() < 0.25) this._tone(now + 0.21, { freq: 98, freqEnd: 49, dur: 0.18, gain: 0.12, type: 'triangle', decay: 0.16 }); } }
+    if (this.choirGain) { this.choirGain.gain.setTargetAtTime((m.choir || 0) * (0.5 + 0.5 * Math.sin(now * 0.4) ** 2), now, 1.6); if (m.choir > 0.05 && Math.random() < dt * 0.15) { const ch = this._chordSets.choir[Math.floor(Math.random() * 4)]; this.choirVoices.forEach((o, i) => o.frequency.setTargetAtTime(ch[i + 1] * 2, now, 2.5)); } }
     // random ambient one-shots
     this._ambT -= dt; if (this._ambT <= 0) { this._ambT = 8 + Math.random() * 14; if (!m.indoor && m.area === 'fen' && m.night) { this.frog([this.listener.pos[0] + (Math.random() - 0.5) * 30, 0, this.listener.pos[2] + (Math.random() - 0.5) * 30]); this._ambT = 2 + Math.random() * 4; } else if (!m.indoor && m.area === 'mire' && m.night && Math.random() < 0.6) this.owl([this.listener.pos[0] + 25, 6, this.listener.pos[2] + 20]); else if (!m.indoor && m.area === 'farms' && !m.night && Math.random() < 0.5) this.rooster([this.listener.pos[0] - 30, 1, this.listener.pos[2] + 20]); else if (!m.indoor && m.area === 'cinder' && Math.random() < 0.5) this.whisper?.([this.listener.pos[0] + 6, 1.5, this.listener.pos[2] + 6]); else if (!m.indoor && m.area !== 'crypt') { const r = Math.random(); if (r < 0.45) this.crow([this.listener.pos[0] + 20, 8, this.listener.pos[2] + 25]); else if (r < 0.6 && m.night) this.wolf(); } else if (m.area === 'crypt' && Math.random() < 0.5) this.whisper(); }
   }

@@ -312,7 +312,7 @@ export class NPC {
 
   // ------------------------------------------------------------ reactions of ordinary people
   updateReaction(dt) {
-    if (this.guard || this.role === 'hollow') return;
+    if ((this.guard && !(this.ally && this.state === 'follow')) || this.role === 'hollow') return;
     if (this.state === 'flee') {
       this.fleeT -= dt;
       if (!this.path || this.repathT < 0) { this.repathT = 1.5; this.pickFleeGoal(); }
@@ -397,6 +397,7 @@ export class NPC {
   }
   dropFoe() {
     this.foe = null;
+    if (this.ally) { this.state = 'follow'; this.repathT = 0; this.stopMove(); return; }
     if (this.state === 'chase' || this.state === 'attack' || this.state === 'stagger') {
       if (this.role === 'hollow') { this.state = 'chase'; this.lostT = 3; }
       else { this.state = 'search'; this.searchT = 4; this.searchPt = null; this.lookT = 0; this.alert = 0.5; this.stopMove(); }
@@ -404,7 +405,7 @@ export class NPC {
   }
   // ------------------------------------------------------------ guards: seeing & hearing
   perceive(dt) {
-    if (this.dead || this.stagger > 0.3 || this.peaceful) return;
+    if (this.dead || this.stagger > 0.3 || this.peaceful || this.ally) return;
     const gm = this.g.mode; if (gm !== 'play' && gm !== 'talk' && gm !== 'read' && gm !== 'journal') return;
     this.percT -= dt; if (this.percT > 0) return; this.percT = 0.14 + Math.random() * 0.04;
     const g = this.g, P = g.player, eye = this.eye;
@@ -760,6 +761,7 @@ export class NPC {
     if (opts.from === 'player' && behind && !opts.backstab && !opts.sap && !opts.ranged) { dmg *= 1.4; if (this.guard) this.g.flashText('FLANKED'); }
     if (opts.bleed && !opts.sap) this.bleed = 5;
     if (dir) this.hitR.hit([dir[0], 0.25, dir[1]], 5 + Math.min(6, dmg * 0.15));
+    if (this.def.unkillable && this.hp - dmg <= 1) dmg = Math.max(0, this.hp - 1);
     this.hp -= dmg; if (opts.sap && this.hp <= 0) this.hp = 1; this.tookHit = 0.4; this.alert = 1;
     if (this.hp <= 0 && opts.byNpc && this.essential) { this.hp = Math.max(1, this.maxHp * 0.3); this.foe = null; this.knockOut(28); return 'ko'; }
     if (this.hp <= 0) { this.die(dir, opts); return 'killed'; }
@@ -807,6 +809,7 @@ export class NPC {
     const k = opts.backstab ? 0.25 : 1, imp = dir ? [dir[0] * 90 * k, 30 * k, dir[1] * 90 * k] : [0, 0, 0];
     try { this.ragdoll = new E.Ragdoll(g.world, this.ch); this.ragdoll.activate({ impulse: imp, at: 'torso', velocity: [0, 0, 0] }); } catch (e) { console.warn('ragdoll failed', e); }
     g.sfx.die?.(this.pos);
+    g.campaign?.onNpcDeath?.(this);
     g.onKill(this, opts);
     // loot
     const drops = [...this.loot];

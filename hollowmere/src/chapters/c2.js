@@ -97,7 +97,7 @@ export class Chapter2 {
   }
   hook(push, eye) {
     const g = this.g, c = this.c, b = this.brannoch();
-    if (c.has('c2_brannoch') && !c.isDone('c2_brannoch') && b && !b.dead && b.wounded && hyp(b.x - eye[0], b.z - eye[2]) < 3) push(b.x, 0.5, b.z, 3, 'Kneel beside Brannoch', () => this.brannochTalk(), 'talk', 0.2, b);
+    if (c.has('c2_brannoch') && !c.isDone('c2_brannoch') && b && !b.dead && b.wounded && hyp(b.x - eye[0], b.z - eye[2]) < 3) push(b.x, 0.5, b.z, 3, 'Kneel beside Brannoch', () => this.brannochTalk(), 'quest', 0.2, b);
     if (c.has('c2_note') && !c.isDone('c2_note') && hyp(CAMP[0] + 1.4 - eye[0], CAMP[1] + 2.45 - eye[2]) < 2.8) push(CAMP[0] + 1.4, 1.2, CAMP[1] + 2.45, 2.8, 'Read the note', () => { g.readNote('brannoch_note'); c.done('c2_note'); this.leads(); }, 'note', 0.4, null);
   }
   brannochTalk() {

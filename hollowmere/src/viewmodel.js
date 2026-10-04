@@ -5,7 +5,8 @@
 import * as E from '../../engine/index.js';
 import { personDefinition } from './people/outfits.js';
 import { BASE_SKELETON } from './people/skeleton.js';
-import { makeSword, HAND_SOCKET } from './people/weapons.js';
+import { makeSword, makeCrossbow, HAND_SOCKET } from './people/weapons.js';
+void HAND_SOCKET;
 
 const EYE = 1.68;               // eye height in the arms' model space
 const KEEP = /^(Sleeve|Palm|Thumb|Index|Middle|Ring|Pinky)/;
@@ -118,6 +119,15 @@ function bake() {
   out.push(K('PinchS', [{ t: 0, ...hold }, { t: 0.2, arms: { R: HOLD_R, L: L([0.05, 1.5, 0.62], [-85, 0, 0]) }, hands: { L: 'point' } }, { t: 0.4, arms: { R: HOLD_R, L: L([0.05, 1.5, 0.62], [-85, 0, 0]) }, hands: { L: 'fist' } }, { t: 0.7, ...hold }], { events: [{ t: 0.4, name: 'pinch' }] }));
   out.push(K('CarryS', [{ t: 0, ...hold, arms: { R: HOLD_R, L: L([0.02, 1.32, 0.56], [-70, 0, -10]) }, hands: { L: 'claw', R: 'relaxed' } }, { t: 1, bones: { chest: [3, 0, 0] } }, { t: 2, bones: { chest: [2, 0, 0] } }], { loop: true }));
   out.push(K('DodgeS', [{ t: 0, ...hold }, { t: 0.08, arms: { R: R([-0.34, 1.12, 0.3], [-40, 20, 20]), L: L([0.42, 1.2, 0.24], [-40, 0, -40]) }, bones: { chest: [6, 0, 8], spine: [3, 0, 4] } }, { t: 0.36, ...hold }]));
+  // ---- the crossbow, held like a hunter holds it: right hand on the grip, left under the prod
+  // (the crossbow itself is fixed in front of the eye, see createViewmodel; these clips only place the hands on it)
+  const XB = (x, ry, rz, ly, lz) => ({ ...REST, arms: { R: R([x, ry, rz], [-80, 0, 10]), L: L([x + 0.02, ly, lz], [-70, 0, -14]) }, hands: { R: 'gunGrip', L: 'claw' } });
+  const xIdle = XB(-0.13, 1.4, 0.34, 1.39, 0.62), xAim = XB(-0.01, 1.53, 0.32, 1.52, 0.6);
+  out.push(K('XbowIdle', [{ t: 0, ...xIdle }, { t: 1.6, ...XB(-0.13, 1.405, 0.345, 1.395, 0.625) }, { t: 3.2, ...xIdle }], { loop: true }));
+  out.push(K('XbowAim', [{ t: 0, ...xAim }, { t: 1.2, ...XB(-0.01, 1.532, 0.322, 1.522, 0.602) }, { t: 2.4, ...xAim }], { loop: true }));
+  out.push(K('XbowFire', [{ t: 0, ...xAim }, { t: 0.05, ...XB(-0.01, 1.55, 0.27, 1.54, 0.55) }, { t: 0.3, ...xAim }]));
+  out.push(K('XbowReload', [{ t: 0, ...xIdle }, { t: 0.3, ...XB(-0.13, 1.28, 0.36, 1.39, 0.62) }, { t: 0.6, ...XB(-0.13, 1.36, 0.6, 1.39, 0.62) }, { t: 1.0, ...xIdle }]));
+  out.push(K('XbowRaise', [{ t: 0, ...hold }, { t: 0.3, ...xIdle }]));
   out.push(K('Draw', [{ t: 0, ...idle, arms: { R: R([-0.3, 0.95, 0.2], [-30, 0, 0]), L: L([0.3, 1.0, 0.1], [-30, 0, 0]) } }, { t: 0.5, ...idle }]));
   out.push(K('Carry', [{ t: 0, ...idle, arms: { R: IDLE_R, L: L([0.02, 1.32, 0.56], [-70, 0, -10]) }, hands: { L: 'claw' } }, { t: 1, bones: { chest: [3, 0, 0] } }, { t: 2, bones: { chest: [2, 0, 0] } }], { loop: true }));
   return out;
@@ -144,7 +154,14 @@ export function createViewmodel() {
   for (const m of ch.materials.values()) glow(m, 0.22);
   sword.traverse((n) => { if (n.material && n.material.name !== 'Rune') glow(n.material, 0.14); });
   sword.visible = false; ch.play('Hold', { fade: 0 });
+  // the crossbow rides in the same hand when it is raised
+  // the crossbow is not in a hand: it sits in front of the eye, stock along the line of sight, and
+  // the crossbow module nudges it for recoil, aiming and reloading
+  const xb = makeCrossbow(); xb.position.set(XBOW_AT.idle); E.quat.fromEuler(xb.rotation, ...XBOW_ROT); ch.add(xb);
+  xb.traverse((n) => { if (n.geometry) n.castShadow = false; if (n.material) glow(n.material, 0.14); }); xb.visible = false; ch.xbow = xb; ch.xbowAt = XBOW_AT;
   return ch;
 }
 const SWORD_ROT = [72, 0, -32];
+const XBOW_ROT = [90, 0, 0];
+const XBOW_AT = { idle: [-0.13, 1.44, 0.3], aim: [-0.0, 1.575, 0.28] };
 export const VM = { EYE, SCALE: 0.62 };

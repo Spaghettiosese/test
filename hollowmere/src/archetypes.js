@@ -13,7 +13,7 @@ export const ARCH = {
   cantor: { name: 'Choir Cantor', hp: 52, poise: 22, speed: 0.95, caster: true, dmg: 0.8 },
   // bosses with fighting styles of their own (see boss.js)
   duelist: { name: 'Duelist', hp: 420, poise: 160, speed: 1.15, dodge: 3.2, parry: 0.45, dmg: 1.25 },
-  mistress: { name: 'The Mistress', hp: 480, poise: 170, speed: 1.12, dodge: 3.6, knives: true, venom: true, dmg: 1.2 },
+  mistress: { name: 'The Mistress', hp: 480, poise: 170, speed: 1.12, dodge: 3.6, knives: true, venom: true, smoke: true, parry: 0.3, dmg: 1.2 },
 };
 export const POISE = { guard: 42, captain: 80, bandit: 38, hollow: 30, brute: 95, screamer: 18, villager: 10, noble: 10 };
 

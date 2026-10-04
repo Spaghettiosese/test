@@ -77,6 +77,8 @@ export const DIALOGUE = {
       { text: 'Buy Lamp oil ×3 (14 gold)', next: 1, action: (G) => G.story.buy('oil', 14, 3) },
       { text: 'Buy Smoke bomb (28 gold)', next: 1, action: (G) => G.story.buy('smoke', 28) },
       { text: 'Buy Bear trap (40 gold)', next: 1, action: (G) => G.story.buy('beartrap', 40) },
+      { text: 'Buy a hand crossbow (150 gold)', when: (G) => !G.player.inv.has('crossbow'), next: 1, action: (G) => G.story.buy('crossbow', 150) },
+      { text: 'Buy crossbow bolts ×8 (16 gold)', next: 1, action: (G) => G.story.buy('bolt', 16, 8) },
       SELL, { text: 'Just passing.', next: 'end' }] }),
     L('A pleasure. Anything else?', { goto: 0 }),
   ],
@@ -141,14 +143,18 @@ export const DIALOGUE = {
   dukeshade: () => [L('...', { end: true })],
   brannoch: (g) => {
     const s = g.story;
-    return [L('Back for supplies? Sable\'s coin spends the same as anyone\'s.', { choices: [
+    const later = g.campaign?.index() >= 1;
+    return [L(later ? 'Still breathing, thanks to you. Same fire, same prices, and I do not work for her any more.' : 'Back for supplies? Sable\'s coin spends the same as anyone\'s.', { choices: [
       { text: 'Buy a lockpick (12 gold)', next: 1, action: (G) => G.story.buy('lockpick', 12) },
       { text: 'Buy Red Salve (30 gold)', next: 1, action: (G) => G.story.buy('potion', 30) },
       { text: 'Buy an Ember Flask (35 gold)', next: 1, action: (G) => G.story.buy('ember', 35) },
       { text: 'Buy a lead sap (30 gold)', next: 1, action: (G) => G.story.buy('sap', 30) },
-      SELL, { text: 'Remind me of the job.', next: 2 }, { text: 'Never mind.', next: 'end' }] }),
+      { text: 'Buy crossbow bolts ×8 (18 gold)', when: (G) => G.campaign.index() >= 1, next: 1, action: (G) => G.story.buy('bolt', 18, 8) },
+      { text: 'Buy water bolts ×3 (22 gold)', when: (G) => G.campaign.index() >= 1, next: 1, action: (G) => G.story.buy('bolt_water', 22, 3) },
+      { text: 'Buy a hand crossbow (160 gold)', when: (G) => G.campaign.index() >= 1 && !G.player.inv.has('crossbow'), next: 1, action: (G) => G.story.buy('crossbow', 160) },
+      SELL, { text: later ? 'What do you know about Sable?' : 'Remind me of the job.', next: 2 }, { text: 'Never mind.', next: 'end' }] }),
       L('Pleasure doing business. Anything else?', { goto: 0 }),
-      L('Ravenspire. The Duke\'s bedchamber, at the foot of his bed, a strongbox. A letter in black wax. Bring it out unopened. The gates shut at ten; the breach is west, the outfall east, and the crypt runs under the keep for those with a strong stomach.', { goto: 0 }),
+      L(later ? 'That she was a sweet girl in the Mirewood once, and that the Choir answered her when nobody else would. Do not pity her, Rook. She has had thirty years to stop.' : 'Ravenspire. The Duke\'s bedchamber, at the foot of his bed, a strongbox. A letter in black wax. Bring it out unopened. The gates shut at ten; the breach is west, the outfall east, and the crypt runs under the keep for those with a strong stomach.', { goto: 0 }),
     ];
   },
 };

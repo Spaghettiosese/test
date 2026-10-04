@@ -138,6 +138,8 @@ export class UI {
     if (R.total('bandits') > 0) pills.push(['Bandit grudge', 'bad']);
     if (R.disguise) pills.push(['Disguised: ' + R.disguise.label + ' (U)', 'good']);
     if (P.drawn) pills.push(['Sword drawn (Y)', 'warm']);
+    if (g.xbow?.up) pills.push([`Crossbow · ${g.xbow.label()} · K/wheel`, g.xbow.ammo() ? 'warm' : 'bad']);
+    if (g.campaign?.part && g.boss?.custom && g.player.pos[2] > 280) { /* the boss bar says enough */ }
     { const sp = g.social?.status(); if (sp) pills.push(sp); if ((g.social?.vig || 0) >= 1) pills.push([`Town ${g.social.vigLabel().toLowerCase()}`, g.social.vig >= 2 ? 'bad' : 'warm']); }
     if (T.poisonHits > 0) pills.push(['Poisoned blade ×' + T.poisonHits, 'good']);
     if (T.sap) pills.push(['Sap drawn (B)', 'warm']);

@@ -62,7 +62,7 @@ P.updateInteraction = function updateInteraction(dt) {
     const nm = PROP_NAME[b.userData.prop] || 'object', take = TAKE[b.userData.prop];
     push(b.position[0], b.position[1], b.position[2], 2.4, take ? `Take the ${nm}` : `Pick up the ${nm}`, () => (take ? this.takeProp(b, take) : pl.grab(b)), 'prop', 0.82, b);
   }
-  this.tools.hook(push, eye, f); this.stealth.hook(push, eye); this.campaign?.hook(push, eye);
+  this.tools.hook(push, eye, f); this.stealth.hook(push, eye); this.campaign?.hook(push, eye); this.echoes?.hook(push, eye);
   this.traps?.hook(push, eye); this.fishing?.hook(push, eye); this.mining?.hook(push, eye); this.shrines?.hook(push, eye); this.forage?.hook(push, eye); this.contracts?.hook(push, eye); this.fauna?.hook(push, eye); this.look?.hook(push, eye); this.horse?.hook(push, eye); this.treasure?.hook(push, eye); this.hideout?.hook(push, eye); this.caravan?.hook(push, eye);
   let best = null, bs = 1e9;
   for (const t of c) {
@@ -70,10 +70,10 @@ P.updateInteraction = function updateInteraction(dt) {
     if (d > t.r) continue;
     const cos = (dx * f[0] + dy * f[1] + dz * f[2]) / (d || 1);
     if (cos < t.cosMin && d > 0.9) continue;
-    const s = d * (2.4 - cos) * (t.kind === 'exec' ? 0.3 : t.kind === 'talk' ? 0.55 : t.kind === 'body' ? 0.8 : 1) + (t.kind === 'prop' ? 0.8 : 0);
+    const s = d * (2.4 - cos) * (t.kind === 'exec' ? 0.3 : t.kind === 'quest' ? 0.4 : t.kind === 'talk' ? 0.55 : t.kind === 'body' ? 0.8 : 1) + (t.kind === 'prop' ? 0.8 : 0);
     if (s < bs) { bs = s; best = t; }
   }
-  if (best && best.kind !== 'stairs' && best.kind !== 'talk' && best.kind !== 'body' && best.kind !== 'backstab' && best.kind !== 'door' && best.kind !== 'exec') {
+  if (best && best.kind !== 'stairs' && best.kind !== 'talk' && best.kind !== 'body' && best.kind !== 'backstab' && best.kind !== 'door' && best.kind !== 'exec' && best.kind !== 'quest') {
     if (!this.canSee(eye, [best.x, best.y, best.z], null)) best = null;
   }
   this.target = best && best.kind !== 'backstab' ? best : null;

@@ -1,6 +1,6 @@
 # Hollowmere: what is in the game
 
-This is the running list for the second update ("The Wide Valley"). Every line is something you can find or do in the build. The first update's systems (town, keep, schedules, stealth, skills, cutscenes) are listed at the end.
+This is the running list for Hollowmere, now a four-chapter game ("The Thirteenth Bell"). Every line is something you can find or do in the build. The first update's systems (town, keep, schedules, stealth, skills, cutscenes) are listed at the end.
 
 ## The world (about five times the ground of the first demo)
 
@@ -479,6 +479,90 @@ This is the running list for the second update ("The Wide Valley"). Every line i
 418. New sounds: hoofbeats, a whistle, a neigh, a wolf's howl.
 419. **Bug fix:** the README listed F as "pick up props"; it is E, and F is now the horse.
 420. **Bug fix:** the stablemaster's and caravan's beds no longer leave phantom prompts behind when the camp moves.
+
+## Round 8: the Thirteenth Bell (the full game)
+
+The demo is now a campaign in four chapters with four endings. Chapter I is the original job; chapters II to IV continue the story from the moment the seal cracks.
+
+**The campaign**
+473. Four chapters, each opened by a title card and a few lines of narration: The Duke's Seal, The Gray Hand, The Hollow Night and The Choir Beneath.
+474. Chapter II begins on the balcony with the keep's whole household knowing your face: get out of Ashgate by the breach, the outfall or the catacombs.
+475. Brannoch's camp has been found first. Gray Hand knives are waiting at his fire.
+476. Brannoch lives or dies by your hand: a Red Salve, or the salve on the ambush leader's body, keeps him alive. If you killed him in Chapter I, he left a note pinned to his tent.
+477. Three verses of the binding (Wax, Bone and Bell) are learned from Father Ansel, from Old Sable, and from the Duke at Fort Greywatch. If you killed the Duke, his shade waits by his son's grave in the graveyard at night.
+478. Old Sable is the Mistress's mother. She gives you a Wax ward charm and a message for her daughter that matters at the Stones.
+479. Marl keeps the Rookery's trapdoor behind his bar. You can talk him round, bribe him, frighten him, or lift the key from his belt.
+480. The Rookery, the Gray Hand's house under the Drowned Lantern, has a cellar, a counting room, a bunk hall, an underground dock with a boat out to the lake, Vane's hall and Sable's study.
+481. A Gray Hand cloak and mask, found in the cellar or stripped from a knife, lets you walk the Rookery as one of them. Picking a lock or carrying a body gives you away.
+482. Vane, the Hand's duelist, can be talked out of the fight (every verse you know helps) or beaten. He parries, ripostes and taunts.
+483. Sable's ledger lays out her plan: the Bone, the Bell and the Wax, at the Choir Stones at midnight under a red moon.
+484. In Chapter III Captain Harl parleys at the south gate, and the Watch stands down for the night.
+485. The Hollow Night is a siege: four waves of the dead against Ashgate's south gate, with barricades, braziers, and Harl and the Watch fighting beside you.
+486. Hold the gate and Harl pardons you: the Watch and the keep forget your face and your bounty.
+487. Refuse him, or walk away from the gate, and the town remembers.
+488. For the Bone, Sable's diggers are in the catacombs and the Binder's Guard, a Hollow Knight, stands over the First Duke's tomb.
+489. For the Bell, the belfry of Ravenspire is a new interior: two flights of stairs up to the gallery where the bell hangs. Take its tongue, then fight your way down past the knives.
+490. In Chapter IV a red moon colours the night.
+491. Sable and her knives wait at the Choir Stones. Vane, if you spared him, and Brannoch, if you saved him, come to fight beside you.
+492. At the Stones you can give Sable the letter, talk her down (her mother's message is your best argument), or fight her. She steps behind you through the dark, throws poisoned knives and splits into shadows.
+493. Whichever way it goes, the Mouth opens beneath the Stones.
+494. The Choir's Deep has three parts: the Throat, the Hall of Voices, and the round chamber where the Choir waits.
+495. The Choir is a two-phase boss. In the first phase three singing throats send rings along the floor (jump or sidestep them) and homing notes, and the dead come when it calls.
+496. In the second phase the heart rises. Shelter from its Silence behind a fallen throat or step through it, and strike the heart when it comes down to the rim.
+497. There are four endings: The Gray Hand's Knife, The Quiet Bell, Key of the Choir, and the true ending, The Thirteenth Bell, which needs all three verses, the Bone and the Bell.
+498. An epilogue remembers what you did. Ashgate, the Duke, Brannoch, Sable, Vane, Marta, Old Sable and Rook each get a card.
+499. Credits roll, then a final page of numbers.
+500. **Bug fix:** the Gray Hand ending could never be reached before. The state of the ending is now also saved.
+
+**Menus, saves and the long game**
+501. A new title screen with Continue, New Game, Load Game, Chapters, Trophies, Options, Controls and Credits.
+502. Three save slots, each with its own autosave. Slot cards show the chapter, level, place, time played and date.
+503. The single save from older builds becomes slot 1.
+504. A new pause menu with Resume, Save Game (pick a slot), Load Game, Journal, Trophies, Options, Controls and Quit to Title.
+505. Chapter select: any chapter you have reached can be started fresh with a fitting kit.
+506. You choose the difficulty when you start a game.
+507. New Game+ carries your level, perks, gear, blade and pack into a harder valley. Enemies get tougher each time round.
+508. Forty trophies covering the story, the endings and the craft. They outlive any save, appear as they are earned, and are listed in the menu.
+
+**Combat**
+509. Heavy blows: hold the left button to wind up and release to strike. A full charge breaks a guard.
+510. Sidesteps: double-tap a direction for a quick, invulnerable step. An option turns this off.
+511. Step through a blow at the last moment for a perfect dodge: a riposte window and a beat of slow time.
+512. Posture: every blow wears it down, and parries and heavy blows most of all. A broken posture leaves a man on his knees.
+513. Executions: press E on someone whose posture is broken, or who is staggered and nearly dead. A boss takes a riposte instead. Nearby enemies may lose heart and fall back.
+514. Captains, brutes, Hollow Knights and bosses sometimes wind up an unblockable overhead with a red glint. Step aside.
+515. Shieldbearers block anything from the front except a charged blow or a kick.
+516. Gray Hand knives are fast and slippery. They throw knives at range, poison their blades, and vanish in smoke when hurt.
+517. Hollow Knights wear plate over dead flesh. A stab in the back only hurts them, and they cannot be sapped.
+518. Choir Cantors keep their distance, sing homing notes and call the dead.
+519. Venom from a poisoned blade or knife drains your health for a few seconds.
+520. People fight each other: the Watch engages hollows on sight and calls the others, hollows go for whoever is nearest, and townsfolk run from the dead.
+521. Vane and Brannoch can fight at your side at the end.
+522. When people fight each other, anyone the story needs is knocked down, never killed.
+523. Every great foe has a health bar: Vane, Sable, the Hollow Knights and the Choir.
+
+**The crossbow**
+524. A hand crossbow: I raises or lowers it, the left button looses a bolt, and the right button aims down the rail.
+525. Four bolts: broadhead, water (puts out torches, braziers and fires), fire, and sleep (knocks a man out).
+526. Bolts can be bought, crafted (broadheads from scrap, the others from broadheads) and often recovered.
+
+**New places**
+527. Mountains now ring the valley.
+528. The world's edge is solid.
+529. The Rookery, the belfry and the Choir's Deep lie beyond the mountains, reached by trapdoor, tower door and the Mouth. The map shows them on their own.
+530. The deep places have their own murk and light.
+
+**The world**
+531. Thirteen Choir echoes are hidden around the valley, each with a line of the Choir's story. Every fourth gives a perk point; all thirteen fuse into a charm.
+532. A Story page in the journal shows the chapters, the three verses, the choices you made and the echoes you found.
+533. Five new side quests: The restless dead (Ansel), Masks in my town (Harl), The dead in plate (Brask), Echoes of the hill (the hermit) and A lamp in the window (Old Sable).
+534. Gil and Brannoch sell the crossbow and bolts.
+535. New gear: Ring of the Gray Hand, Wax ward, Vane's duelling coat, Hollow plate and Echo of the Binder.
+536. The colour grade follows the land: warm in the town, cold in the keep, green in the fen, ashen at Cinderwick, violet below ground, and blood-red under the red moon.
+537. The music gets a quicker pulse in boss fights, and in the Deep the Choir's own voice swells under everything.
+538. **Bug fix:** the floor sigils in the crypt and the Duke's chamber, the chandelier rings and the gibbet's hoops were standing on edge. They lie flat now.
+539. **Bug fix:** when a story object and a body are both in reach, E now picks the story object.
+540. Timed game events now run on game time, so they pause with the game.
 
 ## Round 7: the quiet life
 
