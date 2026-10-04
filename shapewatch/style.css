@@ -295,3 +295,5 @@ select { font: 700 .85rem var(--body); letter-spacing: .06em; padding: .35rem .6
 body.touch .kit { bottom: auto; top: 1rem; right: .8rem; } body.touch .vitals { left: 10.5rem; bottom: .8rem; } body.touch .team { display: none; }
 @media (max-width: 800px) { .sel-info { display: none; } #gallery { grid-template-columns: 1fr; } .g-detail { display: none; } .e-grid, .cr-grid, #play { grid-template-columns: 1fr; } .st-cols { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .f-row, .pop, .banner.show, .sub { animation: none; } }
+
+.mk.bounty { color: #ffd36b; font: italic 700 .8rem var(--display); letter-spacing: .1em; } .mk.bounty .dia { box-shadow: 0 0 12px #ffd36b; animation: pulse .7s infinite; }

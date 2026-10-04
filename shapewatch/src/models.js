@@ -32,7 +32,7 @@ export function heroColors(heroId, skinId = 'default') {
   const d = HERO[heroId], skin = SKINS.find((s) => s.id === skinId) || SKINS[0];
   return skin.map(d.colors);
 }
-const HAIR = { orbit: '#1d1430', ranger: '#4a2f1a', cinder: '#ff7a1a', flicker: '#ffd23a', shade: '#1a1226', trapper: '#3a2a1c', riftwalker: '#14243a', halo: '#f2d27a', serene: '#15151c', pylon: '#3b2a1e', zephyr: '#2a1346', siphon: '#d9d2e6', vesper: '#1b2428', mauler: '#2c2a2a', sabre: '#2a2018', skyhawk: '#5a3d22' };
+const HAIR = { orbit: '#1d1430', ranger: '#4a2f1a', cinder: '#ff7a1a', flicker: '#ffd23a', shade: '#1a1226', trapper: '#3a2a1c', riftwalker: '#14243a', halo: '#f2d27a', serene: '#15151c', pylon: '#3b2a1e', zephyr: '#2a1346', siphon: '#d9d2e6', sion: '#1a1a1a', stormcaller: '#e9f2ff', ricochet: '#2b1a12', mirage: '#ff7ad9', lantern: '#1e140c', thorn: '#8a3a5a', vesper: '#1b2428', mauler: '#2c2a2a', sabre: '#2a2018', skyhawk: '#5a3d22' };
 
 // ------------------------------------------------------------------ weapons
 // built pointing +Z with the grip at the origin; returns { node, muzzle:[x,y,z], spin?: Node }
@@ -106,6 +106,24 @@ export function buildWeapon(heroId, c) {
       case 'siphon': // drain claw
         k.box(dark, [0, 0.02, 0.1], [0.14, 0.14, 0.34], [0, 0, 0], 0.04); for (const x of [-0.06, 0, 0.06]) { cone(k, mat('#d9d2e6', { metallic: 0.2 }), 0.025, 0.3, [x, 0.0, 0.42], [90, 0, 0], 6); } k.cyl(acc, [0, 0.04, 0.3], 0.07, 0.04, [90, 0, 0], 12); tor(k, acc, 0.075, 0.012, [0, 0.04, 0.22], [90, 0, 0]); k.cyl(sec, [0.1, 0.1, 0.0], 0.02, 0.4, [0, 0, 20], 6);
         muzzle = [0, 0.03, 0.6]; break;
+      case 'sion': // double-bladed war axe
+        k.cyl(mat('#3a2a1c'), [0, 0.0, 0.5], 0.05, 1.5, [90, 0, 0], 8); for (const sy of [-1, 1]) { k.box(steel, [0, sy * 0.3, 1.05], [0.05, 0.5, 0.42], [0, 0, sy * -8], 0.02); cone(k, steel, 0.16, 0.2, [0, sy * 0.58, 1.05], [0, 0, sy > 0 ? 0 : 180], 4); } k.box(acc, [0, 0, 1.05], [0.07, 0.2, 0.08]); tor(k, dark, 0.07, 0.015, [0, 0, 0.05], [90, 0, 0]);
+        muzzle = [0, 0, 1.2]; break;
+      case 'stormcaller': // tesla rod
+        k.cyl(dark, [0, 0.03, 0.2], 0.05, 0.5, [90, 0, 0], 8); for (let i = 0; i < 3; i++) tor(k, acc, 0.08 - i * 0.012, 0.012, [0, 0.03, 0.34 + i * 0.1], [90, 0, 0]); sph(k, acc, 0.07, [0, 0.03, 0.7]); cone(k, acc, 0.03, 0.14, [0, 0.03, 0.8], [90, 0, 0], 5);
+        muzzle = [0, 0.03, 0.8]; break;
+      case 'ricochet': // angled carbine with a rubber bumper
+        k.box(body, [0, 0.04, 0.3], [0.1, 0.16, 0.7], [0, 0, 0], 0.02); k.box(acc, [0, 0.0, 0.7], [0.12, 0.12, 0.08]); k.box(dark, [0, 0.14, 0.34], [0.05, 0.06, 0.34]); k.box(sec, [0, -0.1, 0.16], [0.07, 0.22, 0.1], [-8, 0, 0]); k.box(dark, [0.06, 0.04, 0.5], [0.02, 0.1, 0.2], [0, 0, 25]);
+        muzzle = [0, 0.04, 0.8]; break;
+      case 'mirage': // twin prism needlers
+        for (const sx of [-0.06, 0.06]) { k.box(body, [sx, 0.03, 0.18], [0.06, 0.1, 0.34], [0, 0, 0], 0.015); k.cyl(acc, [sx, 0.03, 0.4], 0.02, 0.12, [90, 0, 0], 6); } k.box(dark, [0, -0.07, 0.08], [0.08, 0.16, 0.08], [-8, 0, 0]);
+        muzzle = [0, 0.03, 0.48]; break;
+      case 'lantern': // lantern-staff pistol
+        k.box(body, [0, 0.03, 0.14], [0.08, 0.12, 0.3], [0, 0, 0], 0.02); k.cyl(sec, [0, 0.04, 0.34], 0.025, 0.2, [90, 0, 0], 6); k.box(dark, [0, 0.18, 0.18], [0.12, 0.02, 0.12]); k.box(glow(c.accent, 3.4), [0, 0.26, 0.18], [0.1, 0.12, 0.1], [0, 0, 0], 0.02); k.box(dark, [0, 0.34, 0.18], [0.12, 0.02, 0.12]); k.box(sec, [0, -0.07, 0.04], [0.06, 0.18, 0.08], [-10, 0, 0]);
+        muzzle = [0, 0.04, 0.46]; break;
+      case 'thorn': // living-wood thorn launcher
+        k.box(mat('#5a3a22', { roughness: 0.9 }), [0, 0.03, 0.2], [0.1, 0.14, 0.44], [0, 0, 0], 0.03); for (let i = 0; i < 4; i++) cone(k, acc, 0.02, 0.1, [0.05 * (i % 2 ? 1 : -1), 0.1, 0.1 + i * 0.1], [0, 0, (i % 2 ? -50 : 50)], 5); cone(k, body, 0.05, 0.3, [0, 0.04, 0.55], [90, 0, 0], 6); sph(k, acc, 0.05, [0, 0.12, 0.05]);
+        muzzle = [0, 0.04, 0.72]; break;
       default: k.box(body, [0, 0.03, 0.3], [0.1, 0.14, 0.6]);
     }
   });
@@ -135,6 +153,12 @@ const BODY = {
   zephyr: { t: [0.46, 0.5, 0.26], limb: 0.11, sh: 0.09, hd: 0.14 },
   cantor: { t: [0.5, 0.54, 0.3], limb: 0.115, sh: 0.09, hd: 0.14 },
   siphon: { t: [0.44, 0.52, 0.26], limb: 0.105, sh: 0.075, hd: 0.14 },
+  sion: { t: [0.86, 0.66, 0.5], limb: 0.22, sh: 0.28, hd: 0.16 },
+  stormcaller: { t: [0.44, 0.52, 0.26], limb: 0.105, sh: 0.08, hd: 0.14 },
+  ricochet: { t: [0.5, 0.54, 0.3], limb: 0.115, sh: 0.09, hd: 0.14 },
+  mirage: { t: [0.42, 0.5, 0.24], limb: 0.1, sh: 0.075, hd: 0.135 },
+  lantern: { t: [0.48, 0.55, 0.28], limb: 0.11, sh: 0.085, hd: 0.14 },
+  thorn: { t: [0.46, 0.54, 0.27], limb: 0.108, sh: 0.08, hd: 0.14 },
 };
 
 // Each look can supply: head(k,m) torso(k,m) arm(k,m,side) leg(k,m,side) back(add,m) hand(k,m,side) plus flags
@@ -285,6 +309,50 @@ const LOOKS = {
     leg(k, m) { const { cs, dark, limb } = m; for (let i = 0; i < 4; i++) k.box(i % 2 ? dark : cs, [0, -0.15 - i * 0.14, 0], [limb * 1.24, 0.08, limb * 1.38]); },
     back(add, m) { const { cp, cs, ca, dark, tw, td } = m; add('Tanks', (k) => { k.box(dark, [0, 0.3, 0], [0.34, 0.5, 0.14], [0, 0, 0], 0.03); for (const sx of [-1, 1]) { k.cyl(mat('#cfe6c0', { opacity: 0.5 }), [sx * 0.1, 0.34, -0.03], 0.065, 0.46, [0, 0, 0], 10); k.cyl(glow(m.c.accent, 2.4), [sx * 0.1, 0.26, -0.03], 0.05, 0.28, [0, 0, 0], 10); } k.cyl(dark, [0.12, 0.1, 0.05], 0.015, 0.4, [0, 0, 70], 6); }, 0, 0.1, -td / 2 - 0.1); const dr = add('Drops', (k) => { for (let i = 0; i < 4; i++) { const a = i * 1.57; sph(k, glow(m.c.accent, 3), 0.032, [Math.cos(a) * 0.45, Math.sin(a * 1.3) * 0.12, Math.sin(a) * 0.45], [1, 1.4, 1]); } }, 0, 0.45, 0); m.anim.push({ node: dr, kind: 'spin', axis: [0, 1, 0], speed: -60 }); const cl = add('Cloak', (k) => { for (let i = 0; i < 4; i++) k.box(i % 2 ? cp : cs, [-0.15 + i * 0.1, -0.4, 0], [0.1, 0.9 + (i % 2) * 0.12, 0.03], [8, 0, (i - 1.5) * 4]); }, 0, 0.45, -td / 2 - 0.06); m.anim.push({ node: cl, kind: 'sway', amp: 3, speed: 1.4, base: [0, 0, 0] }); },
   },
+  // ---------------------------------------------------------------- EXPANSION
+  sion: {
+    head(k, m) { const { cp, cs, ca, dark, skin, r } = m, bone = mat('#cfc9b4'); dome(k, mat('#4a5448'), r * 1.22, [0, r * 0.35, -r * 0.1], [1, 1, 1.05], [0, 0, 0], 95); for (const sx of [-1, 1]) { cone(k, bone, 0.07, 0.4, [sx * r * 1.1, r * 0.9, 0], [0, 0, sx * -35], 6); k.cyl(glow(m.c.accent, 4), [sx * r * 0.42, r * 0.1, r * 1.0], r * 0.22, 0.04, [90, 0, 0], 8); } k.box(dark, [0, -r * 0.7, r * 0.8], [r * 1.6, r * 0.7, 0.05]); for (let i = -3; i <= 3; i++) k.box(bone, [i * r * 0.2, -r * 0.7, r * 0.84], [0.02, r * 0.45, 0.02]); tor(k, mat('#8e949f', { metallic: 0.8 }), r * 0.9, 0.025, [0, -r * 0.55, r * 0.2], [80, 0, 0], null, 12); },
+    torso(k, m) { const { cp, cs, ca, dark, tw, th, td } = m, bone = mat('#cfc9b4'); for (let i = 0; i < 4; i++) { k.box(bone, [0, th * 0.82 - i * 0.12, td * 0.5 + 0.02], [tw * (0.66 - i * 0.05), 0.04, 0.03]); } k.box(bone, [0, th * 0.55, td * 0.5 + 0.02], [0.04, th * 0.7, 0.03]); for (const sx of [-1, 1]) { k.box(dark, [sx * tw * 0.52, th - 0.02, 0], [0.3, 0.2, td * 1.0], [0, 0, sx * 14], 0.05); for (let i = 0; i < 3; i++) cone(k, bone, 0.05, 0.22, [sx * (tw * 0.5 + i * 0.07), th + 0.12, (i - 1) * 0.12], [0, 0, sx * -20], 5); } k.box(glow(m.c.accent, 2), [0, th * 0.4, td * 0.5 + 0.03], [tw * 0.4, 0.05, 0.02]); k.box(dark, [0, 0.0, 0], [tw * 1.06, 0.14, td * 1.1], [0, 0, 0], 0.04); },
+    arm(k, m, side) { const { dark, limb } = m; for (let i = 0; i < 3; i++) tor(k, mat('#8e949f', { metallic: 0.8 }), limb * 0.8, 0.025, [0, -0.15 - i * 0.12, 0], [0, 0, 0], null, 12); k.box(dark, [0, -0.46, 0], [limb * 1.3, 0.2, limb * 1.3], [0, 0, 0], 0.03); },
+    leg(k, m) { const { cs, dark, limb } = m; k.box(dark, [0, -0.3, limb * 0.8], [limb * 1.5, 0.3, 0.06]); k.box(cs, [0, -0.64, 0.03], [limb * 1.4, 0.2, limb * 1.8]); },
+    back(add, m) { const { cp, cs, dark, tw, td } = m; add('Rags', (k) => { for (let i = 0; i < 3; i++) k.box(i % 2 ? dark : cs, [-0.2 + i * 0.2, -0.3, 0], [0.2, 0.8 + (i % 2) * 0.15, 0.04], [6, 0, (i - 1) * 4]); }, 0, 0.1, -td / 2 - 0.02); const ch = add('Chains', (k) => { for (let i = 0; i < 5; i++) tor(k, mat('#8e949f', { metallic: 0.8 }), 0.05, 0.012, [0.3 + (i % 2) * 0.03, 0.3 - i * 0.1, 0], [i % 2 ? 90 : 0, 0, 0], null, 8); }, 0, 0.4, -td / 2 - 0.08); m.anim.push({ node: ch, kind: 'sway', amp: 4, speed: 1.8, base: [0, 0, 0] }); },
+  },
+  stormcaller: {
+    head(k, m) { const { cp, cs, ca, dark, r, hair } = m, h = mat(hair); dome(k, h, r * 1.12, [0, r * 0.15, -r * 0.05], [1, 1.04, 1.06], [0, 0, 0], 105); for (let i = -2; i <= 2; i++) cone(k, h, 0.045, 0.28 - Math.abs(i) * 0.04, [i * 0.06, r * 1.0 + 0.1, -0.02], [-10 - Math.abs(i) * 6, 0, -i * 18], 5); for (const sx of [-1, 1]) k.box(glow(m.c.accent, 3.4), [sx * r * 0.4, r * 0.05, r * 0.98], [r * 0.28, r * 0.12, 0.02]); k.box(glow(m.c.accent, 2.4), [0, r * 0.62, r * 0.96], [r * 0.15, r * 0.4, 0.02], [0, 0, 20]); },
+    torso(k, m) { const { cp, cs, ca, dark, tw, th, td } = m; k.box(cs, [0, th * 0.55, td * 0.5 + 0.02], [tw * 0.7, th * 0.8, 0.04], [0, 0, 0], 0.02); for (const sx of [-1, 1]) k.box(glow(m.c.accent, 2.6), [sx * 0.08, th * 0.55, td * 0.5 + 0.05], [0.015, th * 0.7, 0.01], [0, 0, sx * 14]); ext(k, glow(m.c.accent, 3), 'arrow', 0.12, 0.03, [0, th * 0.62, td * 0.5 + 0.07], [0, 0, 0]); k.box(dark, [0, 0.03, 0], [tw * 1.04, 0.1, td * 1.1]); },
+    arm(k, m) { const { cs, dark, limb } = m; k.box(cs, [0, -0.2, 0], [limb * 1.35, 0.5, limb * 1.35], [0, 0, 0], 0.03); tor(k, glow(m.c.accent, 3), limb * 0.9, 0.014, [0, -0.5, 0], [0, 0, 0], null, 12); },
+    leg(k, m) { const { cs, dark, limb } = m; k.box(dark, [0, -0.5, 0.02], [limb * 1.3, 0.4, limb * 1.5], [0, 0, 0], 0.03); k.box(glow(m.c.accent, 2.2), [0, -0.3, limb * 0.76], [limb, 0.02, 0.01]); },
+    back(add, m) { const { cp, cs, dark, td } = m; add('Cape', (k) => { k.box(cp, [0, -0.3, 0], [0.5, 0.9, 0.04], [8, 0, 0], 0.02); k.box(glow(m.c.accent, 2), [0, -0.74, 0], [0.5, 0.025, 0.045], [8, 0, 0]); }, 0, 0.5, -td / 2 - 0.03); const o = add('Orbs', (k) => { for (let i = 0; i < 3; i++) { const a = i * 2.09; sph(k, glow(m.c.accent, 3.6), 0.045, [Math.cos(a) * 0.42, Math.sin(a * 2) * 0.1, Math.sin(a) * 0.42]); } }, 0, 0.62, 0); m.anim.push({ node: o, kind: 'spin', axis: [0, 1, 0], speed: 160 }); },
+  },
+  ricochet: {
+    head(k, m) { const { cp, cs, ca, dark, skin, r, hair } = m, h = mat(hair); dome(k, h, r * 1.1, [0, r * 0.1, -r * 0.05], [1, 1.04, 1.06], [0, 0, 0], 100); k.cyl(cp, [0, r * 0.75, 0], r * 1.4, 0.03, [0, 0, 0], 16); dome(k, cp, r * 1.0, [0, r * 0.75, 0], [1, 0.8, 1], [0, 0, 0], 90); k.box(ca, [0, r * 0.82, r * 0.05], [r * 2.05, 0.03, r * 0.5]); k.box(dark, [0, r * 0.1, r * 1.0], [r * 1.5, r * 0.18, 0.03]); k.box(mat(hair), [0, -r * 0.35, r * 0.95], [r * 0.9, r * 0.12, 0.03]); },
+    torso(k, m) { const { cp, cs, ca, dark, tw, th, td } = m; k.box(cs, [0, th * 0.55, td * 0.5 + 0.02], [tw * 0.85, th * 0.8, 0.04], [0, 0, 0], 0.02); for (let i = -1; i <= 1; i++) k.box(ca, [i * 0.12, th * 0.6, td * 0.5 + 0.05], [0.04, th * 0.7, 0.01], [0, 0, i * 14]); for (const sx of [-1, 1]) k.cyl(mat('#e6c34a', { metallic: 0.7 }), [sx * 0.14, th * 0.9, td * 0.5 + 0.04], 0.03, 0.04, [90, 0, 0], 6); k.box(dark, [0, 0.03, 0], [tw * 1.05, 0.1, td * 1.1]); },
+    arm(k, m) { const { cs, ca, dark, limb } = m; k.box(ca, [0, -0.1, 0], [limb * 1.2, 0.05, limb * 1.2]); k.box(dark, [0, -0.46, 0], [limb * 1.15, 0.2, limb * 1.15], [0, 0, 0], 0.03); },
+    leg(k, m) { const { cs, ca, dark, limb } = m; k.box(dark, [0, -0.68, 0.04], [limb * 1.4, 0.24, limb * 1.8], [0, 0, 0], 0.03); k.box(ca, [0, -0.54, limb * 0.8], [limb * 1.1, 0.03, 0.02]); },
+    back(add, m) { const { cp, cs, ca, dark, tw, td } = m; add('Quiver', (k) => { k.box(dark, [0, 0.32, 0], [tw * 0.7, 0.5, 0.16], [0, 0, 0], 0.03); for (let i = 0; i < 4; i++) { k.cyl(ca, [-0.12 + i * 0.08, 0.64, -0.02], 0.02, 0.2, [0, 0, 0], 5); } for (const sx of [-1, 1]) k.box(mat('#cfd3da', { metallic: 0.7 }), [sx * 0.2, 0.2, -0.12], [0.05, 0.28, 0.02], [0, 0, sx * 12]); }, 0, 0.1, -td / 2 - 0.1); },
+  },
+  mirage: {
+    head(k, m) { const { cp, cs, ca, dark, r, hair } = m, h = mat(hair); dome(k, h, r * 1.12, [0, r * 0.12, -r * 0.05], [1, 1.06, 1.08], [0, 0, 0], 108); k.box(h, [r * 0.8, -r * 0.2, -r * 0.4], [r * 0.5, r * 1.6, r * 0.5], [0, 0, 10], 0.05); k.box(glow(m.c.accent, 3), [0, r * 0.12, r * 1.0], [r * 1.5, r * 0.14, 0.03]); k.box(dark, [0, r * 0.12, r * 0.98], [r * 1.7, r * 0.3, 0.03]); k.cyl(glow(m.c.accent, 2.4), [-r * 1.05, 0, 0], r * 0.3, 0.05, [0, 0, 90], 10); },
+    torso(k, m) { const { cp, cs, ca, dark, tw, th, td } = m; for (let i = 0; i < 4; i++) k.box(glow(i % 2 ? m.c.accent : '#7ff0ff', 2), [0, th * 0.82 - i * 0.12, td * 0.5 + 0.015], [tw * 0.9, 0.02, 0.01]); k.box(cs, [0, th * 0.4, td * 0.5 + 0.015], [tw * 0.4, th * 0.7, 0.02], [0, 0, 0], 0.01); },
+    arm(k, m) { const { cs, ca, dark, limb } = m; k.box(glow(m.c.accent, 2.2), [limb * 0.58, -0.2, 0], [0.012, 0.4, 0.05]); k.box(cs, [0, -0.46, 0], [limb * 1.15, 0.18, limb * 1.15], [0, 0, 0], 0.03); },
+    leg(k, m) { const { cs, ca, dark, limb } = m; k.box(glow(m.c.accent, 2), [limb * 0.66, -0.4, 0], [0.012, 0.7, 0.05]); k.box(dark, [0, -0.68, 0.04], [limb * 1.4, 0.22, limb * 1.8], [0, 0, 0], 0.03); },
+    back(add, m) { const { cp, cs, ca, dark, td } = m; const g = add('Prism', (k) => { k.shape(glow(m.c.accent, 2.8), { type: 'extrude', shape: 'polygon', radius: 0.5, points: 4, depth: 1, bevel: 0 }, [], [0, 0, 0], [0, 0, 0], [0.22, 0.32, 0.05]); k.shape(glow('#7ff0ff', 2.2), { type: 'extrude', shape: 'polygon', radius: 0.5, points: 4, depth: 1, bevel: 0 }, [], [0.14, -0.1, 0.02], [0, 0, 20], [0.14, 0.2, 0.04]); }, 0, 0.5, -td / 2 - 0.2); m.anim.push({ node: g, kind: 'bob', amp: 0.03, speed: 3, base: [0, 0.5, -td / 2 - 0.2] }); },
+  },
+  lantern: {
+    head(k, m) { const { cp, cs, ca, dark, skin, r, hair } = m, h = mat(hair); dome(k, h, r * 1.12, [0, r * 0.12, -r * 0.05], [1, 1.05, 1.08], [0, 0, 0], 108); k.box(h, [0, -r * 0.6, -r * 1.0], [r * 0.5, r * 2.0, r * 0.5], [4, 0, 0], 0.05); cone(k, cp, r * 1.6, r * 0.6, [0, r * 0.9, 0], [0, 0, 0], 10); k.cyl(cp, [0, r * 0.7, 0], r * 1.6, 0.03, [0, 0, 0], 16); sph(k, glow(m.c.accent, 3), r * 0.18, [0, r * 1.4, 0]); },
+    torso(k, m) { const { cp, cs, ca, dark, tw, th, td } = m; k.box(cs, [0, th * 0.5, td * 0.5 + 0.02], [tw * 0.4, th * 0.9, 0.04]); for (const sx of [-1, 1]) k.box(cp, [sx * tw * 0.3, th * 0.5, td * 0.5 + 0.03], [tw * 0.3, th, 0.04], [0, 0, sx * -3], 0.02); k.box(ca, [0, 0.04, 0], [tw * 1.06, 0.08, td * 1.1]); sph(k, glow(m.c.accent, 3), 0.045, [0, th * 0.6, td * 0.5 + 0.07]); },
+    arm(k, m) { const { cp, cs, ca, dark, limb } = m; k.box(cp, [0, -0.2, 0], [limb * 1.7, 0.5, limb * 1.7], [0, 0, 0], 0.03); k.box(ca, [0, -0.46, 0], [limb * 1.8, 0.04, limb * 1.8]); },
+    leg(k, m) { const { cs, ca, dark, limb } = m; k.box(m.cp, [0, -0.3, 0], [limb * 1.4, 0.6, limb * 1.5], [0, 0, 0], 0.03); k.box(dark, [0, -0.7, 0.04], [limb * 1.4, 0.2, limb * 1.8]); },
+    back(add, m) { const { cp, cs, ca, dark, tw, td } = m; add('Robe', (k) => { k.box(cp, [-0.1, -0.35, 0], [0.24, 0.9, 0.05], [8, 0, 3], 0.02); k.box(cp, [0.1, -0.35, 0], [0.24, 0.9, 0.05], [8, 0, -3], 0.02); }, 0, 0.1, -td / 2 - 0.02); const l = add('Lantern', (k) => { k.cyl(dark, [0, 0.14, 0], 0.01, 0.3, [0, 0, 0], 4); k.box(dark, [0, 0.0, 0], [0.16, 0.02, 0.16]); k.box(glow(m.c.accent, 3.6), [0, -0.12, 0], [0.12, 0.2, 0.12], [0, 0, 0], 0.02); k.box(dark, [0, -0.24, 0], [0.16, 0.02, 0.16]); k.cyl(dark, [0, 0.29, 0], 0.03, 0.02, [0, 0, 0], 6); }, 0.45, 0.35, -0.05); m.anim.push({ node: l, kind: 'sway', amp: 8, speed: 2, base: [0, 0, 0] }); },
+  },
+  thorn: {
+    head(k, m) { const { cp, cs, ca, dark, r, hair } = m, h = mat(hair); dome(k, h, r * 1.14, [0, r * 0.12, -r * 0.05], [1, 1.06, 1.1], [0, 0, 0], 110); for (let i = 0; i < 5; i++) { const a = -0.8 + i * 0.4; cone(k, mat('#4a8a3a'), 0.035, 0.22, [Math.sin(a) * r * 0.9, r * 1.05, Math.cos(a) * r * 0.5 - r * 0.1], [-15, 0, -a * 50], 5); } for (const sx of [-1, 1]) sph(k, glow(m.c.accent, 3), r * 0.1, [sx * r * 0.7, r * 0.8, r * 0.3]); k.box(dark, [0, r * 0.1, r * 1.0], [r * 0.9, r * 0.1, 0.02]); },
+    torso(k, m) { const { cp, cs, ca, dark, tw, th, td } = m; k.box(cs, [0, th * 0.5, td * 0.5 + 0.02], [tw * 0.7, th * 0.85, 0.04], [0, 0, 0], 0.02); for (let i = 0; i < 4; i++) k.shape(mat('#5ab04a'), { type: 'extrude', shape: 'heart', radius: 0.5, depth: 1, bevel: 0 }, [], [(i % 2 ? 0.1 : -0.1), th * 0.8 - i * 0.12, td * 0.5 + 0.05], [0, 0, i * 40], [0.09, 0.09, 0.02]); sph(k, glow(m.c.accent, 3), 0.045, [0, th * 0.55, td * 0.5 + 0.06]); k.box(dark, [0, 0.03, 0], [tw * 1.04, 0.09, td * 1.1]); },
+    arm(k, m, side) { const { cs, ca, dark, limb } = m; for (let i = 0; i < 4; i++) cone(k, mat('#4a8a3a'), 0.025, 0.12, [limb * 0.62 * (side || 1), -0.1 - i * 0.1, 0], [0, 0, (side || 1) * -70], 5); k.box(dark, [0, -0.46, 0], [limb * 1.15, 0.18, limb * 1.15], [0, 0, 0], 0.03); },
+    leg(k, m) { const { cs, ca, dark, limb } = m; for (let i = 0; i < 3; i++) tor(k, mat('#4a8a3a'), limb * 0.8, 0.02, [0, -0.15 - i * 0.16, 0], [0, 0, 0], null, 10); k.box(dark, [0, -0.7, 0.04], [limb * 1.4, 0.2, limb * 1.8]); },
+    back(add, m) { const { cp, cs, ca, dark, tw, td } = m; add('Cloak', (k) => { for (let i = 0; i < 4; i++) k.box(i % 2 ? cp : cs, [-0.15 + i * 0.1, -0.35, 0], [0.11, 0.9 + (i % 2) * 0.1, 0.03], [8, 0, (i - 1.5) * 4]); }, 0, 0.5, -td / 2 - 0.03); const b = add('Blossoms', (k) => { for (let i = 0; i < 5; i++) { const a = i * 1.26; sph(k, glow(i % 2 ? m.c.accent : '#7dff8a', 2.6), 0.04, [Math.cos(a) * 0.42, Math.sin(a * 1.3) * 0.1, Math.sin(a) * 0.42]); } }, 0, 0.5, 0); m.anim.push({ node: b, kind: 'spin', axis: [0, 1, 0], speed: -70 }); },
+  },
+
 };
 
 // ------------------------------------------------------------------ build

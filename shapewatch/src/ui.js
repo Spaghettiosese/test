@@ -51,7 +51,7 @@ export class Minimap {
       if (u === me) { marks(u.pos[0], u.pos[2], '#fff', 5.5, 'tri', u.yaw); continue; }
       if (mate) marks(u.pos[0], u.pos[2], '#3a9bff', 4.2, 'tri', u.yaw);
       else {
-        const spotted = u.st.reveal || (me && u.hurt?.[me.id] != null && sim.time - u.hurt[me.id] < 2.5) || (me && sim.time - (this.seen.get(u.id) ?? -9) < 1.2);
+        const spotted = u.st.reveal || u.bounty || (me && u.hurt?.[me.id] != null && sim.time - u.hurt[me.id] < 2.5) || (me && sim.time - (this.seen.get(u.id) ?? -9) < 1.2);
         if (spotted) marks(u.pos[0], u.pos[2], '#ff4a52', 4.2, 'dia');
       }
     }
@@ -303,6 +303,7 @@ export class Hud {
       if (u.deploy || u === me || !u.alive) continue;
       const d = v3.dist(u.pos, cam), head = [u.pos[0], u.pos[1] + u.def.height + 0.45, u.pos[2]], mate = u.team === me.team && !ffa;
       if (mate) { if (d < 90) mk('u' + u.id, 'ally' + (u.ult >= u.def.ult.cost ? ' ult' : ''), `<span class="r">${roleSvg(u.def.role, 11, ROLE_COLORS[u.def.role])}</span>${u.name.toUpperCase()}<div class="mhp"><i style="width:${pc(u)}%"></i></div>`, head); }
+      else if (u.bounty) mk('u' + u.id, 'enemy bounty', `<span class="dia"></span>★ BOUNTY<div class="mhp"><i style="width:${pc(u)}%"></i></div>`, head);
       else if (u.st.reveal || u.st.marked || (u.hurt[me.id] && sim.time - u.hurt[me.id] < 2)) mk('u' + u.id, 'enemy', `<span class="dia"></span><div class="mhp"><i style="width:${pc(u)}%"></i></div>`, head);
     }
     const P = sim.payload, atk = me.team === 0;

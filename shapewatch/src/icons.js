@@ -46,6 +46,12 @@ const ICONS = {
   pylon: { w1: 'rivet', w2: 'repair', a1: 'pylon', a2: 'turret', ult: 'grid' },
   zephyr: { w1: 'sonic', w2: 'note', a1: 'pulse', a2: 'wdash', ult: 'barrier' },
   cantor: { w1: 'shard', w2: 'harmony', a1: 'discord', a2: 'kick', ult: 'transcend' },
+  sion: { w1: 'axe', w2: 'quake', a1: 'flame', a2: 'shout', ult: 'charge' },
+  stormcaller: { w1: 'emp', w2: 'burst', a1: 'blink', a2: 'overdrive', ult: 'meteor' },
+  ricochet: { w1: 'rifle', w2: 'bounce', a1: 'slide', a2: 'sonar', ult: 'overdrive' },
+  mirage: { w1: 'smg', w2: 'decoy', a1: 'cloak', a2: 'rewind', ult: 'discord' },
+  lantern: { w1: 'pistol', w2: 'healorb', a1: 'pulse', a2: 'sonar', ult: 'noon' },
+  thorn: { w1: 'dart', w2: 'healorb', a1: 'grapple', a2: 'caltrops', ult: 'wall' },
   siphon: { w1: 'drain', w2: 'healorb', a1: 'fade', a2: 'decay', ult: 'coal' },
 };
 const arc = (g, x, y, r, a0 = 0, a1 = 7) => { g.beginPath(); g.arc(x, y, r, a0, a1); };
@@ -144,6 +150,9 @@ const GLYPH = {
   pulse: (g) => { dot(g, 20, 48, 8); for (const r of [22, 40, 58]) { arc(g, 20, 48, r, -0.7, 0.7); g.stroke(); } },
   wdash: (g) => { GLYPH.slide(g); },
   barrier: (g) => { for (const r of [14, 26, 38]) ring(g, 48, 48, r); poly(g, 48, 36, 56, 52, 40, 52); },
+  axe: (g) => { line(g, 22, 84, 70, 16); poly(g, 52, 14, 84, 24, 82, 52, 62, 44); poly(g, 40, 30, 20, 26, 22, 48, 40, 52); },
+  decoy: (g) => { dot(g, 30, 30, 9); g.fillRect(22, 40, 16, 30); g.globalAlpha = 0.5; dot(g, 66, 30, 9); g.fillRect(58, 40, 16, 30); g.globalAlpha = 1; line(g, 44, 52, 54, 52); },
+  bounce: (g) => { line(g, 12, 80, 44, 24, 84, 76); poly(g, 78, 62, 90, 80, 70, 80); dot(g, 12, 80, 5); },
   shard: (g) => { poly(g, 48, 10, 62, 48, 48, 86, 34, 48); line(g, 48, 10, 48, 86); line(g, 34, 48, 62, 48); },
   harmony: (g) => { dot(g, 48, 48, 12); ring(g, 48, 48, 28); line(g, 76, 48, 90, 38); line(g, 76, 48, 90, 58); g.setLineDash([4, 5]); line(g, 8, 48, 20, 48); g.setLineDash([]); },
   discord: (g) => { dot(g, 48, 48, 12); ring(g, 48, 48, 28); line(g, 24, 24, 36, 36); line(g, 72, 24, 60, 36); line(g, 24, 72, 36, 60); line(g, 72, 72, 60, 60); },

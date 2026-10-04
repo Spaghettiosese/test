@@ -636,7 +636,181 @@ export const KITS = {
     },
     ult(sim, u) { u.s.coal = { t: 5 }; u.s.ulting = true; },
   },
+  // ================================================================== SION
+  sion: {
+    canFire1: (sim, u) => !u.s.chg,
+    fire1(sim, u) {
+      const w = u.def.w1, o = sim.eye(u), f = sim.aimDir(u), cosA = Math.cos(w.arc * Math.PI / 360); let any = false;
+      for (const e of sim.enemies(u)) {
+        const cc = sim.center(e), d = v3.sub(cc, o), l = v3.len(d);
+        if (l - e.def.radius > w.range || v3.dot(v3.norm(d), f) < cosA || !sim.los(o, cc)) continue;
+        const r = sim.critRoll(u, false, w); u._hitShot = true; any = true; sim.damage(e, w.dmg * r.mul, u, { crit: r.crit, kind: 'melee', point: cc });
+        const ff = flat(d); sim.knock(e, [ff[0] * 2.5, 0.6, ff[2] * 2.5]);
+        if (u.st.furnace) u.shield = Math.min(600, u.shield + 20);
+      }
+      u.stats.shots++; if (any) u.stats.hits++;
+      pulse(sim, u, v3.madd(o, f, 1.8), 2.2, '#ff4a2a', 'slash'); sim.emit({ type: 'shot', unit: u, sound: 'punch' });
+    },
+    secondary(sim, u, dt, held) {
+      if (held && u.cd.w2 <= 0 && sim.canAct(u) && !u.dash) { u.s.chg = Math.min(1.5, (u.s.chg || 0) + dt); sim.addStatus(u, 'slow', 0.15, { f: 0.45 }); return; }
+      if (!u.s.chg) return;
+      const c = u.s.chg; u.s.chg = 0; if (c < 0.25 || u.cd.w2 > 0) return; u.cd.w2 = 7;
+      const dmg = 60 + 100 * (c / 1.5), big = c >= 1;
+      cone(sim, u, 5.8, 130, (e, l, d) => { sim.damage(e, dmg, u, { kind: 'smash', point: sim.center(e) }); if (big) { e.vy = Math.max(e.vy, 9); e.grounded = false; sim.stun(e, 1.0); } else sim.knock(e, [d[0] * 6, 3, d[2] * 6]); });
+      const p = v3.madd(u.pos, flat(sim.aimDir(u)), 3.4); sim.emit({ type: 'boom', pos: [p[0], u.pos[1] + 0.3, p[2]], r: 4, color: '#ff7a3a', kind: 'slam' });
+    },
+    a1(sim, u) { u.shield = Math.max(u.shield, 250); u.shieldDecay = 42; sim.addStatus(u, 'furnace', 6); pulse(sim, u, sim.center(u), 2.6, '#ff4a2a'); },
+    a2(sim, u) {
+      pulse(sim, u, u.pos, 9, '#ff4a2a', 'slam');
+      sim.area(u.pos, 9, (e) => { if (!e.deploy) sim.addStatus(e, 'slow', 3, { f: 0.35 }); }, { enemiesOf: u.team, y: false });
+      sim.addStatus(u, 'fortify', 3); sim.addStatus(u, 'resist', 3, { f: 0.25 });
+    },
+    ult(sim, u) {
+      const dir = flat(sim.aimDir(u)), hitSet = new Set(), ctx = { wall: false }; u.s.ulting = true; sim.addStatus(u, 'fortify', 2.8);
+      dash(sim, u, dir, 11.5, 2.6, {
+        hit(s, me) {
+          for (const e of s.enemies(me)) { if (hitSet.has(e) || v3.dist2d(e.pos, me.pos) > me.def.radius + e.def.radius + 0.7 || Math.abs(e.pos[1] - me.pos[1]) > 2) continue; hitSet.add(e); s.damage(e, 80, me, { kind: 'charge' }); s.knock(e, [dir[0] * 4 + -dir[2] * 7, 4, dir[2] * 4 + dir[0] * 7]); }
+          if (s.rayWorld([me.pos[0], me.pos[1] + 1, me.pos[2]], dir, 1.8).t < 1.8) { ctx.wall = true; me.dash.t = 0; }
+        },
+        end(s, me) { me.s.ulting = false; if (ctx.wall) { slam(s, me, 6, 90, 50, 6, '#ff4a2a'); s.area(me.pos, 6, (e) => s.stun(e, 1.2), { enemiesOf: me.team }); } },
+      });
+      sim.emit({ type: 'dash', unit: u });
+    },
+    onDeath(sim, u) { sim.emit({ type: 'boom', pos: [u.pos[0], u.pos[1] + 0.5, u.pos[2]], r: 5, color: '#ff4a2a', kind: 'big' }); sim.area(u.pos, 5, (e, d) => { sim.damage(e, 90 * (1 - clamp(d / 5, 0, 1) * 0.4), u, { kind: 'splash' }); const dir = v3.sub(e.pos, u.pos); sim.knock(e, [dir[0] * 1.2, 5, dir[2] * 1.2]); }, { enemiesOf: u.team }); },
+  },
+  // ================================================================== STORMCALLER
+  stormcaller: {
+    fire1(sim, u) {
+      const w = u.def.w1, o = sim.eye(u), dir = sim.spread(sim.aimDir(u), w.spread), hit = sim.trace(o, dir, w.range, { team: u.team, skip: u }), mz = sim.muzzle(u);
+      sim.bulletHit(u, w, hit, o); sim.emit({ type: 'tracer', from: mz, to: hit.point, color: w.tracer, hit: hit.kind, unit: u });
+      if (hit.kind === 'unit') {
+        const n = u.st.overcharge ? 3 : 1, near = sim.enemies(u).filter((e) => e !== hit.unit && !e.deploy && v3.dist(sim.center(e), hit.point) < 8).sort((a, b) => v3.dist(sim.center(a), hit.point) - v3.dist(sim.center(b), hit.point)).slice(0, n);
+        for (const e of near) { sim.damage(e, w.dmg * 0.5, u, { kind: 'chain', point: sim.center(e) }); sim.emit({ type: 'tracer', from: hit.point, to: sim.center(e), color: '#bffaff', hit: 'unit', unit: u }); }
+      }
+      sim.emit({ type: 'shot', unit: u, sound: w.sound });
+    },
+    secondary(sim, u, dt, held, pressed) {
+      if (!pressed || u.cd.w2 > 0) return; u.cd.w2 = 6;
+      cone(sim, u, 9, 100, (e) => { sim.damage(e, 35, u, { kind: 'shock', point: sim.center(e) }); sim.addStatus(e, 'slow', 2, { f: 0.4 }); });
+      pulse(sim, u, sim.center(u), 6, '#6ff3ff', 'sweep');
+    },
+    a1(sim, u) {
+      const from = [...u.pos], to = placeFloor(sim, u.pos, flat(sim.aimDir(u)), 10);
+      sim.emit({ type: 'blink', from, to, color: '#6ff3ff' });
+      sim.emit({ type: 'boom', pos: [from[0], from[1] + 0.5, from[2]], r: 4, color: '#6ff3ff', kind: 'big' });
+      sim.area(from, 4, (e) => sim.damage(e, 40, u, { kind: 'splash' }), { enemiesOf: u.team });
+      u.pos = to; u.vy = 0; u.hist = [];
+    },
+    a2(sim, u) { sim.addStatus(u, 'overcharge', 5); sim.addStatus(u, 'critBuff', 5); pulse(sim, u, sim.center(u), 2.5, '#6ff3ff'); },
+    ult(sim, u) {
+      sim.addZone({ kind: 'timer', pos: [...u.pos], r: 25, t: 4.4, team: u.team, owner: u, next: 0, n: 0,
+        update(sm, z, dt) {
+          if (z.n >= 14) return; z.next -= dt; if (z.next > 0) return; z.next = 0.28; z.n++;
+          const foes = sm.units.filter((e) => e.alive && e.team !== z.team && !e.deploy && v3.dist2d(e.pos, z.owner.pos) < 28 && !e.st.frozen);
+          let p; if (foes.length) { const e = foes[Math.floor(sm.rand() * foes.length)]; p = [e.pos[0], e.pos[1], e.pos[2]]; } else { const a = sm.rand() * 6.283, r = 6 + sm.rand() * 14; p = [z.owner.pos[0] + Math.cos(a) * r, z.owner.pos[1], z.owner.pos[2] + Math.sin(a) * r]; }
+          sm.emit({ type: 'tracer', from: [p[0], p[1] + 32, p[2]], to: [p[0], p[1] + 0.3, p[2]], color: '#bffaff', width: 3, hit: 'lance' });
+          sm.emit({ type: 'boom', pos: [p[0], p[1] + 0.4, p[2]], r: 3, color: '#6ff3ff', kind: 'big' });
+          sm.area(p, 3, (e, d) => sm.damage(e, 70 * (1 - clamp(d / 3, 0, 1) * 0.4), z.owner, { kind: 'splash' }), { enemiesOf: z.team });
+        } });
+    },
+  },
+  // ================================================================== RICOCHET
+  ricochet: {
+    update(sim, u, dt) { if (u.s.caromT > 0) { u.s.caromT -= dt; if (u.s.caromT <= 0) { u.s.carom = false; u.s.ulting = false; } } },
+    fire1(sim, u) {
+      const w = u.def.w1, o = sim.eye(u); let dir = sim.spread(sim.aimDir(u), w.spread * (u.moving > 1 ? 1 : 0.6)), from = o, range = w.range, first = true;
+      const bounces = u.s.carom ? 2 : 1;
+      if (u.st.overdrive) dir = sim.assist(u, dir);
+      for (let i = 0; i <= bounces; i++) {
+        const hit = sim.trace(from, dir, range, { team: u.team, skip: u }), mz = first ? sim.muzzle(u) : from;
+        sim.bulletHit(u, w, hit, o, first ? null : w.dmg * 0.75); sim.emit({ type: 'tracer', from: mz, to: hit.point, color: w.tracer, hit: hit.kind, unit: u }); first = false;
+        if (hit.kind !== 'world' || !hit.normal) break;
+        const n = hit.normal, dd = v3.dot(dir, n); dir = v3.norm([dir[0] - 2 * dd * n[0], dir[1] - 2 * dd * n[1], dir[2] - 2 * dd * n[2]]); from = v3.madd(hit.point, n, 0.08); range -= hit.t; if (range < 3) break;
+      }
+      sim.emit({ type: 'shot', unit: u, sound: w.sound });
+    },
+    secondary(sim, u, dt, held, pressed) {
+      if (!pressed || u.cd.w2 > 0) return; u.cd.w2 = 5; const hurt = new Set();
+      let from = sim.eye(u), dir = sim.aimDir(u), range = 90, mz = sim.muzzle(u);
+      for (let i = 0; i < 4; i++) {
+        const hit = sim.trace(from, dir, range, { team: u.team, skip: u });
+        unitsOnLine(sim, from, dir, Math.min(hit.t, range), 0.5, (t) => { if (t.team === u.team || hurt.has(t)) return; hurt.add(t); const r = sim.critRoll(u, false, u.def.w1); sim.damage(t, 70 * r.mul, u, { kind: 'bank', crit: r.crit, point: sim.center(t) }); });
+        sim.emit({ type: 'tracer', from: mz, to: hit.point, color: '#ffd23f', width: 2, hit: 'lance', unit: u });
+        if (hit.kind !== 'world' || !hit.normal) break;
+        const n = hit.normal, dd = v3.dot(dir, n); dir = v3.norm([dir[0] - 2 * dd * n[0], dir[1] - 2 * dd * n[1], dir[2] - 2 * dd * n[2]]); from = v3.madd(hit.point, n, 0.08); mz = from; range -= hit.t; if (range < 3) break;
+      }
+      sim.emit({ type: 'shot', unit: u, sound: 'rail' });
+    },
+    a1(sim, u) { const f = flat(sim.aimDir(u)); dash(sim, u, [-f[0], 0, -f[2]], 12, 0.5, { vy: 7 }); sim.emit({ type: 'dash', unit: u }); },
+    a2(sim, u) { cone(sim, u, 35, 130, (e) => { sim.addStatus(e, 'reveal', 4); }, { los: false }); pulse(sim, u, sim.center(u), 8, '#ffd23f', 'sweep'); },
+    ult(sim, u) { sim.addStatus(u, 'overdrive', 6); u.s.carom = true; u.s.caromT = 6; u.s.ulting = true; pulse(sim, u, sim.center(u), 4, '#ffd23f'); },
+  },
+  // ================================================================== MIRAGE
+  mirage: {
+    secondary(sim, u, dt, held, pressed) {
+      if (!pressed || u.cd.w2 > 0) return; u.cd.w2 = 9;
+      u.s.decoy = decoy(sim, u, 'decoy', flat(sim.aimDir(u)), 1.4);
+    },
+    a1(sim, u) { sim.addStatus(u, 'cloak', 3); sim.addStatus(u, 'speed', 3, { f: 0.35 }); pulse(sim, u, sim.center(u), 2, '#ff7ad9'); },
+    a2(sim, u) {
+      const d = u.s.decoy; if (!d || !d.alive || !sim.units.includes(d)) return false;
+      const a = [...u.pos], b = [...d.pos]; sim.emit({ type: 'blink', from: a, to: b, color: '#ff7ad9' }); u.pos = b; d.pos = a; u.vy = 0; u.hist = [];
+    },
+    ult(sim, u) {
+      const f = flat(sim.aimDir(u)), r = [f[2], 0, -f[0]];
+      [['decoy', f, 1.4], ['decoy2', v3.norm([f[0] + r[0] * 0.7, 0, f[2] + r[2] * 0.7]), 1.6], ['decoy3', v3.norm([f[0] - r[0] * 0.7, 0, f[2] - r[2] * 0.7]), 1.6]].forEach(([k, d, off]) => decoy(sim, u, k, d, off));
+      sim.addStatus(u, 'cloak', 4); sim.addStatus(u, 'dmgBoost', 6, { f: 0.3 }); pulse(sim, u, sim.center(u), 5, '#ff7ad9');
+    },
+  },
+  // ================================================================== LANTERN
+  lantern: {
+    secondary(sim, u, dt, held, pressed) {
+      if (!pressed || u.cd.w2 > 0) return; u.cd.w2 = 10;
+      lob(sim, u, { speed: 19, dmg: 0, radius: 0.2, color: '#fff2a8', size: 0.28, gravity: -12, life: 2.5, explodeOnExpire: true,
+        onHit(s, p) {
+          s.addZone({ kind: 'orb', pos: groundPoint(s, p.pos), r: 6, t: 8, team: p.team, owner: p.owner,
+            update(sm, z, dt) { sm.area(z.pos, z.r, (a) => { if (!a.deploy) sm.heal(a, 30 * dt, z.owner); }, { alliesOf: z.team }); sm.area(z.pos, z.r, (e) => { if (!e.deploy) sm.addStatus(e, 'reveal', 0.6); }, { enemiesOf: z.team }); } });
+        } });
+    },
+    a1(sim, u) { pulse(sim, u, u.pos, 10, '#fff2a8'); sim.area(u.pos, 10, (a) => { if (!a.deploy) sim.addStatus(a, 'speed', 3, { f: 0.3 }); }, { alliesOf: u.team, y: false }); },
+    a2(sim, u) {
+      pulse(sim, u, u.pos, 14, '#fff2a8', 'ring'); sim.area(u.pos, 30, (e) => { if (!e.deploy) sim.addStatus(e, 'reveal', 3); }, { enemiesOf: u.team });
+      sim.area(u.pos, 12, (a) => { if (!a.deploy) sim.heal(a, 50, u); }, { alliesOf: u.team });
+    },
+    ult(sim, u) {
+      pulse(sim, u, u.pos, 20, '#fff2a8', 'slam'); sim.emit({ type: 'boom', pos: [u.pos[0], u.pos[1] + 1, u.pos[2]], r: 6, color: '#fff2a8', kind: 'big' });
+      sim.area(u.pos, 20, (a) => { if (a.deploy) return; sim.heal(a, 150, u); a.shield = Math.max(a.shield, 150); a.shieldDecay = 25; }, { alliesOf: u.team });
+    },
+  },
+  // ================================================================== THORN
+  thorn: {
+    fire1(sim, u) { fireProj(sim, u, u.def.w1); },
+    secondary(sim, u, dt, held, pressed) {
+      if (!pressed || u.cd.w2 > 0) return; u.cd.w2 = 6;
+      const t = pickAlly(sim, u, 45, 25) || u; sim.addStatus(t, 'regen', 5, { hps: 35, src: u, force: true }); pulse(sim, u, sim.center(t), 2, '#7dff8a');
+    },
+    a1(sim, u) {
+      sim.spawnProj(u, { speed: 42, dmg: 10, radius: 0.3, color: '#7dff8a', size: 0.2, life: 1.2, gravity: 0, onHit(s, p, hit) { if (hit.kind === 'unit' && hit.unit.team !== p.team) { s.damage(hit.unit, 10, p.owner, { point: p.pos, kind: 'vine' }); s.addStatus(hit.unit, 'root', 1.6); s.emit({ type: 'pulse', pos: hit.unit.pos, r: 2, color: '#7dff8a', kind: 'ring' }); } } }, projDir(sim, u));
+      sim.emit({ type: 'shot', unit: u, sound: 'orbit' });
+    },
+    a2(sim, u) {
+      lob(sim, u, { speed: 20, dmg: 0, radius: 0.2, color: '#2f7a3a', size: 0.24, gravity: -13, life: 2.6, explodeOnExpire: true,
+        onHit(s, p) { s.addZone({ kind: 'caltrops', pos: groundPoint(s, p.pos), r: 4.5, t: 6, team: p.team, owner: p.owner, update(sm, z, dt) { sm.area(z.pos, z.r, (e) => { if (e.deploy) return; sm.addStatus(e, 'slow', 0.4, { f: 0.4 }); sm.damage(e, 20 * dt, z.owner, { silent: true, kind: 'trap' }); }, { enemiesOf: z.team, y: false }); } }); } });
+    },
+    ult(sim, u) {
+      pulse(sim, u, u.pos, 25, '#7dff8a', 'slam');
+      sim.area(u.pos, 25, (a) => { if (a.deploy) return; sim.addStatus(a, 'regen', 8, { hps: 40, src: u, force: true }); a.shield = Math.max(a.shield, 150); a.shieldDecay = 18; }, { alliesOf: u.team });
+      sim.area(u.pos, 12, (e) => { if (!e.deploy) sim.addStatus(e, 'root', 2); }, { enemiesOf: u.team });
+    },
+  },
 };
+
+// a hologram that runs ahead of its owner and soaks fire
+function decoy(sim, u, kind, dir, off) {
+  const p = placeFloor(sim, u.pos, dir, off), d = sim.spawnDeploy(u, kind, p, 80, { life: 6, dir });
+  d.def = { ...d.def, radius: 0.4, height: u.def.height }; d.yaw = u.yaw; d.skin = u.skin;
+  sim.emit({ type: 'pulse', pos: [...p], r: 2, color: u.def.colors.accent, kind: 'ring' }); return d;
+}
 
 // portals: A is the entrance, B is the exit; anyone may use either
 function placePortal(sim, u, which) {

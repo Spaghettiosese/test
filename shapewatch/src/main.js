@@ -200,6 +200,8 @@ view.onEvent = (e) => {
       else if (CALL_TEXT.has(e.id)) voice.call(u.hero, e.id, { name: u.isPlayer ? 'YOU' : u.name.toUpperCase(), team: u.team, key: 'call' + u.id, minGap: 1.6 });
       break;
     }
+    case 'bounty': { const u = e.unit, mine = u.team === sim.playerTeam && sim.modeId !== 'ffa'; hud.banner(mine ? 'BOUNTY ON YOUR TEAM' : 'BOUNTY PLACED', `${u.isPlayer ? 'YOU' : u.name.toUpperCase()} · ${u.def.name} IS ON A ${u.streak} STREAK`, mine ? '#ffd36b' : '#ff6a72'); sfx.stinger('round'); break; }
+    case 'bountyClaimed': { const k = e.killer; hud.popup('BOUNTY CLAIMED', 'streak', k.isPlayer ? '+30% ULT' : k.name.toUpperCase()); break; }
     case 'core': if (e.unit === me()) hud.popup('ECHO CORE', 'streak', '+12% ULT'); break;
     case 'revive': if (e.unit === me()) hud.popup('REVIVED', 'save'); break;
     case 'pack': break;

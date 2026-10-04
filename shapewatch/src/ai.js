@@ -539,6 +539,50 @@ const HANDLERS = {
     if (underFire && hpf < 0.45 && ready('a1')) press('a1');
     const clus = near(12) >= 2; if (ultReady && (clus || (hurtN >= 2 && near(20) >= 1)) && c.comboOk) { if (e) brain.hold.aimPos = sim.center(e); if (!e || brain.yawErr < 0.25) inp.ult = true; }
   },
+  sion(c) {
+    const { u, inp, e, d, los, hpf, underFire, ready, press, ultReady, cdOK, near, brain } = c;
+    if (e && los && d < 5.5 && u.cd.w2 <= 0 && brain.yawErr < 0.25) { inp.fire2 = true; inp.fire1 = false; } else inp.fire2 = false;
+    if (e && d < 9 && (underFire || near(8) >= 1) && ready('a1') && hpf < 0.85) press('a1');
+    if (near(9) >= 2 && ready('a2')) press('a2');
+    if (ultReady && e && los && d > 7 && d < 22 && (near(16) >= 2 || hpf < 0.4) && brain.yawErr < 0.15 && c.comboOk) inp.ult = true;
+  },
+  stormcaller(c) {
+    const { u, inp, e, d, los, hpf, underFire, ready, press, ultReady, near, brain } = c;
+    if (e && los && d > 3 && d < 9 && u.cd.w2 <= 0 && brain.yawErr < 0.3) inp.fire2 = !u.prev.fire2;
+    if (e && los && d < 22 && ready('a2') && near(30) >= 1) press('a2');
+    if (underFire && hpf < 0.5 && ready('a1')) press('a1');
+    if (ultReady && near(26) >= 2 && c.comboOk) inp.ult = true;
+  },
+  ricochet(c) {
+    const { u, inp, e, d, los, hpf, underFire, ready, press, ultReady, near, brain } = c;
+    if (e && los && d > 8 && d < 45 && u.cd.w2 <= 0 && brain.yawErr < 0.06) inp.fire2 = !u.prev.fire2;
+    if (e && d < 8 && underFire && ready('a1')) press('a1');
+    if (near(35) >= 2 && ready('a2')) press('a2');
+    if (ultReady && e && los && d < 40 && c.comboOk) inp.ult = true;
+  },
+  mirage(c) {
+    const { u, inp, e, d, los, hpf, underFire, ready, press, ultReady, near, brain } = c;
+    if (e && los && d > 6 && d < 30 && u.cd.w2 <= 0) inp.fire2 = !u.prev.fire2;
+    if (e && !los && d < 25 && ready('a1')) press('a1');
+    if (underFire && hpf < 0.4 && ready('a2') && u.s.decoy?.alive) press('a2');
+    if (ultReady && e && los && d < 25 && hpf < 0.9 && c.comboOk) inp.ult = true;
+  },
+  lantern(c) {
+    const { u, inp, e, d, los, hpf, ready, press, ultReady, near, sim, brain } = c;
+    const hurt = sim.allies(u, true).filter((a) => a.hp / a.maxHp < 0.6 && v3.dist2d(a.pos, u.pos) < 16);
+    if (u.cd.w2 <= 0 && (hurt.length >= 1 || (e && d < 28)) && brain.lineUp(0.5, hurt.length ? hurt[0].pos : (e ? e.pos : u.pos), 0.3)) inp.fire2 = !u.prev.fire2;
+    if (ready('a1') && near(12) >= 2) press('a1');
+    if (ready('a2') && (hurt.length >= 2 || near(30) >= 3)) press('a2');
+    if (ultReady && (hurt.length >= 3 || (hurt.length >= 2 && near(20) >= 2)) && c.comboOk) inp.ult = true;
+  },
+  thorn(c) {
+    const { u, inp, e, d, los, hpf, underFire, ready, press, ultReady, near, sim, brain } = c;
+    const hurt = sim.allies(u, true).filter((a) => a.hp / a.maxHp < 0.7 && v3.dist2d(a.pos, u.pos) < 30).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+    if (hurt && u.cd.w2 <= 0) { if (hurt === u || brain.lineUp(0.4, hurt.pos, 0.4)) inp.fire2 = !u.prev.fire2; }
+    if (e && los && d < 24 && d > 5 && ready('a1') && brain.yawErr < 0.1) press('a1');
+    else if (e && los && d > 6 && d < 18 && ready('a2') && brain.lineUp(0.06, [e.pos[0], e.pos[1] + 0.2, e.pos[2]])) press('a2');
+    if (ultReady && (sim.allies(u, true).filter((a) => a.hp / a.maxHp < 0.65).length >= 3 || (near(12) >= 2 && hpf < 0.5)) && c.comboOk) inp.ult = true;
+  },
 };
 
 // ------------------------------------------------------------------ training dummies

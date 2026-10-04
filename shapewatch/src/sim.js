@@ -371,6 +371,10 @@ export class Sim {
       this.noteHighlight(killer, tgt, head);
     }
     for (const a of assists) { a.stats.assists++; this.chargeUlt(a, 40); }
+    // bounty: a four-elimination streak paints a target on the killer; claiming it pays out ultimate charge
+    if (tgt.bounty && killer && killer !== tgt && killer.team !== tgt.team) { this.chargeUlt(killer, killer.def.ult.cost * 0.3); killer.stats.bounties = (killer.stats.bounties || 0) + 1; this.emit({ type: 'bountyClaimed', killer, victim: tgt }); }
+    tgt.bounty = false;
+    if (killer && killer !== tgt && killer.streak >= 4 && !killer.bounty && this.modeId !== 'training') { killer.bounty = true; this.emit({ type: 'bounty', unit: killer }); }
     this.corpses.push({ unit: tgt, pos: [...tgt.pos], team: tgt.team, hero: tgt.hero, t: 12 });
     if (killer && killer !== tgt && this.modeId !== 'ffa' && this.modeId !== 'training') this.cores.push({ pos: [tgt.pos[0], tgt.pos[1] + 0.6, tgt.pos[2]], team: killer.team, t: 14, y0: tgt.pos[1] + 0.6 });
     this.emit({ type: 'kill', killer: src && !src.deploy ? src : null, victim: tgt, assists, head, deployKill: src?.deploy ? src : null });
@@ -525,6 +529,7 @@ export class Sim {
     for (const k of Object.keys(u.st)) {
       const s = u.st[k]; if (!s) continue; s.t -= dt;
       if (k === 'burn' && s.src) this.damage(u, s.dps * dt, s.src, { silent: true, kind: 'burn', noBoost: true });
+      if (k === 'regen') this.heal(u, s.hps * dt, s.src);
       if (s.t <= 0) delete u.st[k];
     }
     if (u.shield > 0 && u.shieldDecay) u.shield = Math.max(0, u.shield - u.shieldDecay * dt);
@@ -675,7 +680,11 @@ export class Sim {
   stepDeploy(u, dt) {
     const d = u.deploy; d.t -= dt;
     if (d.t <= 0) { u.alive = false; this.units.splice(this.units.indexOf(u), 1); this.emit({ type: 'destroy', unit: u, quiet: true }); return; }
-    if (d.kind === 'pylon') {
+    if (d.kind.startsWith('decoy')) {
+      const nx = u.pos[0] + d.dir[0] * 5.5 * dt, nz = u.pos[2] + d.dir[2] * 5.5 * dt;
+      if (!this.blockedAt(nx, nz, u.pos[1], 0.4, 1.7)) { u.pos[0] = nx; u.pos[2] = nz; } else d.dir = [0, 0, 0];
+      u.yaw = Math.atan2(d.dir[0], d.dir[2]) || u.yaw; u.vx = d.dir[0] * 5.5; u.vz = d.dir[2] * 5.5;
+    } else if (d.kind === 'pylon') {
       this.area(u.pos, 6, (a) => { if (!a.deploy) this.heal(a, 35 * dt, d.owner); }, { alliesOf: u.team, los: true });
     } else if (d.kind === 'sentry') {
       d.fireT = (d.fireT || 0) - dt;

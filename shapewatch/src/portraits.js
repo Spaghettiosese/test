@@ -27,9 +27,15 @@ const SPEC = {
   pylon: { yaw: 18, cam: [0.1, -0.06, 1.38], look: -0.08, fov: 32, roll: -2, bg: 'hazard', pose: { armR: [-45, 0, -18], armL: [-45, 0, 24], head: [2, -6, 0] } },
   zephyr: { yaw: 4, cam: [-0.2, 0.0, 1.3], look: -0.06, fov: 32, roll: -12, bg: 'bars', pose: { armR: [-30, 0, -40], armL: [-130, 0, 35], head: [-4, 0, 10] } },
   cantor: { yaw: 0, cam: [0, 0.02, 1.35], look: -0.06, fov: 28, roll: 0, bg: 'lotus', pose: { armR: [-70, 0, -22], armL: [-70, 0, 22], head: [-4, 0, 0] } },
+  sion: { yaw: 14, cam: [0.15, -0.2, 1.7], look: -0.12, fov: 38, roll: -4, bg: 'flames', pose: { armR: [-45, 0, -30], armL: [-60, 0, 34], head: [6, -8, 0] } },
+  stormcaller: { yaw: 22, cam: [0.2, 0.06, 1.3], look: -0.04, fov: 30, roll: 7, bg: 'crosshair', pose: { armR: [-30, 0, -26], armL: [-150, 0, 22], head: [-8, 8, 4] } },
+  ricochet: { yaw: 30, cam: [0.3, -0.02, 1.28], look: -0.06, fov: 30, roll: -6, bg: 'chevrons', pose: { armR: [-30, 0, -22], armL: [-35, 0, 40], head: [-4, 14, 0] } },
+  mirage: { yaw: 8, cam: [-0.1, 0.06, 1.25], look: -0.04, fov: 32, roll: 9, bg: 'diamonds', pose: { armR: [-35, 0, -34], armL: [-100, 0, 40], head: [-6, -10, 8] } },
+  lantern: { yaw: 10, cam: [0.06, 0.08, 1.3], look: -0.04, fov: 32, roll: 0, bg: 'sun', pose: { armR: [-30, 0, -20], armL: [-125, 0, 28], head: [-8, 0, 0] } },
+  thorn: { yaw: 20, cam: [0.18, 0.06, 1.28], look: -0.04, fov: 30, roll: -5, bg: 'drops', pose: { armR: [-30, 0, -30], armL: [-90, 0, 36], head: [-4, 12, 4] } },
   siphon: { yaw: 30, cam: [0.3, 0.08, 1.22], look: -0.04, fov: 28, roll: 6, bg: 'drops', pose: { armR: [-30, 0, -28], armL: [-100, 0, 30], head: [-6, 12, 5] } },
 };
-const TONE = { bulwark: ['#ffb02e', '#1b3f78'], mauler: ['#f2c14e', '#5a1e12'], orbit: ['#5cf2e0', '#2b1a63'], wrecker: ['#ff5a2a', '#4c2e08'], bastille: ['#e8d34a', '#27301a'], sabre: ['#ff7a1a', '#102a55'], ranger: ['#e9c46a', '#6e2d12'], cinder: ['#ffd23f', '#3a0f08'], vesper: ['#b6ff4a', '#0c3a35'], flicker: ['#40e0ff', '#2a2208'], shade: ['#ff3d9a', '#150f26'], trapper: ['#f4a23a', '#27401e'], skyhawk: ['#ff9a3c', '#2a63b4'], riftwalker: ['#c06bff', '#0d3b57'], halo: ['#fff1a8', '#4d3a12'], serene: ['#f6c453', '#0f4a43'], pylon: ['#ffe14d', '#14401c'], zephyr: ['#59f0a8', '#4a0f3a'], cantor: ['#7ff0ff', '#6b3508'], siphon: ['#9aff4a', '#38104a'] };
+const TONE = { bulwark: ['#ffb02e', '#1b3f78'], mauler: ['#f2c14e', '#5a1e12'], orbit: ['#5cf2e0', '#2b1a63'], wrecker: ['#ff5a2a', '#4c2e08'], bastille: ['#e8d34a', '#27301a'], sabre: ['#ff7a1a', '#102a55'], ranger: ['#e9c46a', '#6e2d12'], cinder: ['#ffd23f', '#3a0f08'], vesper: ['#b6ff4a', '#0c3a35'], flicker: ['#40e0ff', '#2a2208'], shade: ['#ff3d9a', '#150f26'], trapper: ['#f4a23a', '#27401e'], skyhawk: ['#ff9a3c', '#2a63b4'], riftwalker: ['#c06bff', '#0d3b57'], halo: ['#fff1a8', '#4d3a12'], serene: ['#f6c453', '#0f4a43'], pylon: ['#ffe14d', '#14401c'], zephyr: ['#59f0a8', '#4a0f3a'], cantor: ['#7ff0ff', '#6b3508'], siphon: ['#9aff4a', '#38104a'], sion: ['#ff4a2a', '#1c2a22'], stormcaller: ['#6ff3ff', '#141a4a'], ricochet: ['#ffd23f', '#4a1230'], mirage: ['#ff7ad9', '#0a3a35'], lantern: ['#fff2a8', '#4a2a08'], thorn: ['#ff5fa2', '#10381a'] };
 
 function backdrop(kind, c1, c2, rnd) {
   const k = new E.Kit(E.archPalette()), G = glow(c1, 1.6), G2 = glow(c1, 3), D = mat(c2, { roughness: 0.9 }), D2 = mat(shade(c2, 1.5), { roughness: 0.9 });

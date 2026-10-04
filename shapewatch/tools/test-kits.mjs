@@ -20,7 +20,7 @@ function arena(heroId) {
 const run = (sim, sec, evs = [], each = null) => { for (let i = 0; i < sec * 60; i++) { each?.(i); sim.step(1 / 60); evs.push(...sim.events); } return evs; };
 const finite = (sim) => sim.units.every((u) => [u.pos[0], u.pos[1], u.pos[2], u.hp, u.vx, u.vz].every(Number.isFinite));
 const face = (me, p) => { me.yaw = Math.atan2(p[0] - me.pos[0], p[2] - me.pos[2]); me.pitch = Math.atan2(p[1] + 1.0 - 1.65, Math.hypot(p[0] - me.pos[0], p[2] - me.pos[2])); };
-const RANGE = { wrecker: 2.4, siphon: 8, shade: 12, bastille: 14 };
+const RANGE = { sion: 3, wrecker: 2.4, siphon: 8, shade: 12, bastille: 14 };
 // abilities that need a setup the default arena does not provide
 const NEEDS = { vesper: { a1: 'wall' }, riftwalker: { a1: 'wall', a2: 'wall' }, flicker: { a2: 'wait' }, serene: { ult: 'allyFront' }, cantor: { w2: 'allyFront' }, halo: { w2: 'allyFront', a1: 'allyFront' } };
 
@@ -42,6 +42,7 @@ for (const h of HEROES) {
     if (need === 'allyFront') { allies.forEach((a, i) => { a.pos = [-2 + i * 2, 0, 36]; }); for (const e of enemies) e.pos = [20, 0, 70]; }
     const evs = [], flag = {}, sample = () => { if (enemies.some((e) => e.st.root)) flag.root = true; if (enemies.some((e) => e.st.frozen)) flag.frozen = true; if (enemies.some((e) => e.st.sleep)) flag.sleep = true; if (enemies.some((e) => e.st.silenced)) flag.silenced = true; if (allies.some((a) => a.st.nano)) flag.nano = true; if (sim.zones.some((z) => z.kind === 'portal')) flag.portal = true; if (me.s.wall) flag.wall = true; };
     if (need === 'wait') run(sim, 2, evs);
+    if (h.id === 'mirage' && slot === 'a2') { me.in.fire2 = true; run(sim, 0.2, evs); me.in.fire2 = false; me.in.a2 = true; }
     if (slot === 'w2') run(sim, 4, evs, (i) => { sample(); me.in.fire2 = i < 150 || (i % 30 === 0); if (need === 'allyFront') face(me, allies[0].pos); });
     else { if (need === 'allyFront') face(me, allies[0].pos); me.in[slot] = true; run(sim, 3.5, evs, sample); }
     if (h.id === 'shade' && slot === 'a2') { me.in.a2 = true; run(sim, 0.3, evs); } // second press teleports back
@@ -69,6 +70,8 @@ const HEAL = {
   serene: (sim, me, t) => { face(me, t.pos); me.in.fire1 = (sim.time * 60 | 0) % 40 === 0; },
   pylon: (sim, me, t) => { face(me, t.pos); me.in.fire2 = (sim.time * 60 | 0) % 70 === 0; },
   zephyr: () => {},
+  thorn: (sim, me, t) => { face(me, t.pos); me.in.fire2 = (sim.time * 60 | 0) % 70 === 0; },
+  lantern: (sim, me, t) => { face(me, t.pos); me.pitch = -0.4; me.in.fire2 = (sim.time * 60 | 0) % 700 === 0; },
   cantor: (sim, me, t) => { face(me, t.pos); me.in.fire2 = (sim.time * 60 | 0) % 30 === 0; },
   siphon: (sim, me, t) => { face(me, t.pos); me.pitch = -0.5; me.in.fire2 = (sim.time * 60 | 0) % 500 === 0; },
 };

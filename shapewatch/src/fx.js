@@ -9,7 +9,7 @@ const DEG = E.DEG;
 export const rgb = (hex, k = 1) => { const c = E.hexToRGB(hex); return [c[0] * k, c[1] * k, c[2] * k]; };
 const R = Math.random;
 export const PING_COLORS = { enemy: '#ff4a52', go: '#ffe14d', objective: '#ffffff', health: '#59f0a8', help: '#ffb02e', ally: '#3a9bff', defend: '#7fc4ff' };
-const NOTIFY = new Set(['checkpoint', 'overtime', 'mutator', 'mutatorEnd', 'live', 'over', 'swap', 'kill', 'ult', 'core', 'revive', 'spawn', 'round', 'roundStart', 'callout', 'ping', 'capture', 'captured', 'pack']);
+const NOTIFY = new Set(['checkpoint', 'overtime', 'mutator', 'mutatorEnd', 'live', 'over', 'swap', 'kill', 'ult', 'core', 'revive', 'spawn', 'round', 'roundStart', 'callout', 'ping', 'capture', 'captured', 'pack', 'bounty', 'bountyClaimed']);
 const glass = (color, opacity = 0.22, em = 1) => new E.Material({ name: 'Fx', color, emissive: color, emissiveStrength: em, opacity, doubleSided: true });
 
 export class Fx {

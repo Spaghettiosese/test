@@ -228,13 +228,14 @@ export class View {
   syncDeploy(u, dt) {
     let n = this.deploys.get(u.id);
     if (!n) {
-      const c = heroColors(u.hero); n = u.deploy.kind === 'pylon' ? buildPylon(c) : buildSentry(c);
+      const c = heroColors(u.hero), dec = u.deploy.kind.startsWith('decoy'); n = dec ? buildHero(u.hero, u.skin || 'default') : u.deploy.kind === 'pylon' ? buildPylon(c) : buildSentry(c);
+      if (dec) { n.userData.ring.material = glow(this.teamHex(u.team), 1.6); n.userData.dec = true; }
       this.scene.add(n); this.deploys.set(u.id, n);
-      const big = u.deploy.kind === 'pylon', ring = new E.Mesh(this.ringGeo, glow(this.teamHex(u.team), 1.2), 'DRing'); ring.scale.set([big ? 6 : 0.7, 1, big ? 6 : 0.7]); ring.position.set([0, 0.05, 0]); ring.castShadow = false;
+      const big = u.deploy.kind === 'pylon', isDec = u.deploy.kind.startsWith('decoy'), ring = new E.Mesh(this.ringGeo, glow(this.teamHex(u.team), 1.2), 'DRing'); ring.scale.set([big ? 6 : 0.7, 1, big ? 6 : 0.7]); ring.position.set([0, 0.05, 0]); ring.castShadow = false;
       if (big) ring.material = new E.Material({ name: 'PylonRing', color: '#9dff9d', emissive: '#9dff9d', emissiveStrength: 0.8, opacity: 0.12, doubleSided: true });
-      n.add(ring);
+      if (!isDec) n.add(ring);
     }
-    n.position.set(u.pos);
+    n.position.set(u.pos); if (n.userData.dec) { n.setEuler(0, u.yaw / DEG, 0); n.userData.phase = (n.userData.phase || 0) + dt * 9; const sw = Math.sin(n.userData.phase) * 0.7; n.userData.legL.setEuler(sw / DEG, 0, 0); n.userData.legR.setEuler(-sw / DEG, 0, 0); n.userData.armR.setEuler(-90, 0, -6); n.userData.armL.setEuler(-78, 0, 22); }
     if (u.deploy.kind === 'sentry' && n.userData.head) n.userData.head.setEuler(0, u.yaw / DEG, 0);
     n.visible = true;
   }
