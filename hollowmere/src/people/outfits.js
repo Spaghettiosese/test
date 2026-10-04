@@ -200,6 +200,9 @@ const OUTFITS = {
       P('Scarf', cyl(0.07, 0.078, 0.07, 14, { capTop: false, capBottom: false }), 'cloth', { bones: ['chest', 'neck'], falloff: 8 }, { position: [0, 1.54, 0.005] }),
       P('Bandolier', rbox(0.05, 0.5, 0.012, 0.004), 'leather', { bones: ['chest', 'spine'], falloff: 8 }, { position: [0.02, 1.27, 0.11], rotation: [0, 0, 38] }),
       P('Dagger Sheath', rbox(0.024, 0.16, 0.024, 0.006), 'leather', { bone: 'hips' }, { position: [0.17, 0.98, 0.04], rotation: [8, 0, -6] })];
+    // the Gray Hand's mark: a pale half-mask over the mouth and nose
+    if (s.mask) p.push(P('Mask', sq(0.07, 0.045, 0.05, 0.7, 0.8, { widthSegments: 12, heightSegments: 8 }), 'bone', { bone: 'head' }, { position: [0, 1.655, 0.06] }),
+      P('Mask Mark', rbox(0.014, 0.034, 0.006, 0.001), 'emblem', { bone: 'head' }, { position: [0, 1.66, 0.108] }));
     if (s.hood !== false) p.push(P('Hood', sq(0.116, 0.13, 0.126, 0.85, 0.9, { thetaStart: 0, thetaLength: 130, phiStart: 62, phiLength: 236 }), 'cloth2', { bone: 'head' }, { position: [0, 1.712, -0.008], modifiers: [{ type: 'solidify', thickness: 0.007 }] }),
       P('Hood Point', { type: 'cone', radius: 0.05, height: 0.14, radialSegments: 10, capBottom: true }, 'cloth2', { bone: 'head' }, { position: [0, 1.79, -0.11], rotation: [-118, 0, 0] }));
     return p;

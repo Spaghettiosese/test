@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Hollowmere: The Duke's Seal</title>
+<title>Hollowmere: The Thirteenth Bell</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Silkscreen:wght@400;700&family=VT323&display=swap">
 <style>
@@ -152,6 +152,32 @@
   .loading i { display: block; margin-left: auto; margin-right: auto; width: 240px; height: 10px; border: 2px solid var(--edge); margin: 14px auto 0; position: relative; } .loading i b { position: absolute; inset: 0 auto 0 0; background: var(--violet); width: 30%; animation: load 1.2s steps(10) infinite alternate; }
   @keyframes load { to { left: 70%; } }
   @media (max-width: 720px) { .vitals { width: 180px; } .skills { bottom: 88px; } .objective { max-width: 220px; } .dialog { grid-template-columns: 64px 1fr; } .dialog canvas { width: 64px; height: 64px; } .panel-inv { grid-template-columns: 1fr; } }
+
+  /* title & pause menu */
+  .menu .card { width: min(720px, 94vw); } .menu h1 { font-size: clamp(34px, 7vw, 76px); }
+  .menu .card.inpanel .blurb { display: none; } .menu .card.inpanel h1 { font-size: clamp(28px, 5vw, 52px); }
+  .menu .mbtns { display: grid; gap: 8px; width: min(380px, 86vw); margin: 4px auto 0; }
+  .menu .mbtns button, .menu .mpanel button { text-align: center; font: 700 18px var(--title); letter-spacing: .08em; text-transform: uppercase; padding: 9px 14px; }
+  .menu button small { display: block; font: 400 14px var(--pixel); letter-spacing: .02em; text-transform: none; color: var(--dim); margin-top: 2px; }
+  .menu button.go small { color: #e8d8ff; }
+  .menu .mpanel { display: grid; gap: 8px; text-align: left; width: min(640px, 92vw); margin: 0 auto; }
+  .menu .mpanel h3 { margin: 4px 0 2px; font: 700 20px var(--title); letter-spacing: .14em; color: var(--gold); text-transform: uppercase; text-align: center; }
+  .menu .mpanel h4 { margin: 6px 0 0; font: 700 13px var(--title); letter-spacing: .12em; color: var(--violet); text-transform: uppercase; }
+  .menu .mpanel button.back { justify-self: center; min-width: 160px; }
+  .menu .mpanel button.wide, .menu .mpanel button.slotpick { text-align: left; text-transform: none; font: 700 17px var(--pixel); letter-spacing: 0; }
+  .menu .mpanel button.slotpick span { color: var(--bone); margin-left: 8px; font-weight: 400; } .menu .mpanel button.slotpick.on { border-color: var(--gold); color: var(--gold); box-shadow: inset 0 0 0 2px rgba(224,180,80,.35); }
+  .menu .seg { display: flex; gap: 6px; justify-content: center; } .menu .seg button { flex: 1; } .menu .seg button.on { border-color: var(--gold); color: var(--gold); }
+  .menu .slot { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border: 2px solid var(--edge); background: rgba(16,10,24,.85); }
+  .menu .slot b { font: 700 14px var(--title); letter-spacing: .1em; color: var(--gold); margin-right: 8px; text-transform: uppercase; } .menu .slot span { font-size: 18px; } .menu .slot small { display: block; color: var(--dim); font-size: 14px; }
+  .menu .slot.empty span { color: var(--dim); } .menu .slotbtns { display: flex; gap: 6px; } .menu .slotbtns button { font: 700 14px var(--title); padding: 5px 10px; }
+  .menu .trophies { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; max-height: 56vh; overflow: auto; padding-right: 4px; }
+  .menu .tro { border: 2px solid #2a1c38; padding: 5px 8px; opacity: .55; background: rgba(16,10,24,.8); } .menu .tro.on { opacity: 1; border-color: var(--gold); } .menu .tro b { display: block; font-size: 16px; } .menu .tro.on b { color: var(--gold); } .menu .tro small { color: var(--dim); font-size: 13px; }
+  .menu .mnote { color: var(--dim); font-size: 16px; margin: 0; text-align: center; } .menu .mnote.pre { white-space: pre-line; color: var(--bone); font-size: 18px; }
+  .menu .optsbase { display: grid; gap: 6px; } .menu .keys { max-height: 56vh; overflow: auto; }
+  .trophy { right: 18px; top: 50%; transform: translateY(-50%); display: flex; gap: 10px; align-items: center; padding: 8px 14px 8px 10px; z-index: 12; animation: trophy 4.2s steps(24) forwards; max-width: 340px; }
+  .trophy i { width: 28px; height: 28px; background: var(--gold); clip-path: polygon(20% 0, 80% 0, 80% 30%, 100% 30%, 90% 55%, 65% 60%, 60% 78%, 75% 100%, 25% 100%, 40% 78%, 35% 60%, 10% 55%, 0 30%, 20% 30%); flex: none; }
+  .trophy b { display: block; font: 700 11px var(--title); letter-spacing: .16em; color: var(--gold); text-transform: uppercase; } .trophy span { display: block; font-size: 19px; } .trophy small { display: block; color: var(--dim); font-size: 14px; }
+  @keyframes trophy { 0% { opacity: 0; transform: translate(30px, -50%) } 8%, 86% { opacity: 1; transform: translate(0, -50%) } 100% { opacity: 0 } }
   @media (prefers-reduced-motion: reduce) { .toast, .bark, .banner, .area { animation-duration: 0.01s; animation-fill-mode: none; } }
 </style>
 </head>
@@ -196,18 +222,18 @@
 <div class="hud panel-inv px" id="inv" hidden></div>
 <div class="death" id="death" hidden>YOU DIED</div>
 <div class="menu" id="menu">
-  <div class="card">
+  <div class="card" id="menuCard">
     <h1>HOLLOWMERE</h1>
-    <div class="sub">The Duke's Seal · Chapter I</div>
-    <p class="blurb">Ravenspire keep stands above the walled town of Ashgate. In its Duke's bedchamber lies a letter sealed in black wax. The Gray Hand wants it. You are the Gray Hand's knife.</p>
-    <button class="go" id="cont" hidden>Continue</button>
-    <button class="go" id="play">Begin the Job</button>
-    <button id="optBtn" style="justify-self:center">Options</button>
-    <div id="optsPanel" class="opts" hidden></div>
-    <label>Difficulty <select id="diff"><option value="0">Merciful</option><option value="1" selected>Grim</option><option value="2">Hollow</option></select></label>
-    <label>Volume <input type="range" id="vol" min="0" max="1" step="0.05" value="0.6"></label>
-    <label>Mouse <input type="range" id="sens" min="0.3" max="2.5" step="0.05" value="1"></label>
-    <div class="keys">
+    <div class="sub" id="menuSub">The Thirteenth Bell</div>
+    <p class="blurb"></p>
+    <div class="mbtns" id="menuMain"></div>
+    <div class="mpanel" id="menuPanel" hidden></div>
+    <div id="optsBase" class="optsbase" hidden>
+      <label>Difficulty <select id="diff"><option value="0">Merciful</option><option value="1" selected>Grim</option><option value="2">Hollow</option></select></label>
+      <label>Volume <input type="range" id="vol" min="0" max="1" step="0.05" value="0.6"></label>
+      <label>Mouse <input type="range" id="sens" min="0.3" max="2.5" step="0.05" value="1"></label>
+    </div>
+    <div class="keys" id="keyList" hidden>
       <div><span>Move · sprint</span><span>WASD · Shift</span></div><div><span>Crouch · jump</span><span>C · Space</span></div>
       <div><span>Sword · block/parry</span><span>LMB · RMB</span></div><div><span>Interact · lockpick</span><span>E (hold)</span></div>
       <div><span>Veil · Dash · Slam</span><span>1 · 2 · 3</span></div><div><span>Salve · Ember flask</span><span>R · T</span></div>

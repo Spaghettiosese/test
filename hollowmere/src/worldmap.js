@@ -79,12 +79,18 @@ export class WorldMap {
     this.pins.forEach(([x, z], i) => { const [a, b] = tx(x, z); ctx.fillStyle = '#ff5a5a'; ctx.strokeStyle = '#000'; ctx.fillRect(a - 1, b - 8, 2, 8); ctx.beginPath(); ctx.moveTo(a + 1, b - 8); ctx.lineTo(a + 7, b - 6); ctx.lineTo(a + 1, b - 4); ctx.closePath(); ctx.fill(); ctx.stroke(); });
     const [px, py] = tx(P.pos[0], P.pos[2]); this.arrow(ctx, px, py, P.yaw, 5);
   }
+  // the part of the map worth showing: the valley, or (below ground, beyond the mountains) the deep places
+  crop() {
+    const band = this.g.player.pos[2] > 280, [ax, ay] = this.toMap(band ? -232 : this.nav.x0, band ? 380 : 198), [bx, by] = this.toMap(band ? 62 : this.nav.x0 + this.nav.w, band ? 286 : this.nav.z0);
+    return { sx: Math.max(0, ax), sy: Math.max(0, ay), sw: Math.min(this.cv.width, bx) - Math.max(0, ax), sh: Math.min(this.cv.height, by) - Math.max(0, ay) };
+  }
   drawFull(canvas) {
     const ctx = canvas.getContext('2d'); if (!ctx) return; ctx.imageSmoothingEnabled = false;
     const W = canvas.width, H = canvas.height; ctx.fillStyle = '#0b0710'; ctx.fillRect(0, 0, W, H);
-    const sc = Math.min(W / this.cv.width, H / this.cv.height), ox = (W - this.cv.width * sc) / 2, oy = (H - this.cv.height * sc) / 2;
-    ctx.drawImage(this.cv, ox, oy, this.cv.width * sc, this.cv.height * sc);
-    this.overlays(ctx, ox, oy, sc, true);
+    const c = this.crop(), sc = Math.min(W / c.sw, H / c.sh), ox = (W - c.sw * sc) / 2, oy = (H - c.sh * sc) / 2;
+    ctx.drawImage(this.cv, c.sx, c.sy, c.sw, c.sh, ox, oy, c.sw * sc, c.sh * sc);
+    ctx.save(); ctx.beginPath(); ctx.rect(ox, oy, c.sw * sc, c.sh * sc); ctx.clip();
+    this.overlays(ctx, ox - c.sx * sc, oy - c.sy * sc, sc, true); ctx.restore();
   }
   drawMini(canvas) {
     const ctx = canvas.getContext('2d'); if (!ctx) return; ctx.imageSmoothingEnabled = false;

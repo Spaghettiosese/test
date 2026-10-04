@@ -8,8 +8,10 @@ import * as T from './town.js';
 import * as K from './keep.js';
 import { buildCrypt } from './crypt.js';
 import { buildWilds } from './wilds.js';
+import { buildDeepLevels } from './deep.js';
 
-export const NAV = { x0: -256, z0: -272, w: 512, d: 470 };
+export const NAV = { x0: -256, z0: -272, w: 512, d: 680 };   // z beyond 280: rooms reached by teleport (see deep.js)
+export const SURFACE = { z1: 198 };
 
 export function buildLevel({ scene, world, only = null }) {
   const nav = new NavGrid(NAV);
@@ -29,6 +31,7 @@ export function buildLevel({ scene, world, only = null }) {
   K.buildCourtyard(B);
   B.buildings.keep = K.buildKeep(B);
   B.buildings.crypt = buildCrypt(B);
+  buildDeepLevels(B);
   B.finish();
   return B;
 }

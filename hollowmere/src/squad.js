@@ -62,15 +62,15 @@ export class Squad {
     return best;
   }
   // ---------------------------------------------------------------- crossbow bolts
-  fireBolt(n) {
+  fireBolt(n, o = {}) {
     const g = this.g, P = g.player;
     const from = [n.x + n.fwd[0] * 0.5, n.y + 1.45, n.z + n.fwd[1] * 0.5];
     const lead = 0.18, tx = P.pos[0] + (P.cc?.velocity?.[0] || 0) * lead, tz = P.pos[2] + (P.cc?.velocity?.[2] || 0) * lead;
     const to = [tx, P.pos[1] + (P.crouch ? 0.9 : 1.35), tz];
-    const dx = to[0] - from[0], dy = to[1] - from[1], dz = to[2] - from[2], d = hyp(dx, dy, dz), sp = 34;
-    const mesh = new E.Mesh(this.boltGeo, this.boltMat, 'Bolt'); mesh.castShadow = false;
+    const dx = to[0] - from[0], dy = to[1] - from[1], dz = to[2] - from[2], d = hyp(dx, dy, dz), sp = o.speed || 34;
+    const mesh = new E.Mesh(this.boltGeo, this.boltMat, o.kind === 'knife' ? 'Knife' : 'Bolt'); mesh.castShadow = false;
     g.scene.add(mesh);
-    this.bolts.push({ mesh, p: from, v: [dx / d * sp, dy / d * sp + 0.6, dz / d * sp], life: 1.6, from: n });
+    this.bolts.push({ mesh, p: from, v: [dx / d * sp, dy / d * sp + 0.6, dz / d * sp], life: 1.6, from: n, dmg: o.dmg || 13, venom: !!o.venom });
     g.sfx.swing?.(0.5); g.sfx.clang?.(0.3, n.pos);
   }
   updateBolts(dt) {
@@ -85,8 +85,8 @@ export class Squad {
         const h = g.world.raycast(b.p, dir, len + 0.1, { ignore: new Set([b.from.body, P.cc.body]), mask: 0xffff & ~(2 | 4 | 8) });
         if (h) { g.spark([b.p[0] + dir[0] * h.distance, b.p[1] + dir[1] * h.distance, b.p[2] + dir[2] * h.distance], [-dir[0], 0.3, -dir[2]], 6); g.noise(b.p, 8, 'clang'); dead = true; }
         else if (!P.dead && hyp(b.p[0] - P.pos[0], b.p[2] - P.pos[2]) < 0.55 && b.p[1] > P.pos[1] - 0.1 && b.p[1] < P.pos[1] + (P.crouch ? 1.3 : 1.85)) {
-          const res = P.incoming(13, [b.p[0] - dir[0] * 2, b.p[2] - dir[2] * 2], { from: b.from, ranged: true });
-          if (res === 'parried') g.flashText?.('DEFLECTED');
+          const res = P.incoming(b.dmg * (g.ngDmg || 1), [b.p[0] - dir[0] * 2, b.p[2] - dir[2] * 2], { from: b.from, ranged: true });
+          if (res === 'parried') g.flashText?.('DEFLECTED'); else if (res === 'hit' && b.venom) g.status?.add?.('venom');
           dead = true;
         }
       }

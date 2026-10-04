@@ -74,6 +74,26 @@ function bake() {
   out.push(K('Veil', [{ t: 0, ...idle }, { t: 0.25, arms: { R: IDLE_R, L: L([0.14, 1.6, 0.5], [-88, 0, -20]) }, hands: { L: 'spread' }, bones: { chest: [-2, 6, 0] } }, { t: 0.7, arms: { R: IDLE_R, L: L([0.1, 1.55, 0.5], [-88, 0, -10]) } }, { t: 1.0, ...idle }], { events: [{ t: 0.3, name: 'cast' }] }));
   out.push(K('Reach', [{ t: 0, ...idle }, { t: 0.18, arms: { R: IDLE_R, L: L([0.06, 1.5, 0.66], [-82, 0, -8]) }, hands: { L: 'flat' } }, { t: 0.5, arms: { R: IDLE_R, L: L([0.06, 1.5, 0.66], [-82, 0, -8]) } }, { t: 0.7, ...idle }], { events: [{ t: 0.2, name: 'touch' }] }));
   out.push(K('Pinch', [{ t: 0, ...idle }, { t: 0.2, arms: { R: IDLE_R, L: L([0.05, 1.5, 0.62], [-85, 0, 0]) }, hands: { L: 'point' } }, { t: 0.4, arms: { R: IDLE_R, L: L([0.05, 1.5, 0.62], [-85, 0, 0]) }, hands: { L: 'fist' } }, { t: 0.7, ...idle }], { events: [{ t: 0.4, name: 'pinch' }] }));
+  // ---- the heavy blow: wind it up over the shoulder, hold, then bring it down across the body
+  const WIND = { arms: { R: R([-0.46, 1.66, 0.2], [-128, -40, 30]), L: L([0.14, 1.46, 0.42], [-78, 0, -12]) }, hands: { L: 'flat', R: 'gunGrip' }, bones: { chest: [0, -26, 0], spine: [2, -12, 0], head: [0, 6, 0] } };
+  out.push(K('HeavyWind', [{ t: 0, ...idle }, { t: 0.22, ...WIND }, { t: 0.5, ...WIND, arms: { R: R([-0.47, 1.68, 0.19], [-130, -41, 31]), L: L([0.14, 1.46, 0.42], [-78, 0, -12]) } }, { t: 0.8, ...WIND }], { loop: false }));
+  out.push(K('Heavy', [
+    { t: 0, ...WIND },
+    { t: 0.1, arms: { R: R([-0.06, 1.52, 0.78], [-86, 24, -6]), L: L([0.3, 1.2, 0.3], [-40, 0, -20]) }, hands: { L: 'relaxed', R: 'gunGrip' }, bones: { chest: [6, 8, 0], spine: [3, 4, 0], head: [2, 0, 0] } },
+    { t: 0.2, arms: { R: R([0.4, 1.1, 0.56], [-48, 68, -42]) }, bones: { chest: [12, 32, 0], spine: [6, 12, 0] } },
+    { t: 0.42, arms: { R: R([0.42, 1.08, 0.52], [-46, 70, -42]) }, bones: { chest: [12, 34, 0] } },
+    { t: 0.78, ...idle },
+  ], { events: [{ t: 0.13, name: 'hit' }] }));
+  // ---- the execution: both hands on the hilt, straight down into the one who is on his knees
+  out.push(K('Execute', [
+    { t: 0, ...idle },
+    { t: 0.16, arms: { R: R([-0.12, 1.86, 0.34], [-170, 0, 0]), L: L([0.02, 1.82, 0.38], [-165, 0, 0]) }, hands: { L: 'gunGrip', R: 'gunGrip' }, bones: { chest: [-12, 0, 0], spine: [-4, 0, 0], head: [-6, 0, 0] } },
+    { t: 0.3, arms: { R: R([-0.1, 1.12, 0.84], [-28, 0, 0]), L: L([0.0, 1.1, 0.8], [-28, 0, 0]) }, bones: { chest: [26, 0, 0], spine: [12, 0, 0], head: [10, 0, 0] } },
+    { t: 0.72, arms: { R: R([-0.1, 1.1, 0.82], [-26, 0, 0]), L: L([0.0, 1.08, 0.78], [-26, 0, 0]) } },
+    { t: 1.0, ...idle, hands: { L: 'relaxed', R: 'gunGrip' } },
+  ], { events: [{ t: 0.3, name: 'exec' }] }));
+  // ---- a quick step aside: the arms swing out for balance
+  out.push(K('Dodge', [{ t: 0, ...idle }, { t: 0.08, arms: { R: R([-0.34, 1.3, 0.3], [-60, 20, 20]), L: L([0.42, 1.24, 0.24], [-40, 0, -40]) }, bones: { chest: [6, 0, 8], spine: [3, 0, 4] } }, { t: 0.36, ...idle }]));
   // ---- the sword at rest in its sheath: arms hang easy, nothing in the hand
   const HOLD_R = R([-0.26, 1.02, 0.2], [-24, 10, 8]), HOLD_L = L([0.26, 1.02, 0.2], [-24, -10, -8]);
   const hold = { ...REST, arms: { R: HOLD_R, L: HOLD_L }, hands: { L: 'relaxed', R: 'relaxed' } };
@@ -97,6 +117,7 @@ function bake() {
   out.push(K('ReachS', [{ t: 0, ...hold }, { t: 0.18, arms: { R: HOLD_R, L: L([0.06, 1.5, 0.66], [-82, 0, -8]) }, hands: { L: 'flat' } }, { t: 0.5, arms: { R: HOLD_R, L: L([0.06, 1.5, 0.66], [-82, 0, -8]) } }, { t: 0.7, ...hold }], { events: [{ t: 0.2, name: 'touch' }] }));
   out.push(K('PinchS', [{ t: 0, ...hold }, { t: 0.2, arms: { R: HOLD_R, L: L([0.05, 1.5, 0.62], [-85, 0, 0]) }, hands: { L: 'point' } }, { t: 0.4, arms: { R: HOLD_R, L: L([0.05, 1.5, 0.62], [-85, 0, 0]) }, hands: { L: 'fist' } }, { t: 0.7, ...hold }], { events: [{ t: 0.4, name: 'pinch' }] }));
   out.push(K('CarryS', [{ t: 0, ...hold, arms: { R: HOLD_R, L: L([0.02, 1.32, 0.56], [-70, 0, -10]) }, hands: { L: 'claw', R: 'relaxed' } }, { t: 1, bones: { chest: [3, 0, 0] } }, { t: 2, bones: { chest: [2, 0, 0] } }], { loop: true }));
+  out.push(K('DodgeS', [{ t: 0, ...hold }, { t: 0.08, arms: { R: R([-0.34, 1.12, 0.3], [-40, 20, 20]), L: L([0.42, 1.2, 0.24], [-40, 0, -40]) }, bones: { chest: [6, 0, 8], spine: [3, 0, 4] } }, { t: 0.36, ...hold }]));
   out.push(K('Draw', [{ t: 0, ...idle, arms: { R: R([-0.3, 0.95, 0.2], [-30, 0, 0]), L: L([0.3, 1.0, 0.1], [-30, 0, 0]) } }, { t: 0.5, ...idle }]));
   out.push(K('Carry', [{ t: 0, ...idle, arms: { R: IDLE_R, L: L([0.02, 1.32, 0.56], [-70, 0, -10]) }, hands: { L: 'claw' } }, { t: 1, bones: { chest: [3, 0, 0] } }, { t: 2, bones: { chest: [2, 0, 0] } }], { loop: true }));
   return out;

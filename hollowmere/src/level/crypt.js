@@ -59,8 +59,8 @@ export function buildCrypt(B) {
   const cx = 105.5, cz = 52;
   B.solid('stoneDark', cx - 1.2, 0, cz - 2.2, cx + 1.2, 1.0, cz + 2.2, { chunk: 'crypt', bevel: 0.08 });
   B.vbox('stoneOld', cx - 1.3, 1.0, cz - 2.3, cx + 1.3, 1.15, cz + 2.3, { chunk: 'crypt', bevel: 0.04 });
-  K.add(B.pal.wax, E.torus({ radius: 3.6, tube: 0.05, radialSegments: 6, tubularSegments: 48 }), [cx, 0.04, cz], [90, 0, 0]);
-  K.add(B.pal.wax, E.torus({ radius: 2.8, tube: 0.04, radialSegments: 6, tubularSegments: 40 }), [cx, 0.04, cz], [90, 0, 0]);
+  K.add(B.pal.wax, E.torus({ radius: 3.6, tube: 0.05, radialSegments: 6, tubularSegments: 48 }), [cx, 0.04, cz], [0, 0, 0]);
+  K.add(B.pal.wax, E.torus({ radius: 2.8, tube: 0.04, radialSegments: 6, tubularSegments: 40 }), [cx, 0.04, cz], [0, 0, 0]);
   for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2; B.candle(cx + Math.cos(a) * 3.2, 0.06, cz + Math.sin(a) * 3.2, { chunk: 'crypt', holder: false, range: 5, intensity: 3.6 }); }
   B.torch(98.4, 2.6, 52, { dir: [1, 0], chunk: 'crypt', range: 11, intensity: 9, color: '#a070ff', name: 'violet torch' });
   B.chest(99.4, 57.6, { dir: 0, loot: [['potion', 2], ['gem', 1]], locked: false, name: 'Offering chest', chunk: 'crypt', w: 1.0, d: 0.6 });

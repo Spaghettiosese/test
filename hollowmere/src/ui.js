@@ -161,6 +161,7 @@ export class UI {
   // ------------------------------------------------------------ per frame
   update(dt) {
     const g = this.g, P = g.player; if (!P) return;
+    { const hide = g.mode === 'menu' || g.mode === 'pause' || g.mode === 'boot' || g.mode === 'cutscene' || g.mode === 'end'; if (this.el.cross.hidden !== hide) this.el.cross.hidden = hide; }
     if (this.dlg) { const D = this.dlg; D.t += dt; if (!D.full) { const n = Math.min(D.line.text.length, Math.floor(D.t * 55)); if (n !== D.typed) { D.typed = n; this.el.dText.textContent = D.line.text.slice(0, n); if (n % 3 === 0) g.sfx.blip?.(D.npc?.spec?.voice || D.line.pitch || 1); } if (n >= D.line.text.length) { D.full = true; this.showChoices(); } } }
     if (g.mode === 'cutscene' || g.mode === 'menu' || g.mode === 'boot') return;
     const E = this.el;

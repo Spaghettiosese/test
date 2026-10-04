@@ -39,6 +39,7 @@ export class Social {
   // 0 open ground, 1 somebody's home, 2 restricted (the keep, the fort, a barracks), 3 forbidden
   access(x, z) {
     const nav = this.g.nav, zone = nav.zone[Math.max(0, nav.at(x, z))] || 0;
+    if (z > 280) return 2;   // the deep places: nobody's home, everybody's business
     if (x > 10 && x < 34 && z > -120 && z < -98) return zone >= 2 ? 3 : 2;   // Fort Greywatch: the yard, the barracks, and the gaol
     if (zone === 0) return 0;
     const keep = x > -35 && x < 35 && z > 94 && z < 152;
@@ -76,6 +77,13 @@ export class Social {
     const g = this.g, P = g.player, L = g.look, vig = this.vig;
     // bandits, hollows, hunters and bosses want you whatever you wear
     if (n.role === 'bandit' || n.role === 'hollow' || n.faction === 'hunters' || n.def.boss) return { w: 1, kind: 'hostile', reason: 'Enemy', id: 'enemy' };
+    // the Gray Hand: in their own house a gray cloak and a mask make you one of them, unless you act like a thief
+    if (n.faction === 'hand') {
+      if (g.rep.disguise?.kind !== 'hand' || n.def.ambush || g.campaign?.facts.handWar) return { w: 1, kind: 'hostile', reason: 'Not one of us', id: 'intruder' };
+      g.rep.disguiseGain(n, pd); let w = 0, id = null, reason = null;
+      for (const o of this.off) if (o.id === 'lockpick' || o.id === 'body' || o.id === 'bloody') if (o.w > w) { w = o.w; id = o.id; reason = o.reason; }
+      return w ? { w, kind: 'hostile', reason, id } : { w: 0, kind: null, reason: null, id: null };
+    }
     const trust = (n.trustUntil || 0) > g.time, bribed = (n.bribedUntil || 0) > g.time, afraid = (n.afraidUntil || 0) > g.time;
     let w = 0, kind = null, reason = null, id = null;
     const dg = g.rep.disguise ? g.rep.disguiseGain(n, pd) : 1;

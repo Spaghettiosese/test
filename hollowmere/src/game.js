@@ -37,6 +37,9 @@ import { Boss } from './boss.js';
 import { Look } from './look.js';
 import { Social } from './social.js';
 import { Speech } from './speech.js';
+import { Profile } from './profile.js';
+import { Achievements } from './achievements.js';
+import { Campaign } from './campaign.js';
 import { Gear } from './gear.js';
 import { Events } from './events.js';
 import { Saves } from './saves.js';
@@ -48,6 +51,7 @@ import { buildRoster } from './roster.js';
 import { UI } from './ui.js';
 import { Story } from './story.js';
 import { installInteractionMethods } from './interact.js';
+import { installPlaces } from './places.js';
 import { installFx, installFxMethods } from './fx.js';
 
 const hyp = Math.hypot;
@@ -88,12 +92,13 @@ export class Game {
     this.events = new Events(this);
     this.saves = new Saves(this);
     this.opts = new Options(this);
+    this.profile = new Profile(); this.achievements = new Achievements(this);
     this.difficulty = 1;
     this.input = { keys: new Set(), pressed: new Set(), dYaw: 0, dPitch: 0 };
     this.checkpoint = [0, 0.1, -40];
     this.indoorK = 0; this.areaName = 'The Road';
     this.pathBudget = 3;
-    this.toastQ = []; this.savables = {}; this.markers = [];
+    this.toastQ = []; this.savables = {}; this.markers = []; this.timers = [];
     this.stats = { kills: 0, guardKills: 0, civKills: 0, stabs: 0, deaths: 0, looted: 0, opened: 0, alarms: 0, snuffed: 0, seen: 0 };
   }
   // build the world in slices, so the loading screen can animate (roughly 3 s of work)
@@ -116,7 +121,7 @@ export class Game {
     this.lamps = new Lamps(this);
     this.forage = new Foraging(this);
     installFx(this);
-    this.ui = new UI(this); this.story = new Story(this);
+    this.ui = new UI(this); this.story = new Story(this); this.campaign = new Campaign(this);
     this.world.on('contact', (e) => this.onContact(e));
     progress(0.25, 'Stitching the arms');
     await tick();
@@ -131,7 +136,7 @@ export class Game {
     }
     this.player.yaw = 0;
     for (const n of this.npcs) n.snapToSchedule();
-    this.setupTeleports();
+    this.setupTeleports(); installPlaces(this);
     this.gatesOpen = true;
     this.updateGates(true);
     this.dynBodies = this.world.bodies.filter((b) => b.isDynamic && b.userData.kind === 'prop');
@@ -139,6 +144,11 @@ export class Game {
     this.log(`built in ${(performance.now() - t0).toFixed(0)} ms: ${this.world.bodies.length} bodies, ${this.level.lights.length} lights, ${this.npcs.length} people`);
   }
   reg(key, mod) { this.savables[key] = mod; }
+  // run fn after `sec` seconds of game time (pauses with the game, unlike setTimeout)
+  after(sec, fn) { this.timers.push({ t: this.time + sec, fn }); }
+  runTimers() { if (!this.timers.length) return; const due = this.timers.filter((x) => x.t <= this.time); if (!due.length) return; this.timers = this.timers.filter((x) => x.t > this.time); for (const x of due) { try { x.fn(); } catch (e) { console.warn(e); } } }
+  // a person who is not on the roster: story fighters, ambushers, allies
+  spawnNpc(def) { const n = new NPC(this, { schedule: [{ h0: 0, h1: 24, poi: null, act: 'stand' }], ...def }); this.npcs.push(n); if (this.campaign?.ng) n.ngScaled = true; return n; }
   log(...a) { if (this.debug) console.log('[hollowmere]', ...a); }
 
   // ------------------------------------------------------------ resize
@@ -150,7 +160,7 @@ export class Game {
   // ------------------------------------------------------------ frame
   step(dt) {
     if (this.hitStop > 0) { this.hitStop -= dt; dt *= 0.12; } else if (this.slowmo > 0) { this.slowmo -= dt; dt *= 0.45; }
-    this.time += dt; this.frame++;
+    this.time += dt; this.frame++; this.runTimers();
     const P = this.player;
     this.pathBudget = 3;
     const playing = this.mode === 'play';
@@ -178,7 +188,7 @@ export class Game {
     this.rep.update(dt);
     this.world.step(dt);
     this.updateProps(dt);
-    this.story.update(dt);
+    this.story.update(dt); this.campaign.update(dt); this.achievements.update(dt);
     this.updateFx(dt);
     if (playing) { this.updateInteraction(dt); P.updateView(this.camera, dt, this.baseFov); }
     else if (cut) { P.vm.visible = false; this.story.cameraUpdate(this.camera, dt); }
@@ -223,10 +233,14 @@ export class Game {
     if (this.status.has('night')) { env.ambient = Math.max(env.ambient, 0.95); env.exposure *= 1.18; }
     E.setNightLights(this.level.pal, env.night);
     this.weather.apply(env);
+    // the deep places beyond the mountains: no sky, a violet murk, and only the light you bring
+    if (c[2] > 280) { env.ambient *= 0.42; env.fogColor = c[0] > -100 ? [0.09, 0.05, 0.13] : [0.08, 0.06, 0.05]; env.fogDensity = 0.028; env.sunIntensity = 0; env.godRays = 0; env.volumeDensity = 0.05; }
+    this.campaign?.env?.(env);
     env.shadowRadius = 26; env.shadowFar = 90;
   }
   area() {
     const p = this.mode === 'play' ? this.player.pos : this.camera.position;
+    if (p[2] > 280) return p[0] < -100 ? 'keep' : 'crypt';
     if (inCryptRect(p[0], p[2])) return 'crypt';
     const rg = regionAt(p[0], p[2]); if (rg && (p[2] < 6 || p[0] < -58 || p[0] > 140)) return rg.id;
     if (p[2] > 92 && Math.abs(p[0]) < 38) return this.nav.indoorAt(p[0], p[2]) ? 'keep' : 'keep';
@@ -372,7 +386,7 @@ export class Game {
     this.alarmLevel = Math.min(3, this.alarmLevel + (kind === 'spotted' ? 0.6 : kind === 'body' ? 0.9 : 0.25)); this.social?.incident(kind === 'body' ? 0.5 : kind === 'spotted' ? 0.3 : 0.12);
     this.alarmT = 25; this.combatT = Math.max(this.combatT, 4);
     if (kind === 'body' || (kind === 'spotted' && this.alarmLevel > 1.2)) this.sfx.alarmBell?.(pos);
-    if (this.alarmLevel > 1.4 && !this._alarmShown) { this._alarmShown = true; this.ui.flashBanner('THE ALARM IS RAISED'); setTimeout(() => (this._alarmShown = false), 30000); }
+    if (this.alarmLevel > 1.4 && !this._alarmShown) { this._alarmShown = true; this.stats.alarms = (this.stats.alarms || 0) + 1; this.ui.flashBanner('THE ALARM IS RAISED'); setTimeout(() => (this._alarmShown = false), 30000); }
   }
   canSee(from, to, ignoreBody = null) {
     const dx = to[0] - from[0], dy = to[1] - from[1], dz = to[2] - from[2], d = Math.hypot(dx, dy, dz);
@@ -399,7 +413,16 @@ export class Game {
     if (res !== 'dead') { this.combatT = Math.max(this.combatT, 5); if (!opts.backstab) this.noise(n.pos, 12, 'combat', n); this.player.kick = 0.02; }
     void before; return res;
   }
+  // one person's blade in another person (the Watch against the hollows, an ally at your side)
+  npcStrike(a, v, dmg, dir, atk = {}) {
+    if (v.dead || a.dead) return 'dead';
+    const res = v.takeHit(dmg, dir, { from: a, byNpc: true, heavy: atk.clip === 'Overhead' });
+    if (res === 'blocked' || res === 'dead') return res;
+    if (v.dist < 45) { this.sfx.slash?.(v.pos); this.spawnBlood([v.x, v.y + 1.2, v.z], dir, res === 'killed' ? 18 : 6); }
+    return res;
+  }
   onKill(n, opts) {
+    if (opts.byNpc) { this.story.onNpcKill?.(n, opts); for (const o of this.nearNpcs(n, 14)) if (!o.guard) o.scare(n.pos, 14); return; }
     this.stats.kills++; if (n.guard) this.stats.guardKills++; else this.stats.civKills++;
     this.story.onKill(n, opts);
     if (n.id === 'cael') for (const o of this.npcs) if (o.role === 'bandit' && !o.dead && o.dist < 90 && o.state !== 'retreat') { o.def.brave = false; o.state = 'retreat'; o.retreatT = 14; o.repathT = 0; o.stopMove(); o.bark('The chief is dead! Run!'); }

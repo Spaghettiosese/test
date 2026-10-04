@@ -19,7 +19,7 @@ export class Boss {
   constructor(g) {
     this.g = g; g.reg?.('boss', this);
     this.defeated = new Set(); this.b = {}; this.orbs = []; this.cael = { key: 'cael', name: 'Red Cael', npc: null, p: 0, done: false }; this.t = 0; this.barK = 0; this.seq = 0;
-    this.orbGeo = E.sphere({ radius: 0.17, widthSegments: 8, heightSegments: 6 }); this.orbMat = new E.Material({ name: 'Tear', color: '#bfe8ff', emissive: '#6ad0ff', emissiveStrength: 6, roughness: 0.2 });
+    this.orbGeo = E.sphere({ radius: 0.17, widthSegments: 8, heightSegments: 6 }); this.orbMat = new E.Material({ name: 'Tear', color: '#bfe8ff', emissive: '#6ad0ff', emissiveStrength: 6, roughness: 0.2 }); this.noteMat = new E.Material({ name: 'Note', color: '#d8b8ff', emissive: '#9a5cff', emissiveStrength: 6, roughness: 0.2 });
     let el = document.getElementById('bossbar');
     if (!el) { el = document.createElement('div'); el.id = 'bossbar'; el.className = 'hud bossbar px'; el.hidden = true; el.innerHTML = '<b id="bossName"></b><div class="bar hp"><i id="bossFill"></i></div>'; document.body.appendChild(el); }
     this.el = el; this.nameEl = el.querySelector('#bossName'); this.fillEl = el.querySelector('#bossFill');
@@ -51,13 +51,15 @@ export class Boss {
     const d = hyp(P.pos[0] - s.x, P.pos[2] - s.z), air = !P.cc.grounded && P.pos[1] > g.nav.floorAt(P.pos[0], P.pos[2]) + 0.35;
     if (d < s.r && !air && P.dashT <= 0) { const r = P.incoming(40 * diff, [s.x, s.z], { from: n, unblockable: true }); if (r === 'hit') { P.stagger = Math.max(P.stagger, 0.7); g.flashText?.('CRUSHED'); } } else if (d < s.r + 1) g.flashText?.('DODGED');
   }
-  fireTears(b, k) {
-    const g = this.g, n = b.npc, P = g.player.pos, base = Math.atan2(P[0] - n.x, P[2] - n.z);
+  fireTears(b, k) { this.orbsFrom(b.npc, k); this.g.sfx.hollowCry?.(b.npc.pos); }
+  // homing motes: the Saint's tears, the Cantors' notes, the Choir's voices
+  orbsFrom(n, k, { dmg = 12, mat = null, speed = 6.5 } = {}) {
+    const g = this.g, P = g.player.pos, base = Math.atan2(P[0] - n.x, P[2] - n.z);
     for (let i = 0; i < k; i++) {
-      const a = base + (i - (k - 1) / 2) * 0.38, m = new E.Mesh(this.orbGeo, this.orbMat, 'tear'); m.castShadow = false; g.scene.add(m);
-      const o = { mesh: m, p: [n.x, n.y + 1.5, n.z], v: [Math.sin(a) * 6.5, 0.4, Math.cos(a) * 6.5], life: 6.5, from: n }; m.position.set(o.p); this.orbs.push(o);
+      const a = base + (i - (k - 1) / 2) * 0.38, m = new E.Mesh(this.orbGeo, mat || (n.arch?.caster ? this.noteMat : this.orbMat), 'tear'); m.castShadow = false; g.scene.add(m);
+      const o = { mesh: m, p: [n.x, n.y + 1.5 * (n.spec?.height || 1), n.z], v: [Math.sin(a) * speed, 0.4, Math.cos(a) * speed], life: 6.5, from: n, dmg }; m.position.set(o.p); this.orbs.push(o);
     }
-    g.sfx.whisper?.(); g.sfx.hollowCry?.(n.pos);
+    g.sfx.whisper?.();
   }
   blink(b) {
     const g = this.g, n = b.npc, P = g.player, f = P.flat, nav = g.nav;
@@ -119,6 +121,7 @@ export class Boss {
     this.t += dt;
     for (const key of Object.keys(DEFS)) if (!this.b[key] && !this.defeated.has(key) && this.inTrigger(DEFS[key])) this.spawn(key);
     let show = this.updateCael();
+    if (!show && this.custom && !this.custom.npc.dead) show = this.custom;
     for (const b of Object.values(this.b)) {
       const n = b.npc; if (n.dead) { if (!b.done) this.dead(b); continue; }
       this.special(b, dt);
@@ -135,7 +138,7 @@ export class Boss {
       if (h) o.life = 0; else { o.p[0] += step[0]; o.p[1] += step[1]; o.p[2] += step[2]; }
       o.mesh.position.set(o.p);
       if (Math.random() < dt * 25) g.sparks.emit(o.p, { count: 1, color: [2, 4, 6, 0.9], colorEnd: [0.4, 1, 2, 0], size: 0.05, grow: 0.3, spread: 0.05, up: 0, life: 0.4, jitter: 0.03 });
-      if (d < 0.8 && !P.dead) { const r = P.incoming(12 * DIFF[g.difficulty ?? 1], [o.p[0] - o.v[0], o.p[2] - o.v[2]], { from: o.from }); if (r === 'hit') g.flashText?.('TEAR'); o.life = 0; }
+      if (d < 0.8 && !P.dead) { const r = P.incoming((o.dmg || 12) * DIFF[g.difficulty ?? 1], [o.p[0] - o.v[0], o.p[2] - o.v[2]], { from: o.from, ranged: true }); if (r === 'hit') g.flashText?.(o.from?.arch?.caster ? 'SUNG' : 'TEAR'); o.life = 0; }
       if (o.life <= 0) { g.scene.remove(o.mesh); this.orbs.splice(i, 1); }
     }
     // the bar

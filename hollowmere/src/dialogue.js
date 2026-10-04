@@ -138,6 +138,7 @@ export const DIALOGUE = {
   miner: () => [L('Hear that tapping? That is not our picks.'), L('Keep away from the cavern.', { end: true })],
   lamplighter: () => [L('Lamps out at dawn, lit at dusk. Nobody thanks the lamplighter until the lamps go out.'), L('Something comes up out of the dark when a lamp goes out. So I light them fast.', { end: true })],
   ilse: (g) => g.story.flags.ilseTold ? [L('Go on. The bell tolls thirteen. You know what to do.', { end: true })] : [L('Do not go near the gallows hill. They hang the dead there, now.', { mood: 'fear' }), L('...Do not mind me. I have had a long night. Three years of night.', { end: true })],
+  dukeshade: () => [L('...', { end: true })],
   brannoch: (g) => {
     const s = g.story;
     return [L('Back for supplies? Sable\'s coin spends the same as anyone\'s.', { choices: [

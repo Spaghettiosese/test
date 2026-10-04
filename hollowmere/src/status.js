@@ -13,6 +13,7 @@ export const EFFECTS = {
   hearty: { name: 'Hearty', dur: 200, good: true, regen: 2.2, armor: 0.12, stam: 1.15 },
   sharp: { name: 'Honed Edge', dur: 300, good: true, dmg: 1.18 },
   root: { name: 'Snared', dur: 3.5, good: false, speed: 0.05 },
+  venom: { name: 'Venom', dur: 8, good: false, regen: -3.2 },
 };
 
 export class Status {
@@ -30,7 +31,7 @@ export class Status {
   update(dt) {
     const g = this.g, P = g.player;
     for (const [id, t] of this.fx) { const n = t - dt; if (n <= 0) { this.fx.delete(id); g.ui.toast(EFFECTS[id].name + ' fades'); } else this.fx.set(id, n); }
-    const rg = this.sum('regen'); if (rg && P.hp < P.maxHp) P.hp = Math.min(P.maxHp, P.hp + rg * dt);
+    const rg = this.sum('regen'); if (rg && P.hp < P.maxHp && !P.dead) P.hp = Math.max(Math.min(P.hp, 1), Math.min(P.maxHp, P.hp + rg * dt));
     // smoke clouds blind whoever stands in them and hide you
     for (let i = this.clouds.length - 1; i >= 0; i--) {
       const c = this.clouds[i]; c.t -= dt;

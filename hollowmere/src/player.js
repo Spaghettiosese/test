@@ -7,8 +7,8 @@ import { Inventory } from './items.js';
 const D2R = Math.PI / 180;
 const clamp = E.clamp;
 // first-person clips that have a twin for when the sword is in its sheath, and how long the one-shots last
-const VM_SHEATHED = new Set(['Stagger', 'Dash', 'Veil', 'Reach', 'Pinch', 'Carry']);
-const VM_ONE = { Stagger: 0.5, Dash: 0.4, Veil: 1.0, Reach: 0.7, Pinch: 0.7, BlockHit: 0.25 };
+const VM_SHEATHED = new Set(['Stagger', 'Dash', 'Veil', 'Reach', 'Pinch', 'Carry', 'Dodge']);
+const VM_ONE = { Stagger: 0.5, Dash: 0.4, Veil: 1.0, Reach: 0.7, Pinch: 0.7, BlockHit: 0.25, Dodge: 0.36, Execute: 1.0 };
 export const EYE_STAND = 1.62, EYE_CROUCH = 1.06, EYE_PRONE = 0.55;
 
 export class Player {
@@ -32,6 +32,7 @@ export class Player {
     this.fill = new E.Light('point', { color: '#a08ad8', intensity: 2.2, range: 3.2 }); game.scene.add(this.fill);
     this.vmClip = 'Idle'; this.vmEnd = 0;
     this.drawn = false; this.drawing = null; this.sheathing = null;   // the sword starts in its sheath
+    this.charge = null; this.lmbDown = false; this.lmbHold = 0; this.taps = {}; this.dodgeT = 0; this.dodgeV = [0, 0]; this.execT = 0; this.exec = null;
   }
   get pos() { return this.cc.position; }
   get eyePos() { return [this.cc.position[0], this.cc.position[1] + this.eye + this.bobY, this.cc.position[2]]; }
@@ -76,7 +77,7 @@ export class Player {
     // one-shot clips settle back to the resting pose, drawn or sheathed
     if (this.vmEnd && g.time > this.vmEnd && !this.atk && !this.picking && !this.carried && !this.blocking && this.stagger <= 0) { this.vmEnd = 0; this.playVm('Idle', 0.2); }
   }
-  onVmEvent(e) { if (e.name === 'hit') this.resolveHit(); if (e.name === 'slam') this.g.gravebreak(); }
+  onVmEvent(e) { if (e.name === 'hit') this.resolveHit(); if (e.name === 'slam') this.g.gravebreak(); if (e.name === 'exec') this.finishExecution(); }
 
   // ------------------------------------------------------------ per-frame
   update(dt, input) {
@@ -109,6 +110,8 @@ export class Player {
     let wish = [0, 0];
     if (moving) { const d = [fx * iz + lx * ix, fz * iz + lz * ix], l = Math.hypot(d[0], d[1]); wish = [(d[0] / l) * speed, (d[1] / l) * speed]; }
     if (this.dashT > 0) { this.dashT -= dt; wish = [this.dashDir[0] * 15, this.dashDir[1] * 15]; this.cc.velocity[0] = wish[0]; this.cc.velocity[2] = wish[1]; }
+    else if (this.dodgeT > 0) { this.dodgeT -= dt; const k = this.dodgeT > 0.08 ? 1 : 0.4; wish = [this.dodgeV[0] * k, this.dodgeV[1] * k]; this.cc.velocity[0] = wish[0]; this.cc.velocity[2] = wish[1]; }
+    if (this.charge) speed *= 0.5; if (this.exec) speed = 0;
     if (k.has(' ') && this.prone) { this.setStance('crouch'); } else if (k.has(' ') && !this.crouch && this.stamina > 6) { if (this.cc.grounded) { this.cc.jump(this.mount ? 6.4 : 4.5); if (!this.mount) this.stamina -= 6; g.sfx.jump?.(); g.noise(this.pos, this.mount ? 9 : 4, 'jump'); } }
     this.cc.move(wish, dt);
     if (this.cc.position[1] < -20 || !isFinite(this.cc.position[1])) this.respawnNear();
@@ -180,14 +183,35 @@ export class Player {
     if (this.blocking) { this.blockT += dt; if (this.vmClip !== 'Block' && this.vmClip !== 'BlockHit') this.playVm('Block', 0.07); } else this.blockT = 0;
     if (!this.blocking && (this.vmClip === 'Block' || this.vmClip === 'BlockHit')) this.playVm('Idle', 0.12);
     this.comboT = Math.max(0, this.comboT - dt);
+    // the left button: a click is a light blow (on release), holding it winds up a heavy one
+    if (this.lmbPress && !this.carried && !this.exec) { this.lmbDown = true; this.lmbHold = 0; }
+    if (this.lmbDown) {
+      if (this.lmb && !this.carried) {
+        this.lmbHold += dt;
+        if (!this.charge && this.lmbHold > 0.3 && !this.atk && this.drawn && !this.drawing && !this.sheathing && !this.prone && this.stamina > 18 && this.stagger <= 0) this.startCharge();
+        if (!this.drawn && !this.drawing && !this.sheathing && this.lmbHold > 0.12 && !this.carried) this.draw(null);
+      } else {
+        this.lmbDown = false;
+        if (this.charge) this.releaseCharge();
+        else if (this.atk) { if (this.atk.t > this.atk.dur * 0.3) this.queued = true; }
+        else if (!this.carried) this.attack();
+      }
+    }
+    if (this.charge) {
+      const C = this.charge; C.t += dt; this.stamina = Math.max(0, this.stamina - dt * 7);
+      if (!C.full && C.t >= 0.75) { C.full = true; g.sfx.clang?.(0.35); g.spark?.([this.eyePos[0] + this.flat[0] * 0.5, this.eyePos[1] + 0.25, this.eyePos[2] + this.flat[1] * 0.5], [0, 1, 0], 6); }
+      if (this.stamina <= 2 || this.stagger > 0 || C.t > 2.4) { if (this.stagger > 0) { this.charge = null; this.playVm('Idle', 0.1); } else this.releaseCharge(); }
+    }
     if (this.atk) {
       const a = this.atk; a.t += dt;
-      if (this.lmbPress && a.t > a.dur * 0.35) this.queued = true;
       if (a.t >= a.dur) {
         this.atk = null; this.playVm('Idle', 0.15);
         if (this.queued) { this.queued = false; this.attack(); }
       }
-    } else if (this.lmbPress || (this.lmb && this.queued)) { this.queued = false; if (!this.carried) this.attack(); }
+    } else if (this.queued && !this.lmbDown) { this.queued = false; if (!this.carried) this.attack(); }
+    if (this.exec) { this.exec.t += dt; if (this.exec.t > 1.05) { this.exec = null; this.playVm('Idle', 0.15); } }
+    // double-tap a direction to step aside
+    for (const key of ['a', 'd', 's', 'w']) if (input.pressed.has(key)) { const last = this.taps[key] ?? -9; this.taps[key] = g.time; if (g.time - last < 0.26 && (g.opts?.v.dodge ?? true)) { this.dodge(key); this.taps[key] = -9; } }
     if (this.stagger > 0 && this.vmClip !== 'Stagger' && !this.atk) this.playVm('Stagger', 0.05);
     // skills on keys
     if (input.pressed.has('1')) this.skillVeil();
@@ -203,6 +227,7 @@ export class Player {
     input.pressed.clear();
   }
   attack() {
+    if (this.exec || this.charge) return;
     if (this.drawing) { this.drawing.then = 'attack'; return; }
     if (!this.drawn) { if (!this.sheathing && !this.dead && !this.carried) this.draw('attack'); return; }
     if (this.sheathing) return;
@@ -221,11 +246,54 @@ export class Player {
     this.playVm(clip, 0.04);
     g.sfx.swing?.(clip === 'Slash3' ? 0.8 : 1);
   }
+  // ---- the heavy blow: wound up while the button is held, released with the button
+  startCharge() { this.charge = { t: 0, full: false }; this.playVm('HeavyWind', 0.08); this.g.sfx.swing?.(0.35); this.queued = false; }
+  releaseCharge() {
+    const C = this.charge; if (!C) return; this.charge = null;
+    const power = Math.min(1, Math.max(0.35, C.t / 0.75));
+    this.atk = { clip: 'Heavy', t: 0, dur: 0.78, hit: false, power, heavy: true }; this.stamina = Math.max(0, this.stamina - (14 + 10 * power));
+    this.playVm('Heavy', 0.03); this.g.sfx.swing?.(0.6); this.combo = 0; this.comboT = 0;
+  }
+  // ---- a sidestep: a burst of speed and a sliver of invulnerability, paid in stamina
+  dodge(key) {
+    const g = this.g;
+    if (this.dead || this.mount || this.prone || this.carried || this.picking || this.exec || this.dodgeT > 0 || this.stamina < 16 || !this.cc.grounded || this.stagger > 0.3) return false;
+    if (this.atk && this.atk.t < this.atk.dur * 0.5) return false;
+    if (this.atk) { this.atk = null; this.queued = false; }
+    if (this.charge) this.charge = null;
+    const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw), lx = Math.cos(this.yaw), lz = -Math.sin(this.yaw);
+    const d = key === 'a' ? [lx, lz] : key === 'd' ? [-lx, -lz] : key === 's' ? [-fx, -fz] : [fx, fz];
+    const sp = key === 'w' ? 12 : 11; this.dodgeV = [d[0] * sp, d[1] * sp]; this.dodgeT = 0.22; this.invuln = Math.max(this.invuln, 0.26); this.dodgeWin = g.time + 0.3;
+    this.stamina -= 16; this.playVm('Dodge', 0.03); g.sfx.dash?.(0.5); g.noise(this.pos, this.crouch ? 2 : 4, 'step');
+    return true;
+  }
+  // ---- executions: a man on his knees, a blade straight down
+  canExecute(n) { return n && !n.dead && n.state !== 'ko' && !n.lying && (n.exposed > 0 || (n.stagger > 0 && n.hp < n.maxHp * 0.22 && !n.def.boss)) && !n.dormant && !(n.rising > 0); }
+  execute(n) {
+    const g = this.g; if (!this.canExecute(n) || this.exec || (this.atk && this.atk.t < this.atk.dur * 0.45)) return false;
+    this.atk = null; this.queued = false;
+    if (!this.drawn) this.instantDraw();
+    this.charge = null; this.exec = { n, t: 0, done: false }; n.execBy = this; n.exposed = Math.max(n.exposed, 1.2); n.stagger = Math.max(n.stagger, 1.2); n.atk = null; n.stopMove();
+    this.playVm('Execute', 0.04); g.slowmo = Math.max(g.slowmo || 0, 0.5); g.sfx.swing?.(0.4); this.invuln = Math.max(this.invuln, 1.0);
+    const yaw = Math.atan2(n.x - this.pos[0], n.z - this.pos[2]); this.yaw = yaw;
+    return true;
+  }
+  finishExecution() {
+    const g = this.g, E2 = this.exec; if (!E2 || E2.done) return; E2.done = true; const n = E2.n; if (!n || n.dead) return;
+    const dx = n.x - this.pos[0], dz = n.z - this.pos[2], d = Math.hypot(dx, dz) || 1;
+    if (n.def.boss) { const dmg = n.maxHp * 0.22; g.hitNpc(n, dmg, [dx / d, dz / d], { from: 'player', clip: 'Execute', heavy: true, execution: true }); n.exposed = 0; }
+    else g.hitNpc(n, 999, [dx / d, dz / d], { from: 'player', clip: 'Execute', heavy: true, execution: true, silentKill: true });
+    g.stats.executions = (g.stats.executions || 0) + 1; g.flashText('EXECUTED'); g.hitStop = 0.12; g.shake = Math.max(g.shake, 0.5); g.spawnBlood?.([n.x, n.y + 1.0, n.z], [dx / d, dz / d], 30);
+    g.progress.addXp(14, 'execution');
+    // the others lose heart
+    for (const o of g.npcs) if (o !== n && !o.dead && o.guard && o.role !== 'hollow' && !o.def.boss && Math.hypot(o.x - n.x, o.z - n.z) < 12 && (o.state === 'chase' || o.state === 'attack') && Math.random() < 0.35) { o.state = 'retreat'; o.retreatT = 5; o.repathT = 0; o.stopMove(); o.bark(['He butchered him!', 'Back! Get back!', 'Gods...'][Math.floor(Math.random() * 3)]); }
+  }
   resolveHit() {
     if (!this.atk || this.atk.hit) return; this.atk.hit = true;
     const g = this.g, eye = this.eyePos, f = this.forward, flat = this.flat, clip = this.atk.clip;
-    const reach = clip === 'Thrust' ? 3.0 : 2.5, arc = Math.cos((clip === 'Thrust' ? 22 : clip === 'Slash3' ? 48 : 62) * D2R);
-    let dmg = (clip === 'Slash3' ? 36 : clip === 'Thrust' ? 32 : 24) * (this.mod?.dmg ?? 1) * (g.status?.mul('dmg') ?? 1); const rip = this.riposteT > 0; if (rip) { dmg *= 2.2; this.riposteT = 0; g.flashText('RIPOSTE'); }
+    const heavy = clip === 'Heavy', power = this.atk.power || 1;
+    const reach = clip === 'Thrust' ? 3.0 : heavy ? 2.75 : 2.5, arc = Math.cos((clip === 'Thrust' ? 22 : clip === 'Slash3' ? 48 : heavy ? 58 : 62) * D2R);
+    let dmg = (heavy ? 34 + 34 * power : clip === 'Slash3' ? 36 : clip === 'Thrust' ? 32 : 24) * (this.mod?.dmg ?? 1) * (g.status?.mul('dmg') ?? 1); const rip = this.riposteT > 0; if (rip) { dmg *= 2.2; this.riposteT = 0; g.flashText('RIPOSTE'); }
     let hitSomething = false;
     for (const n of g.npcs) {
       if (n.dead || !n.active) continue;
@@ -233,7 +301,7 @@ export class Player {
       if (d > reach + 0.3 || Math.abs(n.y - this.pos[1]) > 1.6) continue;
       const c = (dx * flat[0] + dz * flat[1]) / (d || 1);
       if (c < arc && d > 0.9) continue;
-      const ho = { from: 'player', clip, heavy: clip !== 'Slash1' && clip !== 'Slash2', sap: g.tools.sap, bleed: clip === 'Slash3' || clip === 'Thrust' || rip }; const hr = g.hitNpc(n, dmg, [dx / (d || 1), dz / (d || 1)], ho); if (g.tools.poisonHits > 0 && hr !== 'blocked' && hr !== 'dead' && hr !== 'killed' && !g.tools.sap) { n.poison = 12 * (this.mod?.poison || 1); g.tools.poisonHits--; if (!g.tools.poisonHits) g.ui.toast('The poison on your blade is spent'); }
+      const ho = { from: 'player', clip, heavy: clip !== 'Slash1' && clip !== 'Slash2', sap: g.tools.sap, bleed: clip === 'Slash3' || clip === 'Thrust' || rip || heavy, guardBreak: heavy && power > 0.55, poise: heavy ? 1.8 + power : clip === 'Slash3' ? 1.3 : 1 }; const hr = g.hitNpc(n, dmg, [dx / (d || 1), dz / (d || 1)], ho); if (g.tools.poisonHits > 0 && hr !== 'blocked' && hr !== 'dead' && hr !== 'killed' && !g.tools.sap) { n.poison = 12 * (this.mod?.poison || 1); g.tools.poisonHits--; if (!g.tools.poisonHits) g.ui.toast('The poison on your blade is spent'); }
       hitSomething = true;
     }
     if (g.fauna?.hit(this.pos, flat, reach, arc, dmg)) hitSomething = true;
@@ -275,7 +343,8 @@ export class Player {
   // an incoming blow. returns 'hit' | 'blocked' | 'parried' | 'dodged'
   incoming(dmg, fromXZ, opts = {}) {
     const g = this.g;
-    if (this.dead || this.invuln > 0 || g.mode === 'cutscene' || g.mode === 'dead') return 'dodged';
+    if (this.dead || g.mode === 'cutscene' || g.mode === 'dead') return 'dodged';
+    if (this.invuln > 0) { if (this.dodgeWin > g.time && opts.from && !opts.ranged) { this.dodgeWin = 0; g.stats.dodges = (g.stats.dodges || 0) + 1; this.riposteT = Math.max(this.riposteT, 1.0); g.flashText?.('PERFECT DODGE'); g.slowmo = Math.max(g.slowmo || 0, 0.25); } return 'dodged'; }
     if (this.blocking && fromXZ) {
       const dx = fromXZ[0] - this.pos[0], dz = fromXZ[1] - this.pos[2], d = Math.hypot(dx, dz) || 1, c = (dx * this.flat[0] + dz * this.flat[1]) / d;
       if (c > 0.35 && !opts.unblockable) {
@@ -298,7 +367,7 @@ export class Player {
     this.hp -= dmg; this.hurtT = 0.35; this.kick = 0.05; this.g.combatT = 6;
     this.g.sfx.hurt?.(); this.g.pix.hurt = 1;
     if (from && !opts.fall) { const dx = this.pos[0] - from[0], dz = this.pos[2] - from[1], d = Math.hypot(dx, dz) || 1; const kb = opts.shove ? 7 : 2.2; this.cc.velocity[0] += (dx / d) * kb; this.cc.velocity[2] += (dz / d) * kb; }
-    if (dmg > 12 && !opts.fall) { this.stagger = 0.25; if (this.atk) { this.atk = null; this.playVm('Stagger', 0.03); } }
+    if (dmg > 12 && !opts.fall) { this.stagger = 0.25; if (this.atk || this.charge) { this.atk = null; this.charge = null; this.playVm('Stagger', 0.03); } }
     if (this.mount && !opts.fall && dmg >= 18 && Math.random() < 0.3) this.mount.throwRider();
     if (this.hp <= 0) { this.hp = 0; this.dead = true; this.mount?.forceReset(); this.g.playerDied(); }
   }

@@ -409,7 +409,7 @@ export function buildPlaza(B) {
   B.vbox('timber', gx - 2.3, 4.3, gz - 0.1, gx + 0.15, 4.5, gz + 0.1, { chunk: 'market' });
   const cage = new E.Node('Cage'); const ck = new E.Kit(B.pal);
   for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; ck.cyl(B.pal.iron, [Math.cos(a) * 0.32, 0, Math.sin(a) * 0.32], 0.014, 1.0, [0, 0, 0], 4); }
-  for (const yy of [-0.5, -0.2, 0.15, 0.5]) ck.add(B.pal.iron, E.torus({ radius: 0.32, tube: 0.014, radialSegments: 4, tubularSegments: 16 }), [0, yy, 0], [90, 0, 0]);
+  for (const yy of [-0.5, -0.2, 0.15, 0.5]) ck.add(B.pal.iron, E.torus({ radius: 0.32, tube: 0.014, radialSegments: 4, tubularSegments: 16 }), [0, yy, 0], [0, 0, 0]);
   ck.cyl(B.pal.bone, [0, -0.15, 0], 0.13, 0.7, [0, 0, 8], 6); ck.add(B.pal.bone, E.sphere({ radius: 0.11, widthSegments: 8, heightSegments: 6 }), [0.03, 0.25, 0]);
   cage.add(ck.toNode('Cage'));
   B.decor.add(cage);

@@ -109,7 +109,7 @@ P.hearth = function hearth(x, y, z, { r = 0.5, stone = true, range = 14, intensi
 };
 P.chandelier = function chandelier(x, y, z, { r = 0.9, candles = 8, chunk } = {}) {
   const k = this.kit(chunk);
-  k.add(this.pal.iron, E.torus({ radius: r, tube: 0.035, radialSegments: 6, tubularSegments: 24 }), [x, y, z], [90, 0, 0]);
+  k.add(this.pal.iron, E.torus({ radius: r, tube: 0.035, radialSegments: 6, tubularSegments: 24 }), [x, y, z], [0, 0, 0]);
   k.cyl(this.pal.iron, [x, y + 0.7, z], 0.02, 1.4, [0, 0, 0], 5);
   const light = new E.Light('point', { color: '#ffc488', intensity: 14, range: 15, flicker: 0.35 }); light.position.set([x, y + 0.25, z]); this.decor.add(light);
   const t = { x, y, z, light, lit: true, base: 14, range: 15, phase: Math.random() * 9, kind: 'chandelier', indoor: 1, flames: [] };

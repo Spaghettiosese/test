@@ -12,6 +12,7 @@ export const UNIFORMS = {
   uni_watch: { kind: 'watch', faction: 'watch', label: 'Watch uniform' },
   uni_keep: { kind: 'keep', faction: 'keep', label: 'Keep livery' },
   uni_servant: { kind: 'servant', faction: 'servant', label: "Servant's livery" },
+  uni_hand: { kind: 'hand', faction: 'hand', label: 'Gray Hand cloak' },
 };
 const SERVANTS = new Set(['cook', 'maid']);
 const shares = (a, b) => a === b || (a === 'watch' && b === 'keep') || (a === 'keep' && b === 'watch');
@@ -28,7 +29,7 @@ export class Look {
   }
   describe(D) {
     const who = D.hood ? 'a hooded figure' : D.face ? 'a bare-faced traveller' : 'a figure';
-    const wear = D.uniform ? ` wearing ${D.uniform === 'watch' ? 'a Watch uniform' : D.uniform === 'keep' ? 'Keep livery' : 'servant\'s livery'}` : D.cloak && D.cloak !== 'traveller' && D.cloak !== 'uniform' ? ` in a ${GEAR[D.cloak]?.name?.toLowerCase() || 'fine cloak'}` : ' in a dark travelling cloak';
+    const wear = D.uniform ? ` wearing ${D.uniform === 'watch' ? 'a Watch uniform' : D.uniform === 'keep' ? 'Keep livery' : D.uniform === 'hand' ? 'a gray cloak and mask' : 'servant\'s livery'}` : D.cloak && D.cloak !== 'traveller' && D.cloak !== 'uniform' ? ` in a ${GEAR[D.cloak]?.name?.toLowerCase() || 'fine cloak'}` : ' in a dark travelling cloak';
     return `${who}${wear}${D.armed ? ', sword drawn' : ''}${D.bloody ? ', blood on their clothes' : ''}${D.face ? ' (face seen)' : ''}`;
   }
   // ------------------------------------------------------------ the hood
@@ -112,6 +113,7 @@ export class Look {
   uniformOf(n) {
     if (n.role === 'bandit' || n.role === 'hollow' || n.faction === 'hunters' || n.def?.boss) return null;
     if (n.guard && (n.faction === 'watch' || n.faction === 'keep')) return n.faction === 'keep' ? 'uni_keep' : 'uni_watch';
+    if (n.faction === 'hand' && !n.def.boss) return 'uni_hand';
     if (SERVANTS.has(n.id)) return 'uni_servant';
     return null;
   }

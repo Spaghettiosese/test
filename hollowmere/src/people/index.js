@@ -4,14 +4,14 @@
 import * as E from '../../../engine/index.js';
 import { personDefinition } from './outfits.js';
 import { bakeClips } from './clips.js';
-import { HAND_SOCKET, makeSword, makeSpear, makeMace, makeTorch, makeMug, makeBroom, makeHammer, makeCrossbow } from './weapons.js';
+import { HAND_SOCKET, makeSword, makeSpear, makeMace, makeTorch, makeMug, makeBroom, makeHammer, makeCrossbow, makeShield, makeKnife } from './weapons.js';
 export * from './weapons.js';
 export { OUTFIT_NAMES, SKIN, HAIR } from './outfits.js';
 
 let CLIPS = null;
 export const clipDefs = () => (CLIPS ||= bakeClips());
 
-const MAKERS = { sword: () => makeSword('arming'), dark: () => makeSword('dark'), captain: () => makeSword('captain'), nightfang: () => makeSword('nightfang'), dagger: () => makeSword('dagger'), spear: makeSpear, mace: makeMace, torch: makeTorch, mug: makeMug, broom: makeBroom, hammer: makeHammer, crossbow: makeCrossbow };
+const MAKERS = { sword: () => makeSword('arming'), dark: () => makeSword('dark'), captain: () => makeSword('captain'), nightfang: () => makeSword('nightfang'), dagger: () => makeSword('dagger'), spear: makeSpear, mace: makeMace, torch: makeTorch, mug: makeMug, broom: makeBroom, hammer: makeHammer, crossbow: makeCrossbow, shield: makeShield, knife: makeKnife };
 
 export function createPerson(spec, { detail = 0.5 } = {}) {
   const def = personDefinition(spec);

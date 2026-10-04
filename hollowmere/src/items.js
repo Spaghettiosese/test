@@ -73,6 +73,17 @@ export const ITEMS = {
   sap: { name: 'Lead sap', kind: 'tool', desc: 'B swaps between blade and sap. The sap knocks out the unwary.' },
   letterfake: { name: 'Unsealed letter', kind: 'junk', value: 0, desc: 'A dull tax memorandum. Not what you came for.' },
   letter: { name: 'The Sealed Letter', kind: 'quest', desc: 'Black wax, a raven pressed into it. It is warm to the touch.' },
+  uni_hand: { name: 'Gray Hand cloak and mask', kind: 'disguise', value: 10, desc: 'Gray wool and a pale half-mask. In the Rookery nobody looks twice; anywhere else, everyone does.' },
+  rookkey: { name: 'Marl\'s cellar key', kind: 'key', desc: 'Opens the trapdoor behind the bar of the Drowned Lantern.' },
+  vanekey: { name: 'Vane\'s key', kind: 'key', desc: 'Black iron on a red cord. Opens Sable\'s study in the Rookery.' },
+  binderskull: { name: 'The Binder\'s skull', kind: 'quest', desc: 'Old, yellow and humming. Vorst the Binder gave it to the hill to keep the Choir asleep.' },
+  clapper: { name: 'The bell\'s tongue', kind: 'quest', desc: 'The iron clapper of Ravenspire\'s bell. Without it, the bell cannot toll thirteen.' },
+  echo: { name: 'Choir echo', kind: 'quest', desc: 'A splinter of the Choir\'s song, caught in violet glass. Thirteen were scattered when the Binder sealed the hill.' },
+  salve_gh: { name: 'Gray Hand salve', kind: 'consumable', heal: 70, value: 30, desc: 'Strong-smelling paste in a tin. Closes wounds that would kill a lesser man.' },
+  bolt: { name: 'Crossbow bolt', kind: 'ammo', value: 2, desc: 'Broadhead. Kills quietly, if it kills.' },
+  bolt_water: { name: 'Water bolt', kind: 'ammo', value: 4, desc: 'A glass head full of water: puts out a torch or a brazier from thirty paces.' },
+  bolt_fire: { name: 'Fire bolt', kind: 'ammo', value: 6, desc: 'Pitch and a fuse. Lights whatever it hits, including people.' },
+  bolt_sleep: { name: 'Sleep bolt', kind: 'ammo', value: 6, desc: 'A hollow head of poppy and nightshade. Puts a man down without killing him.' },
 };
 export class Inventory {
   constructor() { this.items = new Map(); this.gold = 0; this.lootValue = 0; }

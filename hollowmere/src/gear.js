@@ -24,6 +24,10 @@ export const GEAR = {
   wolftooth: { name: 'Wolf tooth charm', slot: 'charm', dmg: 1.08, desc: 'Sword damage +8%.', value: 65 },
   sainttear: { name: 'Saint\'s tear charm', slot: 'charm', parry: 0.06, desc: 'A pale glass drop. Longer parry window.', value: 95 },
   raven: { name: 'Raven feather', slot: 'charm', knife: 1.25, desc: 'Thrown knives fly true.', value: 60 },
+  handring: { name: 'Ring of the Gray Hand', slot: 'ring', vis: 0.9, knife: 1.15, desc: 'Sable\'s own: gray iron, always cold. Harder to see; knives fly truer.', value: 140 },
+  waxward: { name: 'Wax ward', slot: 'charm', armor: 0.06, ember: 20, desc: 'Old Sable\'s charm, a disc of black wax on a cord. The Choir\'s voice slides off you.', value: 90 },
+  vanecoat: { name: 'Vane\'s duelling coat', slot: 'body', armor: 0.16, parry: 0.05, desc: 'Black leather lined with mail, cut to move in. Longer parry window.', value: 150 },
+  knightplate: { name: 'Hollow plate', slot: 'body', armor: 0.3, quiet: 1.18, desc: 'Black plate from a dead champion of the Choir. Heavy, loud, nearly unbreakable.', value: 160 },
 };
 for (const [id, g] of Object.entries(GEAR)) ITEMS[id] = { name: g.name, kind: 'gear', slot: g.slot, desc: g.desc, value: g.value };
 

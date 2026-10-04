@@ -77,10 +77,26 @@ export function makeHammer() {
   k.box(m.dark, [0, 0.47, 0.01], [0.06, 0.07, 0.13], [0, 0, 0], 0.006);
   return k.toNode('Smith hammer');
 }
+// a heater shield held by its grip: the face looks along the prop's +Y (forward from the fist),
+// its top towards -Z (up when the arm hangs)
 export function makeShield() {
   const m = mats(), k = new E.Kit({});
-  k.add(m.wood, E.extrude({ outline: [[-0.16, 0.2], [0.16, 0.2], [0.17, -0.05], [0, -0.3], [-0.17, -0.05]], depth: 0.025, bevel: 0.006 }), [0, 0, 0]);
+  const face = M('Shield paint', { color: '#7a6444', roughness: 0.75, pattern: 'wood', patternScale: 7, patternColor: '#3a2a18' });
+  const stripe = M('Shield stripe', { color: '#c8bca0', roughness: 0.7 });
+  const outline = [[-0.27, -0.06], [0.0, -0.42], [0.27, -0.06], [0.26, 0.3], [-0.26, 0.3]];   // counter-clockwise, or the faces do not cap
+  k.add(face, E.extrude({ outline, depth: 0.035, bevel: 0.008 }), [0, 0.07, 0.04], [-90, 0, 0]);
+  k.add(m.steel, E.extrude({ outline: outline.map(([a, b]) => [a * 1.05, b * 1.05]), depth: 0.012, bevel: 0.003 }), [0, 0.05, 0.04], [-90, 0, 0]);
+  k.add(m.steel, E.sphere({ radius: 0.05, widthSegments: 8, heightSegments: 6 }), [0, 0.1, 0.0], [0, 0, 0], [1, 0.6, 1]);
+  k.box(stripe, [0, 0.092, -0.0], [0.09, 0.006, 0.66], [0, 0, 0]);
   return k.toNode('Shield');
+}
+// a short, slim blade for the Gray Hand
+export function makeKnife() {
+  const m = mats(), k = new E.Kit({});
+  k.cyl(m.leather, [0, 0.045, 0], 0.012, 0.09, [0, 0, 0], 8);
+  k.box(m.dark, [0, 0.094, 0], [0.02, 0.012, 0.06], [0, 0, 0], 0.003);
+  k.add(m.dark, E.extrude({ outline: bladeOutline(0.24, 0.016), depth: 0.006, bevel: 0.0015 }), [0, 0.1, 0], [0, 90, 0]);
+  const n = k.toNode('Knife'); n.userData.length = 0.34; return n;
 }
 
 export function makeCrossbow() {

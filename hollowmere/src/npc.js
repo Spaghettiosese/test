@@ -3,6 +3,7 @@
 // raises the alarm and fights. Villagers flee. The dead fall as physics ragdolls and can be looted.
 import * as E from '../../engine/index.js';
 import { createPerson } from './people/index.js';
+import { ARCH, POISE, hostile, essential } from './archetypes.js';
 
 const D2R = Math.PI / 180;
 const hyp = Math.hypot;
@@ -18,7 +19,7 @@ export class NPC {
     this.guard = this.role === 'guard' || this.role === 'captain' || def.hostile === true;
     this.spec = def.spec; this.schedule = def.schedule || []; this.dialogue = def.dialogue || (this.role === 'guard' && def.hostile !== true && !def.boss ? 'guardgeneric' : null); this.talkable = !!this.dialogue;
     this.x = def.pos[0]; this.z = def.pos[1]; this.yaw = (def.yaw ?? 0) * D2R; this.y = game.nav.floorAt(this.x, this.z);
-    this.maxHp = def.hp ?? (this.guard ? 60 : 30); this.hp = this.maxHp;
+    this.maxHp = def.hp ?? (this.guard ? 60 : 30); if (game.ngHp && (this.guard || this.role === 'hollow' || this.role === 'bandit')) { this.maxHp = Math.round(this.maxHp * game.ngHp); this.ngScaled = true; } this.hp = this.maxHp;
     this.ch = createPerson(this.spec, { detail: def.detail ?? 0.4 });
     this.ch.userData.npc = this; game.scene.add(this.ch);
     this.look = new E.LookAt(this.ch, { maxYaw: 68, maxPitch: 30, speed: 6 }); this.hitR = new E.HitReaction(this.ch, { stiffness: 110, damping: 12 });
@@ -44,6 +45,13 @@ export class NPC {
     this.tactic = 'engage'; this.ringK = Math.floor(Math.random() * 3); this.tacticPt = null; this.dodgeCd = 0; this.dodgeT = 0; this.dodgeV = [0, 0]; this.ranged = this.spec.weapon === 'crossbow'; this.shotT = 1 + Math.random(); this.calledHelp = false;
     this.strafe = Math.random() < 0.5 ? 1 : -1; this.strafeT = 0; this.searchPt = null; this.lookT = 0; this.retreatT = 0; this.lastVel = [0, 0]; this.feintDone = false;
     if (def.weapon !== null && (this.guard || def.weapon)) { this.ch.hold('R', def.weapon || (this.role === 'captain' ? 'captain' : 'sword')); this.armed = true; }
+    // fighting style, posture, and who else they might fight
+    this.arch = ARCH[def.arch] || null;
+    if (this.arch && def.hp === undefined) { this.maxHp = Math.round(this.arch.hp * (game.ngHp || 1)); this.hp = this.maxHp; }
+    if (this.arch?.offhand) this.ch.hold('L', this.arch.offhand);
+    this.poiseMax = def.poise ?? this.arch?.poise ?? POISE[def.hollowType] ?? POISE[this.role] ?? 30; this.poise = this.poiseMax; this.poiseT = 0; this.exposed = 0;
+    this.foe = null; this.foeT = Math.random() * 0.5; this.ally = !!def.ally; this.fighter = this.guard || this.ally; this.essential = essential(this);
+    this.throwCd = 0.6 + Math.random() * 0.8; this.castCd = 1.2 + Math.random() * 1.5; this.smokeUsed = false; this.fleeFrom = null;
     this.ch.mixer.on((e) => this.onAnimEvent(e));
     this.applyPose();
     this.ch.update(0.016);
@@ -178,6 +186,10 @@ export class NPC {
     if (this.blind > 0) this.blind -= dt;
     if (this.state === 'ko') { this.koT -= dt; this.speed = 0; if (this.koT <= 0) this.wakeUp(); this.applyPose(); this.body.position[0] = this.x; this.body.position[1] = this.y + 0.3; this.body.position[2] = this.z; return; }
     if (this.pendingGoal && this.g.pathBudget > 0) this.goTo(...this.pendingGoal);
+    // posture: broken by blows, it leaves them open to an execution; it comes back when left alone
+    if (this.exposed > 0) { this.exposed -= dt; this.stagger = Math.max(this.stagger, Math.min(this.exposed, 0.3)); if (Math.random() < dt * 6) this.g.sparks?.emit([this.x, this.y + 2.05 * (this.spec.height || 1), this.z], { count: 1, color: [5, 0.6, 0.4, 1], colorEnd: [1.5, 0.1, 0.1, 0], size: 0.03, grow: 0.3, spread: 0.18, up: 0.4, life: 0.4, jitter: 0.05 }); if (this.exposed <= 0) { this.exposed = 0; this.poise = this.poiseMax; this.anim = ''; if (this.state === 'stagger') { this.state = 'chase'; this.repathT = 0; } } }
+    else { this.poiseT -= dt; if (this.poiseT <= 0 && this.poise < this.poiseMax) this.poise = Math.min(this.poiseMax, this.poise + dt * this.poiseMax * 0.22); }
+    if (this.dist < 60) this.scanFoes(dt);
     if (this.state === 'routine' || this.state === 'notice') this.updateRoutine(dt);
     this.updateReaction(dt);
     if (this.guard) this.perceive(dt);
@@ -329,7 +341,7 @@ export class NPC {
     } else if (this.state === 'handsup') { this.speed = 0; }
   }
   pickFleeGoal() {
-    const g = this.g, P = g.player.pos, dx = this.x - P[0], dz = this.z - P[2], l = hyp(dx, dz) || 1;
+    const g = this.g, P = this.fleeFrom || g.player.pos, dx = this.x - P[0], dz = this.z - P[2], l = hyp(dx, dz) || 1;
     // home if it is far enough from the danger, otherwise straight away from it
     const home = this.homePoi();
     let gx = this.x + (dx / l) * 14, gz = this.z + (dz / l) * 14;
@@ -340,6 +352,7 @@ export class NPC {
   homePoi() { const s = this.schedule.find((x) => x.act === 'sleep'); return s ? this.g.level.pois[s.poi] : null; }
   scare(from, secs = 12) {
     if (this.guard || this.dead || this.role === 'hollow' || this.state === 'handsup') return;
+    this.fleeFrom = from ? [from[0], from[1] ?? 0, from[2]] : null;
     if (this.lying || this.seated) this.leaveActivity();
     if (this.state === 'flee') { this.fleeT = Math.max(this.fleeT, secs); return; }
     this.state = 'flee'; this.fleeT = secs; this.repathT = 0; this.path = null; this.goal = null;
@@ -347,6 +360,48 @@ export class NPC {
     this.g.noise(this.pos, 12, 'scream', this);
   }
 
+  // ------------------------------------------------------------ fights between people
+  // the target of the chase: another person (a hollow, an enemy of an ally) or, by default, you
+  tgt() { const f = this.foe; if (f && !f.dead && f.state !== 'ko' && !f.dormant) return f; if (f) this.dropFoe(); return null; }
+  scanFoes(dt) {
+    this.foeT -= dt; if (this.foeT > 0) return; this.foeT = 0.45 + Math.random() * 0.25;
+    if (this.dormant || this.rising > 0 || this.state === 'ko' || this.state === 'challenge' || this.peaceful || this.lying && this.role !== 'hollow' && !this.guard) return;
+    const g = this.g, hollow = this.role === 'hollow';
+    if (this.foe) { const f = this.tgt(); if (f && hyp(f.x - this.x, f.z - this.z) > 28) this.dropFoe(); if (this.foe) return; }
+    if (!this.fighter && !hollow) {
+      // ordinary people run from the dead
+      if (this.state === 'flee' || this.state === 'cower' || this.state === 'handsup') return;
+      for (const o of g.npcs) if (o.role === 'hollow' && !o.dead && !o.dormant && o.rising <= 0 && Math.abs(o.x - this.x) < 10 && Math.abs(o.z - this.z) < 10) { this.scare([o.x, o.y, o.z], 10); return; }
+      return;
+    }
+    if (hollow && (this.state === 'chase' || this.state === 'attack') && this.sees && this.dist < 14) return;   // it already has you
+    if (!hollow && (this.state === 'chase' || this.state === 'attack') && !this.ally) return;               // a guard on your heels stays on them
+    let best = null, bd = hollow ? 13 : 18;
+    for (const o of g.npcs) {
+      if (o === this || o.dead || o.state === 'ko' || o.dormant || o.rising > 0) continue;
+      if (Math.abs(o.x - this.x) > bd || Math.abs(o.z - this.z) > bd || Math.abs(o.y - this.y) > 3) continue;
+      if (!hostile(g, this, o)) continue;
+      const d = hyp(o.x - this.x, o.z - this.z); if (d >= bd) continue;
+      if (!g.canSee(this.eye, [o.x, o.y + 1.4, o.z], this.body)) continue;
+      best = o; bd = d;
+    }
+    if (best) this.engage(best);
+  }
+  engage(o, quiet = false) {
+    if (this.dead || o.dead || this.foe === o) return;
+    if (this.lying || this.seated) this.leaveActivity();
+    this.foe = o; this.state = 'chase'; this.alert = 1; this.repathT = 0; this.lostT = 0; this.stopMove(); this.tactic = 'engage';
+    if (!quiet && this.role !== 'hollow') this.bark(o.role === 'hollow' ? ['Hollows! To arms!', 'The dead are up! Cut them down!', 'Hold them here!'][Math.floor(Math.random() * 3)] : ['Have at you!', 'For the Duke!', 'You picked the wrong night.'][Math.floor(Math.random() * 3)]);
+    // the Watch fights together
+    if (!quiet && this.guard && this.role !== 'hollow' && o.role === 'hollow') for (const m of this.g.npcs) if (m !== this && m.guard && m.role !== 'hollow' && !m.dead && !m.foe && (m.state === 'routine' || m.state === 'notice' || m.state === 'investigate' || m.state === 'search') && hyp(m.x - this.x, m.z - this.z) < 22) m.engage(o, true);
+  }
+  dropFoe() {
+    this.foe = null;
+    if (this.state === 'chase' || this.state === 'attack' || this.state === 'stagger') {
+      if (this.role === 'hollow') { this.state = 'chase'; this.lostT = 3; }
+      else { this.state = 'search'; this.searchT = 4; this.searchPt = null; this.lookT = 0; this.alert = 0.5; this.stopMove(); }
+    }
+  }
   // ------------------------------------------------------------ guards: seeing & hearing
   perceive(dt) {
     if (this.dead || this.stagger > 0.3 || this.peaceful) return;
@@ -369,7 +424,7 @@ export class NPC {
           const k = pd < 2.2 ? 2.2 : 1;
           gain = (1 - Math.min(1, pd / range)) ** 0.7 * (0.3 + P.visibility * 0.9) * (0.6 + 0.4 * Math.max(0, c)) * k * g.stealth.detectMul(this, P, pd, c);
           // how clearly he sees you is only half of it: what is there to be suspicious about?
-          const hunting = this.state === 'chase' || this.state === 'attack';
+          const hunting = (this.state === 'chase' || this.state === 'attack') && !this.foe;
           const a = hunting ? { w: 1, kind: 'hostile', reason: 'Enemy', id: 'enemy' } : g.social.assess(this, pd);
           this.assessNow = a; gain *= a.w;
         }
@@ -385,12 +440,13 @@ export class NPC {
         this.alert = Math.min(1.2, this.alert + gain * 1.15 * (0.14 + 0.05) * 3.0);
         if (a.kind === 'curious') this.alert = Math.min(this.alert, 0.45);
         this.detect = Math.max(this.detect, this.alert);
-        if (this.alert >= 1 && this.state !== 'chase' && this.state !== 'attack') { if (a.kind === 'hostile') this.spotted(); else if (a.kind === 'challenge') g.social.startChallenge(this, a); else this.alert = 0.45; }
+        if (this.alert >= 1 && this.foe && a.kind === 'hostile' && this.role !== 'hollow' && !this.ally && (this.state === 'chase' || this.state === 'attack') && this.foe.role !== 'hollow') { this.foe = null; this.spotted(); }
+        else if (this.alert >= 1 && this.state !== 'chase' && this.state !== 'attack') { if (a.kind === 'hostile') this.spotted(); else if (a.kind === 'challenge') g.social.startChallenge(this, a); else this.alert = 0.45; }
         else if (this.alert > 0.3 && this.state === 'routine') this.noticed(this.lastSeen, 'sight');
       }
     } else {
       this.alert = Math.max(0, this.alert - 0.05 * 0.16 * (this.state === 'routine' ? 3 : 1));
-      if (this.state === 'chase' || this.state === 'attack') { this.lostT += 0.16; if (this.lostT > 5) this.loseTrack(); }
+      if ((this.state === 'chase' || this.state === 'attack') && !this.foe) { this.lostT += 0.16; if (this.lostT > 5) this.loseTrack(); }
     }
     // bodies and dark torches
     if (this.state === 'routine' || this.state === 'notice') this.scanWorld(eye);
@@ -490,7 +546,9 @@ export class NPC {
       }
       case 'chase': {
         this.repathT -= dt;
+        { const F = this.tgt(); if (F) { this.chaseFoe(F, dt); break; } }
         const dx = P.pos[0] - this.x, dz = P.pos[2] - this.z, d = hyp(dx, dz);
+        if (this.arch && this.styleAt(dt, d, dx, dz)) break;
         if (this.sees || this.lostT < 1) { this.lastSeen = [P.pos[0], P.pos[1], P.pos[2]]; this.lastVel = [P.cc?.velocity?.[0] || 0, P.cc?.velocity?.[2] || 0]; }
         let tgt = this.lastSeen || P.pos;
         if (!this.sees && this.lostT > 0.4) tgt = [tgt[0] + this.lastVel[0] * Math.min(this.lostT, 1.6) * 0.6, tgt[1], tgt[2] + this.lastVel[1] * Math.min(this.lostT, 1.6) * 0.6]; // run to where he was heading
@@ -513,6 +571,7 @@ export class NPC {
         break;
       }
       case 'attack': {
+        { const F = this.tgt(); if (F) { this.attackFoe(F, dt); break; } }
         const dx = P.pos[0] - this.x, dz = P.pos[2] - this.z, d = hyp(dx, dz);
         this.speed *= 0.8; this.setLoco(this.speed);
         this.yaw += angDiff(Math.atan2(dx, dz), this.yaw) * Math.min(1, dt * (this.atk ? 3 : 9)) * -1 * -1;
@@ -540,7 +599,7 @@ export class NPC {
         if (this.retreatT <= 0 || (!this.path && this.dist > 6)) { this.state = 'chase'; this.repathT = 0; this.tactic = 'circle'; }
         break;
       }
-      case 'stagger': { this.stagger -= 0; this.speed *= 0.8; this.setLoco(0); if (this.stagger <= 0) { this.state = 'chase'; this.repathT = 0; } break; }
+      case 'stagger': { this.speed *= 0.8; if (this.exposed > 0) this.setAnim('Cower', 0.15); else this.setLoco(0); if (this.stagger <= 0 && this.exposed <= 0) { this.state = 'chase'; this.repathT = 0; } break; }
       case 'handsup': { this.setAnim('Hands Up', 0.25); this.speed = 0; break; }
       case 'challenge': this.g.social.tickChallenge(this, dt); break;
       default: break;
@@ -549,8 +608,8 @@ export class NPC {
   }
   reactDodge(dt, d) {
     const P = this.g.player;
-    if (this.dodgeCd > 0 || this.dodgeT > 0 || this.atk || this.stagger > 0 || !P.atk || d > 2.7 || !this.sees) return;
-    if (Math.random() > dt * 3.2) return;
+    if (this.dodgeCd > 0 || this.dodgeT > 0 || this.atk || this.stagger > 0 || this.exposed > 0 || !P.atk || d > 2.7 || !this.sees || P.atk.clip === 'Heavy' && P.atk.t < 0.05) return;
+    if (Math.random() > dt * (this.arch?.dodge || 3.2)) return;
     const s = Math.random() < 0.5 ? 1 : -1, l = d || 1;
     this.dodgeV = [-(P.pos[2] - this.z) / l * s * 5.5, (P.pos[0] - this.x) / l * s * 5.5]; this.dodgeT = 0.24; this.dodgeCd = 3 + Math.random() * 2;
     this.ch.upper.playOnce('Flinch', { fadeIn: 0.05, fadeOut: 0.15 });
@@ -578,25 +637,99 @@ export class NPC {
     }
     if (near && this.shotT <= 0 && d < 2.2) { this.state = 'attack'; this.stopMove(); this.beginAttack(); }
   }
+  // ---- fighting another person
+  chaseFoe(F, dt) {
+    const dx = F.x - this.x, dz = F.z - this.z, d = hyp(dx, dz);
+    if (this.ranged && d > 3) {
+      this.speed *= 0.8; if (this.path) this.stopMove(); this.yaw += angDiff(Math.atan2(dx, dz), this.yaw) * Math.min(1, dt * 8);
+      if (this.shotT <= 0 && d < 24) { this.shotT = 2.4 + Math.random(); this.ch.upper.playOnce('Point', { fadeIn: 0.1, fadeOut: 0.3, speed: 1.6 }); this.g.after(0.26, () => { if (!this.dead && this.foe === F && !F.dead) { this.g.sfx.swing?.(0.5, this.pos); if (Math.random() < 0.6) this.g.npcStrike(this, F, 14, [dx / (d || 1), dz / (d || 1)]); } }); }
+      this.setLoco(this.speed); return;
+    }
+    if (d < 1.95 + (F.def.boss ? 0.6 : 0) && this.stagger <= 0) { this.state = 'attack'; this.stopMove(); this.beginAttack(); return; }
+    if (this.repathT <= 0 || !this.path) { this.repathT = 0.6; this.goTo(F.x, F.z, 4.0 * (this.def.speedMul || 1) * (this.arch?.speed || 1)); }
+    if (this.path) this.stepPath(dt); else if (d > 0.6) { const sp = 3.2; this.moveBy(dx / d * sp * dt, dz / d * sp * dt); this.speed = sp; }
+    if (d < 4) this.yaw += angDiff(Math.atan2(dx, dz), this.yaw) * Math.min(1, dt * 10);
+    this.setLoco(this.speed);
+    if (this.guard && this.armed && this.role !== 'hollow') this.ch.armR.play('Guard Idle', { fade: 0.2 });
+  }
+  attackFoe(F, dt) {
+    const dx = F.x - this.x, dz = F.z - this.z, d = hyp(dx, dz);
+    this.speed *= 0.8; this.setLoco(this.speed);
+    this.yaw += angDiff(Math.atan2(dx, dz), this.yaw) * Math.min(1, dt * (this.atk ? 3 : 9));
+    if (this.atk) { this.atk.t += dt; if (this.atk.t > this.atk.dur) { this.atk = null; this.attackCd = 0.6 + Math.random() * 1.1; } }
+    else if (this.attackCd <= 0) { if (d < 2.3) this.beginAttack(); else { this.state = 'chase'; this.repathT = 0; } }
+    else if (d > 3) { this.state = 'chase'; this.repathT = 0; }
+    else if (d < 1.1) this.moveBy(-dx / (d || 1) * 0.6 * dt, -dz / (d || 1) * 0.6 * dt);
+  }
+  // ---- fighting styles at range: knives and smoke for the Gray Hand, songs for the Cantors. true = handled this frame
+  styleAt(dt, d, dx, dz) {
+    const A = this.arch, g = this.g, P = g.player; this.throwCd -= dt; this.castCd -= dt;
+    if (A.smoke && !this.smokeUsed && this.hp < this.maxHp * 0.35) {
+      this.smokeUsed = true; g.status.smoke([this.x, this.y, this.z]); this.bark('Smoke!');
+      const a = Math.atan2(this.x - P.pos[0], this.z - P.pos[2]) + (Math.random() - 0.5), q = g.nav.nearestWalkable(this.x + Math.sin(a) * 7, this.z + Math.cos(a) * 7, 4);
+      if (q) { g.emitBurst?.([this.x, this.y + 1, this.z], 'poof'); this.x = q[0]; this.z = q[1]; this.y = g.nav.floorAt(q[0], q[1]); this.stopMove(); this.lostT = 1.5; }
+      return true;
+    }
+    if (A.knives && this.throwCd <= 0 && this.sees && d > 4.5 && d < 17) {
+      this.throwCd = 3.2 + Math.random() * 2; this.ch.upper.playOnce('Point', { fadeIn: 0.08, fadeOut: 0.3, speed: 1.8 });
+      g.after(0.22, () => { if (!this.dead && (this.state === 'chase' || this.state === 'attack')) g.squad.fireBolt(this, { kind: 'knife', dmg: 9, speed: 27, venom: !!A.venom }); });
+      return false;
+    }
+    if (A.caster) {
+      this.yaw += angDiff(Math.atan2(dx, dz), this.yaw) * Math.min(1, dt * 6);
+      if (d < 7 && this.sees) { const l = d || 1; this.moveBy(-dx / l * 2.6 * dt, -dz / l * 2.6 * dt); this.speed = 2.6; this.setLoco(this.speed); }
+      else if (d > 16 || !this.sees) return false;
+      else { this.speed *= 0.8; this.setLoco(this.speed); if (this.path) this.stopMove(); }
+      if (this.castCd <= 0 && this.sees) {
+        this.castCd = 4.2 + Math.random() * 1.6; this.ch.upper.playOnce('Hands Up', { fadeIn: 0.15, fadeOut: 0.4 }); g.sfx.whisper?.();
+        g.after(0.45, () => { if (!this.dead) g.boss?.orbsFrom(this, 2, { dmg: 10 }); });
+        if ((this.summonT = (this.summonT || 0) - 1) <= 0 && g.npcs.filter((o) => o.role === 'hollow' && !o.dead && o.dist < 30).length < 9) { this.summonT = 4; const q = g.nav.nearestWalkable(this.x + (Math.random() - 0.5) * 6, this.z + (Math.random() - 0.5) * 6, 4); if (q) g.story.spawnHollow(q[0], q[1], true, false); }
+      }
+      return true;
+    }
+    return false;
+  }
+  // ---- posture
+  breakPosture(opts = {}) {
+    if (this.dead || this.exposed > 0) return;
+    this.exposed = this.def.boss ? 1.7 : 2.3; this.poise = 0; this.atk = null; this.stopMove(); this.state = 'stagger'; this.stagger = this.exposed; this.anim = '';
+    this.g.sfx.clang?.(1.3, this.pos); this.g.spark?.([this.x, this.y + 1.5, this.z], [0, 1, 0], 16);
+    if (opts.from === 'player') this.g.flashText?.(this.arch?.front && opts.guardBreak ? 'GUARD BROKEN' : 'POSTURE BROKEN');
+    if (this.role !== 'hollow') this.bark(['Gah!', 'My arm...!', 'No, wait—'][Math.floor(Math.random() * 3)]);
+  }
   beginAttack() {
     const roll = Math.random();
     const clip = roll < 0.18 ? 'Thrust' : ['Slash A', 'Slash B', 'Overhead'][Math.floor(Math.random() * 3)];
     const shove = roll < 0.1, feint = !this.feintDone && Math.random() < 0.22; this.feintDone = false;
     if (Math.random() < 0.35) this.comboLeft = 1;
-    const dur = clip === 'Overhead' ? 1.1 : clip === 'Thrust' ? 0.95 : 0.9;
-    this.atk = { clip, t: 0, dur, hit: false, shove, feint };
-    this.ch.upper.playOnce(clip, { fadeIn: 0.08, fadeOut: 0.25, speed: feint ? 1.1 : 0.85 });
+    // a blow that cannot be blocked: a slow, telegraphed overhead; step aside
+    const ub = (this.arch?.unblock || (this.role === 'captain' ? 0.15 : this.def.hollowType === 'brute' ? 0.3 : this.def.boss ? 0.25 : 0));
+    const unblock = !this.foe && ub > 0 && Math.random() < ub;
+    const c2 = unblock ? 'Overhead' : clip, dur = unblock ? 1.35 : c2 === 'Overhead' ? 1.1 : c2 === 'Thrust' ? 0.95 : 0.9;
+    this.atk = { clip: c2, t: 0, dur, hit: false, shove: shove && !unblock, feint: feint && !unblock && !this.foe, unblock };
+    this.ch.upper.playOnce(c2, { fadeIn: 0.08, fadeOut: 0.25, speed: unblock ? 0.62 : feint ? 1.1 : 0.85 });
     this.g.sfx.swing?.(0.7);
+    if (unblock) { const h = 2.05 * (this.spec.height || 1); this.g.ui.floater?.('!', [this.x, this.y + h + 0.2, this.z], '#ff4040'); this.g.sfx.clang?.(1.6, this.pos); for (let i = 0; i < 10; i++) this.g.sparks?.emit([this.x + this.fwd[0] * 0.4, this.y + h, this.z + this.fwd[1] * 0.4], { count: 1, color: [6, 0.8, 0.5, 1], colorEnd: [2, 0.1, 0.1, 0], size: 0.04, grow: 0.4, spread: 0.25, up: 0.6, life: 0.5, jitter: 0.08 }); }
   }
   strike() {
     const a = this.atk; if (!a) return; a.hit = true;
+    const base = (a.clip === 'Overhead' ? 17 : a.clip === 'Thrust' ? 14 : 11) * (this.def.dmg || this.arch?.dmg || 1) * (this.role === 'captain' ? 1.3 : 1);
+    const F = this.tgt();
+    if (F) {
+      const dx = F.x - this.x, dz = F.z - this.z, d = hyp(dx, dz), f = this.fwd;
+      if (d > 2.6 || (dx * f[0] + dz * f[1]) / (d || 1) < 0.3) { this.g.sfx.swing?.(0.3); return; }
+      this.g.npcStrike(this, F, base, [dx / (d || 1), dz / (d || 1)], a); return;
+    }
     const P = this.g.player, dx = P.pos[0] - this.x, dz = P.pos[2] - this.z, d = hyp(dx, dz), f = this.fwd;
-    if (d > 2.5 || (dx * f[0] + dz * f[1]) / (d || 1) < 0.35) { this.g.sfx.swing?.(0.3); return; }
-    const dmg = (a.clip === 'Overhead' ? 17 : a.clip === 'Thrust' ? 14 : 11) * (this.def.dmg || 1) * (this.role === 'captain' ? 1.3 : 1) * [0.7, 1, 1.35][this.g.difficulty ?? 1];
-    const res = a.shove ? P.incoming(4, [this.x, this.z], { from: this, unblockable: true, shove: true }) : P.incoming(dmg, [this.x, this.z], { from: this });
+    if (d > (a.unblock ? 2.8 : 2.5) || (dx * f[0] + dz * f[1]) / (d || 1) < 0.35) { this.g.sfx.swing?.(0.3); return; }
+    const dmg = base * (a.unblock ? 1.45 : 1) * [0.7, 1, 1.35][this.g.difficulty ?? 1] * (this.g.ngDmg || 1);
+    const res = a.shove ? P.incoming(4, [this.x, this.z], { from: this, unblockable: true, shove: true }) : P.incoming(dmg, [this.x, this.z], { from: this, unblockable: !!a.unblock });
     if (a.shove && res === 'hit') { P.stagger = Math.max(P.stagger, 0.6); this.g.flashText?.('SHOVED'); }
-    if (res === 'parried') { this.stagger = 1.3; this.state = 'stagger'; this.atk = null; this.ch.upper.playOnce('Stagger', { fadeIn: 0.04, fadeOut: 0.3 }); this.bark('Gah!'); }
-    else if (res === 'hit') { this.g.sfx.slash?.(this.pos); }
+    if (res === 'parried') {
+      this.atk = null; this.poise -= this.poiseMax * 0.65; this.poiseT = 2.5;
+      if (this.poise <= 0) this.breakPosture({ from: 'player' }); else { this.stagger = 1.1; this.state = 'stagger'; this.ch.upper.playOnce('Stagger', { fadeIn: 0.04, fadeOut: 0.3 }); this.bark('Gah!'); }
+    }
+    else if (res === 'hit') { this.g.sfx.slash?.(this.pos); if (this.arch?.venom && Math.random() < 0.5) this.g.status?.add?.('venom'); }
   }
   // ------------------------------------------------------------ being hurt
   takeHit(dmg, dir, opts = {}) {
@@ -605,22 +738,43 @@ export class NPC {
     if (boss) { if (opts.sap) { dmg *= 0.25; opts = { ...opts, sap: false }; } dmg = Math.min(dmg, 75); }
     const unaware = !boss && (this.state === 'routine' || this.state === 'notice' || this.lying) && this.alert < 0.95 && !this.sees;
     const behind = dir && ((dir[0] * this.fwd[0] + dir[1] * this.fwd[1]) > 0.1); // dir points from the player to us; same direction as we face => the player is behind us
-    if (opts.sap) { if (unaware && (behind || this.lying || this.seated || this.asleep || this.surrender)) { this.knockOut(); return 'ko'; } dmg *= 0.3; }
-    if (opts.from === 'player' && (unaware && (behind || opts.silentKill || this.lying || this.seated || this.asleep || this.surrender))) { dmg = 999; opts.backstab = true; }
+    const armored = !!this.arch?.armored;
+    if (opts.sap) { if (unaware && !armored && (behind || this.lying || this.seated || this.asleep || this.surrender)) { this.knockOut(); return 'ko'; } dmg *= 0.3; }
+    if (opts.from === 'player' && !opts.execution && (unaware && (behind || opts.silentKill || this.lying || this.seated || this.asleep || this.surrender))) { if (armored) { dmg *= 3; this.g.flashText?.('THE ARMOUR HOLDS'); } else { dmg = 999; opts.backstab = true; } }
+    // a shield takes anything from the front but a charged blow or a boot
+    const front = !behind && dir && this.exposed <= 0;
+    if (this.arch?.front && front && opts.from === 'player' && !opts.backstab && !opts.execution && (this.state === 'chase' || this.state === 'attack' || this.state === 'stagger' || this.state === 'investigate' || this.state === 'search')) {
+      if (opts.guardBreak) { this.g.stats.guardBreaks = (this.g.stats.guardBreaks || 0) + 1; this.breakPosture({ ...opts, guardBreak: true }); this.g.sfx.boom?.(0.35); return 'blocked'; }
+      this.g.spark([this.x + dir[0] * -0.5, this.y + 1.3, this.z + dir[1] * -0.5], [-dir[0], 0, -dir[1]], 10); this.g.sfx.thud?.(0.8, this.pos); this.g.noise(this.pos, 12, 'clang', this);
+      this.poise -= dmg * 0.35; this.poiseT = 2; if (this.poise <= 0) this.breakPosture(opts); else this.ch.upper.playOnce('Block', { fadeIn: 0.05, fadeOut: 0.3 });
+      if (this.state !== 'stagger') { this.state = 'attack'; this.attackCd = Math.min(this.attackCd, 0.25); }
+      return 'blocked';
+    }
     // guards sometimes block a frontal blow
-    if (this.guard && !opts.backstab && (this.state === 'chase' || this.state === 'attack') && !this.atk && Math.random() < (this.def.block ?? 0.22) && !behind) {
+    if (this.guard && !opts.backstab && !opts.execution && !opts.guardBreak && this.exposed <= 0 && (this.state === 'chase' || this.state === 'attack') && !this.atk && Math.random() < (this.arch?.parry ?? this.def.block ?? 0.22) && !behind) {
       this.g.spark([this.x + dir[0] * 0.5, this.y + 1.3, this.z + dir[1] * 0.5], [dir[0], 0, dir[1]], 12); this.g.sfx.clang?.(1, this.pos); this.g.noise(this.pos, 14, 'clang', this);
-      this.ch.upper.playOnce('Block', { fadeIn: 0.05, fadeOut: 0.3 }); return 'blocked';
+      this.ch.upper.playOnce('Block', { fadeIn: 0.05, fadeOut: 0.3 });
+      if (this.arch?.parry) { this.attackCd = Math.min(this.attackCd, 0.08); if (this.state === 'chase') { this.state = 'attack'; } if (Math.random() < 0.5) this.bark(['Too slow.', 'Again.', 'Is that the knife Brannoch bragged about?'][Math.floor(Math.random() * 3)]); }
+      return 'blocked';
     }
     if (opts.from === 'player' && behind && !opts.backstab && !opts.sap && !opts.ranged) { dmg *= 1.4; if (this.guard) this.g.flashText('FLANKED'); }
     if (opts.bleed && !opts.sap) this.bleed = 5;
     if (dir) this.hitR.hit([dir[0], 0.25, dir[1]], 5 + Math.min(6, dmg * 0.15));
     this.hp -= dmg; if (opts.sap && this.hp <= 0) this.hp = 1; this.tookHit = 0.4; this.alert = 1;
+    if (this.hp <= 0 && opts.byNpc && this.essential) { this.hp = Math.max(1, this.maxHp * 0.3); this.foe = null; this.knockOut(28); return 'ko'; }
     if (this.hp <= 0) { this.die(dir, opts); return 'killed'; }
+    // posture: every blow wears it down, heavy ones most
+    if (!opts.sap && this.exposed <= 0) { this.poise -= dmg * (opts.poise || 1) * (opts.byNpc ? 0.5 : 1); this.poiseT = 2.2; if (this.poise <= 0) { this.breakPosture(opts); return 'hit'; } }
     this.g.sfx.grunt?.(1, this.pos, this.spec.voice || 1);
     this.ch.upper.playOnce('Flinch', { fadeIn: 0.04, fadeOut: 0.25 });
-    this.stagger = 0.35 + (opts.heavy ? 0.4 : 0); this.atk = null;
+    if (!this.arch?.armored || opts.heavy) { this.stagger = 0.35 + (opts.heavy ? 0.4 : 0); this.atk = null; }
     if (dir) this.moveBy(dir[0] * 0.5, dir[1] * 0.5);
+    if (opts.byNpc) {
+      const by = opts.from;
+      if (this.fighter || this.role === 'hollow') { if (by && !by.dead && this.foe !== by && hostile(this.g, this, by)) this.engage(by, true); }
+      else if (by) this.scare([by.x, by.y, by.z], 14);
+      return 'hit';
+    }
     if (this.guard) {
       if (this.state !== 'attack') { this.state = 'stagger'; }
       this.lastSeen = [this.g.player.pos[0], this.g.player.pos[1], this.g.player.pos[2]]; this.lostT = 0;
@@ -631,6 +785,7 @@ export class NPC {
   }
   knockOut(secs = 55) {
     if (this.def.boss) return;
+    this.exposed = 0; this.foe = null;
     if (this.dead || this.state === 'ko') return;
     this.leaveActivity?.(); this.stopMove(); this.atk = null;
     this.state = 'ko'; this.koT = secs; this.lying = true; this.lyingPos = [this.x, this.y + 0.12, this.z]; this.lyingYaw = this.yaw / D2R; this.setAnim('Sleep', 0.1); this.showSword(false);

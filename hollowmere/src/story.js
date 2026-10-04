@@ -53,8 +53,6 @@ export class Story {
     for (const l of LORE) { NOTES[l.id] = { title: l.title, text: l.text }; L.interactables.push({ kind: 'note', x: l.at[0], y: l.at[1], z: l.at[2], r: 2.2, obj: { id: l.id }, prompt: () => l.prompt, use: (g) => { const first = !this.notesFound.has(l.id); g.readNote(l.id); if (first) g.progress.addXp(12, 'lore'); } }); }
     for (const [name, p] of Object.entries(L.pois)) if (p.type === 'sleep') L.interactables.push({ kind: 'bed', get x() { return p.x; }, get y() { return p.y + 0.4; }, get z() { return p.z; }, r: 2.4, obj: { id: name }, prompt: () => (this.g.clock.night || this.g.player.hp < this.g.player.maxHp - 5 ? 'Rest in the bed' : 'Lie down for a while'), use: (g) => g.events.sleepMenu(name) });
     for (const f of L.fires) if (f.kind === 'hearth') L.interactables.push({ kind: 'fire', x: f.x, y: f.y + 0.6, z: f.z, r: 3.2, obj: f, prompt: () => (this.g.time - (f.warmAt ?? -99) > 90 ? 'Warm yourself at the fire' : null), use: (g) => { f.warmAt = g.time; const P = g.player; P.hp = Math.min(P.maxHp, P.hp + 25); P.ember = Math.min(P.maxEmber, P.ember + 15); g.toast('The fire warms you'); g.sfx.drink?.(); if (f.indoor === 0) g.saves.save('quick'); } });
-    const fate = (kind, x, y, z, prompt) => L.interactables.push({ kind: 'note', x, y, z, r: 2.6, obj: { id: 'fate_' + kind }, prompt: () => (this.fate && !this.ended && this.g.player.inv.has('letter') ? prompt : null), use: () => this.ending(kind) });
-    fate('saint', -190, 1.0, -233.5, 'Lay the letter on the drowned altar'); fate('unseal', 195, 1.0, 98.6, 'Break the seal at the plague ward gate');
     note('orders', -28.5, 0.9, 104.5, 'Read the orders'); note('ledger', -16.4, 1.0, 138.0, 'Read the ledger'); note('diary', -34.4, 0.8, 68.6, 'Read the diary'); note('choir', 104, 1.2, 27.4, 'Read the scrawl');
   }
   readNote(id) {
@@ -64,10 +62,10 @@ export class Story {
   }
   // ------------------------------------------------------------ talking
   talk(npc) {
-    const fn = DIALOGUE[npc.dialogue]; if (!fn) return;
+    const fn = DIALOGUE[npc.dialogue] || (() => null); if (!DIALOGUE[npc.dialogue] && !this.g.campaign.dialogue(npc)) return;
     if (!npc.guard && this.g.time - (npc.talkedAt || -99) > 60) { npc.talkedAt = this.g.time; this.g.social.bump(npc, 1); }   // a friendly word is remembered
     const pay = this.g.jail.active ? null : this.g.rep.payDialogue(npc);
-    let lines = pay || this.g.quests.dialogue(npc) || fn(this.g, npc); if (!lines) return;
+    let lines = pay || this.g.campaign.dialogue(npc) || this.g.quests.dialogue(npc) || fn(this.g, npc); if (!lines) return;
     if (!pay) lines = this.g.social.decorate(npc, lines);   // guards offer more than small talk
     const want = Math.atan2(this.g.player.pos[0] - npc.x, this.g.player.pos[2] - npc.z);
     npc.yaw = want;
@@ -198,6 +196,7 @@ export class Story {
   // ------------------------------------------------------------ zones, objectives, the Duke
   zoneOf(p) {
     const x = p[0], z = p[2];
+    if (z > 280) return x < -150 ? 'rookery' : x < -100 ? 'belfry' : x > 3 && z > 321 ? 'choir' : 'deep';
     if (inCryptRect(x, z)) return x > 111 && z > 40 ? 'undercroft' : 'crypt';
     const nav = this.g.nav, ind = nav.indoorAt(x, z);
     if (z > 112 && z < 147 && Math.abs(x) < 20) { if (z > 134) return x > 4.5 ? 'chamber' : x > -7.5 ? 'ante' : 'study'; return 'hall'; }
@@ -216,12 +215,12 @@ export class Story {
     const p = g.player.pos, zone = this.zoneOf(p);
     if (zone !== this.zone) {
       g.stealth.zoneChanged(zone); this.zone = zone; if (!(this.seenZones ||= new Set()).has(zone) && this.playTime > 20) { this.seenZones.add(zone); g.progress.addXp(15, 'discovered'); } else this.seenZones.add(zone);
-      const names = { road: 'The King\'s Road', town: 'Ashgate', graveyard: 'The Graveyard', court: 'Ravenspire Courtyard', hall: 'The Great Hall', ante: 'The Antechamber', study: 'The Duke\'s Study', chamber: 'The Duke\'s Bedchamber', backyard: 'Behind the Keep', crypt: 'The Catacombs', undercroft: 'Ravenspire Undercroft', farms: 'Tolliver Farms', mire: 'The Mirewood', fen: 'Blackfen', cinder: 'Cinderwick', bridge: 'Greywater Bridge', fort: 'Fort Greywatch', pell: 'Pellmouth', mine: 'Stonehollow Mine', stones: 'The Choir Stones' };
+      const names = { rookery: 'The Rookery', belfry: 'The Belfry of Ravenspire', deep: 'The Choir\'s Deep', choir: 'The Choir', road: 'The King\'s Road', town: 'Ashgate', graveyard: 'The Graveyard', court: 'Ravenspire Courtyard', hall: 'The Great Hall', ante: 'The Antechamber', study: 'The Duke\'s Study', chamber: 'The Duke\'s Bedchamber', backyard: 'Behind the Keep', crypt: 'The Catacombs', undercroft: 'Ravenspire Undercroft', farms: 'Tolliver Farms', mire: 'The Mirewood', fen: 'Blackfen', cinder: 'Cinderwick', bridge: 'Greywater Bridge', fort: 'Fort Greywatch', pell: 'Pellmouth', mine: 'Stonehollow Mine', stones: 'The Choir Stones' };
       if (!this.g.tele) g.ui.area(names[zone]);
       const cps = { town: [[0, 0.1, 16], 0], court: [[0, 0.1, 97.5], 0], hall: [[0, 0.1, 114.5], 0], chamber: [[9, 0.1, 137], 0.4], crypt: [[76, 0.1, 17], 1.57], graveyard: [[-40, 0.1, 64.5], 0] };
       if (cps[zone]) g.setCheckpoint(...cps[zone]);
     }
-    if (['town', 'graveyard', 'court', 'hall', 'ante', 'study', 'chamber', 'backyard', 'crypt', 'undercroft'].includes(zone) && !this.objectives[0].done) this.complete('town');
+    if (['town', 'graveyard', 'court', 'hall', 'ante', 'study', 'chamber', 'backyard', 'crypt', 'undercroft'].includes(zone) && !this.objectives[0].done) { if (zone === 'town' && Math.abs(p[0]) < 4.5 && p[2] < 22 && !g.player.drawn) g.campaign.facts.frontDoor = true; this.complete('town'); }
     if (['court', 'hall', 'ante', 'study', 'chamber', 'backyard'].includes(zone)) { this.complete('town'); this.complete('court'); }
     if (['hall', 'ante', 'study', 'chamber'].includes(zone)) this.complete('keep');
     if (zone === 'chamber') this.complete('chamber');
@@ -324,8 +323,8 @@ export class Story {
     const g = this.g, cx = 11, cz = 140;
     // the sigil on the floor lights up
     const k = new E.Kit(g.level.pal);
-    k.add(g.level.pal.wax, E.torus({ radius: 3.4, tube: 0.06, radialSegments: 6, tubularSegments: 48 }), [cx, 0.05, cz], [90, 0, 0]);
-    k.add(g.level.pal.wax, E.torus({ radius: 2.5, tube: 0.05, radialSegments: 6, tubularSegments: 40 }), [cx, 0.05, cz], [90, 0, 0]);
+    k.add(g.level.pal.wax, E.torus({ radius: 3.4, tube: 0.06, radialSegments: 6, tubularSegments: 48 }), [cx, 0.05, cz], [0, 0, 0]);
+    k.add(g.level.pal.wax, E.torus({ radius: 2.5, tube: 0.05, radialSegments: 6, tubularSegments: 40 }), [cx, 0.05, cz], [0, 0, 0]);
     const node = k.toNode('Sigil'); g.scene.add(node);
     const glow = new E.Light('point', { color: '#9a5cff', intensity: 26, range: 12, flicker: 0.4 }); glow.position.set([cx, 1.2, cz]); g.scene.add(glow); g.level.lights.push(glow);
     // the Hollow rise
@@ -352,17 +351,20 @@ export class Story {
     ];
     this.play(beats, () => this.beginFate());
   }
-  // after the escape the whole map opens: three places to end the letter's story
+  // after the escape: Chapter I is over and the Gray Hand's chapter begins
   beginFate() {
-    const g = this.g; g.mode = 'play'; g.ui.letterbox(false); g.ui.showHud(true); g.pix.fade = 0; g.canvasLock?.(); this.fate = true; this.fateT = 20;
-    this.objectives.push({ id: 'fate', text: 'Decide the letter\'s fate', sub: 'Give it to Brannoch at the camp on the south road. Burn it on the drowned altar in Blackfen. Or break the seal at the plague ward in Cinderwick. Hollows are rising and the watch hunts you.', done: false, target: () => this.fateTarget() });
-    g.rep.add('keep', 260, 'the theft'); g.look.exposed('keep'); g.social.incident(3); g.alarmLevel = 3; g.alarmT = 40; g.ui.toast('The bell tolls. Every hollow in the valley is waking.');
+    const g = this.g; g.mode = 'play'; g.ui.letterbox(false); g.ui.showHud(true); g.pix.fade = 0; g.canvasLock?.(); this.fate = true; this.fateT = 60;
+    g.rep.add('keep', 260, 'the theft'); g.look.exposed('keep'); g.social.incident(3); g.alarmLevel = 3; g.alarmT = 40;
+    const F = g.campaign.facts; F.c1done = true; if (!(g.stats.alarms > 0)) F.ghostC1 = true; if (!g.stats.guardKills && !g.stats.civKills) F.mercyC1 = true;
     g.setCheckpoint(g.player.pos, g.player.yaw);
+    g.campaign.begin('c2');
   }
   fateTarget() { const P = this.g.player.pos, C = [[11.6, -31.4], [-190, -226], [195, 97]]; let b = C[0], bd = 1e9; for (const c of C) { const d = hyp(c[0] - P[0], c[1] - P[2]); if (d < bd) { bd = d; b = c; } } return b; }
+  // after the theft the dead walk at night, more of them each chapter
   fateUpdate(dt) {
-    const g = this.g; if (!this.fate || this.ended || g.mode !== 'play') return;
-    this.fateT -= dt; if (this.fateT > 0) return; this.fateT = 42;
+    const g = this.g; if (!this.fate || this.ended || g.mode !== 'play' || !g.clock.night || g.campaign.part?.calm?.()) return;
+    this.fateT -= dt; if (this.fateT > 0) return; this.fateT = [0, 95, 70, 45][g.campaign.index()] || 80;
+    if (g.nav.indoorAt(g.player.pos[0], g.player.pos[2]) || inCryptRect(g.player.pos[0], g.player.pos[2])) return;
     if (g.npcs.filter((n) => n.role === 'hollow' && !n.dead && n.dist < 70).length >= 9) return;
     const P = g.player.pos, a = Math.random() * 6.283, r = 18 + Math.random() * 12, q = g.nav.nearestWalkable(P[0] + Math.cos(a) * r, P[2] + Math.sin(a) * r, 8);
     if (q && g.nav.indoorAt(q[0], q[1]) === 0) { this.spawnHollow(q[0], q[1], true, false); g.ui.toast('Something claws out of the ground nearby'); }
