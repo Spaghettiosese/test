@@ -19,7 +19,7 @@ export class Brain {
     this.path = null; this.pi = 0; this.repathT = this.r(); this.goal = null; this.mode = 'advance';
     this.strafe = this.r() < 0.5 ? 1 : -1; this.strafeT = 1; this.errX = 0; this.errY = 0; this.errT = 0;
     this.stuckT = 0; this.lastPos = [...u.pos]; this.lastSeen = null; this.lastSeenT = -99; this.slot = 0; this.thinkT = 0;
-    this.hold = {}; this.wantFire = false; this.lookT = 0; this.scanYaw = 0; this.jumpT = 0; this.packGoal = null;
+    this.hold = {}; this.bad = new Map(); this.stuckN = 0; this.wantFire = false; this.lookT = 0; this.scanYaw = 0; this.jumpT = 0; this.packGoal = null;
   }
 
   // ---------------------------------------------------------------- perception
@@ -49,7 +49,7 @@ export class Brain {
     for (const v of vis) {
       const e = v.e; let s = -v.d * 0.6;
       s += (1 - (e.hp + e.armor) / (e.maxHp + e.maxArmor + 1)) * 22;
-      if (e.def.role === 'support') s += 6; if (e.deploy) s -= 8; if (e.def.role === 'tank') s -= 5 + (u.def.id === 'vesper' ? 0 : 0);
+      if (e.def.role === 'support') s += 6; if (e.deploy) s -= 8; if (e.def.role === 'tank') s -= 5;
       if (this.target && this.target.e === e) s += 12; // stickiness
       if (e.hp + e.armor < 80) s += 10;
       if (u.def.id === 'vesper' && e.def.role !== 'tank') s += 8;
@@ -64,10 +64,9 @@ export class Brain {
     const mates = sim.units.filter((o) => o.team === u.team && !o.deploy), idx = Math.max(0, mates.indexOf(u)), side = idx % 2 ? 1 : -1;
     const zP = P.pos[2];
     if (atk) {
-      const onPay = [0, 0, 0];
-      if (role === 'tank') return [side * 1.5, 0, zP + 5];
-      if (role === 'damage') return [side * (5 + (idx % 3) * 2.5), 0, zP + 1 + (idx % 3) * 2];
-      return [side * 3, 0, zP - 3.5];
+      if (role === 'tank') return [side * 1.2, 0, zP + 2.6];
+      if (role === 'damage') return [side * (2.4 + (idx % 3) * 0.6), 0, zP + 0.4 + (idx % 3) * 0.9];
+      return [side * 2.6, 0, zP - 2.2];
     }
     // defenders: contest the payload when attackers are on it, else hold the next choke ahead of it
     if (P.pushers > 0 && P.dist > 4) {
@@ -85,7 +84,7 @@ export class Brain {
     const lowAt = u.def.role === 'support' ? 0.28 : 0.38;
     if (hpf < lowAt || (this.mode === 'pack' && hpf < 0.75)) {
       let best = null, bd = 55;
-      for (const p of sim.packs) { if (!p.ready) continue; const d = v3.dist2d(u.pos, p.pos) + (p.big ? -8 : 0); if (d < bd) { bd = d; best = p; } }
+      for (const p of sim.packs) { if (!p.ready || !p.ok[u.team] || (this.bad.get(p) ?? 0) > sim.time) continue; const d = v3.dist2d(u.pos, p.pos) + (p.big ? -8 : 0); if (d < bd) { bd = d; best = p; } }
       if (best) { this.mode = 'pack'; return best.pos; }
       // no pack: fall back toward the team's side of the street
       this.mode = 'fallback'; const back = u.team === 0 ? -1 : 1;
@@ -157,7 +156,13 @@ export class Brain {
     // ---- stuck detection
     this.stuckT += dt;
     if (this.stuckT > 1.1) {
-      if (v3.dist2d(u.pos, this.lastPos) < 0.35 && ml > 0.3) { this.repathT = 0; this.strafe = -this.strafe; this.jumpNow = 0.35; this.path = null; }
+      if (v3.dist2d(u.pos, this.lastPos) < 0.35 && ml > 0.3) {
+        this.repathT = 0; this.strafe = -this.strafe; this.jumpNow = 0.35; this.path = null; this.stuckN++;
+        if (this.stuckN >= 2 && this.mode === 'pack') for (const p of sim.packs) if (v3.dist2d(p.pos, u.pos) < 40) this.bad.set(p, sim.time + 25); // give up on a pack we cannot reach
+        if (this.stuckN >= 3) { // last resort: nudge toward the middle of the street
+          const nx = u.pos[0] - Math.sign(u.pos[0]) * 0.6; if (!sim.blockedAt(nx, u.pos[2], u.pos[1], u.def.radius, u.def.height)) u.pos[0] = nx;
+        }
+      } else this.stuckN = 0;
       this.lastPos = [...u.pos]; this.stuckT = 0;
     }
     if (this.jumpNow > 0) this.jumpNow -= dt;
@@ -186,14 +191,14 @@ export class Brain {
       if (this.hold.ultAim) p = this.hold.ultAim;
       aimAt = p;
     } else if (this.lastSeen && sim.time - this.lastSeenT < 1.5) aimAt = [this.lastSeen[0], this.lastSeen[1] + 1.2, this.lastSeen[2]];
-    if (aimAt) { ty = yawTo(eye, aimAt); tp = pitchTo(eye, aimAt); locked = true; if (tgt && !healing) { const d = Math.max(3, v3.dist(eye, aimAt)); ty += this.errX * Math.PI / 180; tp += this.errY * Math.PI / 180; } }
+    if (aimAt) { ty = yawTo(eye, aimAt); tp = pitchTo(eye, aimAt); locked = true; if (tgt && !healing) { ty += this.errX * Math.PI / 180; tp += this.errY * Math.PI / 180; } }
     else if (Math.hypot(mv[0], mv[2]) > 0.1) { ty = Math.atan2(mv[0], mv[2]); tp = 0; }
     // look around occasionally while walking so the field of view sweeps
     if (!locked) { this.lookT -= dt; if (this.lookT <= 0) { this.lookT = 1.2 + this.r() * 2; this.scanYaw = (this.r() - 0.5) * 1.4; } ty += this.scanYaw * 0.4; }
     const maxTurn = this.sk.turn * dt * (locked ? 1 : 0.5);
     const dy = wrapAngle(ty - u.yaw), dp = tp - u.pitch;
     this.yawErr = Math.abs(dy); this.pitchErr = Math.abs(dp);
-    u.yaw = wrapAngle(u.yaw + clamp(dy, -maxTurn, maxTurn) * (Math.abs(dy) < 0.05 ? 1 : 1));
+    u.yaw = wrapAngle(u.yaw + clamp(dy, -maxTurn, maxTurn));
     u.pitch = clamp(u.pitch + clamp(dp, -maxTurn, maxTurn), -1.2, 1.2);
   }
 
@@ -226,7 +231,7 @@ export class Brain {
     }
     // ---- general primary fire
     if (tgt && los && !this.wantHeal) {
-      const inRange = d < w.range * 0.95;
+      const inRange = d < (w.range ?? 75) * 0.95;
       const quiet = id === 'bulwark' && u.s.barrier?.up;
       if (inRange && aligned() && !quiet && u.reloadT <= 0) {
         if (w.auto) inp.fire1 = true; else inp.fire1 = !u.prev.fire1 && u.fireT <= 0.02;
@@ -278,7 +283,7 @@ export class Brain {
         if (!u.s.lance) inp.fire2 = !!(far && u.reloadT <= 0 && u.moving < 2 && !underFire);
         if (u.s.lance && !u.s.lance.ready) inp.fire1 = false;
         // shoot a full charge, or any shot when the target is close or nearly dead
-        if (inp.fire1 && !u.s.lance) { const full = (u.s.charge || 0) > 0.8; const dmgNow = 40 + 110 * (u.s.charge || 0); if (u.s.scoped && !full && d > 12 && e.hp + e.armor > dmgNow * 1.2) inp.fire1 = false; if (u.s.scoped && u.s.charge < 0.45 && d > 12) inp.fire1 = false; }
+        if (inp.fire1 && !u.s.lance) { const full = (u.s.charge || 0) > 0.8; const dmgNow = 50 + 100 * (u.s.charge || 0); if (u.s.scoped && !full && d > 12 && e.hp + e.armor > dmgNow * 1.2) inp.fire1 = false; if (u.s.scoped && u.s.charge < 0.45 && d > 12) inp.fire1 = false; }
         if (u.s.lance?.ready && e && los && aligned()) { inp.fire1 = !u.prev.fire1; }
         if (e && los && d < 40 && d > 8 && ready('a2') && (this.vis.length >= 2 || hpf < 0.5) && this.r() < 0.02) press('a2');
         if (ultReady && e && los && d < 70 && (e.hp + e.armor > 200 || enemiesNear(80) >= 2)) inp.ult = true;
@@ -298,7 +303,7 @@ export class Brain {
         if (far && this.healTarget === far && ready('a1') && this.yawErr < 0.2) press('a1');
         const dead = sim.corpses.filter((c) => c.team === u.team && !c.unit.alive).length;
         const dying = sim.allies(u).filter((a) => a.hp / a.maxHp < 0.4 && v3.dist2d(a.pos, u.pos) < 15).length;
-        if (ultReady && ((dead >= 2 && hotEnemies === 0) || dying >= 3 || (dead >= 3))) inp.ult = true;
+        if (ultReady && ((dead >= 2 && enemiesNear(22) === 0) || dying >= 2 || dead >= 3)) inp.ult = true;
         break;
       }
       case 'pylon': {

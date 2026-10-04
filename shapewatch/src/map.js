@@ -60,21 +60,21 @@ export function makeLevelData() {
 
   // ---- LEFT side blocks (x -34..-18)
   R(-34, -62, -18, -44, 10, 'wallA');
-  stairs(-26, -43, 3, '+z', 9); // up to the low hall roof
+  stairs(-26, -40.3, 3, '+z', 9); // up to the low hall roof
   B(-31, -41, 3, 2, 1.2, 'crate'); B(-20.5, -39, 2, 2, 1.3, 'crate');
   hall(-34, -34, -18, -14, 4.05, [['x+', -24, 4], ['z+', -26, 3]], 'wallB');
   R(-18.4, -34, -18, -14, 0.9, 'trim', 4.05); // parapet
   R(-34, -14, -18, 10, 10, 'wallA');
   R(-34, 10, -18, 22, 12.5, 'wallA'); // arch pylon
   hall(-34, 22, -18, 38, 6, [['x+', 30, 4], ['z-', -28, 3]], 'wallA');
-  stairs(-24, 49.3, 3, '-z', 14, 0.43, 0.7); // up to the market hall roof (z 38..)
+  stairs(-24, 47.8, 3, '-z', 14, 0.43, 0.7); // up to the market hall roof (z 38..)
   B(-30, 44, 2.5, 2.5, 1.3, 'crate'); B(-20, 46, 2, 2, 1.1, 'crate');
   R(-34, 50, -18, 80, 11, 'wallA');
   // ---- RIGHT side blocks (x 18..34)
   R(18, -62, 34, -30, 10, 'wallA');
   hall(18, -30, 34, -8, 4.05, [['x-', -19, 4], ['z+', 26, 3]], 'wallB');
   R(18, -30, 18.4, -8, 0.9, 'trim', 4.05);
-  stairs(26, 1.2, 3, '-z', 9); // pocket stairs up to the right hall roof (z -8)
+  stairs(26, -1.7, 3, '-z', 9); // pocket stairs up to the right hall roof (z -8)
   B(31, -2, 3, 2, 1.2, 'crate'); B(21, -4, 2, 2, 1.3, 'crate');
   R(18, 2, 34, 22, 12.5, 'wallA');
   B(26, 27, 2, 2, 1.3, 'crate'); B(22, 29.5, 3, 1.4, 1.2, 'barrier');
@@ -95,15 +95,16 @@ export function makeLevelData() {
 
   // ---- final plaza blocks (z 98..148)
   R(-34, 98, -18, 112, 9, 'wallA');
-  stairs(-26, 121.3, 3, '-z', 9); // stairs up to the left hall roof
+  stairs(-26, 115.7, 3, '+z', 9); // stairs up to the left hall roof
   hall(-34, 122, -18, 142, 4.05, [['x+', 132, 4], ['z-', -26, 3]], 'wallB');
   R(-18.4, 122, -18, 142, 0.9, 'trim', 4.05);
   B(-30, 117, 3, 2, 1.2, 'crate'); B(-21, 114.5, 2, 2, 1.3, 'crate');
   R(-34, 142, -18, 148, 9, 'wallA');
-  R(18, 98, 34, 120, 9, 'wallA');
+  R(18, 98, 34, 110, 9, 'wallA');
+  stairs(26, 113.7, 3, '+z', 9); // up to the right hall roof
+  B(31, 116, 3, 2, 1.2, 'crate'); B(21.5, 112, 2, 2, 1.3, 'crate');
   hall(18, 120, 34, 140, 4.05, [['x-', 130, 4], ['z+', 27, 3]], 'wallB');
   R(18, 120, 18.4, 140, 0.9, 'trim', 4.05);
-  stairs(26, 147.4 - 0.1, 3, '-z', 9); // keep clear of the spawn wall
   R(18, 140, 34, 148, 9, 'wallA');
 
   // ---- avenue cover (kept clear of the payload lane |x| < 2.6)
@@ -135,7 +136,9 @@ export function makeLevelData() {
     { pos: [-26, 0, -38], big: false }, { pos: [30, 0, -4], big: false }, { pos: [-30, 0, 44.5], big: true }, { pos: [30, 0, 28], big: false },
     { pos: [-30, 0, 118], big: false }, { pos: [30, 0, 143], big: false }, { pos: [-5, 0, 70], big: true }, { pos: [5, 0, 106], big: false },
   ];
-  return { boxes, spawns, packs, path: PATH, checkpoints: CHECKPOINTS, bounds: BOUNDS };
+  // attackers respawn further up the street once the payload clears each checkpoint
+  const fwd = [-4, 69].map((z) => [0, 1, 2, 3, 4].map((i) => [-8 + i * 4, 0, z - (i % 2) * 2.5]));
+  return { boxes, spawns, fwd, packs, path: PATH, checkpoints: CHECKPOINTS, bounds: BOUNDS };
 }
 
 // ------------------------------------------------------------------ nav grid
@@ -147,14 +150,14 @@ export function buildNav(level) {
   const inCell = (b, cx, cz, r) => b.x0 < cx + r && b.x1 > cx - r && b.z0 < cz + r && b.z1 > cz - r;
   for (let j = 0; j < D; j++) for (let i = 0; i < W; i++) {
     const cx = x0 + i + 0.5, cz = z0 + j + 0.5;
-    const near = level.boxes.filter((b) => inCell(b, cx, cz, 0.5));
+    const near = level.boxes.filter((b) => inCell(b, cx, cz, 0.7));
     const cands = new Set([0]);
     for (const b of near) if (inCell(b, cx, cz, 0.02)) cands.add(b.y1);
     let l = 0;
     for (const s of [...cands].sort((a, b) => a - b)) {
       if (l >= L) break;
       // must be supported by a box whose top is s (or the ground) under the cell centre
-      const blocked = near.some((b) => b.y1 > s + 0.55 && b.y0 < s + 1.85 && inCell(b, cx, cz, 0.42));
+      const blocked = near.some((b) => b.y1 > s + 0.55 && b.y0 < s + 1.85 && inCell(b, cx, cz, 0.64));
       if (blocked) continue;
       nav.surf[(j * W + i) * L + l++] = s;
     }

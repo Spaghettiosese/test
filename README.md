@@ -1,5 +1,7 @@
 # ShapeForge Range
 
+> **Also in this repo: [ShapeWatch](shapewatch/README.md)**, a 5v5 hero-shooter payload game (ten original heroes, bot AI, full HUD) built on the same engine. Run `npm start` and open `/shapewatch/`.
+
 A tiny first-person sandbox built on the [ShapeForge Engine](https://github.com/Spaghettiosese/Engine): a covered firing line, three lanes and targets out to 200 m, and ten guns modelled, rigged and animated entirely inside the engine. It plays with a mouse and keyboard or on a phone or tablet with touch controls.
 
 ```bash

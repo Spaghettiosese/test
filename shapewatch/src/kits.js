@@ -216,7 +216,7 @@ export const KITS = {
         sim.emit({ type: 'tracer', from: mz, to: end, color: '#b6ff4a', width: 3, hit: 'lance' });
         sim.emit({ type: 'shot', unit: u, sound: 'lance' }); u.s.charge = 0; return true;
       }
-      const dmg = w.dmg + (u.s.scoped ? 110 * (u.s.charge || 0) : 0);
+      const dmg = w.dmg + (u.s.scoped ? 100 * (u.s.charge || 0) : 0);
       const hit = sim.trace(o, dir, w.range, { team: u.team, skip: u });
       if (hit.kind === 'unit') sim.damage(hit.unit, dmg * (hit.head ? w.headMul : 1), u, { head: hit.head, point: hit.point });
       else if (hit.kind === 'barrier') sim.hitBarrier(hit.unit, dmg, u, hit.point);

@@ -198,3 +198,8 @@ select { font: 700 .85rem var(--body); letter-spacing: .06em; padding: .35rem .6
 body.touch .kit { bottom: auto; top: 1rem; right: .8rem; } body.touch .vitals { left: 10.5rem; bottom: .8rem; } body.touch .team { display: none; }
 @media (max-width: 800px) { .sel-info { display: none; } .g-grid { grid-template-columns: 1fr; } #gallery { grid-template-columns: 1fr; } .g-head { grid-column: 1; } }
 @media (prefers-reduced-motion: reduce) { .f-row, .pop, .banner.show { animation: none; } }
+
+/* readability: soft gradients behind the HUD edges so white text survives a bright snowy sky */
+#hud::before, #hud::after { content: ''; position: fixed; left: 0; right: 0; pointer-events: none; z-index: 1; }
+#hud::before { top: 0; height: 14vh; background: linear-gradient(rgba(5, 10, 25, .38), transparent); }
+#hud::after { bottom: 0; height: 24vh; background: linear-gradient(transparent, rgba(5, 10, 25, .55)); }

@@ -7,6 +7,7 @@ import { View } from './view.js';
 import { Sfx } from './audio.js';
 import { Portraits, Hud, SelectScreen, Gallery, renderScoreboard, renderEnd } from './ui.js';
 import { HERO, HEROES, TEAM_COLORS } from './heroes.js';
+import * as Models from './models.js';
 import { clamp, forward } from './util.js';
 
 const $ = (id) => document.getElementById(id);
@@ -109,7 +110,7 @@ view.onEvent = (e) => {
   if (mode === 'menu') return;
   switch (e.type) {
     case 'live': if (mode === 'select') enterPlay(); break;
-    case 'checkpoint': hud.banner('CHECKPOINT REACHED', `+${e.bonus} SECONDS ADDED`, '#ffd36b'); sfx.announce('checkpoint'); break;
+    case 'checkpoint': hud.banner('CHECKPOINT REACHED', `+${e.bonus} SECONDS ADDED · ${sim.playerTeam === 0 ? 'FORWARD SPAWN ONLINE' : 'ATTACKERS HAVE A FORWARD SPAWN'}`, '#ffd36b'); sfx.announce('checkpoint'); break;
     case 'overtime': hud.banner('OVERTIME', 'THE PAYLOAD IS STILL IN PLAY', '#ffd36b'); sfx.announce('overtime'); break;
     case 'mutator': hud.banner('RIFT SURGE', MUT_NAME(e.id), '#c79bff'); sfx.announce('surge'); break;
     case 'mutatorEnd': hud.popup('THE SURGE FADES', 'save'); break;
@@ -151,7 +152,6 @@ addEventListener('keydown', (e) => {
   if (mode !== 'play') return;
   const u = me(); if (!u) return;
   if (k === 'shift') u.in.a1 = true; if (k === 'e') u.in.a2 = true; if (k === 'q') u.in.ult = true; if (k === 'r') u.in.reload = true; if (k === 'h') openHeroChange();
-  if (k === 'f' && false) u.in.a1 = true;
 });
 addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); keys.delete(k); if (k === 'tab') show('score', false); });
 function pauseGame2() { // pause menu from the hero select screen
@@ -233,7 +233,7 @@ async function boot() {
   $('oSide').value = settings.side; $('oDiff').value = settings.diff; $('oMut').value = settings.mut; $('sens').value = settings.sens; $('fov').value = settings.fov; $('vol').value = settings.vol; sfx.setVolume(settings.vol); view.fovH = settings.fov;
   startAttract(); hud.reset(sim);
   $('loading').hidden = true; mode = 'menu';
-  window.__sw = { get sim() { return sim; }, view, hud, select, gallery, settings, startMatch, startAttract, pauseGame, openHeroChange, autoplay(on = true) { const u = sim.player; u.bot = on ? new Brain(sim, u, 1) : null; }, get mode() { return mode; }, set mode(m) { mode = m; }, keys, mouse, enterPlay, endMatch, step: (n = 1) => { for (let i = 0; i < n; i++) { drivePlayer(); sim.step(HZ); view.handle(sim.events); } } };
+  window.__sw = { Models, E, get sim() { return sim; }, view, hud, select, gallery, settings, startMatch, startAttract, pauseGame, openHeroChange, autoplay(on = true) { const u = sim.player; u.bot = on ? new Brain(sim, u, 1) : null; }, get mode() { return mode; }, set mode(m) { mode = m; }, keys, mouse, enterPlay, endMatch, step: (n = 1) => { for (let i = 0; i < n; i++) { drivePlayer(); sim.step(HZ); view.handle(sim.events); } } };
 }
 requestAnimationFrame(frame);
 boot().catch((e) => { $('fatal').hidden = false; $('fatal').textContent = 'ShapeWatch failed to start: ' + e.message; console.error(e); });

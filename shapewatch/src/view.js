@@ -30,6 +30,7 @@ export class View {
     this.markEls = new Map(); this.hitT = 0; this.portraits = {}; this.sound = null; this.dmgFlash = 0;
     this.sphereGeo = E.sphere({ radius: 1, widthSegments: 14, heightSegments: 10 }); this.cylGeo = E.cylinder({ radiusTop: 1, radiusBottom: 1, height: 1, radialSegments: 8 });
     this.ringGeo = E.cylinder({ radiusTop: 1, radiusBottom: 1, height: 0.04, radialSegments: 40, capTop: true, capBottom: false });
+    this.ribbonGeo = E.torus({ radius: 1, tube: 0.03, radialSegments: 5, tubularSegments: 56, arc: 360, tubeScaleY: 0.6 });
     this.built = false;
   }
 
@@ -62,6 +63,8 @@ export class View {
     this.zoneMat = new E.Material({ name: 'PayZone', color: '#3a9bff', emissive: '#3a9bff', emissiveStrength: 1.2, opacity: 0.22, doubleSided: true });
     this.payZone = new E.Mesh(this.ringGeo, this.zoneMat, 'PayZone'); this.payZone.scale.set([PAYLOAD_RADIUS, 1, PAYLOAD_RADIUS]); this.payZone.position.set([0, 0.07, 0]); this.payZone.castShadow = false; this.payZone.receiveShadow = false; root.add(this.payZone);
     this.payload = root; this.scene.add(root);
+    // forward spawn pads light up as the payload clears each checkpoint
+    this.fwdPads = this.sim.level.fwd.map((list, i) => { const m = new E.Mesh(E.box({ width: 20, height: 0.04, depth: 8 }), new E.Material({ name: 'FwdPad', color: '#6f819a', emissive: '#3a9bff', emissiveStrength: 0.25, roughness: 0.7 }), 'FwdPad'); m.position.set([0, 0.05, list[0][2] - 1]); m.castShadow = false; m.visible = false; this.scene.add(m); return m; });
   }
   buildPacks() {
     this.packNodes = [];
@@ -126,7 +129,6 @@ export class View {
       if (u.dash && u.hero === 'bulwark') d.spine.setEuler(24, 0, 0);
       if (!u.grounded) { d.legL.setEuler(-25, 0, 0); d.legR.setEuler(20, 0, 0); }
       d.ring.scale.set([u.def.radius / 0.55 * 1.1, 1, u.def.radius / 0.55 * 1.1]);
-      for (const c of m.children) if (c.userData?.wing !== undefined) { /* wings fixed to spine in models */ }
       // footsteps for everyone nearby
       if (u.grounded && r.speed > 2.5) { r.stepT -= dt * r.speed; if (r.stepT <= 0) { r.stepT = 2.4; this.sound?.step(u.pos); } }
       // barrier
@@ -214,6 +216,7 @@ export class View {
   }
   syncWorld(dt) {
     const P = this.sim.payload, t = this.sim.time;
+    this.fwdPads?.forEach((m, i) => { m.visible = P.cp > i; });
     this.payload.position.set(P.pos); this.payOrb.position.set([0, 1.75 + Math.sin(t * 2) * 0.05, -0.2]);
     const col = P.contested ? '#ffd36b' : P.pushers ? '#6fd0ff' : '#6fd0ff';
     this.zoneMat.color = P.contested ? '#ffd36b' : '#3a9bff'; this.zoneMat.emissive = this.zoneMat.color; this.zoneMat.opacity = 0.16 + (P.pushers ? 0.1 : 0);
@@ -306,7 +309,7 @@ export class View {
     if (v === this.me) this.deathCam = { killer: e.killer, t: 0 };
   }
   addRing(pos, r, color, dur) {
-    const m = new E.Mesh(this.ringGeo, new E.Material({ name: 'Ring', color, emissive: color, emissiveStrength: 2.2, opacity: 0.55, doubleSided: true }), 'Ring');
+    const m = new E.Mesh(this.ribbonGeo, new E.Material({ name: 'Ring', color, emissive: color, emissiveStrength: 3, opacity: 0.8, doubleSided: true }), 'Ring');
     m.castShadow = false; m.receiveShadow = false; m.position.set([pos[0], (pos[1] || 0) + 0.12, pos[2]]); m.scale.set([0.2, 1, 0.2]); this.scene.add(m); this.rings.push({ mesh: m, t: dur, t0: dur, r });
   }
   damageNumber(e) {
@@ -407,7 +410,7 @@ export class View {
     for (const t of this.tracers) t.age += dt; this.tracers = this.tracers.filter((t) => t.age < 0.1);
     for (const b of this.beams) { b.t -= dt; b.mesh.material.opacity = 0.85 * clamp(b.t / b.t0, 0, 1); b.mesh.scale.set([b.mesh.scale[0] * (1 - dt * 1.5), b.mesh.scale[1], b.mesh.scale[2] * (1 - dt * 1.5)]); if (b.t <= 0) this.scene.remove(b.mesh); }
     this.beams = this.beams.filter((b) => b.t > 0);
-    for (const r of this.rings) { r.t -= dt; const k = 1 - clamp(r.t / r.t0, 0, 1); r.mesh.scale.set([Math.max(0.2, r.r * (0.2 + k * 0.8)), 1, Math.max(0.2, r.r * (0.2 + k * 0.8))]); r.mesh.material.opacity = 0.55 * (1 - k); if (r.t <= 0) this.scene.remove(r.mesh); }
+    for (const r of this.rings) { r.t -= dt; const k = 1 - clamp(r.t / r.t0, 0, 1); r.mesh.scale.set([Math.max(0.2, r.r * (0.2 + k * 0.8)), 1, Math.max(0.2, r.r * (0.2 + k * 0.8))]); r.mesh.material.opacity = 0.8 * (1 - k); if (r.t <= 0) this.scene.remove(r.mesh); }
     this.rings = this.rings.filter((r) => r.t > 0);
     if (this.flashT > 0) { this.flashT -= dt; if (this.flashT <= 0) this.flash.intensity = 0; }
     this.particles.update(dt); this.sparks.update(dt); this.snow.update(dt);

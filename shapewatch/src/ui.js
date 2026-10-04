@@ -243,7 +243,7 @@ export class Hud {
       if (!el) { el = document.createElement('div'); this.markEls.set(key, el); $('marks').append(el); }
       if (!s || (s.off && !cls.includes('obj'))) { el.style.display = 'none'; return; }
       el.style.display = ''; el.className = 'mk ' + cls; if (el._h !== html) { el.innerHTML = html; el._h = html; }
-      let x = s.x, y = s.y; if (cls.includes('obj')) { x = clamp(x, 60, innerWidth - 60); y = clamp(y, 100, innerHeight - 140); }
+      let x = s.x, y = s.y; if (cls.includes('obj')) { x = clamp(x, 280, innerWidth - 120); y = clamp(y, 110, innerHeight - 150); }
       el.style.left = x + 'px'; el.style.top = y + 'px';
     };
     for (const u of sim.units) {

@@ -8,7 +8,7 @@ import { v3, clamp, forward, rng, TAU } from './util.js';
 import { Brain } from './ai.js';
 
 const STEP = 0.6, GRAV = -20, JUMP = 7.4;
-const SETUP_TIME = 22, START_TIME = 300, CP_BONUS = 100, RESPAWN = 7, OT_TIME = 12;
+const SETUP_TIME = 22, START_TIME = 300, CP_BONUS = 110, RESPAWN = 7, OT_TIME = 12;
 export const PAYLOAD_RADIUS = 4.6;
 const PATH_LEN = PATH[1][1] - PATH[0][1];
 
@@ -27,6 +27,7 @@ export class Sim {
     this.buildGrid();
     this.units = []; this.projs = []; this.zones = []; this.cores = []; this.corpses = []; this.events = [];
     this.packs = this.level.packs.map((p) => ({ ...p, ready: true, t: 0 }));
+    for (const p of this.packs) p.ok = [0, 1].map((t) => !!findPath(this.nav, this.level.spawns[t][2], p.pos, 20000));
     this.time = 0; this.state = 'setup'; this.setupT = SETUP_TIME; this.timer = START_TIME; this.overtime = 0; this.inOvertime = false;
     this.winner = null; this.mutator = null; this.nextMutator = 70 + this.rand() * 20; this.score = [0, 0];
     this.payload = { dist: 0, pos: [PATH[0][0], 0, PATH[0][1]], pushers: 0, defenders: 0, contested: false, cp: 0, speed: 0, idle: 0 };
@@ -91,7 +92,7 @@ export class Sim {
   spawn(u, first = false) {
     if (u.pendingHero && u.pendingHero !== u.hero) this.swapHero(u, u.pendingHero);
     u.pendingHero = null;
-    const sp = this.level.spawns[u.team], i = this.units.filter((o) => o.team === u.team && !o.deploy).indexOf(u);
+    const cp = this.payload.cp, sp = u.team === 0 && cp > 0 && !first ? this.level.fwd[Math.min(cp, 2) - 1] : this.level.spawns[u.team], i = this.units.filter((o) => o.team === u.team && !o.deploy).indexOf(u);
     const p = sp[(i < 0 ? 0 : i) % sp.length];
     u.pos = [p[0] + (this.rand() - 0.5) * 1.2, 0, p[2] + (this.rand() - 0.5) * 1.2]; u.vx = u.vz = u.vy = 0; u.dash = null;
     u.yaw = u.team ? Math.PI : 0; u.pitch = 0; u.alive = true; u.hp = u.maxHp; u.armor = u.maxArmor; u.shield = 0; u.st = {}; u.s = {};
@@ -524,7 +525,7 @@ export class Sim {
   // ---------------------------------------------------------------- deployables
   stepDeploy(u, dt) {
     const d = u.deploy; d.t -= dt;
-    if (d.t <= 0 || !d.owner.alive && d.kind === 'sentry' && false) { u.alive = false; this.units.splice(this.units.indexOf(u), 1); this.emit({ type: 'destroy', unit: u, quiet: true }); return; }
+    if (d.t <= 0) { u.alive = false; this.units.splice(this.units.indexOf(u), 1); this.emit({ type: 'destroy', unit: u, quiet: true }); return; }
     if (d.kind === 'pylon') {
       this.area(u.pos, 6, (a) => { if (!a.deploy) this.heal(a, 35 * dt, d.owner); }, { alliesOf: u.team, los: true });
     } else if (d.kind === 'sentry') {
@@ -539,10 +540,10 @@ export class Sim {
         const eye = this.sentryEye(u), c = this.center(tgt), want = Math.atan2(c[0] - eye[0], c[2] - eye[2]);
         let diff = want - u.yaw; diff = Math.atan2(Math.sin(diff), Math.cos(diff)); u.yaw += clamp(diff, -dt * 7, dt * 7);
         if (Math.abs(diff) < 0.2 && d.fireT <= 0) {
-          d.fireT = 1 / 7;
+          d.fireT = 1 / 6;
           const dir = this.spread(v3.norm(v3.sub(c, eye)), 2.2), hit = this.trace(eye, dir, 30, { team: u.team, skip: u });
-          if (hit.kind === 'unit') this.damage(hit.unit, 12, d.owner, { head: hit.head, point: hit.point, kind: 'sentry' });
-          else if (hit.kind === 'barrier') this.hitBarrier(hit.unit, 12, d.owner, hit.point);
+          if (hit.kind === 'unit') this.damage(hit.unit, 9, d.owner, { head: hit.head, point: hit.point, kind: 'sentry' });
+          else if (hit.kind === 'barrier') this.hitBarrier(hit.unit, 9, d.owner, hit.point);
           this.emit({ type: 'tracer', from: [eye[0] + Math.sin(u.yaw) * 0.5, eye[1], eye[2] + Math.cos(u.yaw) * 0.5], to: hit.point, color: '#ffe14d', hit: hit.kind });
           this.emit({ type: 'shot', unit: u, sound: 'sentry' });
         }
@@ -587,7 +588,7 @@ export class Sim {
     P.pushers = a; P.defenders = df; P.contested = a > 0 && df > 0;
     P.speed = 0;
     if (a > 0 && df === 0 && this.state === 'live') {
-      P.speed = (1.4 + 0.4 * (Math.min(a, 3) - 1)) * (this.mutator?.id === 'blizzard' ? 1.3 : 1);
+      P.speed = (1.5 + 0.45 * (Math.min(a, 3) - 1)) * (this.mutator?.id === 'blizzard' ? 1.3 : 1);
       P.dist += P.speed * dt; P.idle = 0;
       // heal pulse for those pushing, a small reward the way checkpoints reward
     } else P.idle += dt;
