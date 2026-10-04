@@ -197,7 +197,7 @@ body.touch .hint-keys { display: none; }
 .h-tile:hover { transform: translateY(-3px); filter: brightness(1.15); } .h-tile.on { border-color: var(--orange); border-width: 3px; transform: translateY(-.6rem) scale(1.18); box-shadow: 0 0 14px rgba(249, 158, 26, .8); z-index: 2; }
 .h-tile.on::after { content: attr(data-name); position: absolute; left: 0; right: 0; bottom: 0; background: var(--orange); color: #1a1005; font: italic 700 .5rem var(--display); letter-spacing: .06em; text-align: center; }
 #selReady { position: absolute; left: 50%; bottom: 8.1rem; transform: translateX(-50%); font-size: 1.5rem; padding: .5rem 4rem; } #selReady:hover { transform: translateX(-50%) translateY(-1px); }
-.sel-keys { position: absolute; left: 1.4rem; bottom: .8rem; display: grid; gap: .45rem; font: 700 .8rem var(--body); letter-spacing: .1em; } .sel-keys.r { left: auto; right: 1.4rem; } .sel-keys kbd { margin-right: .5rem; background: #2b3345; font-size: .65rem; }
+.sel-keys { position: absolute; left: 1.4rem; top: 2.2rem; display: none; display: grid; gap: .45rem; font: 700 .8rem var(--body); letter-spacing: .1em; } .sel-keys.r { left: auto; right: 1.4rem; } .sel-keys kbd { margin-right: .5rem; background: #2b3345; font-size: .65rem; }
 
 /* ------------------------------------------------------------- hero gallery */
 #gallery, #career, #play { padding: 1.4rem 2.2rem; }

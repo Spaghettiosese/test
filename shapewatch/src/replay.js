@@ -161,6 +161,7 @@ export class ReplayPlayer {
     const e = { ...o };
     for (const key of UNIT_KEYS) if (e[key] && e[key].__u != null) e[key] = this.proxies.get(e[key].__u) || null;
     if (e.assists) e.assists = e.assists.map((a) => this.proxies.get(a.__u)).filter(Boolean);
+    if (['unit', 'tgt', 'victim'].some((k) => k in o && o[k] && !e[k])) return null;
     if (e.type === 'kill' && e.victim) e.victim.alive = false;
     return e;
   }
@@ -170,7 +171,7 @@ export class ReplayPlayer {
     if (this.done) return out;
     this.clock += dt * this.speed;
     if (this.clock >= this.t1) { this.clock = this.t1; this.done = true; }
-    while (this.i < this.frames.length - 2 && this.frames[this.i + 1].t <= this.clock) { this.i++; for (const e of this.frames[this.i].events) out.push(this.resolve(e)); }
+    while (this.i < this.frames.length - 2 && this.frames[this.i + 1].t <= this.clock) { this.i++; for (const e of this.frames[this.i].events) { const r = this.resolve(e); if (r) out.push(r); } }
     const a = this.frames[this.i], b = this.frames[Math.min(this.frames.length - 1, this.i + 1)], k = b.t > a.t ? Math.min(1, Math.max(0, (this.clock - a.t) / (b.t - a.t))) : 0;
     this.apply(a, b, k);
     this.sim.events = out;

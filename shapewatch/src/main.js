@@ -39,7 +39,7 @@ const locked = () => document.pointerLockElement === $('stage');
 const lockMouse = () => { if (touch.on) return; try { const r = $('stage').requestPointerLock?.(); if (r?.catch) r.catch(() => {}); } catch { /* sandboxed: drag to look */ } };
 const unlockMouse = () => { if (document.pointerLockElement) document.exitPointerLock(); };
 const show = (id, on = true) => { $(id).hidden = !on; };
-const SCREENS = ['hud', 'select', 'gallery', 'help', 'pause', 'end', 'score', 'play', 'career', 'settings', 'killcam', 'potg', 'wheel'];
+const SCREENS = ['menu', 'hud', 'select', 'gallery', 'help', 'pause', 'end', 'score', 'play', 'career', 'settings', 'killcam', 'potg', 'wheel'];
 const hideAll = () => { for (const id of SCREENS) show(id, false); };
 
 function applySettings(k) {

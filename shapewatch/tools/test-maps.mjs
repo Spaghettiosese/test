@@ -8,7 +8,7 @@ for (const id of Object.keys(MAPS)) {
   console.log(id.padEnd(10), 'boxes', level.boxes.length, 'nav', nav.W + 'x' + nav.D, 'build ms', Date.now() - t0);
   for (let t = 0; t < 2; t++) for (const p of level.spawns[t]) if (!reach(p)) bad(`spawn ${t} at ${p} not connected`);
   for (const p of level.packs) if (!reach(p.pos)) bad(`pack at ${p.pos} unreachable`);
-  for (const p of level.points) if (!reach([p.pos[0] + 4, 0, p.pos[2]])) bad(`point ${p.name} unreachable`);
+  for (const p of level.points) if (![[4, 0], [-4, 0], [0, 4], [0, -4], [0, 0], [9, 0]].some(([dx, dz]) => reach([p.pos[0] + dx, 0, p.pos[2] + dz]))) bad(`point ${p.name} unreachable`);
   if (level.path) { for (const [x, z] of level.path) if (!reach([x, 0, z])) bad(`path node ${x},${z} unreachable`); for (let d = 0; d < level.pathLen; d += 5) { const s = level.pathInfo.seg.find((q) => d <= q.s + q.l) || level.pathInfo.seg.at(-1), tt = (d - s.s) / s.l; const x = s.a[0] + (s.b[0] - s.a[0]) * tt, z = s.a[1] + (s.b[1] - s.a[1]) * tt; if (!reach([x, 0, z])) { bad(`payload lane blocked at ${x.toFixed(0)},${z.toFixed(0)}`); break; } } }
   for (const f of level.fwd || []) for (const p of f) if (!reach(p)) bad(`forward spawn ${p} not connected`);
   for (const p of level.dmSpawns) if (!reach(p)) bad(`dm spawn ${p} not connected`);

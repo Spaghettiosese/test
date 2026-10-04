@@ -7,6 +7,6 @@
   "scripts": {
     "start": "npx --yes http-server -p 8080 -c-1 .",
     "test": "node tools/test-weapons.mjs && node tools/test-props.mjs && npm run test:shapewatch",
-    "test:shapewatch": "node shapewatch/tools/test-kits.mjs && node shapewatch/tools/test-match.mjs"
+    "test:shapewatch": "node shapewatch/tools/test-maps.mjs && node shapewatch/tools/test-modes.mjs && node shapewatch/tools/test-kits.mjs"
   }
 }
