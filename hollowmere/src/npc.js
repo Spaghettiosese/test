@@ -695,7 +695,7 @@ export class NPC {
     if (this.dead || this.exposed > 0) return;
     this.exposed = this.def.boss ? 1.7 : 2.3; this.poise = 0; this.atk = null; this.stopMove(); this.state = 'stagger'; this.stagger = this.exposed; this.anim = '';
     this.g.sfx.clang?.(1.3, this.pos); this.g.spark?.([this.x, this.y + 1.5, this.z], [0, 1, 0], 16);
-    if (opts.from === 'player') this.g.flashText?.(this.arch?.front && opts.guardBreak ? 'GUARD BROKEN' : 'POSTURE BROKEN');
+    if (opts.from === 'player') { this.g.flashText?.(this.arch?.front && opts.guardBreak ? 'GUARD BROKEN' : 'POSTURE BROKEN'); if (!this.g.stats.postureHint) { this.g.stats.postureHint = 1; this.g.toast('He is open: press E to execute'); } }
     if (this.role !== 'hollow') this.bark(['Gah!', 'My arm...!', 'No, wait—'][Math.floor(Math.random() * 3)]);
   }
   beginAttack() {

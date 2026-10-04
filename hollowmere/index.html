@@ -136,6 +136,7 @@
   .menu button.go:hover { filter: brightness(1.25); color: #fff; border-color: var(--gold); }
   .menu .keys { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px 22px; text-align: left; font-size: 16px; color: var(--dim); margin-top: 6px; }
   .menu .keys div { display: flex; justify-content: space-between; border-bottom: 1px dashed #2a1c38; padding: 1px 0; } .menu .keys span:last-child { color: var(--bone); }
+  body.paused .hud, body.paused #sightCv { visibility: hidden; }
   body.no-minimap #minimap { display: none; } body.no-status #statusbar { display: none; }
   .menu .card { max-height: 94vh; overflow: auto; } .opts { display: grid; gap: 4px; text-align: left; padding: 8px 10px; border: 2px solid var(--edge); background: rgba(16,10,24,.85); } .optrow { display: grid !important; grid-template-columns: 1fr 140px 52px; gap: 8px; align-items: center; justify-content: stretch !important; font-size: 16px; } .optrow input[type=checkbox] { justify-self: end; width: 18px; height: 18px; } .optrow output { color: var(--gold); font-size: 14px; }
   .menu select { font: 700 16px var(--pixel); background: #1b1226; color: var(--bone); border: 2px solid var(--edge); padding: 3px 8px; }

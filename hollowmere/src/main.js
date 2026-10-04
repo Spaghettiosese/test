@@ -78,8 +78,8 @@ const menu = new Menu(game, {
 });
 game.menu = menu;
 function pause(on) {
-  if (on) { if (game.mode !== 'play') return; game.mode = 'pause'; menu.showPause(); game.ui.el.cross.hidden = true; game.input.keys.clear(); if (game.player) { game.player.lmb = game.player.rmb = false; } }
-  else { $('menu').hidden = true; game.mode = 'play'; game.canvasLock(); }
+  if (on) { if (game.mode !== 'play') return; game.mode = 'pause'; menu.showPause(); game.ui.el.cross.hidden = true; document.body.classList.add('paused'); game.input.keys.clear(); if (game.player) { game.player.lmb = game.player.rmb = false; } }
+  else { $('menu').hidden = true; document.body.classList.remove('paused'); game.mode = 'play'; game.canvasLock(); }
 }
 game.pause = pause;
 // loading needs a fresh world: from the title it is fresh already, mid-game the page reloads first

@@ -125,5 +125,35 @@ const c1 = sp.chance('persuade', { chFails: 0, role: 'guard', faction: 'watch', 
 ok(c1 > 0.6 && c1 <= 0.95, `three ranks of Silver Tongue make persuading likely (${c1.toFixed(2)})`);
 ok(sp.chance('persuade', { chFails: 4, role: 'captain', faction: 'keep', dist: 3 }) >= 0.05, 'the odds never drop below five per cent');
 
+section('campaign');
+{
+  const { CHAPTERS, VERSES } = await import('../src/campaign.js');
+  const { TROPHIES } = await import('../src/achievements.js');
+  const { ECHOES } = await import('../src/echoes.js');
+  const { ENDINGS } = await import('../src/endings.js');
+  const { QUESTS } = await import('../src/quests.js');
+  const { ITEMS } = await import('../src/items.js');
+  const { GEAR } = await import('../src/gear.js');
+  ok(CHAPTERS.length === 4 && Object.keys(VERSES).length === 3, 'four chapters and three verses');
+  ok(TROPHIES.length === 40 && new Set(TROPHIES.map((t) => t.id)).size === 40, 'forty trophies with distinct ids');
+  ok(Object.keys(ENDINGS).length === 4, 'four endings');
+  ok(ECHOES.length === 13, 'thirteen Choir echoes');
+  for (const e of ECHOES) { const q = L.nav.nearestWalkable(e.at[0], e.at[1], 4); ok(q && Math.hypot(q[0] - e.at[0], q[1] - e.at[1]) < 4, `echo ${e.id} at ${e.where} can be reached`); }
+  const ids = new Set(roster.map((d) => d.id));
+  for (const q of QUESTS) ok(ids.has(q.giver), `quest ${q.id}: giver "${q.giver}" exists`);
+  for (const who of ['ansel', 'sable', 'duke', 'marl', 'harl', 'brannoch', 'brask', 'hermit']) ok(ids.has(who), `story character "${who}" is in the roster`);
+  for (const id of ['letter', 'uni_hand', 'vanekey', 'rookkey', 'binderskull', 'clapper', 'salve_gh', 'crossbow', 'bolt', 'bolt_water', 'bolt_fire', 'bolt_sleep']) ok(ITEMS[id], `item "${id}" exists`);
+  for (const id of ['handring', 'waxward', 'vanecoat', 'knightplate', 'echocharm']) ok(GEAR[id], `gear "${id}" exists`);
+  // the deep places: every way in lands somewhere walkable, and their rooms join up
+  const P = L.places, walk = (x, z) => !L.nav.isBlocked(x, z);
+  for (const k of ['rookIn', 'belfryIn', 'deepIn']) ok(walk(P[k].pos[0], P[k].pos[2]), `${k} lands on walkable ground`);
+  for (const k of ['rookUp', 'rookBoat', 'belfryOut', 'deepOut', 'vaneAt', 'choirIn']) ok(P[k] && L.nav.nearestWalkable(P[k][0], P[k][1], 3), `${k} is next to walkable ground`);
+  const path = (a, b) => L.nav.findPath(a[0], a[1], b[0], b[1]);
+  ok(path([-218.5, 301], [-180, 314]), 'the Rookery cellar reaches the dock');
+  ok(path([-218.5, 301], [-176, 300]), 'the Rookery cellar reaches Vane\'s hall');
+  ok(path([-36, 293.5], [20, 347]), 'the Deep\'s throat reaches the Choir');
+  ok(path([0, 3], [0, -50]), 'the south gate opens onto the road for the siege');
+}
+
 console.log(failed ? `\n${failed} checks failed` : '\nall Hollowmere checks passed');
 process.exit(failed ? 1 : 0);

@@ -44,7 +44,7 @@ export function installPanels(UI) {
   };
   P.renderBook = function renderBook() {
     const g = this.g, P = g.player, inv = P.inv, S = g.story, pr = g.progress, tab = this.tab;
-    const head = `<div class="tabs">${TABS.map(([id, n], i) => `<button data-act="tab:${id}" class="${id === tab ? 'on' : ''}"><kbd>${i + 1}</kbd>${n}</button>`).join('')}<span class="pts">Lv ${pr.level} · ${pr.xp}/${pr.need()} xp${pr.points ? ` · <b>${pr.points} perk point${pr.points > 1 ? 's' : ''}</b>` : ''}</span></div>`;
+    const head = `<div class="tabs">${TABS.map(([id, n], i) => `<button data-act="tab:${id}" class="${id === tab ? 'on' : ''}"><kbd>${(i + 1) % 10}</kbd>${n}</button>`).join('')}<span class="pts">Lv ${pr.level} · ${pr.xp}/${pr.need()} xp${pr.points ? ` · <b>${pr.points} perk point${pr.points > 1 ? 's' : ''}</b>` : ''}</span></div>`;
     let body = '';
     if (tab === 'journal') {
       const items = inv.list(), keys = items.filter((i) => i.kind === 'key'), other = items.filter((i) => i.kind !== 'key');

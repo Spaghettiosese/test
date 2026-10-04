@@ -243,7 +243,7 @@ export class Story {
     }
   }
   hints() {
-    if (!this.hintQ) this.hintQ = [[8, 'WASD to move · Shift to sprint · C to crouch'], [24, 'Left mouse swings your sword · right mouse blocks. Time a block to parry.'], [46, 'Guards see you by light and hear your footsteps. Crouch in the dark. E snuffs torches.'], [70, 'A sword in the back of an unaware guard kills silently. Bodies get found.'], [96, '1 Shadow Veil · 2 Umbral Dash · 3 Gravebreaker. Tab opens your journal.']];
+    if (!this.hintQ) this.hintQ = [[8, 'WASD to move · Shift to sprint · C to crouch'], [24, 'Left mouse swings your sword · right mouse blocks. Time a block to parry.'], [46, 'Guards see you by light and hear your footsteps. Crouch in the dark. E snuffs torches.'], [70, 'A sword in the back of an unaware guard kills silently. Bodies get found.'], [96, '1 Shadow Veil · 2 Umbral Dash · 3 Gravebreaker. Tab opens your journal.'], [140, 'Hold the left button for a heavy blow that breaks shields. Double-tap a direction to sidestep a blow.'], [200, 'Wear a man down and he drops to his knees: press E to execute him. Esc opens the menu: three save slots, trophies, chapters.']];
     const t = this.playTime; while (this.hintQ.length && t > this.hintQ[0][0]) this.g.ui.toast(this.hintQ.shift()[1]);
   }
   hollowUpdate() {

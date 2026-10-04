@@ -26,7 +26,7 @@ export class Crossbow {
     if (!this.has()) { g.toast('You have no crossbow'); g.sfx.deny?.(); return; }
     if (P.carried || P.picking || P.dead || P.mount) return;
     this.up = !this.up; this.aim = false;
-    if (this.up) { P.atk = null; P.charge = null; P.drawing = P.sheathing = null; P.drawn = false; P.vm.sword.visible = false; P.vm.xbow.visible = true; P.vm.play('XbowRaise', { fade: 0.05, restart: true }); P.vmClip = 'XbowRaise'; P.vmEnd = g.time + 0.3; this.k = 0.3; g.sfx.unsheathe?.(); if (!this.ammo()) this.cycle(1, true); g.toast(this.label()); }
+    if (this.up) { P.atk = null; P.charge = null; P.drawing = P.sheathing = null; P.drawn = false; P.vm.sword.visible = false; P.vm.xbow.visible = true; P.vm.play('XbowRaise', { fade: 0.05, restart: true }); P.vmClip = 'XbowRaise'; P.vmEnd = g.time + 0.3; this.k = 0.3; g.sfx.unsheathe?.(); if (!this.ammo()) this.cycle(1, true); g.toast(this.label() + (g.stats.xbowHint ? '' : '  ·  LMB looses, RMB aims, K or the wheel changes bolts')); g.stats.xbowHint = 1; }
     else this.lower();
   }
   lower() { const P = this.g.player; this.up = false; this.aim = false; P.vm.xbow.visible = false; P.playVm('Idle', 0.1); }
