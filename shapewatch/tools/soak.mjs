@@ -1,20 +1,18 @@
-// Many headless matches: catch exceptions, per-hero ability usage, stuck bots, A* cost.
+// Many headless matches: exceptions, stuck bots, per-hero damage/elims/heals/ult use, win split.
 import { Sim } from '../src/sim.js';
-const N = +process.argv[2] || 20, diff = +process.argv[3] || 1;
-const ults = {}, picks = {}, dmg = {}, elims = {}, abil = {}; let stuck = 0, frames = 0, matches = 0, errs = 0, t0 = Date.now(), wins = [0, 0];
+const N = +process.argv[2] || 20, diff = +process.argv[3] || 1, mode = process.argv[4] || 'escort', map = process.argv[5] || 'frostgate';
+const picks = {}, S = {}; let stuck = 0, frames = 0, matches = 0, errs = 0, wins = [0, 0, 0], t0 = Date.now(), kills = 0, crits = 0;
 for (let s = 1; s <= N; s++) {
   try {
-    const sim = new Sim({ headless: true, autoPlayer: true, seed: s * 7919, difficulty: diff });
-    const last = new Map();
-    for (const u of sim.units) { picks[u.hero] = (picks[u.hero] || 0) + 1; last.set(u.id, { p: [...u.pos], t: 0, s: 0 }); }
+    const sim = new Sim({ headless: true, autoPlayer: true, seed: s * 7919, difficulty: diff, mode, map });
+    const last = new Map(); for (const u of sim.units) last.set(u.id, { p: [...u.pos], s: 0 });
     for (let i = 0; i < 60 * 900 && sim.state !== 'over'; i++) {
-      sim.step(1 / 60);
-      for (const e of sim.events) { if (e.type === 'ult') ults[e.unit.hero] = (ults[e.unit.hero] || 0) + 1; if (e.type === 'blink' || e.type === 'dash') { const k = e.unit?.hero || 'x'; abil[k] = (abil[k] || 0) + 1; } }
-      if (sim.state === 'live' && i % 60 === 0) for (const u of sim.units) if (!u.deploy && u.alive) { const l = last.get(u.id); if (Math.hypot(u.pos[0] - l.p[0], u.pos[2] - l.p[2]) < 0.4) { l.s++; if (l.s === 8) stuck++; } else l.s = 0; l.p = [...u.pos]; frames++; }
+      sim.step(1 / 60); for (const e of sim.events) if (e.type === 'kill') kills++;
+      if (sim.state === 'live' && i % 60 === 0) for (const u of sim.units) if (!u.deploy && u.alive && !u.dummy) { const l = last.get(u.id); if (Math.hypot(u.pos[0] - l.p[0], u.pos[2] - l.p[2]) < 0.4 && !u.st.root && !u.s.bunker && !u.s.channel && !u.st.frozen) { l.s++; if (l.s === 8) stuck++; } else l.s = 0; l.p = [...u.pos]; frames++; }
     }
-    wins[sim.winner]++; matches++;
-    for (const u of sim.units) if (!u.deploy) { dmg[u.hero] = (dmg[u.hero] || 0) + u.stats.dmg; elims[u.hero] = (elims[u.hero] || 0) + u.stats.elims; }
-  } catch (e) { errs++; console.log('ERR seed', s, e.stack.split('\n').slice(0, 4).join('\n')); }
+    wins[sim.winner ?? 2]++; matches++;
+    for (const u of sim.units) if (!u.deploy) { picks[u.hero] = (picks[u.hero] || 0) + 1; const a = (S[u.hero] ||= { dmg: 0, el: 0, heal: 0, ult: 0, dth: 0, crit: 0, sh: 0, hit: 0 }); a.dmg += u.stats.dmg; a.el += u.stats.elims; a.heal += u.stats.heal; a.ult += u.stats.ults; a.dth += u.stats.deaths; a.crit += u.stats.crits; a.sh += u.stats.shots; a.hit += u.stats.hits; crits += u.stats.crits; }
+  } catch (e) { errs++; console.log('ERR seed', s, e.stack.split('\n').slice(0, 5).join('\n')); }
 }
-console.log('matches', matches, 'errors', errs, 'wins', wins, 'stuck-8s events', stuck, 'of', frames, 'unit-seconds', 'ms', Date.now() - t0);
-for (const h of Object.keys(picks)) console.log(h.padEnd(8), 'picks', picks[h], 'ults', ults[h] || 0, 'dmg/pick', Math.round((dmg[h] || 0) / picks[h]), 'elims/pick', ((elims[h] || 0) / picks[h]).toFixed(2));
+console.log(mode, map, 'matches', matches, 'errors', errs, 'wins', wins, 'stuck-8s', stuck, 'of', frames, 'unit-s;', 'kills/match', (kills / matches).toFixed(0), 'ms', Date.now() - t0);
+for (const h of Object.keys(picks).sort()) { const a = S[h], n = picks[h]; console.log(h.padEnd(11), 'n', String(n).padStart(3), 'dmg', String(Math.round(a.dmg / n)).padStart(5), 'elims', (a.el / n).toFixed(1).padStart(5), 'deaths', (a.dth / n).toFixed(1).padStart(5), 'heal', String(Math.round(a.heal / n)).padStart(5), 'ults', (a.ult / n).toFixed(2), 'crit', (a.crit / n).toFixed(0).padStart(3), 'acc', a.sh ? Math.round(100 * a.hit / a.sh) + '%' : '-'); }

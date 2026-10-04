@@ -1,16 +1,33 @@
-// The roster: ten original heroes (3 tank, 4 damage, 3 support). Numbers live here; what the
-// abilities actually do lives in kits.js. Weapon kinds: hitscan | proj | beam | melee | special.
+// The roster: twenty original heroes in three roles and ten subclasses. Numbers live here; what
+// the abilities actually do lives in kits.js; what they say lives in voice.js.
+// Weapon kinds: hitscan | proj | special | melee | beam.
 export const ROLES = {
-  tank: { label: 'TANK', plural: 'TANK', icon: 'shield', limit: 1 },
-  damage: { label: 'DAMAGE', plural: 'DAMAGE', icon: 'bullets', limit: 2 },
-  support: { label: 'SUPPORT', plural: 'SUPPORT', icon: 'cross', limit: 2 },
+  tank: { label: 'TANK', plural: 'TANKS', icon: 'shield', limit: 1, blurb: 'Soak damage, make space, break the line.' },
+  damage: { label: 'DAMAGE', plural: 'DAMAGE', icon: 'bullets', limit: 2, blurb: 'Eliminate targets before they eliminate you.' },
+  support: { label: 'SUPPORT', plural: 'SUPPORT', icon: 'cross', limit: 2, blurb: 'Keep the team alive and the fight winnable.' },
+};
+// subclasses: what a hero is *for* inside its role
+export const SUBCLASSES = {
+  Bruiser: { role: 'tank', icon: 'fist', blurb: 'Brawlers who thrive up close and shrug off pressure.' },
+  Initiator: { role: 'tank', icon: 'arrow', blurb: 'Start the fight on your terms: pull, leap, dive.' },
+  Stalwart: { role: 'tank', icon: 'tower', blurb: 'Anchor a position and protect everything behind it.' },
+  Flanker: { role: 'damage', icon: 'chevrons', blurb: 'Mobile hunters who pick off the isolated.' },
+  Sharpshooter: { role: 'damage', icon: 'crosshair', blurb: 'Precision weapons, strong at mid to long range.' },
+  Specialist: { role: 'damage', icon: 'gear', blurb: 'Unusual toolkits that bend the rules of the fight.' },
+  Recon: { role: 'damage', icon: 'eye', blurb: 'See first, shoot first, shoot once.' },
+  Medic: { role: 'support', icon: 'heart', blurb: 'Direct healing and revival.' },
+  Tactician: { role: 'support', icon: 'flag', blurb: 'Buffs, debuffs and battlefield control.' },
+  Survivor: { role: 'support', icon: 'drop', blurb: 'Self-sufficient supports who hurt as much as they heal.' },
 };
 
+// crit: head = headshot multiplier, chance = chance any other hit crits for 1.5x
+// rating: 1-5 bars on the hero card
 export const HEROES = [
-  // ------------------------------------------------------------------ TANK
+  // ================================================================== TANK
   {
-    id: 'bulwark', name: 'BULWARK', role: 'tank', title: 'Shield Vanguard', hp: 250, armor: 200, speed: 5.0, radius: 0.55, height: 2.2,
-    colors: { primary: '#2f6fd1', secondary: '#dfe6f1', accent: '#ffb02e', skin: '#8a5a3c' }, look: 'heavy',
+    id: 'bulwark', name: 'BULWARK', role: 'tank', sub: 'Stalwart', title: 'Shield Vanguard', hp: 250, armor: 200, speed: 5.0, radius: 0.55, height: 2.2,
+    colors: { primary: '#2f6fd1', secondary: '#dfe6f1', accent: '#ffb02e', skin: '#8a5a3c' }, crit: { head: 1, chance: 0.04 }, voice: { pitch: 0.7, rate: 0.95, gender: 'm' },
+    rating: { damage: 2, survival: 5, mobility: 2, utility: 4, difficulty: 2 },
     blurb: 'A veteran siege-engineer who marches behind a wall of light. Where Bulwark stands, the team advances.',
     w1: { name: 'Pulse Cannon', kind: 'hitscan', dmg: 11, rate: 8, ammo: 40, reload: 2.2, spread: 2.6, range: 28, falloff: [9, 28, 0.35], head: 1, auto: true, tracer: '#7fc4ff', sound: 'pulse' },
     w2: { name: 'Barrier Field', desc: 'Hold to project a frontal barrier (700 HP). Cannot fire while it is up.' },
@@ -19,8 +36,9 @@ export const HEROES = [
     ult: { name: 'Bastion Field', cost: 1700, desc: 'Plant a dome that cuts damage to allies by 60% and swallows enemy projectiles for 7 s.' },
   },
   {
-    id: 'mauler', name: 'MAULER', role: 'tank', title: 'Scrapyard Brawler', hp: 300, armor: 200, speed: 5.3, radius: 0.6, height: 2.2,
-    colors: { primary: '#c8452c', secondary: '#3b3a3f', accent: '#f2c14e', skin: '#c28b63' }, look: 'brute',
+    id: 'mauler', name: 'MAULER', role: 'tank', sub: 'Initiator', title: 'Scrapyard Brawler', hp: 300, armor: 200, speed: 5.3, radius: 0.6, height: 2.2,
+    colors: { primary: '#c8452c', secondary: '#3b3a3f', accent: '#f2c14e', skin: '#c28b63' }, crit: { head: 1.4, chance: 0.05 }, voice: { pitch: 0.5, rate: 0.9, gender: 'm' },
+    rating: { damage: 4, survival: 4, mobility: 3, utility: 3, difficulty: 3 },
     blurb: 'Built from salvage and spite. Mauler hauls enemies into the fight and brings the ceiling down on them.',
     w1: { name: 'Scrap Cannon', kind: 'hitscan', dmg: 7, pellets: 9, rate: 1.4, ammo: 6, reload: 2.4, spread: 5.5, range: 20, falloff: [6, 18, 0.25], head: 1.4, auto: false, tracer: '#ffb061', sound: 'shotgun' },
     w2: { name: 'Chain Hook', cd: 8, desc: 'Fling a hook. The first enemy hit takes 40 damage and is yanked to you.' },
@@ -29,8 +47,9 @@ export const HEROES = [
     ult: { name: 'Meteor Crash', cost: 1900, desc: 'Soar high, then crash down: up to 200 damage and a violent knock-up.' },
   },
   {
-    id: 'orbit', name: 'ORBIT', role: 'tank', title: 'Gravity Warden', hp: 250, armor: 200, speed: 5.1, radius: 0.55, height: 2.1,
-    colors: { primary: '#6a3fc4', secondary: '#252840', accent: '#5cf2e0', skin: '#e0b894' }, look: 'sleek',
+    id: 'orbit', name: 'ORBIT', role: 'tank', sub: 'Initiator', title: 'Gravity Warden', hp: 250, armor: 200, speed: 5.1, radius: 0.55, height: 2.1,
+    colors: { primary: '#6a3fc4', secondary: '#252840', accent: '#5cf2e0', skin: '#e0b894' }, crit: { head: 1, chance: 0.04 }, voice: { pitch: 1.35, rate: 1.0, gender: 'f' },
+    rating: { damage: 3, survival: 4, mobility: 4, utility: 5, difficulty: 4 },
     blurb: 'A physicist who weaponised her own experiments. Orbit bends the fight toward her and drags foes out of position.',
     w1: { name: 'Gravity Bolt', kind: 'proj', dmg: 38, splash: 1.8, splashDmg: 22, speed: 38, rate: 2.2, ammo: 8, reload: 2.2, radius: 0.3, color: '#b78bff', size: 0.3, slow: [0.3, 1.5], auto: true, sound: 'orbit' },
     w2: { name: 'Mass Anchor', cd: 7, desc: 'Yank enemies in a wide cone toward you for 20 damage.' },
@@ -38,10 +57,33 @@ export const HEROES = [
     a2: { name: 'Phase Ward', cd: 14, desc: 'Wrap yourself in a 400 point bubble for 3 s.' },
     ult: { name: 'Singularity', cost: 2000, desc: 'Fire a black hole that drags enemies to its centre and crushes them for 7 s.' },
   },
-  // ------------------------------------------------------------------ DAMAGE
   {
-    id: 'sabre', name: 'SABRE', role: 'damage', title: 'Frontline Operative', hp: 200, armor: 0, speed: 5.5, radius: 0.4, height: 1.8,
-    colors: { primary: '#2a5ca8', secondary: '#c9ced6', accent: '#ff7a1a', skin: '#a5694a' }, look: 'soldier',
+    id: 'wrecker', name: 'WRECKER', role: 'tank', sub: 'Bruiser', title: 'Demolition Pugilist', hp: 300, armor: 250, speed: 5.4, radius: 0.6, height: 2.15,
+    colors: { primary: '#e8a23a', secondary: '#2a2d35', accent: '#ff5a2a', skin: '#6d4631' }, crit: { head: 1, chance: 0.1 }, voice: { pitch: 0.55, rate: 1.05, gender: 'm' },
+    rating: { damage: 4, survival: 4, mobility: 4, utility: 2, difficulty: 4 },
+    blurb: 'Retired from the wrecking yards, never from the ring. Wrecker fights with two hydraulic fists and a lot of opinions.',
+    w1: { name: 'Piston Fists', kind: 'melee', dmg: 38, rate: 2.4, ammo: 0, range: 3.3, arc: 85, auto: true, sound: 'punch' },
+    w2: { name: 'Power Block', desc: 'Hold to take 75% less damage from the front. Absorbed damage supercharges your next punch.' },
+    a1: { name: 'Rocket Punch', cd: 9, desc: 'Launch yourself fist first: 70 damage, and 60 more if you slam an enemy into a wall.' },
+    a2: { name: 'Uppercut', cd: 7, desc: 'Hop and knock nearby enemies skyward for 55 damage.' },
+    ult: { name: 'Seismic Slam', cost: 2000, desc: 'Leap and crash down: 120 damage in a huge radius, slows and shoves everyone.' },
+  },
+  {
+    id: 'bastille', name: 'BASTILLE', role: 'tank', sub: 'Stalwart', title: 'Siege Gunner', hp: 300, armor: 250, speed: 4.9, radius: 0.65, height: 2.2,
+    colors: { primary: '#5f6e45', secondary: '#33372b', accent: '#e8d34a', skin: '#b17b57' }, crit: { head: 1.2, chance: 0.05 }, voice: { pitch: 0.45, rate: 0.85, gender: 'm' },
+    rating: { damage: 5, survival: 5, mobility: 1, utility: 3, difficulty: 2 },
+    blurb: 'A walking fortress with a rotary cannon and nowhere to be. Bastille does not retreat; the map retreats around him.',
+    w1: { name: 'Rotary Cannon', kind: 'hitscan', dmg: 7.5, rate: 18, ammo: 220, reload: 3.4, spread: 4.2, range: 42, falloff: [14, 42, 0.4], head: 1.2, auto: true, tracer: '#ffe68a', sound: 'minigun', spinUp: 0.45 },
+    w2: { name: 'Bunker', desc: 'Hold to plant: no movement, 30% less damage taken, +25% damage and tighter spread.' },
+    a1: { name: 'Fortify', cd: 12, desc: 'For 4 s you cannot be knocked back or stunned and take 50% less damage.' },
+    a2: { name: 'Shield Wall', cd: 14, desc: 'Deploy a 500 HP energy wall ahead of you for 10 s.' },
+    ult: { name: 'Artillery Barrage', cost: 2200, desc: 'Mark a zone: sixteen shells rain down over 4 s, 65 damage each.' },
+  },
+  // ================================================================== DAMAGE
+  {
+    id: 'sabre', name: 'SABRE', role: 'damage', sub: 'Sharpshooter', title: 'Frontline Operative', hp: 200, armor: 0, speed: 5.5, radius: 0.4, height: 1.8,
+    colors: { primary: '#2a5ca8', secondary: '#c9ced6', accent: '#ff7a1a', skin: '#a5694a' }, crit: { head: 2, chance: 0.05 }, voice: { pitch: 0.8, rate: 1.05, gender: 'm' },
+    rating: { damage: 3, survival: 2, mobility: 3, utility: 2, difficulty: 1 },
     blurb: 'Reliable, relentless, and always one magazine ahead. Sabre is the baseline every other hero is measured against.',
     w1: { name: 'Pulse Rifle', kind: 'hitscan', dmg: 15, rate: 8, ammo: 30, reload: 1.7, spread: 2.0, range: 75, falloff: [25, 60, 0.4], head: 2, auto: true, tracer: '#ffd27a', sound: 'rifle' },
     w2: { name: 'Micro Rockets', cd: 6, desc: 'Launch three rockets: 50 damage each with a small blast.' },
@@ -50,8 +92,20 @@ export const HEROES = [
     ult: { name: 'Overdrive', cost: 1800, desc: 'For 7 s your rifle locks onto enemies near your crosshair, with +25% damage and no reloads.' },
   },
   {
-    id: 'cinder', name: 'CINDER', role: 'damage', title: 'Pyromancer', hp: 200, armor: 0, speed: 5.5, radius: 0.4, height: 1.8,
-    colors: { primary: '#d94a1e', secondary: '#2a1a1a', accent: '#ffd23f', skin: '#6e4630' }, look: 'mage',
+    id: 'ranger', name: 'RANGER', role: 'damage', sub: 'Sharpshooter', title: 'Dust Gunslinger', hp: 225, armor: 0, speed: 5.5, radius: 0.4, height: 1.85,
+    colors: { primary: '#a8532b', secondary: '#4b3a2a', accent: '#e9c46a', skin: '#c58a62' }, crit: { head: 2, chance: 0.06 }, voice: { pitch: 0.65, rate: 0.9, gender: 'm' },
+    rating: { damage: 4, survival: 2, mobility: 3, utility: 3, difficulty: 3 },
+    blurb: 'Rides in from the dust with a six-shooter and a flashbang. Ranger only ever needs one good minute.',
+    w1: { name: 'Hand Cannon', kind: 'hitscan', dmg: 54, rate: 2.4, ammo: 6, reload: 1.8, spread: 0.8, range: 90, falloff: [30, 70, 0.5], head: 2, auto: false, tracer: '#ffd9a0', sound: 'cannon' },
+    w2: { name: 'Fan the Hammer', desc: 'Empty your remaining rounds in a blur of 30 damage shots.' },
+    a1: { name: 'Combat Roll', cd: 6, desc: 'Dive in your movement direction and reload instantly.' },
+    a2: { name: 'Flashbang', cd: 10, desc: 'Lob a flashbang: 25 damage and a 0.9 s stun in a small radius.' },
+    ult: { name: 'High Noon', cost: 2400, desc: 'Draw a bead on everyone in view for 4.5 s, then release for up to 210 damage each.' },
+  },
+  {
+    id: 'cinder', name: 'CINDER', role: 'damage', sub: 'Specialist', title: 'Pyromancer', hp: 200, armor: 0, speed: 5.5, radius: 0.4, height: 1.8,
+    colors: { primary: '#d94a1e', secondary: '#2a1a1a', accent: '#ffd23f', skin: '#6e4630' }, crit: { head: 1.5, chance: 0.08 }, voice: { pitch: 1.1, rate: 1.1, gender: 'f' },
+    rating: { damage: 4, survival: 2, mobility: 4, utility: 3, difficulty: 3 },
     blurb: 'A stage magician who never stopped believing the act was real. Everything Cinder touches is on fire.',
     w1: { name: 'Ember Bolt', kind: 'proj', dmg: 38, splash: 0, speed: 55, rate: 2.4, ammo: 6, reload: 1.8, radius: 0.2, color: '#ff8a2a', size: 0.22, burn: [12, 3], auto: true, sound: 'fire' },
     w2: { name: 'Scorch Burst', cd: 5, desc: 'A close-range cone that deals 35 damage and shoves enemies back.' },
@@ -60,18 +114,20 @@ export const HEROES = [
     ult: { name: 'Inferno', cost: 1900, desc: 'Hurl a firebomb that leaves a raging field of flame for 8 s.' },
   },
   {
-    id: 'vesper', name: 'VESPER', role: 'damage', title: 'Rail Sniper', hp: 200, armor: 0, speed: 5.4, radius: 0.4, height: 1.8,
-    colors: { primary: '#1f8a7a', secondary: '#1b2428', accent: '#b6ff4a', skin: '#d8a984' }, look: 'sniper',
+    id: 'vesper', name: 'VESPER', role: 'damage', sub: 'Recon', title: 'Rail Sniper', hp: 200, armor: 0, speed: 5.4, radius: 0.4, height: 1.8,
+    colors: { primary: '#1f8a7a', secondary: '#1b2428', accent: '#b6ff4a', skin: '#d8a984' }, crit: { head: 2, chance: 0.03 }, voice: { pitch: 1.0, rate: 0.9, gender: 'f' },
+    rating: { damage: 5, survival: 1, mobility: 3, utility: 3, difficulty: 5 },
     blurb: 'Patient, precise, and not remotely sorry. Vesper owns every sightline on the map.',
-    w1: { name: 'Rail Rifle', kind: 'special', dmg: 50, headMul: 2, rate: 1.4, ammo: 6, reload: 2.0, spread: 2.2, range: 200, auto: false, tracer: '#6fffe0', sound: 'rail' },
+    w1: { name: 'Rail Rifle', kind: 'special', dmg: 50, headMul: 2, head: 2, rate: 1.4, ammo: 6, reload: 2.0, spread: 2.2, range: 200, auto: false, tracer: '#6fffe0', sound: 'rail' },
     w2: { name: 'Scope', desc: 'Hold to zoom and charge up to 150 damage (headshots double).' },
     a1: { name: 'Grapple Line', cd: 8, desc: 'Fire a line to a surface and haul yourself to it.' },
     a2: { name: 'Sonar Dart', cd: 12, desc: 'Stick a dart that reveals enemies within 12 m through walls for 5 s.' },
     ult: { name: 'Rift Lance', cost: 1800, desc: 'After a 1.2 s charge, one shot pierces walls and enemies for 250 damage.' },
   },
   {
-    id: 'flicker', name: 'FLICKER', role: 'damage', title: 'Time Skirmisher', hp: 175, armor: 0, speed: 6.0, radius: 0.38, height: 1.7,
-    colors: { primary: '#f0b018', secondary: '#222a3a', accent: '#40e0ff', skin: '#f0c8a0' }, look: 'sleek',
+    id: 'flicker', name: 'FLICKER', role: 'damage', sub: 'Flanker', title: 'Time Skirmisher', hp: 175, armor: 0, speed: 6.0, radius: 0.38, height: 1.7,
+    colors: { primary: '#f0b018', secondary: '#222a3a', accent: '#40e0ff', skin: '#f0c8a0' }, crit: { head: 1.5, chance: 0.1 }, voice: { pitch: 1.6, rate: 1.2, gender: 'f' },
+    rating: { damage: 3, survival: 1, mobility: 5, utility: 2, difficulty: 4 },
     blurb: 'A courier knocked loose from the timeline. Flicker is never quite where you aimed.',
     w1: { name: 'Twin Pistols', kind: 'hitscan', dmg: 8.5, rate: 14, ammo: 40, reload: 1.1, spread: 2.4, range: 45, falloff: [12, 32, 0.4], head: 1.5, auto: true, tracer: '#7ff1ff', sound: 'pistol' },
     w2: { name: 'Backstab', cd: 4, desc: 'Lunge and strike for 55 damage, 90 from behind.' },
@@ -79,20 +135,77 @@ export const HEROES = [
     a2: { name: 'Rewind', cd: 12, desc: 'Snap back to where you stood (and how healthy you were) 3 s ago.' },
     ult: { name: 'Time Bomb', cost: 1500, desc: 'Throw a bomb that sticks, then detonates for up to 220 damage after 1.8 s.' },
   },
-  // ------------------------------------------------------------------ SUPPORT
   {
-    id: 'halo', name: 'HALO', role: 'support', title: 'Field Medic', hp: 200, armor: 0, speed: 5.4, radius: 0.4, height: 1.8,
-    colors: { primary: '#f4f1e6', secondary: '#c9a43a', accent: '#7fe3ff', skin: '#c68b66' }, look: 'angel',
+    id: 'shade', name: 'SHADE', role: 'damage', sub: 'Flanker', title: 'Ghost Operative', hp: 190, armor: 0, speed: 5.9, radius: 0.38, height: 1.75,
+    colors: { primary: '#3a2a5c', secondary: '#15121f', accent: '#ff3d9a', skin: '#caa387' }, crit: { head: 1.5, chance: 0.08 }, voice: { pitch: 1.25, rate: 1.0, gender: 'f' },
+    rating: { damage: 3, survival: 2, mobility: 4, utility: 5, difficulty: 5 },
+    blurb: 'Nobody has seen Shade arrive. A few have seen her leave. She hacks the fight before it starts.',
+    w1: { name: 'Machine Pistol', kind: 'hitscan', dmg: 6, rate: 22, ammo: 60, reload: 1.6, spread: 3.2, range: 40, falloff: [12, 30, 0.35], head: 1.5, auto: true, tracer: '#ff7fc2', sound: 'smg' },
+    w2: { name: 'Hack', cd: 8, desc: 'Channel for 1.2 s on an enemy in view: their abilities are disabled for 4 s and they are revealed.' },
+    a1: { name: 'Cloak', cd: 8, desc: 'Turn invisible for 6 s and run 25% faster. Firing or using an ability breaks it.' },
+    a2: { name: 'Teleport Beacon', cd: 6, desc: 'First press drops a beacon, second press snaps you back to it.' },
+    ult: { name: 'EMP', cost: 1700, desc: 'Pulse that disables every enemy ability within 14 m for 3.5 s and strips their shields.' },
+  },
+  {
+    id: 'trapper', name: 'TRAPPER', role: 'damage', sub: 'Specialist', title: 'Wilderness Hunter', hp: 225, armor: 0, speed: 5.5, radius: 0.42, height: 1.8,
+    colors: { primary: '#4d6b3a', secondary: '#3a2a1c', accent: '#f4a23a', skin: '#b98660' }, crit: { head: 2, chance: 0.07 }, voice: { pitch: 0.7, rate: 0.85, gender: 'm' },
+    rating: { damage: 3, survival: 3, mobility: 2, utility: 5, difficulty: 3 },
+    blurb: 'Where Trapper has been, you will stop being. Every route on the map is a decision he already made for you.',
+    w1: { name: 'Bolt Rifle', kind: 'hitscan', dmg: 31, rate: 3.2, ammo: 12, reload: 2.0, spread: 0.9, range: 75, falloff: [30, 65, 0.5], head: 2, auto: false, tracer: '#f4d28a', sound: 'rifle2' },
+    w2: { name: 'Claw Trap', cd: 7, desc: 'Lob a trap that arms after 0.8 s: roots the first enemy that steps on it for 2.5 s and bites for 40.' },
+    a1: { name: 'Caltrops', cd: 11, desc: 'Scatter spikes: a 6 s field that slows by 60% and wounds for 14/s.' },
+    a2: { name: "Hunter's Mark", cd: 12, desc: 'Mark an enemy in view: they take 30% more damage from everyone and are revealed for 6 s.' },
+    ult: { name: 'Bear Pit', cost: 1900, desc: 'Drop a huge net: roots enemies in 8 m for 3 s and deals 100 damage.' },
+  },
+  {
+    id: 'skyhawk', name: 'SKYHAWK', role: 'damage', sub: 'Specialist', title: 'Jet Artillery', hp: 200, armor: 0, speed: 5.5, radius: 0.42, height: 1.8,
+    colors: { primary: '#3a7bd5', secondary: '#e8edf5', accent: '#ff9a3c', skin: '#e0b090' }, crit: { head: 1, chance: 0.06 }, voice: { pitch: 1.2, rate: 1.1, gender: 'f' },
+    rating: { damage: 4, survival: 2, mobility: 5, utility: 3, difficulty: 4 },
+    blurb: 'Once the fastest pilot in the fleet, now the fastest pilot without one. Skyhawk fights from where you are not looking.',
+    w1: { name: 'Rocket Launcher', kind: 'proj', dmg: 62, splash: 2.8, splashDmg: 46, speed: 42, rate: 1.7, ammo: 6, reload: 1.6, radius: 0.3, color: '#ffa04a', size: 0.2, auto: true, sound: 'rocket', sfxKind: 'rocket' },
+    w2: { name: 'Concussive Blast', cd: 9, desc: 'Launch a blast that knocks enemies away.' },
+    a1: { name: 'Jet Burst', cd: 8, desc: 'Fire your jets for a big vertical launch.' },
+    a2: { name: 'Hover Jets', cd: 12, desc: 'Hold position in the air for 4 s. Hold jump to climb.' },
+    ult: { name: 'Rocket Barrage', cost: 2000, desc: 'Hover and unleash 28 rockets in 3 s.' },
+  },
+  {
+    id: 'riftwalker', name: 'RIFTWALKER', role: 'damage', sub: 'Specialist', title: 'Portal Architect', hp: 200, armor: 0, speed: 5.6, radius: 0.4, height: 1.8,
+    colors: { primary: '#1e9bd8', secondary: '#24203a', accent: '#c06bff', skin: '#9c7a5c' }, crit: { head: 1.5, chance: 0.06 }, voice: { pitch: 0.95, rate: 1.0, gender: 'n' },
+    rating: { damage: 3, survival: 2, mobility: 5, utility: 5, difficulty: 5 },
+    blurb: 'There is a door between any two places. Riftwalker simply keeps the key.',
+    w1: { name: 'Rift Pistol', kind: 'hitscan', dmg: 17, rate: 6.5, ammo: 26, reload: 1.7, spread: 1.4, range: 60, falloff: [20, 50, 0.5], head: 1.5, auto: true, tracer: '#d49bff', sound: 'pistol' },
+    w2: { name: 'Warp Shot', cd: 11, desc: 'Fire a shot that swaps places with the first enemy it hits.' },
+    a1: { name: 'Portal A', cd: 1.5, desc: 'Place the entry portal where you aim. Anyone can use it.' },
+    a2: { name: 'Portal B', cd: 1.5, desc: 'Place the exit portal. Portals last 20 s.' },
+    ult: { name: 'Stasis Field', cost: 2100, desc: 'Freeze every enemy in a 9 m zone in time for 3 s: they cannot act, and nothing can hurt them.' },
+  },
+  // ================================================================== SUPPORT
+  {
+    id: 'halo', name: 'HALO', role: 'support', sub: 'Medic', title: 'Field Medic', hp: 200, armor: 0, speed: 5.4, radius: 0.4, height: 1.8,
+    colors: { primary: '#f4f1e6', secondary: '#c9a43a', accent: '#7fe3ff', skin: '#c68b66' }, crit: { head: 2, chance: 0.03 }, voice: { pitch: 1.45, rate: 0.95, gender: 'f' },
+    rating: { damage: 1, survival: 2, mobility: 4, utility: 4, difficulty: 2 },
     blurb: 'Descends on the wounded like a hymn. Halo keeps a team in the fight a little longer than it deserves.',
     w1: { name: 'Sidearm', kind: 'hitscan', dmg: 15, rate: 5.5, ammo: 20, reload: 1.5, spread: 1.4, range: 60, falloff: [25, 55, 0.5], head: 2, auto: true, tracer: '#fff1a8', sound: 'pistol' },
-    w2: { name: 'Aegis Beam', desc: 'Hold on an ally to heal 60 HP/s.' },
+    w2: { name: 'Aegis Beam', desc: 'Hold on an ally to heal 70 HP/s. Locks onto the most wounded ally near your crosshair.' },
     a1: { name: 'Guardian Leap', cd: 6, desc: 'Streak toward the ally you are looking at (or ahead).' },
     a2: { name: 'Sanctuary', cd: 12, desc: 'Burst of light: heals allies within 6 m for 90.' },
     ult: { name: 'Resurgence', cost: 1800, desc: 'Revive up to two recently fallen allies and heal everyone nearby.' },
   },
   {
-    id: 'pylon', name: 'PYLON', role: 'support', title: 'Field Engineer', hp: 225, armor: 0, speed: 5.3, radius: 0.42, height: 1.75,
-    colors: { primary: '#3aa046', secondary: '#373d44', accent: '#ffe14d', skin: '#8f6244' }, look: 'engineer',
+    id: 'serene', name: 'SERENE', role: 'support', sub: 'Medic', title: 'Biotic Marksman', hp: 200, armor: 0, speed: 5.3, radius: 0.4, height: 1.8,
+    colors: { primary: '#2f8f83', secondary: '#e9efe8', accent: '#f6c453', skin: '#7a5238' }, crit: { head: 2, chance: 0.03 }, voice: { pitch: 0.9, rate: 0.9, gender: 'f' },
+    rating: { damage: 2, survival: 2, mobility: 2, utility: 5, difficulty: 4 },
+    blurb: 'A doctor with a rifle and no time for second opinions. Serene heals from across the street and sleeps what she cannot cure.',
+    w1: { name: 'Biotic Rifle', kind: 'special', dmg: 70, heal: 75, rate: 1.2, ammo: 12, reload: 2.2, spread: 0.8, range: 110, head: 2, auto: false, tracer: '#9affc4', sound: 'rifle2' },
+    w2: { name: 'Scope', desc: 'Hold to zoom in for a steadier shot.' },
+    a1: { name: 'Sleep Dart', cd: 12, desc: 'Put an enemy to sleep for 3.5 s. Any damage wakes them.' },
+    a2: { name: 'Biotic Grenade', cd: 10, desc: 'Allies heal 80 and receive 50% more healing; enemies take 60 and cannot be healed for 4 s.' },
+    ult: { name: 'Nano Boost', cost: 1800, desc: 'Supercharge an ally: +50% damage and 50% less damage taken for 8 s.' },
+  },
+  {
+    id: 'pylon', name: 'PYLON', role: 'support', sub: 'Tactician', title: 'Field Engineer', hp: 225, armor: 0, speed: 5.3, radius: 0.42, height: 1.75,
+    colors: { primary: '#3aa046', secondary: '#373d44', accent: '#ffe14d', skin: '#8f6244' }, crit: { head: 2, chance: 0.04 }, voice: { pitch: 1.0, rate: 1.1, gender: 'n' },
+    rating: { damage: 2, survival: 3, mobility: 2, utility: 5, difficulty: 3 },
     blurb: 'Why carry a medkit when you can bolt a hospital to the floor? Pylon builds the fight she wants.',
     w1: { name: 'Rivet Pistol', kind: 'hitscan', dmg: 16, rate: 4.5, ammo: 16, reload: 1.8, spread: 1.2, range: 55, falloff: [25, 50, 0.5], head: 2, auto: false, tracer: '#ffec99', sound: 'pistol' },
     w2: { name: 'Repair Dart', cd: 3, desc: 'Lob a dart: heals an ally for 70, or stings an enemy for 20.' },
@@ -101,17 +214,41 @@ export const HEROES = [
     ult: { name: 'Overcharge Grid', cost: 1700, desc: 'Allies within 18 m deal +35% damage and take 30% less for 8 s.' },
   },
   {
-    id: 'zephyr', name: 'ZEPHYR', role: 'support', title: 'Sonic Courier', hp: 200, armor: 0, speed: 5.7, radius: 0.4, height: 1.75,
-    colors: { primary: '#e0409a', secondary: '#22183a', accent: '#59f0a8', skin: '#b87a56' }, look: 'sleek',
+    id: 'zephyr', name: 'ZEPHYR', role: 'support', sub: 'Tactician', title: 'Sonic Courier', hp: 200, armor: 0, speed: 5.7, radius: 0.4, height: 1.75,
+    colors: { primary: '#e0409a', secondary: '#22183a', accent: '#59f0a8', skin: '#b87a56' }, crit: { head: 1.5, chance: 0.05 }, voice: { pitch: 1.7, rate: 1.15, gender: 'f' },
+    rating: { damage: 2, survival: 3, mobility: 5, utility: 4, difficulty: 3 },
     blurb: 'The bass drops when Zephyr arrives. Switch the track and the whole squad moves to a new rhythm.',
     w1: { name: 'Sonic Shot', kind: 'hitscan', dmg: 15, rate: 8, ammo: 24, reload: 1.6, spread: 2.0, range: 50, falloff: [20, 45, 0.4], head: 1.5, auto: true, tracer: '#ff8fd0', sound: 'pistol' },
-    w2: { name: 'Track Switch', cd: 0.8, desc: 'Toggle your aura: Heal (12 HP/s) or Speed (+30%) for allies within 10 m.' },
+    w2: { name: 'Track Switch', cd: 0.8, desc: 'Toggle your aura: Heal (25 HP/s) or Speed (+30%) for allies within 10 m.' },
     a1: { name: 'Amp Pulse', cd: 6, desc: 'Blast a cone: 30 damage and a hard shove.' },
     a2: { name: 'Wall Dash', cd: 8, desc: 'Dash forward with a little lift.' },
-    ult: { name: 'Sound Barrier', cd: 0, cost: 1800, desc: 'Allies within 22 m gain a 300 point overshield that fades over 6 s.' },
+    ult: { name: 'Sound Barrier', cost: 1800, desc: 'Allies within 22 m gain a 300 point overshield that fades over 6 s.' },
+  },
+  {
+    id: 'cantor', name: 'CANTOR', role: 'support', sub: 'Tactician', title: 'Harmonic Monk', hp: 160, armor: 60, speed: 5.5, radius: 0.4, height: 1.8,
+    colors: { primary: '#e08a2d', secondary: '#f4ead2', accent: '#7ff0ff', skin: '#d8b48a' }, crit: { head: 1.5, chance: 0.05 }, voice: { pitch: 0.85, rate: 0.8, gender: 'm' },
+    rating: { damage: 3, survival: 2, mobility: 3, utility: 5, difficulty: 3 },
+    blurb: 'Calm in every storm, mostly because Cantor is the storm. Two orbs, one calm voice, a team that cannot lose.',
+    w1: { name: 'Discord Shard', kind: 'proj', dmg: 46, splash: 0, speed: 70, rate: 2.4, ammo: 20, reload: 1.9, radius: 0.25, color: '#7ff0ff', size: 0.16, auto: true, sound: 'orbit' },
+    w2: { name: 'Harmony Orb', cd: 0.6, desc: 'Bind an orb to an ally in view: heals 28 HP/s while it holds. Aim at a new ally to move it.' },
+    a1: { name: 'Discord Orb', cd: 6.5, desc: 'Curse an enemy in view: they take 25% more damage for 6 s.' },
+    a2: { name: 'Kick', cd: 5, desc: 'Point-blank strike: 45 damage and a hard knockback.' },
+    ult: { name: 'Transcendence', cost: 2200, desc: 'Rise beyond harm for 6 s, healing every ally within 16 m for 150 HP/s. You cannot move.' },
+  },
+  {
+    id: 'siphon', name: 'SIPHON', role: 'support', sub: 'Survivor', title: 'Biotic Drainer', hp: 225, armor: 0, speed: 5.5, radius: 0.42, height: 1.8,
+    colors: { primary: '#7a2a8a', secondary: '#1e1426', accent: '#9aff4a', skin: '#c9a0a0' }, crit: { head: 1, chance: 0.04 }, voice: { pitch: 1.05, rate: 0.95, gender: 'f' },
+    rating: { damage: 3, survival: 5, mobility: 4, utility: 3, difficulty: 3 },
+    blurb: 'Takes a little from every enemy and gives a lot to every friend. Siphon makes sure the math always works out in her favour.',
+    w1: { name: 'Drain Beam', kind: 'beam', dmg: 3.6, rate: 20, ammo: 100, reload: 2.0, range: 13, auto: true, heal: 0.5, color: '#c6ff6a', sound: 'beam' },
+    w2: { name: 'Healing Orb', cd: 8, desc: 'Lob an orb that bursts into a 5 s healing field: 40 HP/s to allies, you included.' },
+    a1: { name: 'Fade', cd: 7, desc: 'Phase out for 1.3 s: invulnerable, and you dash forward.' },
+    a2: { name: 'Decay Orb', cd: 12, desc: 'Lob a decay orb: enemies in its field take 35/s and you heal half of it.' },
+    ult: { name: 'Coalescence', cost: 2200, desc: 'Channel a beam for 5 s that wounds enemies (70/s) and heals allies (130/s) along its length.' },
   },
 ];
 export const HERO = Object.fromEntries(HEROES.map((h) => [h.id, h]));
+for (const h of HEROES) { h.crit ||= { head: 1.5, chance: 0.05 }; }
 
 // skins recolour the model; they are palette swaps of the hero's own colours
 export const SKINS = [
@@ -119,6 +256,8 @@ export const SKINS = [
   { id: 'frosted', name: 'FROSTED', map: (c) => ({ primary: '#e9f2fb', secondary: '#7ea8d6', accent: '#2aa9ff', skin: c.skin }) },
   { id: 'noir', name: 'NOIR', map: (c) => ({ primary: '#26282e', secondary: '#4a4e58', accent: c.accent, skin: c.skin }) },
   { id: 'gilded', name: 'GILDED', map: (c) => ({ primary: '#d4a93a', secondary: '#3b2f14', accent: '#fff2bf', skin: c.skin }) },
+  { id: 'neon', name: 'NEON', map: (c) => ({ primary: '#111827', secondary: c.accent, accent: '#ff3df2', skin: c.skin }) },
+  { id: 'crimson', name: 'CRIMSON', map: (c) => ({ primary: '#8d1b2d', secondary: '#2a0f14', accent: '#ffcf70', skin: c.skin }) },
 ];
 
 export const TEAM_COLORS = [
