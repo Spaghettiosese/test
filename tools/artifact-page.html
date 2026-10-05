@@ -1,0 +1,14 @@
+<title>SiegeForge</title>
+<link rel="stylesheet" href="src/siege/ui/siege.css">
+<style>
+  /* the game is one dark screen: pin the page colours so either host theme shows the same ground */
+  html, body { background: #000; color: #f4f6f8; }
+  .splash .touchnote { display: none; margin-top: 18px; color: #9aa2ab; font: 500 18px var(--body); }
+  @media (pointer: coarse) { .splash .touchnote { display: block; } }
+</style>
+<canvas id="stage"></canvas>
+<div id="ui"></div>
+<div class="lockhint" id="lockhint" hidden>Click to take control</div>
+<div class="scr splash" id="splash"><div><div id="splashEmblem"></div><h1>SiegeForge</h1><p>Tactical 5v5 siege · destructible walls · AI squads</p><div class="go">Click or press any key</div><div class="touchnote">Built for a keyboard and mouse; the menus work on touch, matches need a desktop.</div></div></div>
+<div id="fade"></div>
+<script type="module" src="src/siege/main.js"></script>

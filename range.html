@@ -137,7 +137,7 @@
 </style>
 </head>
 <body>
-<a class="back" href="index.html">&larr; SiegeForge menu</a>
+<a class="back" href="index.html" onclick="if (history.length > 1) { history.back(); return false; }">&larr; SiegeForge menu</a>
 <canvas class="stage" id="stage" aria-label="First-person shooting range"></canvas>
 <div class="hud xhair" id="xhair"><i></i><i></i><i></i><i></i><b></b></div>
 <div class="hud hitmark" id="hitmark"><i></i><i></i></div>

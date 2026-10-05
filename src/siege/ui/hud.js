@@ -46,7 +46,8 @@ export class Hud {
   // ---------------------------------------------------------------- one-time per-round wiring
   bind(game) {
     this.game = game; const sim = game.sim, me = game.playerActor; this.me = me; this.sim = sim;
-    this.q('hFeed').innerHTML = ''; this.q('hCall').innerHTML = ''; this.q('hBanner').innerHTML = ''; this.lastTop = '';
+    for (const id of ['hFeed', 'hCall', 'hBanner', 'hBr', 'hBl', 'hHp', 'hDial']) this.q(id).innerHTML = '';
+    this.lastTop = ''; this.lastBr = ''; this.lastBl = ''; this.lastHp = ''; this.dialKey = '';
     const feed = (html, cls = '') => { const f = this.q('hFeed'), d = document.createElement('div'); d.className = cls; d.innerHTML = html; f.prepend(d); setTimeout(() => d.remove(), 6200); while (f.children.length > this.feedMax) f.lastChild.remove(); };
     const nm = (a) => `<span style="color:${a.team === 'atk' ? '#7cc7ff' : '#ff9086'}">${a.name}</span>`;
     sim.on('death', (e) => {
@@ -115,8 +116,8 @@ export class Hud {
     const sim = this.sim, r = sim.round, me = this.me;
     const slots = (team) => sim.team(team).map((a) => {
       const known = !me || a.team === me.team || !a.alive || a.status.tag > 0 || sim.round.bomb.state !== 'idle' || a.stats.kills > 0 || true;
-      const cls = (a.dead ? 'dead ' : a.downed ? 'down ' : '') + (a === me ? 'me ' : '') + ((me && a.team === me.team) || a.dead ? 'has' : '');
-      return `<div class="slot ${cls}">${(me && a.team === me.team) || a.dead ? opIcon(a.op) : '?'}</div>`;
+      const cls = (a.dead ? 'dead ' : a.downed ? 'down ' : '') + (a === me ? 'me ' : '') + (!me || a.team === me.team || a.dead ? 'has' : '');
+      return `<div class="slot ${cls}">${!me || a.team === me.team || a.dead ? opIcon(a.op) : '?'}</div>`;
     }).join('');
     const sc = match ? match.sideScores(sim) : { atk: 0, def: 0 };
     const time = r.phase === 'prep' ? fmt(r.t) : r.phase === 'end' ? '0:00' : fmt(r.t);
@@ -147,7 +148,8 @@ export class Hud {
     this.q('hDial').innerHTML = `<div class="t1">${l1}</div><div class="t2">${room}</div><svg viewBox="0 0 200 110"><path d="${arc(0, Math.PI, 80)}" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="18"/><path d="${arc(Math.PI, 2 * Math.PI, 80)}" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="14"/><path d="${arc(top0, Math.max(top0 + 0.01, filled), 80)}" fill="none" stroke="#bfe3ff" stroke-width="14"/><path d="M${px.toFixed(1)} ${py.toFixed(1)}L${qx.toFixed(1)} ${qy.toFixed(1)}L${sx.toFixed(1)} ${sy.toFixed(1)}z" fill="#fff" stroke="#000" stroke-width="1.5"/><circle cx="100" cy="100" r="3" fill="#fff"/></svg>`;
   }
   updateWeapons() {
-    const me = this.me, p = this.game.player; if (!me) return;
+    const me = this.me, p = this.game.player;
+    if (!me) { const t = this.game.followActor, html = `<div class="k" style="font-size:22px">OBSERVING ${t ? t.name + ' · ' + t.op.name : ''}</div><div class="k hint" style="font-size:16px">Space / arrows: next player · 1 2 3: speed · Esc: leave</div>`; if (html !== this.lastBl) { this.q('hBl').innerHTML = html; this.lastBl = html; } return; }
     const rows = me.guns.map((g, i) => {
       const sel = me.gsel < 0 && me.cur === i;
       return `<div class="wslot ${i ? 's' : ''} ${sel ? 'sel' : ''}">${weaponIcon(g.def.cls)}<span class="am">${g.mag}<small>${g.reserve}</small></span></div>`;
