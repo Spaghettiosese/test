@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Siege world preview</title>
+<style>html,body{margin:0;background:#111}canvas{display:block;width:100vw;height:100vh}</style>
+<canvas id="c"></canvas>
+<script type="module">
+import * as E from '../engine/index.js';
+import { HARBOR } from '../src/siege/data/harbor.js';
+import { buildMap } from '../src/siege/world/mapbuild.js';
+import { WorldMesher } from '../src/siege/world/mesher.js';
+import { MaterialLib } from '../src/siege/world/materials.js';
+const renderer = new E.Renderer(document.getElementById('c'));
+renderer.settings.ssr = false; renderer.settings.volumetrics = false; renderer.settings.contactShadows = false;
+const scene = new E.Scene(), env = scene.environment;
+const q = new URLSearchParams(location.search);
+E.applyTimeOfDay(env, +(q.get('tod') || 15.2));
+env.fogDensity = 0.002; env.shadowRadius = 40; env.shadowFar = 120; env.volumetric = 0;
+const map = buildMap(HARBOR), lib = new MaterialLib();
+const mesher = new WorldMesher(map.world, lib, scene);
+let t0 = performance.now(); mesher.buildAll(); mesher.buildStatics(map.statics);
+window.buildMs = performance.now() - t0;
+// ground plane
+const gm = new E.Mesh(E.plane({ width: 400, depth: 400 }), lib.get('floor:ground'), 'ground'); gm.position.set([HARBOR.W / 2, -0.03, HARBOR.D / 2]); gm.castShadow = false; scene.add(gm);
+for (const l of map.lights) { const L = new E.Light('point', { color: l.color, intensity: l.intensity, range: l.range }); L.position.set(l.pos); scene.add(L); }
+const camera = new E.Camera(); camera.near = 0.05; camera.far = 400;
+window.show = (s) => {
+  camera.position.set(s.pos); camera.target.set(s.target); camera.fov = (s.fov || 70) * E.DEG;
+  env.shadowCenter = s.target;
+  for (let i = 0; i < 2; i++) renderer.render(scene, camera, { background: 'sky' });
+  return { tris: renderer.stats.triangles, draws: renderer.stats.drawCalls, chunks: mesher.chunks.size };
+};
+window.ready = true;
+</script>
