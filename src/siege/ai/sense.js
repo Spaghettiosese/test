@@ -81,6 +81,7 @@ export class Sense {
       this.lastNoise = n.id;
       if (n.src === a || a.status.deaf > 0.5) continue;
       const mine = n.team === a.team;
+      if (mine && n.decoy) continue; // our own speaker: nobody on our side is fooled by it
       const d = dist3(head, n.pos); let eff = n.loud * this.prof.hearing * (a.status.deaf > 0 ? 0.25 : 1);
       if (d > eff * 1.05) continue;
       // each wall between us eats a chunk of the sound

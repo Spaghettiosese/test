@@ -5,7 +5,7 @@ import { GADGETS } from '../data/gadgets.js';
 import { MATS, STOREY, CAST } from '../world/grid.js';
 import { clamp, dirOf, dist3, norm, raySphere, scl, add, sub, dot, len } from './util.js';
 
-let DEV_ID = 1;
+let DEV_ID = 1, FIRE_ID = 5e6;
 export class Device {
   constructor(o) {
     Object.assign(this, { id: DEV_ID++, kind: 'x', owner: null, team: 'atk', pos: [0, 0, 0], n: [0, 1, 0], panel: null, hp: 30, age: 0, armed: false, active: true, jammed: 0, dead: false, data: {}, radius: 0.22 }, o);
@@ -17,8 +17,9 @@ export class Device {
 const MOUNT = {
   thermite: 'wall', breach: 'wallhatch', cluster: 'wallhatch', claymore: 'any', edd: 'wall', mat: 'floor', barbwire: 'floor', jammer: 'any', cams: 'wall', dshield: 'floor', turret: 'floor',
   shockwire: 'wall', mines: 'floor', healstation: 'floor', alarm: 'any', armorpanel: 'opening', shockdrone: 'floor', armorpack: 'floor',
+  decoy: 'floor', supply: 'floor', firemine: 'floor', flashmine: 'floor', sensor: 'floor', fogger: 'floor',
 };
-const HP = { thermite: 25, breach: 20, cluster: 20, claymore: 25, edd: 20, mat: 40, barbwire: 40, jammer: 40, cams: 22, dshield: 140, turret: 70, shockwire: 40, mines: 25, healstation: 30, alarm: 20, armorpanel: 700, shockdrone: 30, armorpack: 10 };
+const HP = { thermite: 25, breach: 20, cluster: 20, claymore: 25, edd: 20, mat: 40, barbwire: 40, jammer: 40, cams: 22, dshield: 140, turret: 70, shockwire: 40, mines: 25, healstation: 30, alarm: 20, armorpanel: 700, shockdrone: 30, armorpack: 10, decoy: 20, supply: 70, firemine: 25, flashmine: 25, sensor: 30, fogger: 25 };
 
 export class Devices {
   constructor(sim) { this.sim = sim; this.list = []; this.proj = []; this.fire = []; this.gas = []; this.drones = []; this.flashes = []; }
@@ -34,7 +35,7 @@ export class Devices {
       case 'throw': return this.throwIt(a, id, opts);
       case 'device': return this.placeLooking(a, id, opts);
       case 'melee': return this.melee(a);
-      case 'dart': return this.dart(a, id);
+      case 'dart': return this.dart(a, id, opts);
       default: return { ok: false, msg: def.name };
     }
   }
@@ -43,8 +44,8 @@ export class Devices {
   // ------------------------------------------------------------------ throwables
   throwIt(a, id, opts = {}) {
     const o = a.eye(), d = opts.dir || a.look(), sp = opts.speed ?? 11;
-    const kind = { frag: 'frag', stun: 'stun', bangs: 'stun', smoke: 'smoke', cinders: 'smoke', impact: 'impact', sonar: 'sonar', nitro: 'nitro' }[id] || id;
-    this.proj.push({ kind, owner: a, team: a.team, pos: add(o, scl(d, 0.5)), vel: [d[0] * sp + a.vel[0] * 0.5, d[1] * sp + 2.2 + a.vel[1] * 0.3, d[2] * sp + a.vel[2] * 0.5], fuse: { frag: 2.6, stun: 1.8, smoke: 1.2, impact: 9, sonar: 1.5, nitro: 99 }[kind] || 2, t: 0, stuck: false, id: DEV_ID++, bounces: 0 });
+    const kind = { frag: 'frag', stun: 'stun', bangs: 'stun', smoke: 'smoke', cinders: 'smoke', impact: 'impact', sonar: 'sonar', nitro: 'nitro', emp: 'emp' }[id] || id;
+    this.proj.push({ kind, owner: a, team: a.team, pos: add(o, scl(d, 0.5)), vel: [d[0] * sp + a.vel[0] * 0.5, d[1] * sp + 2.2 + a.vel[1] * 0.3, d[2] * sp + a.vel[2] * 0.5], fuse: { frag: 2.6, stun: 1.8, smoke: 1.2, impact: 9, sonar: 1.5, nitro: 99, emp: 1.5 }[kind] || 2, t: 0, stuck: false, id: DEV_ID++, bounces: 0 });
     this.consume(a, id); this.sim.emit('throw', { actor: a, kind }); this.sim.noise(o, 8, 'throw', a);
     return { ok: true };
   }
@@ -53,6 +54,10 @@ export class Devices {
     for (const p of this.proj) {
       if (p.dead) continue;
       p.t += dt; p.fuse -= dt;
+      if (p.kind === 'glround') { // an explosive round goes off against whoever it hits
+        let hit = false; for (const t of this.sim.actors) { if (t.team === p.team || !(t.alive || t.downed) || t.mode === 'drone') continue; if (dist3([t.pos[0], t.pos[1] + 0.9, t.pos[2]], p.pos) < 0.55 && Math.abs(t.pos[1] + 0.9 - p.pos[1]) < 1.0) { hit = true; break; } }
+        if (hit) { this.detonate(p); continue; }
+      }
       if (!p.stuck) {
         p.vel[1] -= 9.81 * dt;
         const sp = len(p.vel) * dt;
@@ -60,7 +65,7 @@ export class Devices {
           const dir = scl(p.vel, 1 / (sp / dt)), h = w.cast(p.pos[0], p.pos[1], p.pos[2], dir[0], dir[1], dir[2], sp + 0.05, 0);
           if (h && h.t <= sp + 0.05) {
             const n = [h.nx, h.ny, h.nz], vn = dot(p.vel, n);
-            if (p.kind === 'impact') { this.detonate(p); continue; }
+            if (p.kind === 'impact' || p.kind === 'glround') { this.detonate(p); continue; }
             if (p.kind === 'nitro' || p.kind === 'launcher' || p.kind === 'xpellet' || p.kind === 'stickyfrag') {
               p.stuck = true; p.pos = [h.x + n[0] * 0.04, h.y + n[1] * 0.04, h.z + n[2] * 0.04]; p.n = n; p.panel = h.panel; p.vel = [0, 0, 0];
               if (p.kind === 'launcher') p.fuse = p.data?.delay ?? 1.4; if (p.kind === 'xpellet') p.fuse = 2.2;
@@ -85,6 +90,8 @@ export class Devices {
     switch (p.kind) {
       case 'frag': s.explode(p.pos, { radius: 4.6, dmg: 150, power: 140, src: o, kind: 'frag' }); break;
       case 'impact': s.explode(p.pos, { radius: 3.2, dmg: 90, power: 320, src: o, kind: 'impact' }); break;
+      case 'glround': s.explode(p.pos, { radius: 3.4, dmg: 85, power: 210, src: o, kind: 'impact' }); break;
+      case 'emp': this.emp(p.pos, o); break;
       case 'nitro': s.explode(p.pos, { radius: 4.2, dmg: 190, power: 650, src: o, kind: 'nitro' }); break;
       case 'launcher': s.explode(p.pos, { radius: 2.8, dmg: 30, power: 520, src: o, kind: 'breach' }); break;
       case 'xpellet': this.burnPanel(p, o); break;
@@ -123,9 +130,17 @@ export class Devices {
     this.sim.emit('sonar', { pos });
   }
 
-  // ------------------------------------------------------------------ darts (launcher, X-pellets, stim)
-  dart(a, id) {
-    const o = a.eye(), d = a.look();
+  // a pulse that shuts down every enemy gadget around it for a while
+  emp(pos, src) {
+    let n = 0;
+    for (const d of this.list) { if (d.dead || d.team === src.team || dist3(d.pos, pos) > 8) continue; d.jammed = Math.max(d.jammed, 12); n++; }
+    for (const dr of this.drones) if (!dr.dead && dr.team !== src.team && dist3(dr.pos, pos) < 8) { dr.jam = Math.max(dr.jam || 0, 12); n++; }
+    for (const a of this.sim.actors) if (a.team !== src.team && a.alive && dist3(a.pos, pos) < 6) a.applyStatus('jam', 4);
+    this.sim.emit('emp', { pos, src, hit: n }); this.sim.noise(pos, 40, 'throw', src);
+  }
+  // ------------------------------------------------------------------ darts (launcher, X-pellets, stim, grenade launcher)
+  dart(a, id, opts = {}) {
+    const o = a.eye(), d = opts.dir || a.look();
     if (id === 'stimpistol') {
       const h = this.sim.world.cast(o[0], o[1], o[2], d[0], d[1], d[2], 14, CAST.GLASS);
       let best = null, bt = h ? h.t : 14;
@@ -141,8 +156,8 @@ export class Devices {
       this.sim.emit('stim', { actor: a, target: tgt });
       return { ok: true };
     }
-    const kind = id === 'launcher' ? 'launcher' : 'xpellet';
-    this.proj.push({ kind, owner: a, team: a.team, pos: add(o, scl(d, 0.6)), vel: scl(d, 28), fuse: 99, t: 0, stuck: false, id: DEV_ID++, bounces: 0, data: {} });
+    const kind = id === 'launcher' ? 'launcher' : id === 'gl' ? 'glround' : 'xpellet';
+    this.proj.push({ kind, owner: a, team: a.team, pos: add(o, scl(d, 0.6)), vel: scl(d, kind === 'glround' ? 24 : 28), fuse: kind === 'glround' ? 3.5 : 99, t: 0, stuck: false, id: DEV_ID++, bounces: 0, data: {} });
     this.consume(a, id); this.sim.emit('throw', { actor: a, kind }); this.sim.noise(o, 35, 'shot', a);
     return { ok: true };
   }
@@ -212,7 +227,9 @@ export class Devices {
     if (this.list.filter((d) => !d.dead && d.owner === a && d.kind === id).length >= (GADGETS[id].count || 3) + 2) return { ok: false, msg: 'Too many placed' };
     const dev = new Device({ kind: id, owner: a, team: a.team, pos: p, n: [...n], panel: panel && panel.ax ? panel : null, hp: HP[id] || 25, data: { yaw: a.yaw }, active: true });
     if (id === 'shockwire' && panel) { for (const q of this.world.units.get(panel.unit) || [panel]) q.shock = true; dev.data.unit = panel.unit; }
-    if (id === 'mat' || id === 'mines' || id === 'alarm' || id === 'claymore' || id === 'edd' || id === 'barbwire' || id === 'turret' || id === 'healstation' || id === 'jammer') dev.armed = true;
+    if (['mat', 'mines', 'alarm', 'claymore', 'edd', 'barbwire', 'turret', 'healstation', 'jammer', 'decoy', 'supply', 'firemine', 'flashmine', 'sensor', 'fogger'].includes(id)) dev.armed = true;
+    if (id === 'decoy') dev.data = { ...dev.data, life: 10, step: 0, shot: 1.2 };
+    if (id === 'supply') dev.data = { ...dev.data, uses: 3 };
     if (id === 'edd') dev.data.ax = Math.abs(n[0]) > 0.5 ? 'z' : 'x';
     if (id === 'dshield' || id === 'barbwire') this.addProp(dev, id);
     if (id === 'turret') dev.data = { ...dev.data, aim: a.yaw, cd: 0, target: null };
@@ -344,9 +361,15 @@ export class Devices {
         case 'mines': for (const a of enemies) if (a.grounded && Math.hypot(a.pos[0] - d.pos[0], a.pos[2] - d.pos[2]) < 0.6 && Math.abs(a.pos[1] - d.pos[1]) < 0.6) { this.gas.push({ pos: [d.pos[0], d.pos[1] + 0.5, d.pos[2]], r: 2.6, t: 7, owner: d.owner, team: d.team }); sim.emit('gas', { pos: d.pos }); this.kill(d, null); a.gasSrc = d.owner; break; } break;
         case 'claymore': case 'edd': if (d.jammed <= 0) this.tripwire(d, enemies); break;
         case 'healstation': for (const a of sim.actors) if (a.team === d.team && a.alive && dist3(a.pos, d.pos) < 3.2) a.applyStatus('heal', 0.3); d.data.life = (d.data.life ?? 14) - dt; if (d.data.life <= 0) this.kill(d, null); break;
-        case 'jammer': for (const o of this.list) if (!o.dead && o.team !== d.team && o.kind !== 'mat' && dist3(o.pos, d.pos) < 9 && (o.kind === 'cams' || o.kind === 'shockdrone' || o.kind === 'breach' || o.kind === 'cluster')) o.jammed = 0.3; for (const dr of this.drones) if (!dr.dead && dr.team !== d.team && dist3(dr.pos, d.pos) < 9) dr.jam = 0.3; for (const a of enemies) if (dist3(a.pos, d.pos) < 9) a.status.jam = Math.max(a.status.jam, 0.3); break;
+        case 'jammer': if (d.jammed > 0) break; for (const o of this.list) if (!o.dead && o.team !== d.team && o.kind !== 'mat' && dist3(o.pos, d.pos) < 9 && (o.kind === 'cams' || o.kind === 'shockdrone' || o.kind === 'breach' || o.kind === 'cluster')) o.jammed = 0.3; for (const dr of this.drones) if (!dr.dead && dr.team !== d.team && dist3(dr.pos, d.pos) < 9) dr.jam = 0.3; for (const a of enemies) if (dist3(a.pos, d.pos) < 9) a.status.jam = Math.max(a.status.jam, 0.3); break;
         case 'turret': this.turretStep(d, enemies, dt); break;
-        case 'shockwire': for (const a of enemies) if (d.panel && !d.panel.dead) { const c = w.panelCenter(d.panel); if (dist3(a.pos, [c[0], a.pos[1], c[2]]) < 0.95 && Math.abs(a.pos[1] + 0.9 - c[1]) < 1.6) { a.applyStatus('shock', 0.5); a.hurt(10 * dt, { src: d.owner, region: 'torso', ignoreArmor: true, quiet: true }); } } for (const o of this.list) if (!o.dead && o.team !== d.team && (o.kind === 'thermite' || o.kind === 'breach' || o.kind === 'cluster') && o.panel === d.panel) this.kill(o, d.owner); break;
+        case 'decoy': this.decoyStep(d, dt); break;
+        case 'supply': this.supplyStep(d, dt); break;
+        case 'firemine': if (d.jammed <= 0) for (const a of enemies) if (a.grounded && Math.hypot(a.pos[0] - d.pos[0], a.pos[2] - d.pos[2]) < 0.75 && Math.abs(a.pos[1] - d.pos[1]) < 0.7) { this.fire.push({ id: ++FIRE_ID, pos: [d.pos[0], d.pos[1] + 0.1, d.pos[2]], r: 2.5, t: 7, owner: d.owner, team: d.team, tick: 0 }); sim.emit('burn', { pos: d.pos }); sim.noise(d.pos, 30, 'burn', d.owner); sim.emit('trap', { device: d, victim: a }); this.kill(d, null); break; } break;
+        case 'flashmine': if (d.jammed <= 0) for (const a of enemies) if (a.grounded && Math.hypot(a.pos[0] - d.pos[0], a.pos[2] - d.pos[2]) < 1.1 && Math.abs(a.pos[1] - d.pos[1]) < 0.7) { const p = [d.pos[0], d.pos[1] + 0.5, d.pos[2]]; this.flash(p, d.owner, 11, true); sim.emit('flashbang', { pos: p }); sim.noise(p, 90, 'explosion', d.owner); sim.emit('trap', { device: d, victim: a }); this.kill(d, null); break; } break;
+        case 'fogger': if (d.jammed <= 0) for (const a of enemies) if (a.grounded && Math.hypot(a.pos[0] - d.pos[0], a.pos[2] - d.pos[2]) < 2.4 && Math.abs(a.pos[1] - d.pos[1]) < 1.2) { this.world.smoke.push({ x: d.pos[0], y: d.pos[1] + 0.8, z: d.pos[2], r: 3.4, t: 14, density: 1, max: 14 }); sim.emit('smoke', { pos: d.pos }); sim.noise(d.pos, 20, 'throw', d.owner); this.kill(d, null); break; } break;
+        case 'sensor': if (d.jammed <= 0) { d.data.t = (d.data.t || 0) - dt; if (d.data.t <= 0) { d.data.t = 1.2; for (const a of enemies) { if (dist3(a.pos, d.pos) > 11 || a.stance !== 0 || Math.hypot(a.vel[0], a.vel[2]) < 1.4) continue; a.applyStatus('tag', 3); sim.emit('sensor', { device: d, victim: a }); } } } break;
+        case 'shockwire': if (d.jammed <= 0) for (const a of enemies) if (d.panel && !d.panel.dead) { const c = w.panelCenter(d.panel); if (dist3(a.pos, [c[0], a.pos[1], c[2]]) < 0.95 && Math.abs(a.pos[1] + 0.9 - c[1]) < 1.6) { a.applyStatus('shock', 0.5); a.hurt(10 * dt, { src: d.owner, region: 'torso', ignoreArmor: true, quiet: true }); } } for (const o of this.list) if (!o.dead && o.team !== d.team && (o.kind === 'thermite' || o.kind === 'breach' || o.kind === 'cluster') && o.panel === d.panel) this.kill(o, d.owner); break;
         case 'armorpack': for (const a of sim.actors) if (a.team === d.team && a.alive && dist3(a.pos, d.pos) < 1.3 && a.armorPlates < 2) { a.armorPlates++; this.kill(d, null); break; } break;
         default: break;
       }
@@ -358,6 +381,13 @@ export class Devices {
       for (const a of sim.actors) if (a.alive && a.team !== g.team && dist3(a.chestPos(), g.pos) < g.r) a.applyStatus('gas', 1.2);
     }
     this.gas = this.gas.filter((g) => g.t > 0);
+    // burning patches
+    for (const f of this.fire) {
+      f.t -= dt; f.tick -= dt; const pulse = f.tick <= 0; if (pulse) f.tick = 0.5;
+      for (const a of sim.actors) if (a.alive && a.team !== f.team && Math.hypot(a.pos[0] - f.pos[0], a.pos[2] - f.pos[2]) < f.r && Math.abs(a.pos[1] + 0.4 - f.pos[1]) < 1.8) { a.applyStatus('burn', 0.6); a.hurt(20 * dt, { src: f.owner, region: 'legs', quiet: true, ignoreArmor: true }); }
+      if (pulse) sim.emit('burn', { pos: [f.pos[0] + (sim.rand() - 0.5) * f.r, f.pos[1], f.pos[2] + (sim.rand() - 0.5) * f.r] });
+    }
+    this.fire = this.fire.filter((f) => f.t > 0);
     for (const s of this.world.smoke) s.t -= dt;
     this.world.smoke = this.world.smoke.filter((s) => s.t > 0);
     this.flashes = this.flashes.filter((f) => (f.t -= dt) > 0);
@@ -392,6 +422,29 @@ export class Devices {
         d.dead = true; a.hurt(45, { src: d.owner, region: 'torso', ignoreArmor: true }); a.applyStatus('shock', 4); a.applyStatus('stun', 3); a.applyStatus('slow', 4);
         this.sim.emit('trap', { device: d, victim: a }); this.sim.noise(d.pos, 40, 'alarm', d.owner); return;
       }
+    }
+  }
+  // the speaker: footsteps now and then and a burst of gunfire, all of it coming from the owner as far as the other side can tell
+  decoyStep(d, dt) {
+    const t = d.data, sim = this.sim; t.life -= dt;
+    if (d.jammed <= 0) {
+      t.step -= dt; t.shot -= dt;
+      if (t.step <= 0) { t.step = 0.55 + sim.rand() * 0.25; sim.noise([d.pos[0], d.pos[1] + 0.2, d.pos[2]], 20, 'step', d.owner, { decoy: true }); }
+      if (t.shot <= 0) { t.shot = 2.4 + sim.rand() * 1.4; sim.noise([d.pos[0], d.pos[1] + 1.2, d.pos[2]], 55, 'shot', d.owner, { decoy: true }); sim.emit('decoyshot', { device: d }); }
+    }
+    if (t.life <= 0) this.kill(d, null);
+  }
+  // a crate of ammunition and plates: anyone on the owner's side standing at it takes what they need, three times over
+  supplyStep(d, dt) {
+    const t = d.data; if (d.jammed > 0) return;
+    for (const a of this.sim.actors) {
+      if (!a.alive || a.team !== d.team || Math.hypot(a.pos[0] - d.pos[0], a.pos[2] - d.pos[2]) > 1.5 || Math.abs(a.pos[1] - d.pos[1]) > 1.2) continue;
+      const lowAmmo = a.guns.some((g) => g.reserve < g.def.mag * g.def.reserve * 0.99), hurt = a.hp < a.maxHp - 5, naked = a.armorPlates < 2;
+      if (!(lowAmmo || hurt || naked)) continue;
+      const key = 'u' + a.id; t[key] = (t[key] || 0) - dt; if (t[key] > 0) continue; t[key] = 3;
+      for (const g of a.guns) g.reserve = g.def.mag * g.def.reserve;
+      a.armorPlates = Math.max(a.armorPlates, Math.min(2, a.armorPlates + 1)); a.applyStatus('heal', 1.2);
+      this.sim.emit('supplyuse', { device: d, actor: a }); if (--t.uses <= 0) { this.kill(d, null); return; }
     }
   }
   turretStep(d, enemies, dt) {

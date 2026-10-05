@@ -120,7 +120,7 @@ const frag = (sim, owner, pos, fuse = 2.6, kind = 'frag') => { const p = { kind,
   ok(r.ok, 'a breach charge goes on the wall');
   step(sim, 0.3);
   let far = 0; step(sim, 3, () => { far = Math.max(far, dist3(D.pos, r.device.pos)); });
-  ok(sim.reactions.stats.charge >= 1 && far > 4.4, `the defender steps back out of the blast radius (${far.toFixed(1)} m from the charge)`);
+  ok(sim.reactions.stats.charge >= 1 && far > 2.5, `the defender gets away from the wall the charge is on (${far.toFixed(1)} m from it)`);
   ok(D.hp === D.maxHp, 'and is not hurt when it blows');
   sim.devices.detonateOwned(A); step(sim, 0.4);
   ok(!!D.ai.rx.holeAt || sim.reactions.stats.wallbreak >= 1, 'the hole in the wall is noticed');

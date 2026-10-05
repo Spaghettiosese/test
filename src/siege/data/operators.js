@@ -1,4 +1,4 @@
-// The roster: fourteen attackers and fourteen defenders, each with a signature gadget, stats,
+// The roster: nineteen attackers and nineteen defenders, each with a signature gadget, stats,
 // a loadout menu and a look for the 3D model. The operators are original characters; their
 // roles follow the familiar attack/defence archetypes (breacher, anchor, intel, support...).
 //   speed 1-3 (armour = 4 - speed): speed 1 = 125 hp / slow, speed 3 = 100 hp / quick
@@ -42,6 +42,16 @@ export const OPERATORS = [
   op('torch', 'atk', 'TORCH', 'HALBERD', 'Silent breacher', 3, 3, 'torch', L(['ak47', 'm4a1', 'svd'], ['deagle', 'm45'], ['stun', 'breach']),
     { skin: '#b9845a', uni: '#524a38', trim: '#27231a', head: 'cap', headColor: '#6a5a40', mask: null, glasses: true, pack: 'tank', stripe: '#ff8030' }),
 
+  op('surge', 'atk', 'SURGE', 'OBSIDIAN', 'Gadget breaker', 2, 3, 'emp', L(['mp7', 'r4c', 'aug'], ['compact', 'magnum'], ['smoke', 'claymore']),
+    { skin: '#b98a62', uni: '#2c3640', trim: '#161c22', head: 'helmet', headColor: '#1f2a33', mask: '#222', glasses: true, pack: 'radio', stripe: '#5ad0ff', visor: true }),
+  op('phantom', 'atk', 'PHANTOM', 'TIDEWATCH', 'Sound decoy', 2, 3, 'decoy', L(['mpk', 'mp5', 'lever'], ['compact', 'm45'], ['stun', 'smoke']),
+    { skin: '#e2b896', uni: '#3a4a52', trim: '#1c262b', head: 'hood', headColor: '#27353b', mask: '#1e1e1e', glasses: false, pack: 'radio', stripe: '#9ae0ff' }),
+  op('whisper', 'atk', 'WHISPER', 'KESTREL', 'Silent flanker', 3, 3, 'silentstep', L(['aug', 'svd', 'mp5'], ['compact', 'magnum'], ['stun', 'frag']),
+    { skin: '#7c5233', uni: '#2e332e', trim: '#171a17', head: 'balaclava', headColor: '#1b1e1b', mask: null, glasses: true, pack: 'none', stripe: '#8aa68a' }),
+  op('mule', 'atk', 'MULE', 'IRONGUARD', 'Supply carrier', 1, 1, 'supply', L(['ak47', 'pump', 'l7'], ['deagle', 'compact'], ['frag', 'smoke']),
+    { skin: '#c99a70', uni: '#55493a', trim: '#2a241c', head: 'helmet', headColor: '#463d30', mask: null, glasses: false, pack: 'bags', stripe: '#d4b45a' }),
+  op('havoc', 'atk', 'HAVOC', 'HALBERD', 'Grenadier', 2, 2, 'gl', L(['m4a1', 'ak74', 'l7'], ['magnum', 'm45'], ['breach', 'smoke']),
+    { skin: '#b17b55', uni: '#4a3d34', trim: '#241d18', head: 'cap', headColor: '#3a2f27', mask: '#262626', glasses: true, pack: 'bags', stripe: '#e06a30' }),
   // ===================================================================== DEFENDERS
   op('anvil', 'def', 'ANVIL', 'NORTHWATCH', 'Door anchor', 1, 1, 'armorpanel', L(['mpk', 'pump', 'd12'], ['magnum', 'deagle'], ['barbwire', 'impact']),
     { skin: '#d9a47c', uni: '#35465a', trim: '#1c2430', head: 'helmet', headColor: '#27323f', mask: null, glasses: false, pack: 'none', stripe: '#d04040' }),
@@ -71,6 +81,16 @@ export const OPERATORS = [
     { skin: '#c7916a', uni: '#4a6a6a', trim: '#263636', head: 'headband', headColor: '#d8e0d0', mask: null, glasses: false, pack: 'medic', stripe: '#70ffc0' }),
   op('mason', 'def', 'MASON', 'IRONGUARD', 'Reinforcement master', 2, 2, 'extrareinforce', L(['pump', 'm4a1'], ['deagle', 'magnum'], ['barbwire', 'dshield']),
     { skin: '#d4a57c', uni: '#524a40', trim: '#28241e', head: 'helmet', headColor: '#3d372e', mask: null, glasses: false, pack: 'bags', stripe: '#c0a070' }),
+  op('blaze', 'def', 'BLAZE', 'ASHFORD', 'Fire trapper', 2, 2, 'firemine', L(['mp5', 'pump', 'ak74'], ['magnum', 'compact'], ['barbwire', 'impact']),
+    { skin: '#c28a62', uni: '#5a3a2c', trim: '#2b1b14', head: 'gasmask', headColor: '#3b2b22', mask: '#40302a', glasses: false, pack: 'tank', stripe: '#ff7a20' }),
+  op('glare', 'def', 'GLARE', 'TIDEWATCH', 'Flash trapper', 3, 3, 'flashmine', L(['mpk', 'mp7', 'pdw9'], ['compact', 'm45'], ['alarm', 'impact']),
+    { skin: '#e4bf9e', uni: '#2f4b57', trim: '#17262c', head: 'headband', headColor: '#f0f0f0', mask: null, glasses: true, pack: 'none', stripe: '#fff08a' }),
+  op('seismic', 'def', 'SEISMIC', 'VANGUARD', 'Listening post', 2, 2, 'sensor', L(['r4c', 'm4a1', 'aug'], ['deagle', 'compact'], ['barbwire', 'alarm']),
+    { skin: '#a37550', uni: '#3a4e42', trim: '#1c2a22', head: 'beret', headColor: '#2f4a3a', mask: null, glasses: true, pack: 'radio', stripe: '#7ad0a0' }),
+  op('fog', 'def', 'FOG', 'NORTHWATCH', 'Smoke trapper', 2, 2, 'fogger', L(['pdw9', 'mp7', 'lever'], ['compact', 'magnum'], ['impact', 'barbwire']),
+    { skin: '#d8ac88', uni: '#4a5260', trim: '#262b33', head: 'hood', headColor: '#394049', mask: '#2a2a2a', glasses: false, pack: 'none', stripe: '#b8c0cc' }),
+  op('depot', 'def', 'DEPOT', 'IRONGUARD', 'Quartermaster', 1, 1, 'supply', L(['ak47', 'coach', 'd12'], ['deagle', 'magnum'], ['barbwire', 'dshield']),
+    { skin: '#8a603e', uni: '#4e4638', trim: '#252018', head: 'helmet', headColor: '#3c362b', mask: null, glasses: false, pack: 'bags', stripe: '#c8b070' }),
 ];
 export const OPS_BY_ID = Object.fromEntries(OPERATORS.map((o) => [o.id, o]));
 export const attackers = OPERATORS.filter((o) => o.side === 'atk');

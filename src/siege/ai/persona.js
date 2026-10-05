@@ -39,11 +39,13 @@ const ATK = {
   hammer: ['breacher', 'fragger'], thermite: ['breacher'], cluster: ['breacher', 'support'], xpellet: ['breacher', 'lurker'], launcher: ['breacher'], torch: ['breacher', 'lurker'],
   shield: ['point'], flashshield: ['point', 'support'], scanner: ['intel'], sonar: ['intel', 'lurker'], shockdrone: ['intel', 'fragger'],
   bangs: ['support', 'fragger'], cinders: ['support', 'lurker'], stimpistol: ['medic'],
+  emp: ['support', 'intel'], decoy: ['lurker', 'support'], silentstep: ['lurker'], supply: ['medic', 'support'], gl: ['fragger', 'breacher'],
 };
 const DEF = {
   armorpanel: ['anchor'], dshield: ['anchor'], armorpack: ['anchor', 'rotator'], extrareinforce: ['anchor', 'rotator'],
   mat: ['trapper', 'roamer'], edd: ['trapper'], mines: ['trapper', 'roamer'], shockwire: ['trapper', 'aggressor'], jammer: ['watcher', 'rotator'],
   cams: ['watcher', 'roamer'], turret: ['watcher', 'anchor'], nitro: ['aggressor', 'roamer'], stimpistol: ['medic'], healstation: ['rotator', 'anchor'],
+  firemine: ['trapper', 'aggressor'], flashmine: ['trapper', 'roamer'], sensor: ['watcher', 'rotator'], fogger: ['trapper', 'rotator'], supply: ['rotator', 'anchor'],
 };
 
 export class Persona {

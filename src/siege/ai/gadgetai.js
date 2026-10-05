@@ -3,6 +3,7 @@
 import { CAST, STOREY } from '../world/grid.js';
 import { STAND, CROUCH } from '../sim/actor.js';
 import { dist2, dist3, norm, sub, yawOf, pitchOf, wrapAngle } from '../sim/util.js';
+import { lobPitch } from './tactics.js';
 
 // returns true when it took over the frame (a task it owns)
 export function runGadgetAI(b, dt, ctx) {
@@ -141,6 +142,10 @@ function passive(b, dt, ctx) {
     if (a.shield.up && a.guns[0] && a.cur === 0 && a.guns.length > 1) a.switchGun(1);
     return;
   }
+  if (ab === 'emp' && ctx !== 'combat') { empThrow(b); return; }
+  if (ab === 'decoy' && ctx !== 'combat') { decoyDrop(b); return; }
+  if (ab === 'supply' && ctx !== 'combat') { supplyDrop(b); return; }
+  if (ab === 'gl' && ctx === 'combat') { glFire(b); return; }
   if (ab === 'stimpistol' && ctx !== 'combat') {
     const g = a.gadget('stimpistol'); if (!g || g.count <= 0) return;
     for (const m of sim.actors) {
@@ -157,4 +162,64 @@ function passive(b, dt, ctx) {
     }
   }
   void STOREY;
+}
+
+
+// ------------------------------------------------------------------------------------------ the newer gadgets
+const ELECTRONIC = new Set(['turret', 'cams', 'jammer', 'alarm', 'sensor', 'claymore', 'edd', 'shockdrone', 'healstation', 'decoy']);
+// flat throw at a point; returns whether something was thrown
+function lob(b, id, pos, speed = 11) {
+  const a = b.a, eye = a.eye(), d = Math.hypot(pos[0] - eye[0], pos[2] - eye[2]);
+  const pitch = lobPitch(d, pos[1] - eye[1], speed), yaw = yawOf(pos[0] - eye[0], pos[2] - eye[2]);
+  const dir = [Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)];
+  if (b.sim.world.cast(eye[0], eye[1], eye[2], dir[0], dir[1], dir[2], Math.min(d, 5) * 0.9, 0)) return false; // something in the way of the throw
+  a.yaw = yaw; a.pitch = pitch;
+  return b.sim.devices.use(a, id, { dir, speed }).ok;
+}
+// an EMP into whatever the other side has wired up: turrets, cameras, tripwires, jammers, drones
+function empThrow(b) {
+  const a = b.a, sim = b.sim, g = a.gadget('emp'); if (!g || g.count <= 0 || a.busy) return;
+  if (b.grenadeCd > 0 || (b.dir && b.dir.state === 'stage' && sim.round.inAction() === false)) return;
+  const eye = a.eye(); let best = null, bd = 99;
+  for (const d of sim.devices.list) {
+    if (d.dead || d.team === a.team || !ELECTRONIC.has(d.kind) || d.jammed > 2) continue;
+    const dd = dist3(eye, d.pos); if (dd < 4.5 || dd > 14 || dd >= bd) continue;
+    if (!sim.world.visible(eye, d.pos, CAST.GLASS)) continue;
+    bd = dd; best = d.pos;
+  }
+  for (const dr of sim.devices.drones) { if (dr.dead || dr.team === a.team) continue; const dd = dist3(eye, dr.pos); if (dd > 4.5 && dd < 13 && dd < bd && sim.world.visible(eye, dr.pos, CAST.GLASS)) { bd = dd; best = dr.pos; } }
+  if (!best) return;
+  if (sim.rand() > 0.35 + 0.65 * b.prof.grenades) { b.grenadeCd = 3; return; }
+  if (lob(b, 'emp', best)) { b.grenadeCd = 5 + sim.rand() * 3; sim.reactions && sim.reactions.bark(a, 'EMP out!', 'emp', 3); }
+}
+// the speaker goes down as the squad moves out, so the defenders look the wrong way
+function decoyDrop(b) {
+  const a = b.a, sim = b.sim, g = a.gadget('decoy'); if (!g || g.count <= 0 || a.busy || !sim.round.inAction() || !b.dir) return;
+  if (b.dir.state !== 'push' || b.dir.stateT > 8 || b.decoyT > sim.time - 14) return;
+  const p = [a.pos[0] + a.fwd[0] * 0.6, a.pos[1], a.pos[2] + a.fwd[2] * 0.6];
+  const r = sim.devices.placeAt(a, 'decoy', p, [0, 1, 0], null, null);
+  if (r.ok) { b.decoyT = sim.time; sim.reactions && sim.reactions.bark(a, 'Decoy down.', 'decoy', 6); }
+}
+// a crate for the squad: attackers drop it where they stage, defenders have it laid in the preparation phase by the director
+function supplyDrop(b) {
+  const a = b.a, sim = b.sim, g = a.gadget('supply'); if (!g || g.count <= 0 || a.busy || a.team !== 'atk' || !b.dir) return;
+  if (!sim.round.inAction() || !['stage', 'push'].includes(b.dir.state) || b.supplyAt > sim.time - 25) return;
+  const r = sim.devices.placeAt(a, 'supply', [a.pos[0] - a.fwd[0] * 0.8, a.pos[1], a.pos[2] - a.fwd[2] * 0.8], [0, 1, 0], null, null);
+  if (r.ok) { b.supplyAt = sim.time; sim.reactions && sim.reactions.bark(a, 'Supplies here.', 'supply', 6); }
+}
+// explosive rounds at somebody behind cover, or at a position the squad knows they are holding
+function glFire(b) {
+  const a = b.a, sim = b.sim, g = a.gadget('gl'); if (!g || g.count <= 0 || a.busy || (b.glCd || 0) > sim.time) return;
+  const m = b.tgt || b.sense.freshest(4); if (!m) return;
+  const T = m.actor || m, pos = m.seen && T.chestPos ? T.chestPos() : m.pos; if (!pos) return;
+  const eye = a.eye(), d = Math.hypot(pos[0] - eye[0], pos[2] - eye[2]);
+  if (d < 6 || d > 24) return;
+  const vis = m.seen && sim.world.visible(eye, pos, CAST.GLASS);
+  // a target in the open is better shot with the rifle; the launcher is for the ones who are hiding
+  if (vis && !(m.actor && (m.actor.stance !== 0 || (m.actor.shield && m.actor.shield.up)))) { if (sim.rand() > 0.25) { b.glCd = sim.time + 1.5; return; } }
+  const pitch = lobPitch(d, pos[1] - eye[1], 24), yaw = yawOf(pos[0] - eye[0], pos[2] - eye[2]);
+  const dir = [Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)];
+  if (sim.world.cast(eye[0], eye[1], eye[2], dir[0], dir[1], dir[2], Math.min(d, 7) * 0.9, 0)) { b.glCd = sim.time + 1; return; }
+  a.yaw = yaw; a.pitch = pitch;
+  if (sim.devices.use(a, 'gl', { dir }).ok) { b.glCd = sim.time + 3.2 + sim.rand() * 2; sim.reactions && sim.reactions.bark(a, 'Launcher out!', 'gl', 5); }
 }

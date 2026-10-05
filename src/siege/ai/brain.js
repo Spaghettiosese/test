@@ -346,6 +346,7 @@ export class Brain {
     const a = this.a, t = this.task, c = a.ctl;
     if (this.reviveStep(dt)) return;
     if (this.droneStep(dt)) return;
+    if (this.supplyStep(dt)) return;
     if (this.deviceStep(dt)) return;
     if (this.breachGrenade(dt)) return;
     if (this.prefireStep(dt)) return;

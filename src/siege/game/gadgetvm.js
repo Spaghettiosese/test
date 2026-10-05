@@ -84,7 +84,8 @@ export const GADGET_VM = {
   mat: () => deviceGun('dark', 'ledG'), barbwire: () => deviceGun('steel', 'ledG'), jammer: () => deviceGun('dark', 'ledB'), cams: () => deviceGun('dark', 'led'), dshield: () => deviceGun('grey', 'ledG'), turret: () => deviceGun('dark', 'led'),
   shockwire: () => deviceGun('yellow', 'ledB'), mines: () => deviceGun('green', 'ledG'), healstation: () => deviceGun('green', 'ledG'), alarm: () => deviceGun('dark', 'led'), armorpanel: () => deviceGun('grey', 'ledG'), armorpack: () => deviceGun('olive', 'ledG'), shockdrone: () => deviceGun('dark', 'ledB'),
   frag: () => grenadeGun('olive', 'dark'), stun: () => grenadeGun('dark', 'yellow'), bangs: () => grenadeGun('dark', 'yellow'), smoke: () => grenadeGun('grey', 'dark'), cinders: () => grenadeGun('grey', 'dark'), impact: () => grenadeGun('orange', 'dark'), sonar: () => grenadeGun('blue', 'dark'), nitro: () => deviceGun('yellow', 'led'),
-  torch: () => toolGun('orange', true), launcher: () => toolGun('olive', false), xpellet: () => toolGun('dark', false), stimpistol: () => toolGun('green', false),
+  emp: () => grenadeGun('dark', 'blue'), decoy: () => deviceGun('dark', 'ledB'), supply: () => deviceGun('olive', 'ledG'), gl: () => toolGun('dark', false), firemine: () => deviceGun('red', 'led'), flashmine: () => deviceGun('yellow', 'ledB'), sensor: () => deviceGun('green', 'ledG'), fogger: () => deviceGun('grey', 'ledB'),
+    torch: () => toolGun('orange', true), launcher: () => toolGun('olive', false), xpellet: () => toolGun('dark', false), stimpistol: () => toolGun('green', false),
 };
 export function createGadgetRig(id) {
   const f = GADGET_VM[id]; if (!f) return null;

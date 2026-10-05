@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "start": "npx --yes http-server -p 8080 -c-1 .",
-    "test": "node tools/test-weapons.mjs && node tools/test-props.mjs && node tools/sim-basic.mjs && node tools/test-safety.mjs > /dev/null && node tools/test-player.mjs > /dev/null && node tools/test-reactions.mjs > /dev/null && node tools/test-destruction.mjs > /dev/null && node tools/test-gadgets.mjs > /dev/null && node tools/map-lint.mjs && node tools/nav-map.mjs > /dev/null && node tools/walk-test.mjs 120 3 && node tools/drone-test.mjs 3 > /dev/null && node tools/stuck-test.mjs 8 160 > /dev/null && node tools/match-test.mjs 2 > /dev/null && node tools/sim-batch.mjs 8 2 240",
+    "test": "node tools/test-weapons.mjs && node tools/test-props.mjs && node tools/sim-basic.mjs && node tools/test-safety.mjs > /dev/null && node tools/test-player.mjs > /dev/null && node tools/test-reactions.mjs > /dev/null && node tools/test-destruction.mjs > /dev/null && node tools/test-newops.mjs > /dev/null && node tools/test-gadgets.mjs > /dev/null && node tools/map-lint.mjs && node tools/nav-map.mjs > /dev/null && node tools/walk-test.mjs 120 3 && node tools/drone-test.mjs 3 > /dev/null && node tools/stuck-test.mjs 8 160 > /dev/null && node tools/match-test.mjs 2 > /dev/null && node tools/sim-batch.mjs 8 2 240",
     "sim": "node tools/sim-match.mjs",
     "batch": "node tools/sim-batch.mjs 24 2 260"
   }

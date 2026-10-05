@@ -124,7 +124,7 @@ export class Mover {
       if (Math.hypot(this.wish[0], this.wish[1]) < 1e-3) this.arrived = true;
       this.speed = this.opts.speed; this.faceYaw = yawOf(tg[0] - pos[0], tg[1] - pos[2]);
       this.watchProgress(dt, Math.hypot(pos[0] - tg[0], pos[2] - tg[1]));
-      this.steer(pos);
+      if (this.wish) this.steer(pos);
       return;
     }
     const s = this.steps[this.i];
@@ -268,7 +268,7 @@ export class Mover {
   }
   // whiskers: if a prop or wall is right ahead, slide round it towards the freer side
   steer(pos) {
-    const w = this.sim.world, y = pos[1], wish = this.wish, l = Math.hypot(wish[0], wish[1]); if (l < 1e-3) return;
+    const w = this.sim.world, y = pos[1], wish = this.wish; if (!wish) return; const l = Math.hypot(wish[0], wish[1]); if (l < 1e-3) return;
     const ux = wish[0] / l, uz = wish[1] / l, reach = 0.62;
     const free = (dx, dz, d) => { for (const h of [0.4, 1.1]) { const hit = w.cast(pos[0], y + h, pos[2], dx, 0, dz, d, 0); if (hit && !(hit.panel && (hit.panel.door || hit.panel.kind === 'glass'))) return false; } return true; };
     if (free(ux, uz, reach) && free(ux, uz, 0.3)) return;

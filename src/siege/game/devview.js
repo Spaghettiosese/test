@@ -50,6 +50,12 @@ function buildDevice(d, w) {
     case 'alarm': add(box(0.12, 0.06, 0.12, MATS.dark(), [0, 0.03, 0]), box(0.03, 0.02, 0.03, MATS.ledA(), [0, 0.07, 0])); break;
     case 'armorpack': add(box(0.3, 0.12, 0.22, MATS.olive(), [0, 0.06, 0]), box(0.1, 0.05, 0.05, MATS.yellow(), [0, 0.14, 0])); break;
     case 'shockdrone': add(box(0.22, 0.08, 0.28, MATS.dark(), [0, 0.07, 0]), cyl(0.05, 0.04, MATS.dark(), [0.12, 0.04, 0.08]), cyl(0.05, 0.04, MATS.dark(), [-0.12, 0.04, 0.08]), cyl(0.05, 0.04, MATS.dark(), [0.12, 0.04, -0.08]), cyl(0.05, 0.04, MATS.dark(), [-0.12, 0.04, -0.08]), box(0.05, 0.02, 0.02, MATS.ledB(), [0, 0.1, 0.14])); break;
+    case 'decoy': add(box(0.22, 0.34, 0.2, MATS.dark(), [0, 0.17, 0]), cyl(0.07, 0.04, MATS.steel(), [0, 0.24, 0.1]), cyl(0.05, 0.04, MATS.steel(), [0, 0.1, 0.1]), box(0.04, 0.02, 0.02, MATS.ledB(), [0, 0.32, 0.1])); n.children[1].setEuler(90, 0, 0); n.children[2].setEuler(90, 0, 0); break;
+    case 'supply': add(box(0.6, 0.38, 0.4, MATS.olive(), [0, 0.19, 0]), box(0.62, 0.05, 0.42, MATS.dark(), [0, 0.4, 0]), box(0.2, 0.1, 0.02, MATS.yellow(), [0, 0.2, 0.21]), box(0.05, 0.05, 0.02, MATS.ledG(), [0.22, 0.3, 0.21])); break;
+    case 'firemine': add(cyl(0.12, 0.03, MATS.red(), [0, 0.015, 0], 0.12, 10), box(0.03, 0.02, 0.03, MATS.ledA(), [0, 0.04, 0])); break;
+    case 'flashmine': add(cyl(0.12, 0.03, MATS.yellow(), [0, 0.015, 0], 0.12, 10), box(0.03, 0.02, 0.03, MATS.ledB(), [0, 0.04, 0])); break;
+    case 'fogger': add(cyl(0.07, 0.2, MATS.grey(), [0, 0.1, 0], 0.07, 10), cyl(0.04, 0.03, MATS.dark(), [0, 0.22, 0], 0.04, 8), box(0.03, 0.02, 0.03, MATS.ledB(), [0, 0.18, 0.07])); break;
+    case 'sensor': add(cyl(0.1, 0.05, MATS.dark(), [0, 0.025, 0], 0.1, 10), cyl(0.012, 0.18, MATS.steel(), [0.04, 0.12, 0]), box(0.03, 0.02, 0.03, MATS.ledG(), [0, 0.06, 0.06])); break;
     default: add(box(0.12, 0.12, 0.12, MATS.grey()));
   }
   return n;
@@ -64,6 +70,8 @@ function buildProj(p) {
     sonar: () => [cyl(0.034, 0.11, mat('sonarB', { color: '#2a5a9a', metallic: 0.3, roughness: 0.5 }), [0, 0, 0], 0.034, 10), box(0.03, 0.02, 0.02, MATS.ledB(), [0, 0.04, 0.03])],
     nitro: () => [box(0.12, 0.05, 0.08, MATS.yellow()), box(0.03, 0.02, 0.02, MATS.ledR(), [0.04, 0.03, 0])],
     launcher: () => [cyl(0.03, 0.07, MATS.orange(), [0, 0, 0], 0.03, 8)],
+    glround: () => [cyl(0.026, 0.09, MATS.orange(), [0, 0, 0], 0.026, 8), cyl(0.02, 0.03, MATS.steel(), [0, 0.06, 0])],
+    emp: () => [cyl(0.032, 0.11, mat('empB', { color: '#1d3a5c', roughness: 0.4, metallic: 0.4 }), [0, 0, 0], 0.032, 10), cyl(0.034, 0.025, MATS.ledB(), [0, 0.02, 0], 0.034, 10)],
     xpellet: () => [cyl(0.014, 0.03, MATS.steel(), [0, 0, 0], 0.014, 6)],
   }[p.kind] || (() => [box(0.08, 0.08, 0.08, MATS.grey())]);
   for (const m of body()) n.add(m);

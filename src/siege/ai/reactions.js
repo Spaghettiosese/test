@@ -62,6 +62,7 @@ export class Reactions {
       else if (d.kind === 'thermite') out.push({ id: d.id, kind: 'thermite', pos: d.pos, r: 2.9, t: d.data.burning ? 4.2 - d.data.t : 99, team: d.team, src: d.owner, persistent: true, dev: d });
     }
     for (const g of dv.gas) { if (!g.id) g.id = ++this.seq; out.push({ id: g.id, kind: 'gas', pos: g.pos, r: g.r + 0.7, t: g.t, team: g.team, src: g.owner, persistent: true }); }
+    for (const f of dv.fire) out.push({ id: f.id, kind: 'fire', pos: f.pos, r: f.r + 0.6, t: f.t, team: f.team, src: f.owner, persistent: true });
     this.hazards = out;
   }
   // What the state of the round does to a bot's nerve: the clock running out sends the attackers in, the last

@@ -66,7 +66,7 @@ export class Director {
     if (this.sim.time - (this.trapT || 0) < 0.7) return; this.trapT = this.sim.time;
     // devices a teammate has a clear view of are known to the whole team
     for (const d of this.sim.devices.list) {
-      if (d.dead || d.team === this.team || !['mat', 'claymore', 'edd', 'mines', 'barbwire'].includes(d.kind) || d.seenBy) continue;
+      if (d.dead || d.team === this.team || !['mat', 'claymore', 'edd', 'mines', 'barbwire', 'firemine', 'flashmine', 'fogger'].includes(d.kind) || d.seenBy) continue;
       const eyes = this.live().map((b) => [b.a.eye(), 11]);
       for (const p of this.scouts || []) if (!p.dr.dead) eyes.push([[p.dr.pos[0], p.dr.pos[1] + 0.25, p.dr.pos[2]], 8]);
       for (const [e, r] of eyes) {
@@ -467,6 +467,9 @@ export class DefendDirector extends Director {
     const floorAt = (cell) => { const y = w.groundY(cell[0], cell[2], 0.2, cell[1] + 0.2, 0.5); return [cell[0], y > -1e8 ? y : cell[1], cell[2]]; };
     switch (ab) {
       case 'mat': case 'mines': case 'barbwire': for (const o of doors.slice(0, 3)) { const c = floorAt([o.inside[0] + o.normal[0] * 0.2, o.inside[1], o.inside[2] + o.normal[2] * 0.2]); onFloor(ab, { stand: c, at: c }); } break;
+      case 'firemine': case 'flashmine': case 'fogger': for (const o of doors.slice(0, 3)) { const c = floorAt([o.inside[0] + o.normal[0] * 0.5, o.inside[1], o.inside[2] + o.normal[2] * 0.5]); onFloor(ab, { stand: c, at: c }); } break;
+      case 'sensor': for (const o of doors.slice(0, 2)) { const c = floorAt([o.inside[0] + o.normal[0] * 1.2, o.inside[1], o.inside[2] + o.normal[2] * 1.2]); onFloor('sensor', { stand: c, at: c }); } break;
+      case 'supply': { const c = floorAt([this.round.site.center[0] - 0.8, this.round.site.center[1], this.round.site.center[2] + 0.8]); onFloor('supply', { stand: c, at: c }); const c2 = floorAt([this.round.site.center[0] + 1.4, this.round.site.center[1], this.round.site.center[2] - 1.2]); onFloor('supply', { stand: c2, at: c2 }); break; }
       case 'edd': for (const o of doors.slice(0, 3)) { const e = o; const at = [e.centre[0] + e.normal[0] * 0.05, e.inside[1] + 0.3, e.centre[2] + e.normal[2] * 0.05]; jobs.push({ type: 'place', gadget: 'edd', stand: [e.inside[0], e.inside[1], e.inside[2]], at, normal: [e.normal[0], 0, e.normal[2]], panel: e.panels[0] || null }); } break;
       case 'jammer': { const c = floorAt([this.round.site.a[0], this.round.site.a[1], this.round.site.a[2]]); onFloor('jammer', { stand: c, at: c }); const c2 = floorAt([this.round.site.b[0], this.round.site.b[1], this.round.site.b[2]]); onFloor('jammer', { stand: c2, at: c2 }); break; }
       case 'cams': for (const e of an.windows.slice(0, 3)) jobs.push({ type: 'place', gadget: 'cams', stand: [e.inside[0], e.inside[1], e.inside[2]], at: [e.centre[0] + e.normal[0] * 0.05, e.centre[1] + 0.2, e.centre[2] + e.normal[2] * 0.05], normal: [e.normal[0], 0, e.normal[2]], panel: e.panels[2] || e.panels[0] }); break;

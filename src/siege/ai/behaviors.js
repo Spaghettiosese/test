@@ -151,6 +151,36 @@ export const behaviors = {
     return true;
   },
 
+  // ---------------------------------------------------------------- supplies
+  // low on ammunition or health with nothing going on: walk to a friendly supply crate and stand at it
+  supplyStep(dt) {
+    const a = this.a, sim = this.sim; if (this.prof.tactics < 1 || a.busy || this.inCombat) { this.supT = 0; return false; }
+    this.supCd = (this.supCd || 0) - dt;
+    let crate = this.supTarget;
+    if (crate && (crate.dead || !a.alive)) crate = this.supTarget = null;
+    if (!crate) {
+      if (this.supCd > 0) return false; this.supCd = 1.2;
+      const g = a.guns[0], low = (g && g.reserve < g.def.mag * g.def.reserve * 0.45) || a.hp < a.maxHp * 0.55 || a.armorPlates < 1 && a.hp < a.maxHp;
+      if (!low || sim.time - this.lastSeenT < 2.5) return false;
+      let best = null, bd = 18;
+      for (const d of sim.devices.list) { if (d.dead || d.kind !== 'supply' || d.team !== a.team || d.data.uses <= 0 || d.jammed > 0) continue; const dd = dist3(a.pos, d.pos); if (dd < bd && Math.abs(d.pos[1] - a.pos[1]) < 1.5) { bd = dd; best = d; } }
+      if (!best) return false;
+      crate = this.supTarget = best; this.supT = 0; this.mover.stop(); this.hunt = null;
+    }
+    this.supT = (this.supT || 0) + dt;
+    const d = Math.hypot(a.pos[0] - crate.pos[0], a.pos[2] - crate.pos[2]);
+    if (this.supT > 12) { this.supTarget = null; this.supCd = 8; return false; }
+    if (d > 1.0) {
+      if (!this.mover.goal || dist3(this.mover.goal, crate.pos) > 1 || (this.mover.failed && this.stateT > 0.6)) { this.mover.goTo([crate.pos[0], crate.pos[1], crate.pos[2]], { speed: 'run', tol: 0.8 }); this.stateT = 0; }
+      this.applyWish(this.mover.wish, 'run'); this.faceMove(dt);
+      if (this.mover.failed && this.stateT > 1.5) { this.supTarget = null; this.supCd = 10; }
+      return true;
+    }
+    this.mover.stop(); a.ctl.stance = CROUCH;
+    if (this.supT > 3.4) { this.supTarget = null; this.supCd = 6; }
+    return true;
+  },
+
   // ---------------------------------------------------------------- barricades
   attackBarrier(bar, dt) {
     const a = this.a, c = a.ctl, sim = this.sim, ctr = bar.centre, eye = a.eye();

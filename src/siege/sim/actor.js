@@ -205,7 +205,7 @@ export class Actor {
       if (this.stepDist > stride) {
         this.stepDist = 0;
         const loud = this.stance === CROUCH ? 3 : this.stance === PRONE ? 1.5 : this.sprinting ? 17 : sp > 2.2 ? 9 : 5;
-        this.sim.noise(pos, loud, 'step', this);
+        this.sim.noise(pos, this.op.ability === 'silentstep' ? loud * 0.12 : loud, 'step', this);
       }
     }
   }

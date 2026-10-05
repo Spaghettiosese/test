@@ -76,8 +76,8 @@ export class Sim {
   }
 
   // ------------------------------------------------------------------ noise (heard by the AI and the audio)
-  noise(pos, loud, kind, src) {
-    const n = { pos: [pos[0], pos[1], pos[2]], loud, kind, src: src || null, t: this.time, id: ++this.noiseSeq, team: src ? src.team : null };
+  noise(pos, loud, kind, src, extra = null) {
+    const n = { pos: [pos[0], pos[1], pos[2]], loud, kind, src: src || null, t: this.time, id: ++this.noiseSeq, team: src ? src.team : null, ...extra };
     this.noises.push(n); this.emit('sound', n); return n;
   }
 

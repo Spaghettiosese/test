@@ -48,7 +48,7 @@ export class Fx {
     on('impact', this.onImpact); on('tracer', this.onTracer); on('shot', this.onShot); on('panelbreak', this.onBreak);
     on('explosion', this.onExplosion); on('flashbang', this.onFlashbang); on('death', this.onDeath); on('swing', this.onSwing);
     on('burn', this.onBurn); on('thermite', this.onBurn); on('shock', this.onShock); on('stick', (e) => this.sparkAt(e.proj.pos, 4));
-    on('propbreak', this.onPropBreak); on('hit', this.onHit); on('gas', (e) => this.puff(e.pos, [0.5, 0.8, 0.3, 0.5], 24, 2.2)); on('turretshot', (e) => this.flashAt([e.device.pos[0], e.device.pos[1] + 0.8, e.device.pos[2]], 0.5));
+    on('propbreak', this.onPropBreak); on('hit', this.onHit); on('emp', this.onEmp); on('sensor', (e) => this.sparkAt([e.victim.pos[0], e.victim.pos[1] + 0.1, e.victim.pos[2]], 6, { spread: 0.6, up: 0.3, life: 0.3 })); on('decoyshot', (e) => this.flashAt([e.device.pos[0], e.device.pos[1] + 0.4, e.device.pos[2]], 0.5)); on('supplyuse', (e) => this.puff([e.actor.pos[0], e.actor.pos[1] + 1.1, e.actor.pos[2]], [0.5, 0.9, 0.5, 0.4], 6, 0.1, { life: 1, spread: 0.5, up: 0.6 })); on('gas', (e) => this.puff(e.pos, [0.5, 0.8, 0.3, 0.5], 24, 2.2)); on('turretshot', (e) => this.flashAt([e.device.pos[0], e.device.pos[1] + 0.8, e.device.pos[2]], 0.5));
   }
 
   // ---------------------------------------------------------------- small helpers
@@ -235,6 +235,11 @@ export class Fx {
     this.sparkAt(e.pos, 40, { spread: 6, up: 4, life: 0.7 });
     this.game.shake(Math.max(0, 0.9 - Math.hypot(...[0, 1, 2].map((i) => e.pos[i] - this.game.cam.position[i])) / (e.radius * 3.5)) * 1.2);
     this.game.audio && this.game.audio.explosion(e.pos, e.radius);
+  }
+  onEmp(e) {
+    this.sparkAt(e.pos, 50, { spread: 7, up: 2, life: 0.5 }); this.flashAt(e.pos, 2); this.puff(e.pos, [0.55, 0.8, 1, 0.45], 14, 0.3, { life: 1.1, spread: 2.4, up: 0.6 });
+    this.explLight.position.set(e.pos); this.explLight.intensity = 60; this.explT = 0.22;
+    this.game.audio && this.game.audio.bang(e.pos);
   }
   onFlashbang(e) {
     this.flashAt(e.pos, 3); this.sparkAt(e.pos, 30, { spread: 5, life: 0.35 }); this.puff(e.pos, [0.9, 0.9, 0.9, 0.6], 10, 0.3, { life: 1.4 });
