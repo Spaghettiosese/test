@@ -20,6 +20,7 @@ export class Sim {
     this.round = new Round(this, opts);
     this.stats = { bullets: 0, penetrations: 0 };
     this.world.on('break', (e) => this.onBreak(e));
+    this.world.on('propbreak', (e) => this.onPropBreak(e));
     this.directors = []; this.worldVer = 0; this.pathBudget = 4;
     this.on('hurt', (e) => { if (e.actor.ai) e.actor.ai.onHurt(e.src, e.from); });
     this.on('door', () => { this.worldVer++; });
@@ -64,6 +65,14 @@ export class Sim {
     if (e.panel && e.panel.kind === 'glass') this.noise(c, 14, 'glass', e.src?.actor);
     else if (e.panel) this.noise(c, e.panel.mat === 'metal' ? 26 : 30, 'break', e.src?.actor);
     this.worldVer++; this.emit('panelbreak', e);
+  }
+
+  onPropBreak(e) {
+    const g = e.group && e.group.length ? e.group : [e.prop];
+    let c = [0, 0, 0]; for (const q of g) { c[0] += (q.min[0] + q.max[0]) / 2; c[1] += (q.min[1] + q.max[1]) / 2; c[2] += (q.min[2] + q.max[2]) / 2; }
+    c = [c[0] / g.length, c[1] / g.length, c[2] / g.length];
+    this.noise(c, e.prop.mat === 'glass' ? 22 : 18, 'prop', e.src && e.src.actor);
+    this.worldVer++; this.emit('propbreak', { ...e, pos: c });
   }
 
   // ------------------------------------------------------------------ noise (heard by the AI and the audio)
@@ -152,7 +161,10 @@ export class Sim {
           if (pn.dest) w.damage(pn, def.wallDmg * energy * (pn.soft ? 1 : 0.2) * (pn.reinforced ? 0.1 : 1), { actor: shooter });
           if (pn.door || pn.barricade) absorb = Math.min(absorb, 0.6);
         }
-      } else if (hp.prop) { absorb = hp.prop.absorb ?? 1; kind = 'prop'; mat = hp.prop.kind; this.devices.propShot(hp.prop, def, shooter); }
+      } else if (hp.prop) {
+        const pr = hp.prop; absorb = pr.absorb ?? 1; kind = 'prop'; mat = pr.kind; this.devices.propShot(pr, def, shooter);
+        if (pr.hp < Infinity) w.damageProp(pr, def.dmg * 0.55 * energy * (pellet ? 0.8 : 1), { actor: shooter });
+      }
       this.emit('impact', { pos: p, normal: n, kind, mat, panel: hp.panel, prop: hp.prop, shooter, energy, pellet });
       if (absorb >= 90) break;
       const loss = absorb * (1.1 - def.pen) * (kind === 'glass' ? 0.1 : 1);
@@ -160,6 +172,7 @@ export class Sim {
       this.stats.penetrations++;
       // exit the thin slab and carry on
       const adv = (hp.panel ? WALL_T + 0.06 : 0.12);
+      if (hp.panel && kind === 'wall') this.emit('impact', { pos: [p[0] + d[0] * WALL_T, p[1] + d[1] * WALL_T, p[2] + d[2] * WALL_T], normal: [d[0], d[1], d[2]], kind: 'exit', mat, panel: hp.panel, shooter, energy, pellet });
       o = [p[0] + d[0] * adv, p[1] + d[1] * adv, p[2] + d[2] * adv]; travelled += hp.t + adv;
     }
     if (tracerEnd) this.emit('tracer', { from: muzzle || o0, to: tracerEnd, shooter, def });
@@ -185,6 +198,15 @@ export class Sim {
       a.hurt(dmg * f * f * 1.4, { src, region: 'torso', explosion: true, ignoreArmor: false, from: pos });
       a.applyStatus('stun', 1.5 * f);
       if (a.alive) a.vel = [a.vel[0] + dir[0] * 4 * f, a.vel[1] + 1.5 * f, a.vel[2] + dir[2] * 4 * f];
+    }
+    // furniture in reach (a wall in between shields it)
+    if (kind !== 'flash' && kind !== 'stun') for (const pr of w.props.slice()) {
+      if (pr.dead || !(pr.hp < Infinity)) continue;
+      const c = [(pr.min[0] + pr.max[0]) / 2, (pr.min[1] + pr.max[1]) / 2, (pr.min[2] + pr.max[2]) / 2], d = dist3(pos, c);
+      if (d > radius * 1.1 + 0.6) continue;
+      const dir = norm([c[0] - pos[0], c[1] - pos[1], c[2] - pos[2]]);
+      if (d > 0.9 && w.cast(pos[0], pos[1], pos[2], dir[0], dir[1], dir[2], d - 0.6, 3)) continue; // flags 3: look past glass and other furniture, stop at walls
+      w.damageProp(pr, dmg * 2.4 * Math.max(0.15, 1 - d / (radius * 1.1 + 0.6)), { actor: src });
     }
     this.devices.blast(pos, radius, kind, src);
   }

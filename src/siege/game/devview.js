@@ -103,6 +103,15 @@ export class DeviceViews {
     p.userData.plank.visible = d.barricade > 0;
     for (const c of p.userData.plank.children) c.material = d.armored ? MATS.armor() : MATS.plank();
   }
+  // dark splits across a door leaf, one more each time it gets worse
+  gash(p, stage) {
+    const { leaf, x, hingeEnd } = p.userData, sgn = hingeEnd ? -1 : 1, rnd = (a) => (Math.random() - 0.5) * a;
+    for (let i = 0; i < stage; i++) {
+      const along = 0.47 * sgn + rnd(0.5), y = 0.55 + rnd(1.0) + i * 0.3, ang = rnd(80);
+      const gm = mat('gash', { color: '#1d1209', roughness: 1 }), g = x ? box(0.054, 0.03, 0.34, gm, [0, y, along], [ang, 0, 0]) : box(0.34, 0.03, 0.054, gm, [along, y, 0], [0, 0, ang]);
+      leaf.add(g);
+    }
+  }
   addDevice(d) {
     const w = this.game.sim.world, n = buildDevice(d, w);
     n.userData.dev = d; this.root.add(n); this.devs.set(d.id, n);
@@ -123,6 +132,16 @@ export class DeviceViews {
       const { d, swing, leaf } = p.userData;
       const a = d.dead ? 0 : d.open * 96 * swing;
       leaf.setEuler(0, a, 0);
+      // a door that has taken a beating shows it: gashes through the leaf, and boards that fall away
+      const p0 = d.panels[0];
+      if (p0 && !d.dead && p0.max) {
+        const stage = Math.min(3, Math.floor((1 - Math.max(0, p0.hp) / p0.max) * 4));
+        if (stage > (p.userData.dmg || 0)) { p.userData.dmg = stage; this.gash(p, stage); }
+      }
+      if (d.barricade > 0 && p.userData.plank.visible) {
+        const left = Math.max(1, Math.ceil(4 * Math.max(0, d.barricadeHp) / (d.barricadeMax || d.barricadeHp || 1)));
+        p.userData.plank.children.forEach((c, i) => { c.visible = i < left; });
+      }
       p.visible = !d.dead || d.barricade > 0;
       if (d.dead && p.userData.broken !== true) { p.userData.broken = true; p.visible = false; }
     }

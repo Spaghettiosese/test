@@ -71,7 +71,7 @@ export class World {
     this.fy = new Array(W * D * (H + 1)).fill(null);
     this.props = []; this.propCols = Array.from({ length: W * D }, () => []);
     this.doors = []; this.units = new Map(); this.unitSeq = 1;
-    this.listeners = { break: [], damage: [], door: [], prop: [] };
+    this.listeners = { break: [], damage: [], door: [], prop: [], propbreak: [], propdamage: [] };
     this.stamp = 0;
     this.rooms = []; // per floor: Uint8Array of room indices
     this.roomNames = [];
@@ -133,6 +133,21 @@ export class World {
     const i = this.props.indexOf(pr); if (i >= 0) this.props.splice(i, 1);
     for (const col of this.propCols) { const j = col.indexOf(pr); if (j >= 0) col.splice(j, 1); }
     this.emit('prop', { prop: pr, added: false });
+  }
+
+  // Furniture and fixtures take damage too: a prop with finite hit points breaks (all the boxes of one
+  // piece together) and stops blocking movement, sight and bullets.
+  damageProp(pr, amount, src = {}) {
+    if (!pr || pr.dead || !(pr.hp < Infinity) || amount <= 0) return false;
+    pr.hp -= amount; this.emit('propdamage', { prop: pr, amount, src });
+    if (pr.hp <= 0) { this.breakProp(pr, src); return true; }
+    return false;
+  }
+  breakProp(pr, src = {}) {
+    if (pr.dead) return;
+    const group = pr.pid ? this.props.filter((q) => q.pid === pr.pid) : [pr];
+    for (const q of group) { q.dead = true; this.removeProp(q); }
+    this.emit('propbreak', { prop: pr, group, src });
   }
 
   // ---------------------------------------------------------------- rooms

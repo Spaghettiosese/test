@@ -28,6 +28,8 @@ export class Nav {
     this.buildStairs(def);
     // props that appear or vanish during a round (deployable shields, wire) change where bodies fit
     w.on('prop', (e) => { if (e.prop.solid && !e.prop.walk) this.invalidate(); });
+    // furniture that breaks leaves its cells free again
+    w.on('propbreak', () => { this.blocked.fill(0); this.partial.fill(0); this.buildBlocked(); this.invalidate(); });
   }
   node(x, z, f) { return (f * this.D + z) * this.W + x; }
   parts(n) { const x = n % this.W, r = (n - x) / this.W, z = r % this.D, f = (r - z) / this.D; return [x, z, f]; }

@@ -179,6 +179,7 @@ export function buildMap(def) {
   const offsets = []; for (let i = -14; i <= 14; i++) for (let j = -14; j <= 14; j++) if (i || j) offsets.push([i * 0.25, j * 0.25]);
   offsets.sort((a, b) => Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]));
   const placed = []; // footprints of the indoor props already standing
+  let pieceSeq = 0;
   const hit = (c, L) => c.min[0] < L.x1 && c.max[0] > L.x0 && c.min[2] < L.z1 && c.max[2] > L.z0;
   const inside = (c) => c.min[0] > bx + 0.25 && c.max[0] < bx + bw - 0.25 && c.min[2] > bz + 0.25 && c.max[2] < bz + bd - 0.25;
   const put = (list, indoor) => {
@@ -194,8 +195,10 @@ export function buildMap(def) {
         }
       }
       if (indoor) for (const c of pl.colliders) placed.push({ f, min: c.min, max: c.max });
-      for (const v of pl.visuals) out.statics.push(v);
-      for (const c of pl.colliders) w.addProp({ ...c, kind: c.kind });
+      // a breakable piece shares one id between its boxes and its visuals, so it goes as one
+      const pid = pl.colliders.some((c) => c.hp !== undefined) ? ++pieceSeq : 0;
+      for (const v of pl.visuals) out.statics.push(pid ? { ...v, pid } : v);
+      for (const c of pl.colliders) w.addProp({ ...c, kind: c.kind, ...(pid ? { pid } : {}) });
       if (pl.light) out.lights.push({ pos: pl.light, color: '#ffe2a8', intensity: 5, range: 11, outdoor: true });
     }
   };
@@ -211,8 +214,11 @@ export function buildMap(def) {
     const cnt = Math.max(1, Math.round(e.n / 34)), wx = e.x1 - e.x0 + 1, wz = e.z1 - e.z0 + 1, alongX = wx >= wz, color = room(e.f, e.L)[3];
     for (let i = 0; i < cnt; i++) {
       const t = (i + 0.5) / cnt, px = bx + (alongX ? e.x0 + wx * t : e.x0 + wx / 2), pz = bz + (alongX ? e.z0 + wz / 2 : e.z0 + wz * t), py = e.f * STOREY;
+      const li = out.lights.length, sz = alongX ? [1.1, 0.05, 0.4] : [0.4, 0.05, 1.1], pid = ++pieceSeq;
       out.lights.push({ pos: [px, py + 2.45, pz], color, intensity: 7, range: 9, f: e.f, room: e.L });
-      out.statics.push({ t: 'box', c: [px, py + 2.77, pz], s: alongX ? [1.1, 0.05, 0.4] : [0.4, 0.05, 1.1], m: 'lamp' });
+      out.statics.push({ t: 'box', c: [px, py + 2.77, pz], s: sz, m: 'lamp', pid });
+      // the fixture can be shot out: bullets hit it, people and sight pass it by
+      w.addProp({ min: [px - sz[0] / 2, py + 2.74, pz - sz[2] / 2], max: [px + sz[0] / 2, py + 2.8, pz + sz[2] / 2], kind: 'lamp', solid: true, walk: true, absorb: 0.05, cover: 'none', noStand: true, hp: 14, hpMax: 14, mat: 'lamp', pid, light: li });
     }
   }
 

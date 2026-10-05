@@ -84,6 +84,18 @@ export const BUILDERS = {
   tree() { return { v: [cyl([0, 1.4, 0], 0.22, 2.8, 'bark', 8), sph([0, 3.3, 0], 1.7, 'leaf'), sph([0.9, 2.7, 0.5], 1.1, 'leaf'), sph([-0.8, 2.9, -0.5], 1.2, 'leaf')], c: [col([0, 1.4, 0], [0.45, 2.8, 0.45], 3)] }; },
 };
 
+// How much punishment a piece of furniture takes before it breaks, and what it is made of (the material
+// picks the debris, the sound and the sparks). Kinds that are not listed (containers, barriers, tyres, trees,
+// poles, the shack) are part of the scenery and cannot be destroyed.
+export const DURABILITY = {
+  crate: { hp: 170, mat: 'wood' }, barrel: { hp: 140, mat: 'metal' }, pallet: { hp: 110, mat: 'wood' }, toolbox: { hp: 240, mat: 'metal' },
+  bench: { hp: 260, mat: 'wood' }, desk: { hp: 210, mat: 'wood' }, table: { hp: 160, mat: 'wood' }, counter: { hp: 420, mat: 'wood' }, bar: { hp: 420, mat: 'wood' },
+  couch: { hp: 380, mat: 'cloth' }, shelf: { hp: 220, mat: 'metal' }, archive: { hp: 330, mat: 'metal' }, lockers: { hp: 360, mat: 'metal' }, stalls: { hp: 130, mat: 'plastic' },
+  vending: { hp: 470, mat: 'glass' }, fridge: { hp: 480, mat: 'metal' }, server: { hp: 320, mat: 'electronic' }, plant: { hp: 45, mat: 'plant' },
+  pooltable: { hp: 420, mat: 'wood' }, rack: { hp: 160, mat: 'metal' }, treadmill: { hp: 320, mat: 'electronic' }, copier: { hp: 260, mat: 'electronic' },
+  car: { hp: 950, mat: 'metal' }, dumpster: { hp: 650, mat: 'metal' },
+};
+
 // rotate a local point by a heading (0/90/180/270 degrees, 0 = front faces +z)
 export function rotXZ(x, z, deg) {
   const r = ((deg % 360) + 360) % 360;
@@ -107,7 +119,8 @@ export function placeProp(kind, wx, wy, wz, deg, opts = {}) {
   for (const c of built.c) {
     const [x, z] = rotXZ(c.c[0], c.c[2], r), s = swap ? [c.s[2], c.s[1], c.s[0]] : c.s;
     const cx = wx + x, cy = wy + c.c[1], cz = wz + z;
-    outC.push({ min: [cx - s[0] / 2, cy - s[1] / 2, cz - s[2] / 2], max: [cx + s[0] / 2, cy + s[1] / 2, cz + s[2] / 2], absorb: c.absorb, cover: c.cover || (s[1] > 1.4 ? 'high' : 'low'), noStand: !!c.noStand, kind });
+    const dur = DURABILITY[kind], stacked = kind === 'crate' ? (opts.stack || 1) : 1;
+    outC.push({ min: [cx - s[0] / 2, cy - s[1] / 2, cz - s[2] / 2], max: [cx + s[0] / 2, cy + s[1] / 2, cz + s[2] / 2], absorb: c.absorb, cover: c.cover || (s[1] > 1.4 ? 'high' : 'low'), noStand: !!c.noStand, kind, ...(dur ? { hp: dur.hp * stacked, hpMax: dur.hp * stacked, mat: dur.mat } : {}) });
   }
   let light = null;
   if (built.light) { const [x, z] = rotXZ(built.light[0], built.light[2], r); light = [wx + x, wy + built.light[1], wz + z]; }

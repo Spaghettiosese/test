@@ -42,6 +42,19 @@ export class GameAudio extends Sfx {
       else { const t = this.ctx.currentTime; this._noise(t, { dur: 0.5, gain: 0.8, freq: kind === 'brick' ? 600 : 1100, freqEnd: 200, decay: 0.35 }); this._noise(t + 0.04, { dur: 0.3, gain: 0.5, type: 'bandpass', freq: 800, q: 1.5, decay: 0.2 }); this._tone(t, { freq: 90, freqEnd: 40, dur: 0.2, gain: 0.5, decay: 0.2 }); }
     }, { ref: 9 });
   }
+  // furniture breaking up: each material has its own noise
+  crash(pos, mat) {
+    this.at(pos, () => {
+      const t = this.ctx.currentTime;
+      if (mat === 'glass' || mat === 'lamp') { this.glass(); return; }
+      if (mat === 'metal') { this._noise(t, { dur: 0.35, gain: 0.7, type: 'bandpass', freq: 1800, q: 4, decay: 0.3 }); this._tone(t, { freq: 420, freqEnd: 300, dur: 0.4, gain: 0.35, decay: 0.35 }); this._tone(t, { freq: 760, freqEnd: 600, dur: 0.3, gain: 0.2, decay: 0.28 }); this._noise(t + 0.05, { dur: 0.3, gain: 0.4, freq: 700, freqEnd: 200, decay: 0.25 }); return; }
+      if (mat === 'electronic') { this._noise(t, { dur: 0.25, gain: 0.6, type: 'highpass', freq: 2500, decay: 0.18 }); this._tone(t, { freq: 1200, freqEnd: 120, dur: 0.35, gain: 0.3, decay: 0.3 }); this._noise(t + 0.08, { dur: 0.4, gain: 0.35, freq: 600, freqEnd: 150, decay: 0.35 }); return; }
+      if (mat === 'cloth' || mat === 'plant') { this._noise(t, { dur: 0.35, gain: 0.45, freq: 400, freqEnd: 150, decay: 0.3 }); this._tone(t, { freq: 80, freqEnd: 40, dur: 0.25, gain: 0.4, decay: 0.2 }); return; }
+      // wood and plastic: a crack and a clatter
+      this._noise(t, { dur: 0.12, gain: 0.8, type: 'highpass', freq: 1800, decay: 0.08 }); this._noise(t + 0.03, { dur: 0.5, gain: 0.55, freq: 900, freqEnd: 250, decay: 0.4 }); this._tone(t, { freq: 110, freqEnd: 45, dur: 0.3, gain: 0.5, decay: 0.25 });
+      this._noise(t + 0.18, { dur: 0.2, gain: 0.3, type: 'bandpass', freq: 1400, q: 2, decay: 0.15 });
+    }, { ref: 9 });
+  }
   explosion(pos, r = 5) { this.at(pos, () => { const t = this.ctx.currentTime; this._noise(t, { dur: 1.2, gain: 1.2, freq: 900, freqEnd: 60, decay: 1.0 }); this._noise(t, { dur: 0.3, gain: 1, freq: 3000, freqEnd: 400, decay: 0.2 }); this._tone(t, { freq: 70, freqEnd: 25, dur: 0.6, gain: 1.1, decay: 0.7 }); this._noise(t + 0.25, { dur: 1.2, gain: 0.2, freq: 500, freqEnd: 150, decay: 1, attack: 0.05 }); }, { ref: 18 + r * 2 }); }
   bang(pos) { this.at(pos, () => { const t = this.ctx.currentTime; this._noise(t, { dur: 0.25, gain: 1.2, type: 'highpass', freq: 1500, decay: 0.2 }); this._tone(t, { freq: 140, freqEnd: 60, dur: 0.3, gain: 0.9, decay: 0.3 }); }, { ref: 20 }); }
   whoosh(pos) { this.at(pos, () => { const t = this.ctx.currentTime; this._noise(t, { dur: 0.3, gain: 0.35, type: 'bandpass', freq: 600, freqEnd: 1800, q: 1, decay: 0.25, attack: 0.08 }); }, { ref: 5 }); }

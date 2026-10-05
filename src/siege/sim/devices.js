@@ -179,6 +179,7 @@ export class Devices {
         return { ok: true };
       }
       if (wallHit.prop && wallHit.prop.dev) { this.damageDevice(wallHit.prop.dev, hammer ? 220 : 60, a); return { ok: true }; }
+      if (wallHit.prop && wallHit.prop.hp < Infinity) { w.damageProp(wallHit.prop, hammer ? 150 : 45, { actor: a }); this.sim.emit('swing', { actor: a, hit: true, pos: wallHit.pt, soft: true }); return { ok: true }; }
     }
     // melee swing at devices
     for (const dv of this.list) {
@@ -242,7 +243,7 @@ export class Devices {
   barricade(panel, { armored = false, by = null } = {}) {
     const w = this.world;
     if (panel.door) {
-      const d = panel.door; d.barricade = armored ? 3 : 2; d.barricadeHp = armored ? 900 : 260; d.armored = armored; d.target = 0;
+      const d = panel.door; d.barricade = armored ? 3 : 2; d.barricadeHp = d.barricadeMax = armored ? 900 : 260; d.armored = armored; d.target = 0;
       this.sim.emit('barricade', { door: d, armored, by });
       return true;
     }

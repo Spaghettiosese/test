@@ -141,20 +141,37 @@ export class WorldMesher {
   }
 
   // ---- static scenery: boxes, cylinders and spheres grouped per chunk
+  // A piece that can break (a desk, a locker bank) carries a `pid`; when it goes its chunk is meshed again
+  // without it.
   buildStatics(list) {
-    const groups = new Map();
+    this.staticGroups = new Map(); this.staticNodes = new Map(); this.pieceChunks = new Map(); this.deadPieces = new Set();
     for (const v of list) {
       const c = v.c, k = `${Math.floor(c[0] / 12)}_${Math.floor(c[2] / 12)}_${Math.floor(c[1] / 4)}`;
-      let g = groups.get(k); if (!g) groups.set(k, (g = new Map()));
+      let g = this.staticGroups.get(k); if (!g) this.staticGroups.set(k, (g = []));
+      g.push(v);
+      if (v.pid) { let s = this.pieceChunks.get(v.pid); if (!s) this.pieceChunks.set(v.pid, (s = new Set())); s.add(k); }
+    }
+    for (const k of this.staticGroups.keys()) this.buildStaticChunk(k);
+  }
+  buildStaticChunk(k) {
+    const old = this.staticNodes.get(k); if (old) this.statics.remove(old);
+    const g = new Map();
+    for (const v of this.staticGroups.get(k)) {
+      if (v.pid && this.deadPieces.has(v.pid)) continue;
+      const c = v.c;
       let a = g.get(v.m); if (!a) g.set(v.m, (a = new Acc()));
       if (v.t === 'box') a.box(c[0] - v.s[0] / 2, c[1] - v.s[1] / 2, c[2] - v.s[2] / 2, c[0] + v.s[0] / 2, c[1] + v.s[1] / 2, c[2] + v.s[2] / 2);
       else if (v.t === 'cyl') a.geo(cylGeo(v.r, v.h, v.seg || 12), c[0], c[1], c[2]);
       else if (v.t === 'sph') a.geo(sphGeo(v.r), c[0], c[1], c[2]);
     }
-    for (const [k, g] of groups) {
-      const node = new Node('statics ' + k);
-      for (const [m, a] of g) { if (a.empty) continue; const mesh = new Mesh(a.build(), this.lib.get(m), m); mesh.castShadow = true; node.add(mesh); }
-      this.statics.add(node);
-    }
+    const node = new Node('statics ' + k);
+    for (const [m, a] of g) { if (a.empty) continue; const mesh = new Mesh(a.build(), this.lib.get(m), m); mesh.castShadow = true; node.add(mesh); }
+    this.statics.add(node); this.staticNodes.set(k, node);
+  }
+  // a breakable piece is gone: take it out of the scenery
+  breakPiece(pid) {
+    if (!pid || !this.pieceChunks || this.deadPieces.has(pid)) return;
+    this.deadPieces.add(pid);
+    for (const k of this.pieceChunks.get(pid) || []) this.buildStaticChunk(k);
   }
 }

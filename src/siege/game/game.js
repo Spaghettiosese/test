@@ -37,6 +37,7 @@ class Colliders {
     void P;
   }
   remove(p) { const b = this.map.get('p' + p.id); if (b) { this.game.phys.remove(b); this.map.delete('p' + p.id); } }
+  removeProp(pr) { const b = this.map.get('r' + pr.id); if (b) { this.game.phys.remove(b); this.map.delete('r' + pr.id); } }
 }
 
 export class Game {
@@ -76,10 +77,13 @@ export class Game {
     const mesher = this.mesher = new WorldMesher(sim.world, this.lib, scene);
     mesher.buildAll(); mesher.buildStatics(sim.map.statics);
     const gm = new E.Mesh(E.plane({ width: 500, depth: 500 }), this.lib.get('floor:ground'), 'ground'); gm.position.set([sim.world.W / 2, -0.03, sim.world.D / 2]); gm.castShadow = false; scene.add(gm);
-    for (const l of sim.map.lights) { const L = new E.Light('point', { color: l.color, intensity: l.intensity * (this.tod > 18 || this.tod < 6 ? 1.4 : 1), range: l.range }); L.position.set(l.pos); scene.add(L); }
+    this.lightNodes = [];
+    for (const l of sim.map.lights) { const L = new E.Light('point', { color: l.color, intensity: l.intensity * (this.tod > 18 || this.tod < 6 ? 1.4 : 1), range: l.range }); L.position.set(l.pos); scene.add(L); this.lightNodes.push(L); }
     sim.world.on('break', (e) => { if (e.panel) { mesher.mark(e.panel); this.colliders.remove(e.panel); } if (e.door) this.mesher.mark(e.door.panels[0]); });
     sim.world.on('damage', (e) => { if (e.reinforce) for (const p of sim.world.units.get(e.unit) || []) mesher.mark(p); });
     sim.on('panelchange', (e) => mesher.mark(e.panel));
+    // furniture and lamps that break leave the scenery, the ragdoll colliders and (for a lamp) the lighting
+    sim.world.on('propbreak', (e) => { const pr = e.prop; if (pr.pid) mesher.breakPiece(pr.pid); for (const q of e.group || [pr]) this.colliders.removeProp(q); if (pr.light !== undefined && this.lightNodes[pr.light]) this.lightNodes[pr.light].intensity = 0; });
     sim.on('reinforce', (e) => { for (const p of sim.world.units.get(e.unit) || []) mesher.mark(p); this.audio && this.audio.clack(0.8); });
     // views
     this.fx = new Fx(this); this.views = new ActorViews(this); this.devs = new DeviceViews(this);
