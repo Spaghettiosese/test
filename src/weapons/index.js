@@ -9,6 +9,13 @@ import { GARAND, createGarand } from './garand.js';
 import { MP7, createMP7 } from './mp7.js';
 import { DEAGLE, createDeagle } from './deagle.js';
 import { AK47, createAK47 } from './ak47.js';
+import { AUG, createAug, FAMAS, createFamas } from './bullpup.js';
+import { COMPACT, createCompact, M45, createM45, MP10, createMP10 } from './pistol.js';
+import { LMG, createLMG } from './lmg.js';
+import { P90, createP90 } from './p90.js';
+import { D12, createD12 } from './autoshot.js';
+import { DMR, createDMR } from './dmr.js';
+import { LEVER, createLever } from './lever.js';
 import { weaponProp } from './prop.js';
 
 export const WEAPONS = [
@@ -22,6 +29,16 @@ export const WEAPONS = [
   { id: 'mp7', capacity: 40, gun: MP7, create: createMP7 },
   { id: 'ak47', capacity: 30, gun: AK47, create: createAK47 },
   { id: 'deagle', capacity: 7, gun: DEAGLE, create: createDeagle },
+  { id: 'aug', capacity: 30, gun: AUG, create: createAug },
+  { id: 'famas', capacity: 30, gun: FAMAS, create: createFamas },
+  { id: 'compact9', capacity: 15, gun: COMPACT, create: createCompact },
+  { id: 'm45', capacity: 12, gun: M45, create: createM45 },
+  { id: 'mp10', capacity: 32, gun: MP10, create: createMP10 },
+  { id: 'lmg', capacity: 100, gun: LMG, create: createLMG },
+  { id: 'p90', capacity: 50, gun: P90, create: createP90 },
+  { id: 'd12', capacity: 20, gun: D12, create: createD12 },
+  { id: 'dmr', capacity: 10, gun: DMR, create: createDMR },
+  { id: 'lever', capacity: 8, gun: LEVER, create: createLever },
 ];
 
 // Each gun as a V5 mechanism Prop (rig parts, MechClips, grip and sockets), like the engine's makeGun().

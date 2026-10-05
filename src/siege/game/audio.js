@@ -3,7 +3,7 @@
 // beeps, UI sounds, a tinnitus ring after flashbangs, and optional spoken callouts.
 import { Sfx } from '../../audio.js';
 
-const RIG_KIND = { m4a1: 'm4a1', ak47: 'ak47', smg: 'smg', mp7: 'mp7', deagle: 'deagle', revolver: 'revolver', garand: 'garand', sniper: 'sniper', shotgun: 'shotgun', double: 'shotgun' };
+const RIG_KIND = { m4a1: 'm4a1', ak47: 'ak47', smg: 'smg', mp7: 'mp7', deagle: 'deagle', revolver: 'revolver', garand: 'garand', sniper: 'sniper', aug: 'm4a1', famas: 'm4a1', compact9: 'pistol', m45: 'suppressed', mp10: 'smg', lmg: 'lmg', p90: 'mp7', d12: 'shotgun', dmr: 'garand', lever: 'lever', shotgun: 'shotgun', double: 'shotgun' };
 
 export class GameAudio extends Sfx {
   constructor() {

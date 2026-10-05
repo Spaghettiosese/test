@@ -1,7 +1,7 @@
 # SiegeForge feature list
 
 Everything below is implemented in this repository and reachable in the game or the headless tools.
-Numbers (28 operators, 38 gadgets, 16 weapons, 100 openings, and so on) are counted from the data files.
+Numbers (28 operators, 38 gadgets, 22 weapons on 20 rigs, 8 bomb sites, 6 spawns, 100 openings, and so on) are counted from the data files.
 
 ## Operators and gadgets
 
@@ -20,8 +20,8 @@ Numbers (28 operators, 38 gadgets, 16 weapons, 100 openings, and so on) are coun
 
 ## Weapons
 
-13. 16 weapons in six classes: assault rifles, submachine guns, shotguns, marksman rifle, sniper rifle, handguns.
-14. Ten hand-modelled, rigged first-person weapons with authored fire, reload, empty-reload and inspect animations.
+13. 22 weapons in seven classes: assault rifles, submachine guns, a light machine gun, shotguns, marksman rifles, a sniper rifle, handguns.
+14. Twenty hand-modelled, rigged first-person weapons with authored fire, reload, empty-reload and inspect animations: bullpup rifles (AUG-A3, FA-G2), a belt-fed LMG with a hinged cover and belt box, a top-fed PS-90, a drum shotgun, a scoped marksman rifle, a lever-action carbine, and three new handguns (P9 Compact, suppressed M45, MP10 machine pistol) beside the original ten.
 15. Per-weapon damage, rate of fire, magazine, reserve, spread, aimed spread and recoil.
 16. Automatic and semi-automatic fire.
 17. Bullet penetration through soft materials, with a damage cost per material.
@@ -36,184 +36,201 @@ Numbers (28 operators, 38 gadgets, 16 weapons, 100 openings, and so on) are coun
 26. Raise and lower animation on weapon switch.
 27. Weapons are safe during the preparation phase.
 28. Running dry switches bots to their sidearm.
+29. Inspect (I) on every weapon: a flank-to-flank look and a press check, a pistol spin, a lever flip and a catch on the lever-action.
+30. Pistols and machine pistols have an Idle Empty and Fire Last (the slide stays back), a slide-release reload when dry, and a longer reload when the magazine was empty.
+31. The LMG is slow to run with and slow to reload; the suppressed M45 is almost silent to the bots.
 
 ## World and destruction
 
-29. A voxel-face world: one metre cells, walls, floors and windows are panels on cell faces.
-30. Harbor Garage: a two-storey depot with a roof, a yard and 140 props.
-31. 100 openings: doors, arches, open passages and windows.
-32. 42 doors that open and close for players and bots.
-33. 45 windows that can be shot out and vaulted.
-34. Soft walls that take damage and break.
-35. Walls break panel by panel; the mesh rebuilds only the chunk that changed.
-36. Steel reinforcement: ten walls per round, applied in runs of up to four panels.
-37. Reinforced walls resist everything except hard breaches, thermite and torches.
-38. Floor and ceiling hatches that can be reinforced or blown open.
-39. Roof skylights that open the top floor from above.
-40. Two interior stairwells (with holes in the floor) and exterior stairs to the roof.
-41. Twelve rappel anchors; attackers can rappel past the windows and vault in.
-42. Four bomb sites across two floors, each with two plant spots.
-43. Three attacker spawns around the building.
-44. Barricades and armour panels on doors and windows.
-45. Explosions damage panels, hatches, devices and people with a blast falloff.
-46. Smoke clouds that block sight but not bullets.
-47. Bullet-hole decals tied to the panel they are on; they disappear with it.
-48. Chunked debris particles when walls break.
-49. Rooms have names ("2F Garage Lounge") shown on the HUD and used in callouts.
-50. Per-room paint, floors and ceiling lamps, with point lights.
-51. Furniture is kept clear of doors, arches and windows when the map is built.
-52. Day, dusk and night lighting.
-53. Props block movement and bullets, with cover heights and per-prop bullet absorption.
+32. A voxel-face world: one metre cells, walls, floors and windows are panels on cell faces.
+33. Harbor Garage: a two-storey depot with a roof, a yard and 140 props.
+34. 100 openings: doors, arches, open passages and windows.
+35. 42 doors that open and close for players and bots.
+36. 45 windows that can be shot out and vaulted.
+37. Soft walls that take damage and break.
+38. Walls break panel by panel; the mesh rebuilds only the chunk that changed.
+39. Steel reinforcement: ten walls per round, applied in runs of up to four panels.
+40. Reinforced walls resist everything except hard breaches, thermite and torches.
+41. Floor and ceiling hatches that can be reinforced or blown open.
+42. Roof skylights that open the top floor from above.
+43. Two interior stairwells (with holes in the floor) and exterior stairs to the roof.
+44. Twelve rappel anchors; attackers can rappel past the windows and vault in.
+45. Eight bomb sites across two floors, each with two plant spots (Office, Workshop, Lounge, Manager, Lobby, Locker Room, Staff Bar, Conference).
+46. Six attacker spawns around the building and the yard, picked on an overhead map.
+47. Barricades and armour panels on doors and windows.
+48. Explosions damage panels, hatches, devices and people with a blast falloff.
+49. Smoke clouds that block sight but not bullets.
+50. Bullet-hole decals tied to the panel they are on; they disappear with it.
+51. Chunked debris particles when walls break.
+52. Rooms have names ("2F Garage Lounge") shown on the HUD and used in callouts.
+53. Per-room paint, floors and ceiling lamps, with point lights.
+54. Furniture is kept clear of doors, arches and windows when the map is built.
+55. Day, dusk and night lighting.
+56. Props block movement and bullets, with cover heights and per-prop bullet absorption.
 
 ## Match rules
 
-54. Bomb mode: plant in seven seconds, a 45-second fuse, seven seconds to disable.
-55. Secure Area mode: attackers hold the room for ten seconds.
-56. A 45-second preparation phase with a timer on the HUD.
-57. Attackers are held at their spawn during preparation; defenders stay inside the building.
-58. Defenders reinforce walls and barricade during preparation.
-59. A three-minute action phase.
-60. Win by elimination, by detonation, by disabling the defuser, or on time.
-61. Round series with the first side to three wins, sides swapping every round.
-62. Down But Not Out: a downed player can crawl, be revived in 3.4 seconds, or bleed out.
-63. Optional friendly fire.
-64. Custom Match with difficulty, time of day, preparation time, round time, rounds and down-but-not-out settings.
-65. Skirmish: a quick single-round secure area.
-66. Realistic playlist with no down-but-not-out and friendly fire.
-67. Enlisted playlist that moves your rank.
-68. The classic shooting range (ten guns, targets to 200 metres) is still included.
+57. Bomb mode: plant in seven seconds, a 45-second fuse, seven seconds to disable.
+58. Secure Area mode: attackers hold the room for ten seconds.
+59. A 45-second preparation phase with a timer on the HUD.
+60. Attackers are held at their spawn during preparation; defenders stay inside the building.
+61. Defenders reinforce walls and barricade during preparation.
+62. A three-minute action phase.
+63. Win by elimination, by detonation, by disabling the defuser, or on time.
+64. Round series with the first side to three wins, sides swapping every round.
+65. Down But Not Out: a downed player can crawl, be revived in 3.4 seconds, or bleed out.
+66. Optional friendly fire.
+67. Custom Match with difficulty, time of day, preparation time, round time, rounds and down-but-not-out settings.
+68. Skirmish: a quick single-round secure area.
+69. Realistic playlist with no down-but-not-out and friendly fire.
+70. Enlisted playlist that moves your rank.
+71. The classic shooting range (ten guns, targets to 200 metres) is still included.
 
 ## Player controls
 
-69. Walk, sprint, crouch, prone, lean left and right, jump.
-70. Vault over window sills.
-71. Melee, with a lethal hammer blow to the head.
-72. Hold-to-interact: open doors, plant, disable, reinforce, barricade, revive.
-73. Launch a drone in preparation and drive it with the mouse.
-74. Defenders cycle through their cameras.
-75. Ping the world or mark an enemy for the squad.
-76. Select weapons with number keys, the mouse wheel and the next key.
-77. Gadgets: throw, place, fire darts, hold a blowtorch, raise a shield, strobe a flash shield, detonate remote charges.
-78. Pulse sensor that tags heartbeats through walls.
-79. Rappel from the roof, with W and S to lower and raise and a kick off the wall.
-80. Spectate teammates after you die, in first or third person.
-81. Scoreboard on Tab.
-82. Rebindable keys.
-83. Mouse sensitivity, aim sensitivity, invert Y, toggle aim, field of view.
-84. Pointer lock with a free-cursor fallback (screen-edge turning and arrow keys) for pages that cannot capture the mouse.
-85. Pauses when the window loses focus.
-86. Help overlay on H.
+72. Walk, sprint, crouch, prone, lean left and right, jump.
+73. Vault over window sills.
+74. Melee, with a lethal hammer blow to the head.
+75. Hold-to-interact: open doors, plant, disable, reinforce, barricade, revive.
+76. Launch a drone in preparation and drive it with the mouse.
+77. Drones jump (Space) and climb stairs and kerbs; defenders may shoot them during preparation.
+78. Defenders cycle through their cameras.
+79. Ping the world or mark an enemy for the squad.
+80. Select weapons with number keys, the mouse wheel and the next key.
+81. Gadgets: throw, place, fire darts, hold a blowtorch, raise a shield, strobe a flash shield, detonate remote charges.
+82. Pulse sensor that tags heartbeats through walls.
+83. Rappel from the roof, with W and S to lower and raise and a kick off the wall.
+84. Spectate teammates after you die, in first or third person.
+85. Scoreboard on Tab.
+86. Rebindable keys.
+87. Mouse sensitivity, aim sensitivity, invert Y, toggle aim, field of view.
+88. Pointer lock with a free-cursor fallback (screen-edge turning and arrow keys) for pages that cannot capture the mouse.
+89. Pauses when the window loses focus.
+90. Help overlay on H.
 
 ## AI
 
-87. A decision loop at about five hertz with combat, reaction and task modes.
-88. Vision with a field of view, distance and an awareness meter that builds before a bot reacts.
-89. Hearing: footsteps, doors, shots and breaches carry, and walls muffle them.
-90. Memory of last known positions, with prediction of where a moving enemy went.
-91. Team callouts: what one bot sees, the squad learns.
-92. An aim model with reaction time, noise that grows with distance and movement, bursts and pauses.
-93. Per-bot personality: handedness, boldness, patience, nerve.
-94. Cover finding, and retreat to cover when hurt.
-95. Strafing, peeking and leaning on held positions.
-96. Reloading behind cover.
-97. Grenades thrown at hidden enemies and to flush rooms.
-98. A* navigation over the live world: opened doors, shot-out windows, breached walls and stairs change routes at once.
-99. Door opening, window vaulting and stair climbing on routes.
-100. Hatch drops: bots drop through open hatches when it shortens the way.
-101. String-pulled paths that do not cut corners into walls.
-102. Stuck handling: re-plan, skip a bad waypoint, accept a near arrival, steer round props, hop clear.
-103. A pathfinding budget per frame keeps ten bots cheap.
-104. Danger-aware routes that avoid known enemy positions and known traps.
-105. Attack director: drones scout in preparation and tag defenders.
-106. Attack roles: point, breacher, hammer, intel, medic, entry and planter.
-107. Staging outside, then a push along two different routes.
-108. Breach target selection by operator tool (soft versus reinforced walls).
-109. A planter who waits for a calm room and takes over if the planter dies.
-110. Post-plant: attackers spread out and hold the defuser.
-111. Defence director: reinforcement jobs that favour the walls facing the attackers.
-112. Defenders barricade doors and windows, and place gadgets by operator.
-113. Anchors hold the site; roamers watch the approaches.
-114. Defenders listen for the push and rotate towards it.
-115. Defenders retake the defuser once it is planted.
-116. Gadget AI for the hammer, thermite, cluster charge, X-pellets, breaching rounds, torch, pulse sensor, sonar and shields.
-117. Bots revive downed squad mates when nobody is shooting at them.
-118. Bots use stim pistols, armour packs, heal stations, cameras and traps.
-119. Five difficulty levels: Recruit, Regular, Veteran, Elite, Realistic.
-120. Rounds are deterministic for a given seed, so a bad match can be replayed in the headless tools.
+91. A decision loop at about five hertz with combat, reaction and task modes.
+92. Vision with a field of view, distance and an awareness meter that builds before a bot reacts.
+93. Hearing: footsteps, doors, shots and breaches carry, and walls muffle them.
+94. Memory of last known positions, with prediction of where a moving enemy went.
+95. Team callouts: what one bot sees, the squad learns.
+96. An aim model with reaction time, noise that grows with distance and movement, bursts and pauses.
+97. Per-bot personality: handedness, boldness, patience, nerve.
+98. Cover finding, and retreat to cover when hurt.
+99. Strafing, peeking and leaning on held positions.
+100. Reloading behind cover.
+101. Grenades thrown at hidden enemies and to flush rooms.
+102. A* navigation over the live world: opened doors, shot-out windows, breached walls and stairs change routes at once.
+103. Door opening, window vaulting and stair climbing on routes.
+104. Hatch drops: bots drop through open hatches when it shortens the way.
+105. String-pulled paths that do not cut corners into walls.
+106. Stuck handling: re-plan, skip a bad waypoint, accept a near arrival, steer round props, hop clear.
+107. A pathfinding budget per frame keeps ten bots cheap.
+108. Danger-aware routes that avoid known enemy positions and known traps.
+109. Attack director: two or three bots fly drones through preparation, climbing stairs and hopping kerbs, call out every defender and trap they see and steer the squad away from the rooms they found.
+110. Attack roles: point, breacher, hammer, intel, medic, entry and planter.
+111. Staging outside, then a push along two different routes.
+112. Breach target selection by operator tool (soft versus reinforced walls).
+113. A planter who waits for a calm room and takes over if the planter dies.
+114. Post-plant: attackers spread out and hold the defuser.
+115. Defence director: reinforcement jobs that favour the walls facing the attackers.
+116. Defenders barricade doors and windows, and place gadgets by operator.
+117. Anchors hold the site; roamers watch the approaches.
+118. Defenders listen for the push and rotate towards it.
+119. Defenders retake the defuser once it is planted.
+120. Gadget AI for the hammer, thermite, cluster charge, X-pellets, breaching rounds, torch, pulse sensor, sonar and shields.
+121. Bots revive downed squad mates when nobody is shooting at them.
+122. Bots use stim pistols, armour packs, heal stations, cameras and traps.
+123. Five difficulty levels: Recruit, Regular, Veteran, Elite, Realistic.
+124. Rounds are deterministic for a given seed, so a bad match can be replayed in the headless tools.
+125. Every bot is a person: a persistent callsign and an archetype from its operator (entry fragger, breacher, support, recon, lurker, point, medic, anchor, roamer, trapper, watcher, aggressor, rotator) with ten habits that make two bots of one archetype differ.
+126. Morale: kills build confidence, dead squad mates build tilt, and both change how hard a bot pushes; they carry from round to round.
+127. Hunts: bots go and look at shots, breaches and sightings, flank when they are the flanking kind, press a shooter who keeps firing, and search the rooms next to where they lost sight of someone.
+128. Defenders shut doors in preparation; doors start the round mostly open; bots open doors for themselves and close them behind them if they are careful.
+129. Roamers patrol a loop of rooms round the site, listen at each stop and watch the doors the attackers came through before.
+130. Barricades: wooden barricades give way to a few kicks, armour panels only to a hammer, and the attackers plan around what they cannot break.
+131. Doorway manners: bots queue instead of shoving, step out of a doorway someone is waiting at and never park in one.
+132. Navigation v2: standing points, prop clearance, body-width path smoothing and a progress watchdog; a 40-round soak finds about one stall per round where it used to find twelve.
+133. Cross-round memory: after every round the bots remember where their side fell, where walls were opened and where defenders held; they reinforce the breached walls first, route round old death spots, send drones to old defender spots and show it in a message at the start of the round.
+134. Takedowns count as kills on the scoreboard; the scoreboard and the results screen add up both squads over the whole match.
 
 ## Characters, rendering and sound
 
-121. Every soldier is a rigged ShapeForge character with a uniform, vest, headgear and pack per operator.
-122. Locomotion blending for walk, run, crouch, prone and lean, with weapon holds solved by IK.
-123. Hit reactions and ragdolls when someone dies.
-124. A more detailed hero model for the menu, with face, ears and a watch.
-125. Physically based WebGL2 rendering with shadows, ambient occlusion, bloom and colour grading.
-126. Adaptive resolution that holds the frame rate.
-127. Muzzle flashes, sparks, smoke, tracers, shell casings and impact puffs.
-128. Procedural, positional sound: shots by weapon, footsteps, doors, glass, breaking walls, explosions.
-129. Sound passes through walls dull and quiet.
-130. A tinnitus ring after a flashbang.
-131. Fuse beeps that speed up as the defuser burns.
-132. Generative menu music.
-133. Optional spoken callouts.
-134. Low health desaturates the screen and flashes a red vignette; flashbangs whiten it; gas tints it green.
+135. Every soldier is a rigged ShapeForge character with a uniform, vest, headgear and pack per operator.
+136. Locomotion blending for walk, run, crouch, prone and lean, with weapon holds solved by IK.
+137. Hit reactions and ragdolls when someone dies.
+138. A more detailed hero model for the menu, with face, ears and a watch.
+139. Physically based WebGL2 rendering with shadows, ambient occlusion, bloom and colour grading.
+140. Adaptive resolution that holds the frame rate.
+141. Muzzle flashes, sparks, smoke, tracers, shell casings and impact puffs.
+142. Procedural, positional sound: shots by weapon, footsteps, doors, glass, breaking walls, explosions.
+143. Sound passes through walls dull and quiet.
+144. A tinnitus ring after a flashbang.
+145. Fuse beeps that speed up as the defuser burns.
+146. Generative menu music.
+147. Optional spoken callouts.
+148. Low health desaturates the screen and flashes a red vignette; flashbangs whiten it; gas tints it green.
 
 ## Heads-up display
 
-135. Team slots with operator glyphs, scores and the round timer across the top.
-136. Fuse countdown replaces the clock once the defuser is planted.
-137. A radial dial with the phase text, your room and a pointer to the objective.
-138. Ammunition for both weapons and your gadgets, with the selected one highlighted.
-139. Drone and ping prompts in the corner, with your bound keys.
-140. Context prompts for every hold action, with progress bars.
-141. Kill feed with headshot and revive entries.
-142. Contact callouts from teammates.
-143. World markers for teammates, tagged enemies, the sites, the defuser and pings.
-144. Crosshair that opens with movement and recoil, in three styles and a colour of your choice.
-145. Hit markers and kill markers.
-146. Drone and camera feed overlays with a jam warning.
-147. Round banners ("ATTACK", "ROUND WON") and objective progress.
-148. Health, armour plates and a squad health list.
-149. Scoreboard with kills, assists, deaths and score.
-150. HUD size slider, and colour-blind team colours.
+149. Team slots with operator glyphs, scores and the round timer across the top.
+150. Fuse countdown replaces the clock once the defuser is planted.
+151. A radial dial with the phase text, your room and a pointer to the objective.
+152. Ammunition for both weapons and your gadgets, with the selected one highlighted.
+153. Drone and ping prompts in the corner, with your bound keys.
+154. Context prompts for every hold action, with progress bars.
+155. Kill feed with headshot and revive entries.
+156. Contact callouts from teammates.
+157. World markers for teammates, tagged enemies, the sites, the defuser and pings.
+158. Crosshair that opens with movement and recoil, in three styles and a colour of your choice.
+159. Hit markers and kill markers.
+160. Drone and camera feed overlays with a jam warning.
+161. Round banners ("ATTACK", "ROUND WON") and objective progress.
+162. Health, armour plates and a squad health list.
+163. Scoreboard with kills, assists, deaths and score.
+164. HUD size slider, and colour-blind team colours.
 
 ## Menus and screens
 
-151. Main menu laid out like the reference: tabs, season panel, squad panel, tutorial tile, playlists bar, clearance progress, missions, banner with a QR code and the unread row.
-152. A 3D hangar with your operator posed in it, with mouse parallax.
-153. Operators page with a studio view of any operator and their stats.
-154. Battle Pass: 40 free and premium tiers with claimable rewards.
-155. Locker: uniforms, headgear, weapon skins, charms, titles and banners, with a live preview of uniform and headgear.
-156. Career: statistics, win rate, accuracy, match history, favourite operators and ranks.
-157. Esports: standings, fixtures, pick'em and a live observer mode that watches an AI match with speed controls.
-158. Shop: 73 items bought with renown or credits.
-159. Playlists, squad, notifications and accessibility panels.
-160. Settings in five tabs: gameplay, controls, audio, video and match.
-161. Operator select before every round: locations, operators, loadout and ready tabs, a countdown and squad slots that fill as the bots lock in.
-162. Defenders pick the objective; attackers pick the spawn.
-163. Match results with a round-by-round breakdown and an itemised reward list.
-164. Pause menu, controls reference and a loading screen with tips.
-165. The interface scales to any window size, and the fonts are bundled so it works offline.
+165. Main menu laid out like the reference: tabs, season panel, squad panel, tutorial tile, playlists bar, clearance progress, missions, banner with a QR code and the unread row.
+166. A 3D hangar with your operator posed in it, with mouse parallax.
+167. Operators page with a studio view of any operator and their stats.
+168. Battle Pass: 40 free and premium tiers with claimable rewards.
+169. Locker: uniforms, headgear, weapon skins, charms, titles and banners, with a live preview of uniform and headgear.
+170. Career: statistics, win rate, accuracy, match history, favourite operators and ranks.
+171. Esports: standings, fixtures, pick'em and a live observer mode that watches an AI match with speed controls.
+172. Shop: 73 items bought with renown or credits.
+173. Playlists, squad, notifications and accessibility panels.
+174. Settings in five tabs: gameplay, controls, audio, video and match.
+175. Operator select before every round: locations, operators, loadout and ready tabs, a countdown and squad slots that fill as the bots lock in.
+176. Defenders pick the objective and the room they start in; attackers pick the spawn.
+177. Match results with a round-by-round breakdown and an itemised reward list.
+178. Pause menu, controls reference and a loading screen with tips.
+179. The interface scales to any window size, and the fonts are bundled so it works offline.
 
 ## Progression
 
-166. Clearance levels with a rising XP curve and renown or credit rewards on every level.
-167. XP and renown for kills, headshots, assists, plants, disables, reinforcements, breaches and wins.
-168. Newcomer missions, and three daily challenges chosen from twelve.
-169. Eight ranks from Copper to Champion, with a ten-match placement in Enlisted.
-170. Profile and settings saved in the browser.
-171. XP boosters from the battle pass.
+180. Clearance levels with a rising XP curve and renown or credit rewards on every level.
+181. XP and renown for kills, headshots, assists, plants, disables, reinforcements, breaches and wins.
+182. Newcomer missions, and three daily challenges chosen from twelve.
+183. Eight ranks from Copper to Champion, with a ten-match placement in Enlisted.
+184. Profile and settings saved in the browser.
+185. XP boosters from the battle pass.
 
 ## Tutorials
 
-172. Basics: look, move, sprint, stances, lean, aim, shoot, reload, doors and planting.
-173. Attack: drone, tagging, breaching, planting.
-174. Defense: reinforcing, barricading, placing gadgets, holding the site.
+186. Basics: look, move, sprint, stances, lean, aim, shoot, reload, doors and planting.
+187. Attack: drone, tagging, breaching, planting.
+188. Defense: reinforcing, barricading, placing gadgets, holding the site.
 
 ## Tools
 
-175. `tools/sim-match.mjs` and `tools/sim-batch.mjs` play whole AI rounds headlessly and report balance, revives, bleed-outs and stalls.
-176. `tools/walk-test.mjs` walks a bot between hundreds of random cells with the real mover and physics.
-177. `tools/map-lint.mjs` checks every doorway for a clear approach and every bomb spot for a route.
-178. `tools/nav-map.mjs` prints each storey's walkable grid and flags unreachable cells.
-179. `npm test` runs the weapon, simulation, map and AI checks.
+189. `tools/sim-match.mjs` and `tools/sim-batch.mjs` play whole AI rounds headlessly and report balance, revives, bleed-outs and stalls.
+190. `tools/walk-test.mjs` walks a bot between hundreds of random cells with the real mover and physics.
+191. `tools/map-lint.mjs` checks every doorway for a clear approach and every bomb spot for a route.
+192. `tools/nav-map.mjs` prints each storey's walkable grid and flags unreachable cells.
+193. `npm test` runs the weapon, simulation, map and AI checks.
+194. `tools/stuck-test.mjs` plays AI rounds across sites and spawns and reports every place a bot pushes without getting anywhere; `tools/replay.mjs` replays one of them.
+195. `tools/drone-test.mjs`, `tools/match-test.mjs`, `tools/ai-report.mjs` and `tools/player-shot-test.mjs` check the drones, a whole match, the behaviours listed above, and how the defenders answer a shooter.
+196. `tools/sheet.cjs` tiles screenshots into one contact sheet for reviewing animations.

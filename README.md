@@ -8,6 +8,8 @@ A tactical 5v5 siege shooter built on the [ShapeForge Engine](https://github.com
 
 ![In a match](docs/in-game.png)
 
+![The armoury](docs/weapons.png)
+
 ```bash
 npm start      # serves the folder on http://localhost:8080 (any static server works)
 npm test       # weapon checks, simulation checks, map lint, walk test, AI batch
@@ -19,10 +21,10 @@ The 3D shooting range from the engine demo is still here as `range.html` (choose
 
 ## What you get
 
-- 28 operators, 38 gadgets and 16 weapons; the full list is in [FEATURES.md](FEATURES.md).
-- **Harbor Garage**: two floors and a roof, 100 openings, four bomb sites, destructible walls, reinforced steel, hatches, skylights, rappel anchors and bullet penetration.
+- 28 operators, 38 gadgets and 22 weapons on 20 hand-built first-person rigs, every one with a fire, reload and inspect animation; the full list is in [FEATURES.md](FEATURES.md).
+- **Harbor Garage**: two floors and a roof, 100 openings, eight bomb sites and six attacker spawns, destructible walls, reinforced steel, hatches, skylights, rappel anchors and bullet penetration.
 - Bomb and Secure Area modes, Down But Not Out, round series with side swaps, ranked placements and a hardcore playlist.
-- AI that plans as a team: a drone phase, staged pushes, breach roles, post-plant holds, reinforcement and gadget jobs on defence, revives, grenades, cover and callouts, at five difficulty levels.
+- AI that plans as a team and plays as individuals: every bot has a callsign, an archetype and its own habits; attackers fly drones that climb and report, push in staged waves and breach by operator; defenders reinforce, shut doors, lay traps, roam and answer shots by flanking; everyone revives, remembers earlier rounds of the match and learns where the other side fell. Five difficulty levels.
 - The menu suite from the reference screens: main menu, operators, battle pass, locker, career, esports (with a live observer), shop, settings, operator select, HUD, results.
 - Three tutorials, daily challenges, a 40-tier battle pass, a shop and ranks, saved in the browser.
 
@@ -46,7 +48,7 @@ If the page cannot capture the mouse, push the cursor towards the screen edges t
 | Folder | What it holds |
 | --- | --- |
 | `engine/` | The ShapeForge Engine (renderer, scene, characters, animation, physics) |
-| `src/weapons/` | The ten authored first-person weapon rigs, shared with the range |
+| `src/weapons/` | The twenty authored first-person weapon rigs (the first ten are shared with the range) and the choreography generators the newer ones use |
 | `src/siege/world/` | The voxel-face world: panels, doors, destruction, ray casting, mesher, map builder |
 | `src/siege/data/` | Operators, gadgets, weapons, progression and the Harbor Garage map |
 | `src/siege/sim/` | The headless simulation: actors, combat, devices, rounds, navigation |
@@ -62,6 +64,10 @@ node tools/sim-batch.mjs 24 2 260    # many rounds, summarised
 node tools/walk-test.mjs 300         # bots walk random routes; reports where they get stuck
 node tools/map-lint.mjs              # doorway clearance and bomb-spot routes
 node tools/nav-map.mjs               # prints the walkable grid of each storey
+node tools/stuck-test.mjs 40 200     # many rounds; reports every spot where a bot pushes without moving
+node tools/drone-test.mjs            # drone physics (stairs, hops) and what the AI drones see
+node tools/match-test.mjs 3          # a whole match: callsigns, scoreboard, round memory
+node tools/ai-report.mjs 6 2         # counts hunts, door closing, revives, roamer distance
 ```
 
 `tools/*-shot.cjs` drive a headless Chromium to take screenshots of the menus and the game.

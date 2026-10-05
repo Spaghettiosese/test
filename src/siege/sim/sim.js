@@ -95,7 +95,7 @@ export class Sim {
       this.bullet(a, origin, dir, def, { pellet: def.pellets > 1, muzzle });
     }
     this.emit('shot', { actor: a, gun: g, origin, muzzle, dir: base, kick });
-    const loud = def.cls === 'SR' ? 95 : def.cls === 'SG' ? 70 : def.cls === 'HG' ? 55 : def.cls === 'AR' ? 62 : def.cls === 'DMR' ? 75 : 50;
+    const loud = def.suppressed ? 16 : def.cls === 'LMG' ? 78 : def.cls === 'SR' ? 95 : def.cls === 'SG' ? 70 : def.cls === 'HG' ? 55 : def.cls === 'AR' ? 62 : def.cls === 'DMR' ? 75 : 50;
     this.noise(origin, a.suppressed ? loud * 0.3 : loud, 'shot', a);
   }
   // trace one bullet (or pellet) through the world: walls take damage and may let it through

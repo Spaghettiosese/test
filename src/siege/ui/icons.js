@@ -70,6 +70,7 @@ const W = {
   DMR: `<path ${F} d="M0 12h18l3-2h22v-2h4v2h10v3H44l-3 1H25l-2 6h-5l1-6H0z"/>`,
   SR: `<path ${F} d="M0 13h10l2-2h40v-2h3v2h8v3H52l-4 2H28l-2 6h-5l1-6H0z M24 8h14v2H24z"/>`,
   HG: `<path ${F} d="M14 8h30l2 2v4H38l-2 8h-6l1-8H14z"/>`,
+  LMG: `<path ${F} d="M0 11h8l2-2h16l2-2h22v2h12v3H50l-4 1H30l-2 4h-6l1-4h-6l-2 6h-5l1-6H0z M26 15h8v6h-8z"/>`,
 };
 export const weaponIcon = (cls, c = '') => `<svg class="wic ${c}" viewBox="0 0 64 24" aria-hidden="true">${W[cls] || W.AR}</svg>`;
 

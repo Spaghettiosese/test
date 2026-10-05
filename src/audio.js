@@ -64,6 +64,24 @@ export class Sfx {
       this._noise(t, { dur: 1.6, gain: 0.7, freq: 220, freqEnd: 60, decay: 1.4 });
       this._tone(t, { freq: 90, freqEnd: 30, dur: 0.4, gain: 0.8, decay: 0.45 });
       this._noise(t + 0.25, { dur: 1.2, gain: 0.12, freq: 600, freqEnd: 200, decay: 1.1, attack: 0.05 }); // echo off the berm
+    } else if (kind === 'pistol') { // a sharp 9 mm crack
+      this._noise(t, { dur: 0.16, gain: 0.8, freq: 3600, freqEnd: 700, decay: 0.1 });
+      this._noise(t, { dur: 0.3, gain: 0.35, freq: 300, decay: 0.2 });
+      this._tone(t, { freq: 190, freqEnd: 70, dur: 0.08, gain: 0.4, decay: 0.08 });
+    } else if (kind === 'suppressed') { // a cough and the slide
+      this._noise(t, { dur: 0.12, gain: 0.3, freq: 1500, freqEnd: 400, decay: 0.08 });
+      this._tone(t, { freq: 150, freqEnd: 60, dur: 0.08, gain: 0.25, decay: 0.08 });
+      this._noise(t + 0.05, { dur: 0.05, gain: 0.35, type: 'bandpass', freq: 3200, q: 2, decay: 0.04 });
+    } else if (kind === 'lmg') { // a deep, chesty hammering
+      this._noise(t, { dur: 0.3, gain: 1, freq: 2600, freqEnd: 450, decay: 0.2 });
+      this._noise(t, { dur: 0.6, gain: 0.8, freq: 200, freqEnd: 50, decay: 0.45 });
+      this._tone(t, { freq: 95, freqEnd: 38, dur: 0.2, gain: 0.75, decay: 0.2 });
+    } else if (kind === 'lever') { // a rifle crack with the lever's clack after it
+      this._noise(t, { dur: 0.3, gain: 0.95, freq: 4200, freqEnd: 500, decay: 0.2 });
+      this._noise(t, { dur: 0.8, gain: 0.7, freq: 230, freqEnd: 60, decay: 0.6 });
+      this._tone(t, { freq: 110, freqEnd: 36, dur: 0.22, gain: 0.7, decay: 0.25 });
+      this._noise(t + 0.22, { dur: 0.08, gain: 0.3, type: 'bandpass', freq: 1800, q: 2, decay: 0.06 });
+      this._noise(t + 0.4, { dur: 0.08, gain: 0.35, type: 'bandpass', freq: 1300, q: 2, decay: 0.06 });
     } else {
       this._noise(t, { dur: 0.4, gain: 1, freq: 2500, freqEnd: 300, decay: 0.3 });
       this._noise(t, { dur: 0.9, gain: 0.8, freq: 180, freqEnd: 60, decay: 0.7 });

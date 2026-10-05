@@ -13,7 +13,7 @@ import { CAST, STOREY } from '../world/grid.js';
 import { STAND, CROUCH } from '../sim/actor.js';
 import { clamp, dist3, dist2, norm, sub, dot, wrapAngle, yawOf, pitchOf, approachAngle } from '../sim/util.js';
 
-const RANGE = { AR: [8, 32], SMG: [4, 18], SG: [2, 9], DMR: [14, 50], SR: [25, 80], HG: [3, 16] };
+const RANGE = { AR: [8, 32], SMG: [4, 18], LMG: [8, 30], SG: [2, 9], DMR: [14, 50], SR: [25, 80], HG: [3, 16] };
 
 export class Brain {
   constructor(a, director, level = 2) {
