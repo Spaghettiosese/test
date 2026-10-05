@@ -1,11 +1,13 @@
 {
-  "name": "shapeforge-range",
-  "version": "1.0.0",
-  "description": "A tiny first-person shooting range built on the ShapeForge Engine, with an M4A1, a .338 sniper rifle and a pump shotgun modelled and animated in the engine.",
+  "name": "siegeforge",
+  "version": "2.0.0",
+  "description": "SiegeForge: a tactical 5v5 siege shooter with destructible walls, reinforced defences, 28 operators and AI squads, built on the ShapeForge Engine.",
   "type": "module",
   "license": "MIT",
   "scripts": {
     "start": "npx --yes http-server -p 8080 -c-1 .",
-    "test": "node tools/test-weapons.mjs && node tools/test-props.mjs"
+    "test": "node tools/test-weapons.mjs && node tools/test-props.mjs && node tools/sim-basic.mjs && node tools/test-gadgets.mjs > /dev/null && node tools/map-lint.mjs && node tools/nav-map.mjs > /dev/null && node tools/walk-test.mjs 120 3 && node tools/sim-batch.mjs 8 2 240",
+    "sim": "node tools/sim-match.mjs",
+    "batch": "node tools/sim-batch.mjs 24 2 260"
   }
 }

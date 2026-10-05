@@ -45,7 +45,7 @@ export class MenuScene {
     const floor = new E.Mesh(E.plane({ width: 40, depth: 40 }), new E.Material({ name: 'StudioFloor', color: '#0d141c', roughness: 0.55, metallic: 0.5 }), 'floor'); scene.add(floor);
     const back = new E.Mesh(E.box({ width: 40, height: 14, depth: 0.2 }), new E.Material({ name: 'StudioWall', color: '#0b1119', roughness: 1, emissive: '#0d1b2b', emissiveStrength: 0.6 }), 'wall'); back.position.set([0, 6, -5]); scene.add(back);
     const L = (pos, color, intensity, range) => { const l = new E.Light('point', { color, intensity, range }); l.position.set(pos); scene.add(l); return l; };
-    L([-2, 3, 3], '#dfe9ff', 40, 12); L([3, 2.4, -1.6], '#4a8cff', 30, 10); L([-3, 1.8, -1.2], '#ffffff', 18, 8);
+    L([-2, 3, 3], '#e6eeff', 62, 14); L([3, 2.4, -1.6], '#4a8cff', 36, 10); L([-3, 1.8, -1.2], '#ffffff', 26, 9); L([1.5, 1.2, 3.2], '#fff4e0', 16, 8);
     void lib;
     return scene;
   }

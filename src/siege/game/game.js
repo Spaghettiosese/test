@@ -65,7 +65,8 @@ export class Game {
     const scene = this.scene = new E.Scene(), env = scene.environment;
     this.tod = cfg.tod ?? 15.2;
     E.applyTimeOfDay(env, this.tod);
-    env.fogDensity = 0.0024; env.shadowRadius = 22; env.shadowFar = 110; env.fogHeight = 0.0; env.volumetric = 0; env.exposure = this.tod > 19 || this.tod < 6 ? 1.6 : 1.0;
+    env.fogDensity = 0.0024; env.shadowRadius = 22; env.shadowFar = 110; env.fogHeight = 0.0; env.volumetric = 0; env.exposure = this.tod > 19 || this.tod < 6 ? 1.9 : 1.0;
+    if (this.tod > 19 || this.tod < 6) { env.ambient = 0.85; env.sunIntensity = 1.4; env.sunColor = [0.65, 0.75, 1.0]; env.sunDirection = E.vec3.normalize([0, 0, 0], [0.4, 0.75, 0.5]); } // a bright moon: no night vision in this game
     this.applySettings();
     this.phys = new E.PhysicsWorld({ iterations: 8, gravity: [0, -9.81, 0] }); this.colliders = new Colliders(this);
     const setup = setupRound(sim, { level: cfg.level, site: cfg.site, spawn: cfg.spawn, player: cfg.player, atk: cfg.atk, def: cfg.def });
@@ -200,7 +201,7 @@ export class Game {
     const st = this.renderer.settings;
     st.vignette = this.scopeOn ? 0.2 : 0.35;
     const hp = a ? a.hp / (a.maxHp || 100) : 1;
-    st.saturation = 1.06 * (a && a.alive ? 0.55 + 0.45 * clamp(hp * 1.6, 0, 1) : 0.35);
+    st.saturation = 0.94 * (a && a.alive ? 0.55 + 0.45 * clamp(hp * 1.6, 0, 1) : 0.35); st.contrast = 1.1;
     this.renderer.render(this.scene, this.cam, { background: 'sky', particles: [this.fx.particles, this.fx.sparks], lines: lines.length ? [{ data: new Float32Array(lines) }] : undefined });
     void sim;
   }

@@ -25,3 +25,4 @@ for (let s = 1; s <= N; s++) {
   } catch (e) { crashes++; console.log('CRASH seed', s, e.stack.split('\n').slice(0, 4).join(' | ')); }
 }
 console.log(`level ${level}: atk ${tally.atk} def ${tally.def} none ${tally.none} | reasons ${JSON.stringify(reasons)} | plants ${plants}/${N} | avg round ${(dur / N).toFixed(0)}s | kills atk ${kills.atk} def ${kills.def} | downs ${downs} revives ${revives} bleeds ${bleeds} | stalls ${stalls} crashes ${crashes} | ${((performance.now() - t0) / 1000).toFixed(1)}s`);
+if (crashes || stalls > 2 || tally.none > N * 0.1) process.exitCode = 1;

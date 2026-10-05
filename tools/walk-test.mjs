@@ -37,3 +37,4 @@ for (let k = 0; k < N; k++) {
 console.log(`walks ${N}: arrived ${ok}, failed ${fail}, no path ${unreachable}`);
 for (const [k, e] of [...bad.entries()].sort((x, y) => y[1].n - x[1].n).slice(0, 14)) console.log(`  stuck near ${k} x${e.n}: from ${e.from} to ${e.to} pos ${e.pos}`);
 void w;
+if (fail > Math.max(2, N * 0.02)) process.exitCode = 1;

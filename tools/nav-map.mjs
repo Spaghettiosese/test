@@ -18,4 +18,4 @@ for (let f = 0; f <= 1; f++) {
     console.log(row);
   }
 }
-console.log(`walkable ${total}, unreachable ${lost}`);
+console.log(`walkable ${total}, unreachable ${lost}`); if (lost > 12) process.exitCode = 1;

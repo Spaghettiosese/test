@@ -12,8 +12,8 @@ const PAINT = {
   green: { color: '#6c8c68', pattern: 'stucco', patternScale: 1.2, patternColor: '#4b6648', roughness: 0.9 },
   grey: { color: '#9aa0a6', pattern: 'stucco', patternScale: 1.2, patternColor: '#737a80', roughness: 0.92 },
   tan: { color: '#bb9d74', pattern: 'planks', patternScale: 4, patternColor: '#7d6340', roughness: 0.85 },
-  brick: { color: '#9d5640', pattern: 'brick', patternScale: 9, patternColor: '#cfc1a6', roughness: 0.88 },
-  brickExt: { color: '#8a4a38', pattern: 'brick', patternScale: 9, patternColor: '#bfb095', roughness: 0.9 },
+  brick: { color: '#8c5a49', pattern: 'brick', patternScale: 9, patternColor: '#b4a98f', roughness: 0.88 },
+  brickExt: { color: '#7d5242', pattern: 'brick', patternScale: 9, patternColor: '#a39b8a', roughness: 0.92 },
 };
 const FLOOR = {
   concrete: { color: '#77746f', pattern: 'stucco', patternScale: 2.2, patternColor: '#58554f', roughness: 0.9 },

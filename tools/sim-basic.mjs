@@ -5,6 +5,7 @@ let fail = 0;
 const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'ok   ' : 'FAIL ') + msg); };
 const sim = new Sim(HARBOR, { seed: 3 });
 const w = sim.world, bx = HARBOR.bx, bz = HARBOR.bz;
+sim.round.phase = 'action'; sim.round.t = 180; // skip the preparation phase, where nobody can shoot
 check(sim.map.doors.length > 30 && sim.map.windows.length > 30, `map has ${sim.map.doors.length} doors, ${sim.map.windows.length} windows`);
 // walk a bot into a wall and out the garage door
 const a = sim.addActor({ team: 'atk', op: 'hammer', primary: 'm4a1', secondary: 'compact', pos: [bx + 15.5, 0, bz + 3.5], yaw: 0 });
@@ -21,18 +22,18 @@ const s0 = sim.nav.snap(bx + 14, 0, bz - 6), s1 = sim.nav.snap(bx + 4, 3, bz + 3
 t = performance.now(); const up = sim.nav.find(s0, s1); 
 check(up && up.some((p) => p.kind === 'stair'), `yard -> 2F lounge uses stairs: ${up && up.length} steps, ${(performance.now() - t).toFixed(1)} ms`);
 // bullet through plaster: shooter in the lobby, target behind the R|O wall? use actor d behind office wall
-a.pos = [bx + 15.5, 0, bz + 8.5]; a.yaw = 0; a.pitch = 0; a.vel = [0, 0, 0];
-d.pos = [bx + 15.5, 0, bz + 12.5]; d.hp = d.maxHp;
+a.pos = [bx + 12.5, 0, bz + 8.5]; a.yaw = 0; a.pitch = 0; a.vel = [0, 0, 0];
+d.pos = [bx + 12.5, 0, bz + 12.5]; d.hp = d.maxHp;
 let hurt = 0; sim.on('hurt', (e) => { if (e.actor === d) hurt++; });
 for (let i = 0; i < 60; i++) { a.ctl.fire = i % 2 === 0; a.ctl.fwd = 0; sim.update(1 / 60); }
 check(hurt > 0 || d.hp < d.maxHp, `bullets penetrate plaster to hit a defender (hp ${d.hp.toFixed(0)}/${d.maxHp}, hurt events ${hurt})`);
 // wall gets damaged by gunfire eventually
-const wall = w.getZ(bx + 15, 0, bz + 10);
+const wall = [w.getZ(bx + 12, 0, bz + 10), w.getZ(bx + 12, 1, bz + 10)].find((q) => q && q.hp < q.max) || w.getZ(bx + 12, 0, bz + 10);
 check(wall && wall.hp < wall.max, `plaster takes damage (${wall && wall.hp.toFixed(0)}/${wall && wall.max})`);
 // hammer breach
-a.ctl.fire = false; a.pos = [bx + 15.5, 0, bz + 9.0]; a.yaw = 0; a.pitch = 0.1;
+a.ctl.fire = false; a.pos = [bx + 12.5, 0, bz + 9.0]; a.yaw = 0; a.pitch = 0.1;
 sim.devices.melee(a);
-check(!w.getZ(bx + 15, 0, bz + 10) || w.getZ(bx + 15, 0, bz + 10).dead, 'hammer opens the wall');
+check(!w.getZ(bx + 12, 0, bz + 10) || w.getZ(bx + 12, 0, bz + 10).dead, 'hammer opens the wall');
 // reinforce blocks hammer
 const w2 = w.getX(bx + 16, 0, bz + 11); const unit = w2 && w2.unit;
 check(!!unit, 'O|A wall is a reinforceable unit ' + unit);

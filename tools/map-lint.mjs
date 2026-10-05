@@ -20,10 +20,10 @@ for (const [fl, x, z, side, kind, count = 1] of d.openings) {
     }
   }
 }
-console.log(`${bad} blocked doorway approaches`);
+console.log(`${bad} blocked doorway approaches`); if (bad) process.exitCode = 1;
 // reachability of the bomb spots from every attacker spawn
 const seenFrom = (sx, sz) => { const s = nav.snap(sx, 0, sz), seen = new Set([s]), q = [s]; while (q.length) { const n = q.pop(); nav.each(n, (m) => { if (!seen.has(m)) { seen.add(m); q.push(m); } }, false); } return seen; };
 for (const sp of sim.map.spawns) {
   const seen = seenFrom(sp.cx, sp.cz);
-  for (const s of sim.map.sites) for (const [label, p] of [['A', s.a], ['B', s.b], ['centre', s.center]]) if (!seen.has(nav.snap(p[0], p[1], p[2]))) console.log(`UNREACHABLE from ${sp.id}: ${s.name} ${label}`);
+  for (const s of sim.map.sites) for (const [label, p] of [['A', s.a], ['B', s.b], ['centre', s.center]]) if (!seen.has(nav.snap(p[0], p[1], p[2]))) { process.exitCode = 1; console.log(`UNREACHABLE from ${sp.id}: ${s.name} ${label}`); }
 }
