@@ -8,6 +8,7 @@ import { findCover, findPeek, lobPitch, facingOf } from './tactics.js';
 import { GADGETS } from '../data/gadgets.js';
 import { runGadgetAI } from './gadgetai.js';
 import { installBehaviors } from './behaviors.js';
+import { reflexes } from './reactions.js';
 import { makePersona } from './persona.js';
 import { CAST, STOREY } from '../world/grid.js';
 import { STAND, CROUCH } from '../sim/actor.js';
@@ -31,6 +32,7 @@ export class Brain {
     this.holdUntil = 0; this.stateT = 0; this.gadgetT = 0; this.say = null; this.stuckHunt = 0; this.moveMode = 'walk'; this.hurtT = -9; this.fleeing = false;
     this.talkCd = 0; this.lastTarget = null; this.dangerSpots = []; this.rvTarget = null; this.rvCd = 0;
     this.persona = a.persona || makePersona(a.sim.rand, a.op, a.team, a.name); a.persona = this.persona;
+    this.rx = { flinchT: 0, supp: 0, suppFrom: null, suppT: 0, listenT: 0, warned: null, seen: null, dodge: null, fallback: null };
     this.breaksBarriers = a.team === 'atk' ? (a.op.ability === 'hammer' ? 2 : 1) : 0; this.hunt = null; this.dTgt = null; this.lastTgtId = null;
   }
   get a_() { return this.a; }
@@ -40,10 +42,12 @@ export class Brain {
   onHear(n, pos, conf) {
     this.watch = pos; this.watchT = 3.5;
     if (this.mode !== 'combat') this.heardT = this.sim.time;
+    // somebody is moving close by: stop and listen (a crouched bot hears better and makes less noise itself)
+    if ((n.kind === 'step' || n.kind === 'vault' || n.kind === 'door' || n.kind === 'land') && conf > 0.3 && this.holdPost()) this.rx.listenT = Math.max(this.rx.listenT, 2.4);
     if (n.kind === 'shot' && this.dir) this.dir.hint(this.a, pos, n);
     // somebody else's trouble is worth a look: go and see, and tell the squad
     if (this.mode === 'combat' || this.inCombat || conf < 0.28 || !this.persona || !this.dir) return;
-    if (!['shot', 'explosion', 'melee', 'breach', 'burn', 'plant'].includes(n.kind) && !(n.kind === 'door' && this.persona.p.curious > 0.6) && !(n.kind === 'step' && this.persona.p.curious > 0.75 && conf > 0.5)) return;
+    if (!['shot', 'explosion', 'melee', 'breach', 'burn', 'plant', 'break', 'alarm'].includes(n.kind) && !((n.kind === 'door' || n.kind === 'vault' || n.kind === 'glass' || n.kind === 'reload') && this.persona.p.curious > 0.6) && !(n.kind === 'step' && this.persona.p.curious > 0.75 && conf > 0.5)) return;
     // somebody keeps firing: stop wondering and go and get them, following the sound as it moves
     if (n.kind === 'shot') {
       const now = this.sim.time; this.shotLog = (this.shotLog || []).filter((q) => now - q.t < 6); this.shotLog.push({ t: now, pos });
@@ -79,12 +83,14 @@ export class Brain {
     const known = [], now = this.sim.time;
     for (const m of this.sense.mem.values()) if (m.actor.alive && now - m.t < 8) known.push(m.pos);
     const nav = this.sim.nav, tact = this.prof.tactics, W = nav.W, D = nav.D;
+    const hub = this.sim.reactions, haz = hub ? hub.persistent(this.a.team) : [];
     const traps = this.dir ? this.dir.knownTraps(this.a.team) : [], mem = this.sim.memory && this.sim.memory.rounds ? this.sim.memory : null, team = this.a.team;
     return (n) => {
       let extra = 0;
       if (mem) { const x = n % W, z = Math.floor(n / W) % D; extra += mem.danger(team, x + 0.5, z + 0.5, Math.floor(n / (W * D))) * Math.min(1.5, tact); }
       if (tact >= 1 && known.length) { const x = n % W, z = Math.floor(n / W) % D; for (const p of known) { const d = Math.hypot(x + 0.5 - p[0], z + 0.5 - p[2]); if (d < 7) extra += (7 - d) * 0.35 * tact; } }
       if (traps.length) { const x = n % W, z = Math.floor(n / W) % D; for (const p of traps) if (Math.abs(x + 0.5 - p[0]) < 1.1 && Math.abs(z + 0.5 - p[2]) < 1.1) extra += 40; }
+      if (haz.length) { const x = n % W, z = Math.floor(n / W) % D; for (const h of haz) { if (Math.abs(Math.floor(n / (W * D)) * STOREY - h.pos[1]) > 2) continue; const d = Math.hypot(x + 0.5 - h.pos[0], z + 0.5 - h.pos[2]); if (d < h.r + 0.6) extra += 30; } }
       return extra;
     };
   }
@@ -101,8 +107,11 @@ export class Brain {
     if (this.watchT > 0) this.watchT -= dt;
     this.decideT -= dt;
     if (this.decideT <= 0) { this.decideT = 0.18 + sim.rand() * 0.1; this.decide(); }
+    const plan = this.reflexStep(dt);
     this.mover.update(dt);
-    this.execute(dt);
+    if (plan) { if (this.mode === 'combat' && plan.kind === 'run' && !plan.noAim) this.combat(dt, true); this.reflexMove(plan, dt); }
+    else this.execute(dt);
+    this.attentionStep(dt);
     this.trafficStep(dt);
     this.stallWatch(dt);
     this.finish(dt);
@@ -171,7 +180,7 @@ export class Brain {
   }
 
   // ---------------------------------------------------------------- combat
-  combat(dt) {
+  combat(dt, still = false) {
     const a = this.a, c = a.ctl, now = this.sim.time, m = this.tgt, g = a.gun;
     if (!m || !m.actor) return;
     const T = m.actor, vis = m.seen && now - m.t < 0.35, eye = a.eye();
@@ -181,6 +190,9 @@ export class Brain {
     if (this.reactT > 0) this.reactT -= dt;
     // aim
     const err = this.aimAt(pos, dt, dist);
+    // the enemy is changing magazines in front of us: now is the time to lean on them
+    const punish = vis && this.prof.tactics >= 1 && T.gun && T.gun.reloading && T.alive;
+    if (punish) { this.pauseT = 0; this.reactT = 0; this.burstLeft = Math.max(this.burstLeft, 3); if (!this.rx.punishing) { this.rx.punishing = true; this.sim.reactions && this.sim.reactions.count('punish'); } } else this.rx.punishing = false;
     c.aim = vis && d > 6 && !a.sprinting && !(a.shield && a.shield.up);
     if (a.shield && a.op.ability === 'shield') a.shield.up = vis || this.holdShield;
     // weapon choice: pistol if the primary is dry and the enemy is close
@@ -201,8 +213,8 @@ export class Brain {
     }
     if (a.lastShotT >= now - dt * 1.5 && vis) { this.burstLeft -= 1; if (this.burstLeft <= 0) this.pauseT = (gun.def.auto ? 0.18 : 0.12) + this.sim.rand() * (0.5 - this.prof.accuracy * 0.18); }
     if (this.pauseT > 0) this.pauseT -= dt;
-    // movement style
-    this.combatMove(dt, T, vis, dist, d);
+    // movement style (a reflex that owns the legs, such as diving from a grenade, leaves only the aiming to us)
+    if (!still) this.combatMove(dt, T, vis, dist, d);
     // grenades at a known but covered position
     if (this.prof.tactics >= 2 && this.grenadeCd <= 0 && !gun?.reloading) this.tryGrenade(pos, dist, vis);
     if (a.op.ability === 'hammer' && dist < 1.7 && vis) this.sim.devices.melee(a);
@@ -251,7 +263,9 @@ export class Brain {
       return;
     }
     // visible: advance, back off, or strafe
-    if (dist > rmax && (isAtk || this.prof.p.bold > 0.7) && !this.holdPost()) {
+    if (this.rx.punishing && dist > rmin * 1.4 && dist < rmax * 1.5 && !this.holdPost() && (isAtk || (this.persona && this.persona.push > 0.6)) && this.canStep(fwd, 1)) {
+      wish = [fwd[0] * 0.9, fwd[1] * 0.9];
+    } else if (dist > rmax && (isAtk || this.prof.p.bold > 0.7) && !this.holdPost()) {
       if (!this.mover.active) this.mover.goTo([T.pos[0], T.pos[1], T.pos[2]], { speed: 'walk', tol: rmax * 0.7 });
     } else {
       if (this.mover.active && dist <= rmax) this.mover.stop();
@@ -278,7 +292,7 @@ export class Brain {
   aimAt(p, dt, dist) {
     const a = this.a, eye = a.eye(), pr = this.prof;
     this.noiseT -= dt;
-    if (this.noiseT <= 0) { this.noiseT = 0.2; const s = pr.aimNoise * (1 + dist / 35) * (a.vel[0] * a.vel[0] + a.vel[2] * a.vel[2] > 1 ? 1.6 : 1) * (a.status.shock > 0 ? 3 : 1) * (a.status.blind > 0 ? 6 : 1); this.noise = [this.sim.rand.gauss() * s, this.sim.rand.gauss() * s * 0.7]; }
+    if (this.noiseT <= 0) { this.noiseT = 0.2; const s = pr.aimNoise * (1 + dist / 35) * (a.vel[0] * a.vel[0] + a.vel[2] * a.vel[2] > 1 ? 1.6 : 1) * (a.status.shock > 0 ? 3 : 1) * (a.status.blind > 0 ? 6 : 1) * (1 + this.rx.flinchT * 2.2); this.noise = [this.sim.rand.gauss() * s, this.sim.rand.gauss() * s * 0.7]; }
     const dx = p[0] - eye[0], dy = p[1] - eye[1], dz = p[2] - eye[2];
     let ty = yawOf(dx, dz) + this.noise[0] - a.kick[1], tp = pitchOf(dx, dy, dz) + this.noise[1] - a.kick[0];
     const ey = wrapAngle(ty - a.yaw), ep = tp - a.pitch;
@@ -332,6 +346,9 @@ export class Brain {
     const a = this.a, t = this.task, c = a.ctl;
     if (this.reviveStep(dt)) return;
     if (this.droneStep(dt)) return;
+    if (this.deviceStep(dt)) return;
+    if (this.breachGrenade(dt)) return;
+    if (this.prefireStep(dt)) return;
     if (this.huntStep(dt)) return;
     if (!t) { this.idleLook(dt); return; }
     const want = (p, o) => { if (!this.mover.goal || dist3(this.mover.goal, p) > 0.8 || (this.mover.failed && this.stateT > 0.5)) { this.mover.goTo(p, o); this.stateT = 0; } };
@@ -474,3 +491,4 @@ export class Brain {
 }
 void STOREY; void CAST; void GADGETS; void facingOf; void findPeek;
 installBehaviors(Brain);
+Object.assign(Brain.prototype, reflexes);

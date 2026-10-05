@@ -54,6 +54,7 @@ export class Persona {
     for (const [k, v] of Object.entries(arch.t)) this.p[k] = Math.max(0, Math.min(1, v + (rand() - 0.5) * 0.3));
     // small habits that do not depend on the archetype
     this.habit = { side: rand() < 0.5 ? -1 : 1, holdAngle: rand(), tilt: 0, confidence: 0, quirk: Math.floor(rand() * 4) };
+    this.situ = 0; // what the round is doing to its nerve right now: time running out, a man up, the last one standing
   }
   // a few lines for the squad panel
   describe() { return `${this.callsign} · ${this.label}`; }
@@ -62,7 +63,7 @@ export class Persona {
   onKill() { this.habit.confidence = Math.min(1, this.habit.confidence + 0.25); this.habit.tilt = Math.max(0, this.habit.tilt - 0.1); }
   onMateDown() { this.habit.tilt = Math.min(1, this.habit.tilt + 0.2); this.habit.confidence = Math.max(0, this.habit.confidence - 0.1); }
   // effective aggression right now
-  get push() { return Math.max(0, Math.min(1, this.p.aggr + this.habit.confidence * 0.2 + this.habit.tilt * 0.25 - this.habit.tilt * this.p.caution * 0.2)); }
+  get push() { return Math.max(0, Math.min(1, this.p.aggr + this.habit.confidence * 0.2 + this.habit.tilt * 0.25 - this.habit.tilt * this.p.caution * 0.2 + this.situ)); }
 }
 
 export function archetypeFor(ability, side, rand) {

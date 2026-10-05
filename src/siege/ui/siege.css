@@ -293,6 +293,7 @@ svg.ic { width: 1em; height: 1em; vertical-align: -0.14em; }
 .callouts { position: absolute; left: 36px; top: 120px; display: grid; gap: 3px; }
 .callouts div { font: 500 19px var(--body); background: rgba(0, 0, 0, .5); padding: 2px 10px; border-left: 3px solid var(--atk); animation: fadeout 5s forwards; }
 .callouts div.d { border-left-color: var(--def); }
+.callouts div.bark { font-size: 17px; font-style: italic; opacity: .92; animation-duration: 4s; }
 .banner-big { position: absolute; left: 0; right: 0; top: 24%; text-align: center; pointer-events: none; }
 .banner-big .a { font: 700 74px var(--display); text-transform: uppercase; letter-spacing: .02em; text-shadow: 0 4px 22px #000; animation: pop .6s ease-out; }
 .banner-big .b { font: 500 26px var(--display); text-transform: uppercase; letter-spacing: .12em; color: #dfe3e7; text-shadow: 0 2px 8px #000; }

@@ -1,5 +1,6 @@
 // Builds a round: picks the spawn and site, creates the ten actors with their loadouts, and
 // wires bots to a director per team. The human (if any) gets an actor without a brain.
+import { Reactions } from '../ai/reactions.js';
 import { OPERATORS, OPS_BY_ID, attackers, defenders } from '../data/operators.js';
 import { Brain } from '../ai/brain.js';
 import { AttackDirector, DefendDirector } from '../ai/director.js';
@@ -74,7 +75,7 @@ export function setupRound(sim, cfg) {
   for (const team of ['atk', 'def']) for (const a of actors[team]) if (!a.isPlayer) dirs[team].add(new Brain(a, dirs[team], level));
   sim.directors = [dirs.atk, dirs.def];
   for (const d of sim.directors) d.init();
-  sim.dirs = dirs; sim.teams = actors;
+  sim.dirs = dirs; sim.teams = actors; sim.reactions = new Reactions(sim);
   // what the bots remember from earlier rounds, shown to the human on the HUD
   sim.notes = [];
   if (sim.memory && sim.memory.rounds) {

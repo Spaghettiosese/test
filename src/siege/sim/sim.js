@@ -39,6 +39,7 @@ export class Sim {
   update(dt) {
     dt = Math.min(dt, 0.05); this.time += dt; this.pathBudget = 4;
     const idle = this.passive;
+    if (this.reactions) this.reactions.update(dt);
     for (const d of this.directors) if (!(idle && idle[d.team])) d.update(dt);
     for (const a of this.actors) { if (a.ai && (a.alive || a.downed) && !(idle && idle[a.team])) a.ai.think(dt); }
     for (const a of this.actors) a.update(dt);

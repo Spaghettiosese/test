@@ -291,7 +291,7 @@ export class Actor {
     const rig = g.def.rig;
     g.reloadT = RELOAD_TIME[rig] * (g.mag === 0 ? (EMPTY_MULT[rig] || 1) : 1);
     if (rig === 'shotgun') { g.shellT = RELOAD_TIME.shotgun; }
-    this.sim.emit('reload', { actor: this, gun: g });
+    this.sim.emit('reload', { actor: this, gun: g }); this.sim.noise(this.pos, this.suppressed ? 2 : 7, 'reload', this);
     return true;
   }
   switchGun(i) {

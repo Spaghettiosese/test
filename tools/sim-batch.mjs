@@ -16,7 +16,7 @@ for (let s = 1; s <= N; s++) {
     for (let t = 0; t < maxT + 45 && sim.round.phase !== 'end'; t += 1 / 30) {
       sim.update(1 / 30);
       if (sim.round.phase === 'action' && Math.floor(sim.time * 30) % 30 === 0) for (const a of sim.actors) {
-        if (!a.alive || a.busy) continue; const m = still.get(a.id); const p = a.pos;
+        if (!a.alive || a.busy) { still.delete(a.id); continue; } const m = still.get(a.id); const p = a.pos;
         if (m && Math.hypot(p[0] - m.p[0], p[2] - m.p[2]) < 0.3 && a.ai && a.ai.mode === 'task' && a.ai.task && a.ai.task.type === 'goto') { if (sim.time - m.t > 15 && !m.flag) { m.flag = true; stalls++; console.log(`  stall seed ${s}: ${a.team} ${a.name} at ${p.map((v) => v.toFixed(1))} task ${JSON.stringify(a.ai.task.pos)}`); } } else still.set(a.id, { p: [...p], t: sim.time });
       }
     }

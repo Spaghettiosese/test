@@ -14,14 +14,14 @@ for (let s = 1; s <= N; s++) {
     sim.update(1 / 30);
     if (Math.floor(sim.time * 30) % 30 !== 0) continue;
     for (const a of sim.actors) {
-      if (!a.alive || !a.ai || a.busy || a.mode !== 'normal') continue;
+      if (!a.alive || !a.ai || a.busy || a.mode !== 'normal') { const q = track.get(a.id); if (q) q.hist.length = 0; continue; } // (working, rappelling or down is not being stuck)
       let tr = track.get(a.id); if (!tr) track.set(a.id, tr = { hist: [], flagged: 0 });
       const wants = Math.hypot(a.ctl.fwd, a.ctl.strafe) > 0.3 && !a.ai.inCombat;
       tr.hist.push({ p: [a.pos[0], a.pos[2]], wants, t: sim.time }); if (tr.hist.length > 6) tr.hist.shift();
       if (tr.hist.length === 6) {
         const first = tr.hist[0], moved = Math.hypot(a.pos[0] - first.p[0], a.pos[2] - first.p[1]), pushing = tr.hist.filter((h) => h.wants).length;
         if (moved < 0.5 && pushing >= 5 && sim.time - tr.flagged > 12) {
-          tr.flagged = sim.time; totalStuck++; if (process.env.VERBOSE) console.log(`  seed ${s} ${a.name} t=${sim.time.toFixed(0)} pos ${a.pos.map((v) => v.toFixed(1))} task ${a.ai.task && a.ai.task.type} ${a.ai.task && a.ai.task.stand ? 'stand ' + a.ai.task.stand.map((v) => v.toFixed(1)) : a.ai.task && a.ai.task.pos ? 'pos ' + a.ai.task.pos.map((v) => v.toFixed(1)) : ''}`);
+          tr.flagged = sim.time; totalStuck++; if (process.env.VERBOSE) console.log(`  seed ${s} ${a.team} ${sim.round.phase} ${a.name} t=${sim.time.toFixed(0)} pos ${a.pos.map((v) => v.toFixed(1))} task ${a.ai.task && a.ai.task.type} ${a.ai.task && a.ai.task.stand ? 'stand ' + a.ai.task.stand.map((v) => v.toFixed(1)) : a.ai.task && a.ai.task.pos ? 'pos ' + a.ai.task.pos.map((v) => v.toFixed(1)) : ''}`);
           const key = `${Math.floor(a.pos[0])},${Math.floor(a.pos[2])},f${Math.round(a.pos[1] / 3)}`;
           const door = sim.world.doors.filter((d) => !d.dead && Math.hypot((d.ax === 'x' ? d.ix : d.ix + 0.5) - a.pos[0], (d.ax === 'x' ? d.iz + 0.5 : d.iz) - a.pos[2]) < 2.2 && Math.abs(d.y0 !== undefined ? d.y0 - a.pos[1] : 0) < 2).map((d) => `door open=${d.open.toFixed(1)} tgt=${d.target} bar=${d.barricade}`)[0];
           const e = found.get(key) || { n: 0, who: [], task: new Set(), seeds: new Set(), doors: new Set() }; if (door) e.doors.add(door); e.n++; e.who.push(a.name); e.task.add(a.ai.task ? a.ai.task.type : 'none'); e.seeds.add(s); found.set(key, e);

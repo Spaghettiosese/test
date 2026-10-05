@@ -48,6 +48,7 @@ export const behaviors = {
   // is this bot willing to leave what it is doing for this errand?
   huntWilling(kind, pos) {
     const p = this.persona; if (!p) return false;
+    if (this.sim.round.inPrep()) return false; // nobody goes anywhere during the preparation phase
     const t = this.task, a = this.a, d = dist3(a.pos, pos);
     if (kind === 'hurt') return true;
     if (a.busy) return false;
@@ -227,7 +228,9 @@ export const behaviors = {
       let wanted = false;
       for (const o of sim.actors) {
         if (o === a || !o.alive || o.team !== a.team || Math.abs(o.pos[1] - a.pos[1]) > 1.2) continue;
-        if (Math.hypot(o.pos[0] - a.pos[0], o.pos[2] - a.pos[2]) < 3.2 && o.vel[0] * o.vel[0] + o.vel[2] * o.vel[2] > 0.5) { wanted = true; break; }
+        const od = Math.hypot(o.pos[0] - a.pos[0], o.pos[2] - a.pos[2]);
+        // on the move towards us, or pressed against us and getting nowhere
+        if ((od < 3.2 && o.vel[0] * o.vel[0] + o.vel[2] * o.vel[2] > 0.5) || (od < 1.7 && Math.hypot(o.ctl.fwd, o.ctl.strafe) > 0.3 && o.ai && o.ai.mover.active)) { wanted = true; break; }
       }
       if (!wanted) return;
       this.yieldT = 0.9;

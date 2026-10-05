@@ -8,7 +8,7 @@ let fail = 0; const ok = (c, m) => { if (!c) fail++; console.log((c ? 'ok   ' : 
 function rig(team) {
   const sim = new Sim(HARBOR, { seed: 11, difficulty: 1 });
   setupRound(sim, { level: 1, site: 0, player: { team, op: team === 'atk' ? 'hammer' : 'anvil', primary: team === 'atk' ? 'm4a1' : 'mpk', secondary: 'compact', gadget2: team === 'atk' ? 'stun' : 'barbwire' } });
-  const me = sim.actors.find((a) => a.isPlayer);
+  const me = sim.actors.find((a) => a.isPlayer); sim.godmode = true; // the defenders are playing too: do not let them take the player out mid-test
   const game = { sim, settings: { keys: DEFAULT_KEYS, sens: 1, adsSens: 1 }, audio: null, vm: { use() {}, inspect() {}, world: 1 }, cam: { fov: 1 } };
   return { sim, me, pl: new Player(game, me) };
 }
