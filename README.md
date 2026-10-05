@@ -21,7 +21,7 @@ The 3D shooting range from the engine demo is still here as `range.html` (choose
 
 ## What you get
 
-- 28 operators, 38 gadgets and 22 weapons on 20 hand-built first-person rigs, every one with a fire, reload and inspect animation; the full list is in [FEATURES.md](FEATURES.md).
+- 38 operators, 47 gadgets and 29 weapons on 27 hand-built first-person rigs, every one with a fire, reload and inspect animation; the full list is in [FEATURES.md](FEATURES.md).
 - **Harbor Garage**: two floors and a roof, 100 openings, eight bomb sites and six attacker spawns, destructible walls, reinforced steel, hatches, skylights, rappel anchors and bullet penetration.
 - Bomb and Secure Area modes, Down But Not Out, round series with side swaps, ranked placements and a hardcore playlist.
 - AI that plans as a team and plays as individuals: every bot has a callsign, an archetype and its own habits; attackers fly drones that climb and report, push in staged waves and breach by operator; defenders reinforce, shut doors, lay traps, roam and answer shots by flanking; everyone revives, remembers earlier rounds of the match and learns where the other side fell. Five difficulty levels.
@@ -48,11 +48,11 @@ If the page cannot capture the mouse, push the cursor towards the screen edges t
 | Folder | What it holds |
 | --- | --- |
 | `engine/` | The ShapeForge Engine (renderer, scene, characters, animation, physics) |
-| `src/weapons/` | The twenty authored first-person weapon rigs (the first ten are shared with the range) and the choreography generators the newer ones use |
+| `src/weapons/` | The twenty-seven authored first-person weapon rigs (the first ten are shared with the range) and the choreography generators the newer ones use |
 | `src/siege/world/` | The voxel-face world: panels, doors, destruction, ray casting, mesher, map builder |
 | `src/siege/data/` | Operators, gadgets, weapons, progression and the Harbor Garage map |
 | `src/siege/sim/` | The headless simulation: actors, combat, devices, rounds, navigation |
-| `src/siege/ai/` | Perception, movement, bot brains, team directors, gadget behaviour |
+| `src/siege/ai/` | Perception, movement, bot brains, reactions (hazards, flashes, charges, fire), team directors, gadget behaviour |
 | `src/siege/game/` | Rendering of a round: effects, soldiers, viewmodel, audio, player controller, match, tutorials |
 | `src/siege/ui/` | The menus, operator select, HUD, 3D menu backdrops and the app shell |
 

@@ -1,12 +1,12 @@
 # SiegeForge feature list
 
 Everything below is implemented in this repository and reachable in the game or the headless tools.
-Numbers (28 operators, 38 gadgets, 22 weapons on 20 rigs, 8 bomb sites, 6 spawns, 100 openings, and so on) are counted from the data files.
+Numbers (38 operators, 47 gadgets, 29 weapons on 27 rigs, 8 bomb sites, 6 spawns, 100 openings, and so on) are counted from the data files.
 
 ## Operators and gadgets
 
-1. 28 original operators: 14 attackers and 14 defenders, eight units between them.
-2. Every operator has a signature gadget with its own rules, 38 gadgets in all.
+1. 38 original operators: 19 attackers and 19 defenders, eight units between them.
+2. Every operator has a signature gadget with its own rules, 47 gadgets in all.
 3. Speed and armour ratings set health (100, 110 or 125) and movement speed.
 4. Each operator has a difficulty rating, a role and a short briefing.
 5. Each operator chooses between two or three primary weapons, one or two sidearms and a secondary gadget.
@@ -20,7 +20,7 @@ Numbers (28 operators, 38 gadgets, 22 weapons on 20 rigs, 8 bomb sites, 6 spawns
 
 ## Weapons
 
-13. 22 weapons in seven classes: assault rifles, submachine guns, a light machine gun, shotguns, marksman rifles, a sniper rifle, handguns.
+13. 29 weapons in seven classes: assault rifles, submachine guns, a light machine gun, shotguns, marksman rifles, a sniper rifle, handguns.
 14. Twenty hand-modelled, rigged first-person weapons with authored fire, reload, empty-reload and inspect animations: bullpup rifles (AUG-A3, FA-G2), a belt-fed LMG with a hinged cover and belt box, a top-fed PS-90, a drum shotgun, a scoped marksman rifle, a lever-action carbine, and three new handguns (P9 Compact, suppressed M45, MP10 machine pistol) beside the original ten.
 15. Per-weapon damage, rate of fire, magazine, reserve, spread, aimed spread and recoil.
 16. Automatic and semi-automatic fire.
@@ -234,3 +234,21 @@ Numbers (28 operators, 38 gadgets, 22 weapons on 20 rigs, 8 bomb sites, 6 spawns
 194. `tools/stuck-test.mjs` plays AI rounds across sites and spawns and reports every place a bot pushes without getting anywhere; `tools/replay.mjs` replays one of them.
 195. `tools/drone-test.mjs`, `tools/match-test.mjs`, `tools/ai-report.mjs` and `tools/player-shot-test.mjs` check the drones, a whole match, the behaviours listed above, and how the defenders answer a shooter.
 196. `tools/sheet.cjs` tiles screenshots into one contact sheet for reviewing animations.
+
+## Latest additions
+
+197. Ten newer operators. Attackers: Surge (EMP grenades that fry every gadget within 8 m for twelve seconds), Phantom (a speaker that fakes the owner's footsteps and gunfire), Whisper (near-silent steps), Mule (supply crates that refill ammunition, armour and health, three uses each) and Havoc (an explosive grenade launcher). Defenders: Blaze (incendiary mines), Glare (flash mines), Seismic (floor sensors that tag runners through walls), Fog (smoke traps) and Depot (supply crates).
+198. The bots play all ten: EMPs at turrets, cameras and drones they can see, decoys as the push starts, crates dropped where the squad stages and walked to when ammunition or health runs low, launcher rounds at people hiding behind cover; defenders lay mines and sensors in the preparation phase.
+199. Seven more first-person rigs with fire, reload, empty-reload and inspect: the SC-17 battle rifle, G38C carbine, VS-9 Whisper suppressed marksman rifle, M28 Chicago drum SMG, K-7 Scout bolt rifle, P9X Duelist red-dot pistol and Vz-61 Scorpion machine pistol; all of them are in the operator loadouts.
+200. Reactions: bots dive out of a frag's reach, turn their backs on a flashbang or duck out of its sight, drop and fire back when blinded, back off a charge stuck to a wall, run out of gas and fire, and keep their heads down under fire from somebody they cannot see.
+201. They also react to a bullet that goes past their head, a door that opens in their face, a wall that comes down, a camera or drone that is shot out, a team mate who goes down (avenge, fall back or hold, by personality), an enemy who is reloading, being tagged by a drone, and a ping from the human.
+202. They shoot the charges, cameras, claymores and traps they can see, send rounds through a plaster wall at a sound they are sure of, and throw a grenade into a fresh breach.
+203. The state of the round shifts their nerve: the clock running out sends attackers in, the last defender plays quiet, a man up makes a squad braver; kills and dead team mates really move morale now.
+204. Radio chatter ("Grenade!", "Man down!", "Fall back!", "Door!", "Wall's open!", "Charge on the wall!") shows in the HUD callouts.
+205. Defenders no longer get stuck in sealed pockets between props: spawns, rescue hops and hold posts all check that the place can be walked out of; the wall-test tool finds about three bots per hour standing against something where it found two hundred.
+206. Furniture breaks: every desk, locker, shelf, crate, couch and car has hit points and a material; bullets, blasts and the hammer wear it down, the whole piece goes at once and the cells it filled open for walking and sight.
+207. Ceiling lamps can be shot out and switch their light off; frags clear furniture and lamps in reach but not behind walls.
+208. Walls crack in stages as they weaken, bullets leave exit holes and craters tinted by the material, explosions leave soft soot and shake dust from the ceiling, doors show gashes and barricade boards fall away as they are shot, and rubble stays where it landed.
+209. Breaking furniture makes noise the bots hear.
+210. The player can close doors (F on an open door) and defenders hold F to barricade; nobody can be hurt during preparation; attackers are protected in their spawn for twenty seconds, container screens hide the spawns, and the bots never shoot at protected attackers.
+211. `tools/test-reactions.mjs`, `tools/test-destruction.mjs`, `tools/test-newops.mjs`, `tools/test-player.mjs`, `tools/test-safety.mjs`, `tools/wall-test.mjs` and `tools/spawn-exposure.mjs` check the reactions, destruction, new operators, the player's door controls, the prep and spawn rules, bots standing against walls and how exposed each spawn is.

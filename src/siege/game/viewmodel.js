@@ -6,7 +6,7 @@ import { WEAPONS as RIGS } from '../../weapons/index.js';
 import { weaponPoint, weaponPointWorld } from '../../weapons/rig.js';
 import { createGadgetRig, GADGET_VM } from './gadgetvm.js';
 
-const META = { m4a1: 0.2, sniper: 0.07, shotgun: 0.3, revolver: 0.3, smg: 0.2, double: 0.3, garand: 0.2, mp7: 0.2, ak47: 0.2, deagle: 0.28, aug: 0.2, famas: 0.2, compact9: 0.28, m45: 0.28, mp10: 0.26, lmg: 0.26, p90: 0.2, d12: 0.26, dmr: 0.2, lever: 0.22 };
+const META = { m4a1: 0.2, sniper: 0.07, shotgun: 0.3, revolver: 0.3, smg: 0.2, double: 0.3, garand: 0.2, mp7: 0.2, ak47: 0.2, deagle: 0.28, aug: 0.2, famas: 0.2, compact9: 0.28, m45: 0.28, mp10: 0.26, lmg: 0.26, p90: 0.2, d12: 0.26, dmr: 0.2, lever: 0.22, scar: 0.2, g36: 0.2, vss: 0.2, tommy: 0.22, scout: 0.07, duelist: 0.28, skorp: 0.26 };
 const PM = E.physicsMath;
 const Qid = E.quat.create();
 export const VM_SCALE = 0.4;

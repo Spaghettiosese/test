@@ -11,9 +11,9 @@ export const BODY = { r: 0.3, h: [1.8, 1.4, 0.62], eye: [1.65, 1.2, 0.5], head: 
 export const SPEED = { walk: 2.7, run: 4.7, crouch: 1.55, prone: 0.6, ads: 1.75, down: 0.55 };
 export const LEAN_OFFSET = 0.42;
 export const RELOAD_TIME = { m4a1: 2.7, sniper: 3.2, shotgun: 0.5, revolver: 3.0, smg: 2.5, double: 2.6, garand: 2.6, mp7: 2.3, ak47: 2.1, deagle: 2.2,
-  aug: 2.1, famas: 2.1, compact9: 2.1, m45: 2.1, mp10: 2.1, lmg: 3.4, p90: 2.1, d12: 2.7, dmr: 2.1, lever: 3.4 };
+  aug: 2.1, famas: 2.1, compact9: 2.1, m45: 2.1, mp10: 2.1, lmg: 3.4, p90: 2.1, d12: 2.7, dmr: 2.1, lever: 3.4, scar: 2.1, g36: 2.1, vss: 2.1, tommy: 2.1, scout: 3.2, duelist: 2.1, skorp: 2.1 };
 // the rigs that have a longer Reload Empty clip (the slide or the handle is worked at the end)
-export const EMPTY_MULT = { deagle: 1.23, aug: 1.43, famas: 1.43, lmg: 1.43, p90: 1.43, d12: 1.43, dmr: 1.43, compact9: 1.24, m45: 1.24, mp10: 1.24 };
+export const EMPTY_MULT = { deagle: 1.23, aug: 1.43, famas: 1.43, lmg: 1.43, p90: 1.43, d12: 1.43, dmr: 1.43, compact9: 1.24, m45: 1.24, mp10: 1.24, scar: 1.43, g36: 1.43, vss: 1.43, tommy: 1.43, duelist: 1.24, skorp: 1.24 };
 export const SHELL_TIME = 0.62;
 
 let ACTOR_ID = 1;

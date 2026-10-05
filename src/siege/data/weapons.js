@@ -27,6 +27,13 @@ export const WEAPONS = {
   lever: W('lever', 'M94 Lever-Action', 'lever', 'DMR', { dmg: 72, rpm: 100, mag: 8, reserve: 3, spread: 0.026, ads: 0.0018, kick: 3.4, kickAds: 2.4, pen: 0.75, wallDmg: 12, range: 60, falloff: 0.3, adsFov: 48, price: 2000, level: 4 }),
   svd: W('svd', 'SV-10 Marksman', 'dmr', 'DMR', { dmg: 66, rpm: 270, mag: 10, reserve: 3, spread: 0.028, ads: 0.0012, kick: 2.6, kickAds: 1.8, pen: 0.85, wallDmg: 14, range: 80, falloff: 0.2, adsFov: 34, price: 3400, level: 8 }),
   d12: W('d12', 'D-12 Drum', 'd12', 'SG', { dmg: 13, pellets: 8, rpm: 320, mag: 20, reserve: 2, auto: true, spread: 0.085, ads: 0.06, kick: 3.2, kickAds: 2.2, pen: 0.2, wallDmg: 14, range: 11, falloff: 0.9, adsFov: 56, speed: 0.92, price: 3600, level: 9 }),
+  scar: W('scar', 'SC-17 Battle Rifle', 'scar', 'AR', { dmg: 54, rpm: 560, mag: 20, reserve: 3, auto: true, spread: 0.022, ads: 0.0028, kick: 1.7, kickAds: 1.0, pen: 0.78, wallDmg: 12, range: 46, adsFov: 48, price: 3200, level: 6 }),
+  g36: W('g36', 'G38C Carbine', 'g36', 'AR', { dmg: 35, rpm: 750, mag: 30, auto: true, spread: 0.017, ads: 0.0022, kick: 0.75, kickAds: 0.38, pen: 0.5, wallDmg: 7, range: 38, adsFov: 42, price: 2400, level: 4 }),
+  vss: W('vss', 'VS-9 Whisper', 'vss', 'DMR', { dmg: 52, rpm: 420, mag: 20, reserve: 3, spread: 0.024, ads: 0.0012, kick: 1.5, kickAds: 1.0, pen: 0.82, wallDmg: 10, range: 70, falloff: 0.25, adsFov: 34, suppressed: true, price: 3600, level: 8 }),
+  tommy: W('tommy', 'M28 Chicago', 'tommy', 'SMG', { dmg: 36, rpm: 680, mag: 50, reserve: 2, auto: true, spread: 0.026, ads: 0.0045, kick: 1.0, kickAds: 0.55, pen: 0.38, wallDmg: 5, range: 24, falloff: 0.6, adsFov: 54, price: 2000, level: 3 }),
+  scout: W('scout', 'K-7 Scout Rifle', 'scout', 'SR', { dmg: 108, rpm: 52, mag: 5, reserve: 4, spread: 0.05, ads: 0.0, kick: 4.0, kickAds: 2.8, pen: 0.9, wallDmg: 34, range: 100, falloff: 0.12, adsFov: 18, scoped: true, price: 3000, level: 7 }),
+  duelist: W('duelist', 'P9X Duelist', 'duelist', 'HG', { dmg: 38, rpm: 400, mag: 20, reserve: 4, spread: 0.018, ads: 0.0022, kick: 2.0, kickAds: 1.2, pen: 0.4, wallDmg: 4, range: 26, falloff: 0.65, adsFov: 52, price: 1800, level: 5 }),
+  skorp: W('skorp', 'Vz-61 Scorpion', 'skorp', 'HG', { dmg: 25, rpm: 850, mag: 20, reserve: 4, auto: true, spread: 0.028, ads: 0.012, kick: 1.1, kickAds: 0.7, pen: 0.3, wallDmg: 3, range: 15, falloff: 0.75, adsFov: 56, price: 1600, level: 4 }),
   m45: W('m45', 'M45 Tactical', 'm45', 'HG', { dmg: 44, rpm: 300, mag: 12, reserve: 4, spread: 0.02, ads: 0.0025, kick: 2.8, kickAds: 1.8, pen: 0.45, wallDmg: 5, range: 24, falloff: 0.6, adsFov: 54, suppressed: true, price: 1100, level: 3 }),
 };
 

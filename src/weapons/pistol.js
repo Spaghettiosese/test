@@ -27,6 +27,8 @@ const MATERIALS = {
   brass: { color: '#c79a48', roughness: 0.28, metallic: 1 },
   white: { color: '#ece8dc', roughness: 0.5 },
   green: { color: '#79d13c', roughness: 0.4, emissive: '#5cc02a', emissiveStrength: 1.2 },
+  lens: { color: '#14303d', roughness: 0.05, emissive: '#0c2a38', emissiveStrength: 0.35, opacity: 0.5, doubleSided: true },
+  dot: { color: '#ff3b2a', roughness: 1, emissive: '#ff2a1a', emissiveStrength: 14 },
   flash: { color: '#ffcf7a', roughness: 1, emissive: '#ffb347', emissiveStrength: 30, opacity: 0.9, doubleSided: true },
 };
 
@@ -40,7 +42,7 @@ function build(v) {
   const parts = [];
   const add = (...a) => parts.push(...a);
 
-  if (v.kind === 'compact') {
+  if (v.kind === 'compact' || v.kind === 'duelist') {
     add(
       P('Slide', profile([[-0.076, 0.03], [0.1, 0.03], [0.1, 0.066], [0.093, 0.072], [-0.06, 0.072], [-0.076, 0.06]], 0.025, 0.005), 'slide', SLD, { position: W([0, 0, 0]), rotation: SIDE }),
       P('Slide Top Flat', rbox(0.01, 0.002, 0.16, 0.0005), 'slide', SLD, { position: W([0, 0.0725, 0.01]) }),
@@ -68,6 +70,15 @@ function build(v) {
       P('Mag Base', rbox(0.029, 0.012, 0.062, 0.003), 'frame', MAG, { position: W([0, -0.12, -0.08]), rotation: [-8, 0, 0] }),
       ...[0, 1, 2, 3].map((i) => P('Mag Window ' + i, rbox(0.0204, 0.006, 0.006, 0), 'dark', MAG, { position: W([0.0, -0.01 - i * 0.025, -0.052 - i * 0.012]), castShadow: false })),
       P('Top Round', { type: 'capsule', radius: 0.0052, length: 0.016, radialSegments: 10, capSegments: 3 }, 'brass', MAG, { position: W([0, 0.026, -0.055]), rotation: ALONG_Z }),
+    );
+    if (v.kind === 'duelist') add(
+      // a slide-mounted red dot, compensator slots, an extended magazine and a steel trigger shoe
+      P('Dot Mount', rbox(0.022, 0.006, 0.04, 0.002), 'black', SLD, { position: W([0, 0.0745, -0.03]) }),
+      P('Dot Housing', profile([[-0.05, 0.075], [-0.05, 0.1], [-0.01, 0.1], [-0.006, 0.075]], 0.024, 0.004), 'black', SLD, { position: W([0, 0, 0]), rotation: SIDE }),
+      P('Dot Lens', rbox(0.018, 0.022, 0.002, 0.0005), 'lens', SLD, { position: W([0, 0.0875, -0.0055]), rotation: [-8, 0, 0], castShadow: false }),
+      P('Dot Emitter', sph(0.0012, 8, 6), 'dot', SLD, { position: W([0, 0.088, -0.0075]), castShadow: false }),
+      ...[0, 1, 2].map((i) => P('Comp Slot ' + i, rbox(0.012, 0.002, 0.012, 0.0005), 'groove', SLD, { position: W([0, 0.0735, 0.066 + i * 0.016]), castShadow: false })),
+      P('Mag Extension', rbox(0.026, 0.05, 0.062, 0.004), 'black', MAG, { position: W([0, -0.14, -0.084]), rotation: [-8, 0, 0] }),
     );
   } else if (v.kind === 'm45') {
     add(
@@ -101,8 +112,8 @@ function build(v) {
     );
   } else { // machine pistol
     add(
-      P('Receiver', profile([[-0.095, 0.0], [0.13, 0.0], [0.13, 0.072], [-0.095, 0.072]], 0.04, 0.007), 'slide', WPN, { position: W([0, 0, 0]), rotation: SIDE }),
-      P('Bolt Cover', profile([[-0.09, 0.07], [0.12, 0.07], [0.12, 0.082], [0.1, 0.086], [-0.07, 0.086], [-0.09, 0.078]], 0.034, 0.004), 'slide', SLD, { position: W([0, 0, 0]), rotation: SIDE }),
+      P('Receiver', profile([[-0.095, 0.0], [0.13, 0.0], [0.13, 0.072], [-0.095, 0.072]], 0.04, 0.007), v.tan ? 'frameTan' : 'slide', WPN, { position: W([0, 0, 0]), rotation: SIDE }),
+      P('Bolt Cover', profile([[-0.09, 0.07], [0.12, 0.07], [0.12, 0.082], [0.1, 0.086], [-0.07, 0.086], [-0.09, 0.078]], 0.034, 0.004), v.tan ? 'frameTan' : 'slide', SLD, { position: W([0, 0, 0]), rotation: SIDE }),
       P('Cover Ribs', rbox(0.0352, 0.003, 0.003, 0), 'groove', SLD, { position: W([0, 0.0865, -0.07]), modifiers: array(12, 0.0095) }),
       P('Cocking Knob', cyl(0.007, 0.007, 0.012, 14), 'steel', SLD, { position: W([0, 0.094, -0.01]) }),
       P('Ejection Port', rbox(0.002, 0.026, 0.07, 0.001), 'dark', WPN, { position: W([-0.0205, 0.04, 0.02]) }),
@@ -157,7 +168,11 @@ function build(v) {
 export const COMPACT = build({ id: 'compact9', name: 'P9 Compact', kind: 'compact', muzzle: 0.104, slideBack: -0.03, kick: { back: 0.02, up: 0.014, pitch: -7, yaw: 0.3, roll: -0.5 } });
 export const M45 = build({ id: 'm45', name: 'M45 Tactical', kind: 'm45', muzzle: 0.27, slideBack: -0.036, tallSights: true, kick: { back: 0.024, up: 0.016, pitch: -8, yaw: 0.4, roll: -0.6 } });
 export const MP10 = build({ id: 'mp10', name: 'MP10 Machine Pistol', kind: 'mp10', muzzle: 0.2, slideBack: -0.022, flashSize: 0.06, kick: { back: 0.016, up: 0.008, pitch: -3.6, yaw: 0.6, roll: -0.4 } });
+export const DUELIST = build({ id: 'duelist', name: 'P9X Duelist', kind: 'duelist', muzzle: 0.112, slideBack: -0.03, kick: { back: 0.02, up: 0.014, pitch: -6.5, yaw: 0.3, roll: -0.5 } });
+export const SKORP = build({ id: 'skorp', name: 'Vz-61 Scorpion', kind: 'skorp', tan: true, muzzle: 0.15, slideBack: -0.02, flashSize: 0.055, kick: { back: 0.014, up: 0.007, pitch: -3.0, yaw: 0.7, roll: -0.4 } });
 export const createCompact = () => createWeapon(COMPACT);
+export const createDuelist = () => createWeapon(DUELIST);
+export const createSkorp = () => createWeapon(SKORP);
 export const createM45 = () => createWeapon(M45);
 export const createMP10 = () => createWeapon(MP10);
 export const pistolDefinition = (g, o) => weaponDefinition(g, o);
