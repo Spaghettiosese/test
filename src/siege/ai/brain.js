@@ -104,7 +104,20 @@ export class Brain {
     this.mover.update(dt);
     this.execute(dt);
     this.trafficStep(dt);
+    this.stallWatch(dt);
     this.finish(dt);
+  }
+
+  // A bot with a job to do that has not moved for seconds, is not working, fighting or holding, and has
+  // nothing it is waiting for is stuck: get it out of a pocket, then give the job up.
+  stallWatch(dt) {
+    const a = this.a, t = this.task;
+    const moving = a.vel[0] * a.vel[0] + a.vel[2] * a.vel[2] > 0.04;
+    const waits = !t || ['hold', 'anchor', 'roam'].includes(t.type) || this.mode === 'combat' || this.inCombat || a.busy || this.hunt || this.rvTarget || a.downed || a.mode !== 'normal';
+    if (moving || waits) { this.stillT = 0; return; }
+    this.stillT = (this.stillT || 0) + dt;
+    if (this.stillT > 2.5 && !this.rescued) { this.rescued = true; if (this.mover.rescue()) { this.stillT = 0; return; } }
+    if (this.stillT > 5.5) { this.stillT = 0; this.rescued = false; this.mover.stop(); this.dir && this.dir.taskFailed(a, 'stalled'); }
   }
 
   // ---------------------------------------------------------------- decisions
@@ -333,6 +346,11 @@ export class Brain {
         break;
       }
       case 'hold': case 'anchor': {
+        // a post nobody can reach: take the nearest one that can be, or hand the job back
+        if (this.mover.failed && this.stateT > 0.5) {
+          t.fails = (t.fails || 0) + 1;
+          if (t.fails >= 2) { const alt = this.altPost(t.pos); if (alt) { t.pos = alt; t.fails = 0; this.mover.stop(); } else if (t.fails >= 4 && this.dir) { this.dir.taskFailed(a, 'unreachable'); break; } }
+        }
         want(t.pos, { speed: 'walk', tol: 0.45 });
         this.applyWish(this.mover.wish, this.pickSpeed(t));
         if (this.mover.arrived || !this.mover.active) { this.hold(dt, t); this.dir && !t.reported && ((t.reported = true), this.dir.arrived(a, t)); } else this.faceMove(dt);
@@ -340,7 +358,7 @@ export class Brain {
       }
       case 'reinforce': case 'barricade': {
         const pos = t.stand;
-        if (dist2(a.pos, pos) > 0.6 || Math.abs(a.pos[1] - pos[1]) > 1.2) { want(pos, { speed: 'run', tol: 0.35, exact: true }); this.applyWish(this.mover.wish, 'run'); this.faceMove(dt); if (this.mover.failed) { this.dir.taskFailed(a, 'nopath'); } break; }
+        if (!this.atSpot(pos, 0.6, dt)) { want(pos, { speed: 'run', tol: 0.35, exact: true }); this.applyWish(this.mover.wish, 'run'); this.faceMove(dt); if (this.mover.failed) { this.dir.taskFailed(a, 'nopath'); } break; }
         this.mover.stop();
         this.want.yaw = yawOf(t.face[0] - a.pos[0], t.face[2] - a.pos[2]);
         this.want.pitch = pitchOf(t.face[0] - a.eye()[0], t.face[1] - a.eye()[1], t.face[2] - a.eye()[2]);
@@ -358,7 +376,7 @@ export class Brain {
       }
       case 'place': {
         const pos = t.stand;
-        if (dist2(a.pos, pos) > 0.7 || Math.abs(a.pos[1] - pos[1]) > 1.2) { want(pos, { speed: 'walk', tol: 0.4 }); this.applyWish(this.mover.wish, 'walk'); this.faceMove(dt); if (this.mover.failed) this.dir.taskFailed(a, 'nopath'); break; }
+        if (!this.atSpot(pos, 0.7, dt)) { want(pos, { speed: 'walk', tol: 0.4 }); this.applyWish(this.mover.wish, 'walk'); this.faceMove(dt); if (this.mover.failed) this.dir.taskFailed(a, 'nopath'); break; }
         this.mover.stop();
         const r = this.sim.devices.placeAt(a, t.gadget, t.at, t.normal, t.panel, null);
         this.dir.taskDone(a, r.ok ? 'placed' : r.msg);
@@ -368,7 +386,7 @@ export class Brain {
       case 'closedoor': this.closeDoorStep(dt); break;
       case 'plant': {
         const spot = this.sim.round.bombSpots[t.spot ?? 0];
-        if (dist2(a.pos, spot) > 0.9) { want(spot, { speed: this.pickSpeed(t), tol: 0.5 }); this.applyWish(this.mover.wish, this.pickSpeed(t)); this.faceMove(dt); if (this.mover.failed) this.dir.taskFailed(a, 'nopath'); this.tacticalPause(dt); break; }
+        if (!this.atSpot(spot, 0.9, dt)) { want(spot, { speed: this.pickSpeed(t), tol: 0.5 }); this.applyWish(this.mover.wish, this.pickSpeed(t)); this.faceMove(dt); if (this.mover.failed) this.dir.taskFailed(a, 'nopath'); this.tacticalPause(dt); break; }
         this.mover.stop();
         if (!a.busy) { const r = this.sim.round.startPlant(a); if (!r.ok) { this.dir.taskFailed(a, r.msg); break; } }
         c.use = true; c.stance = CROUCH;
@@ -377,7 +395,7 @@ export class Brain {
       case 'defuse': {
         const b = this.sim.round.bomb;
         if (b.state !== 'planted' && b.state !== 'defusing') { this.dir.taskDone(a, 'nobomb'); break; }
-        if (dist2(a.pos, b.pos) > 1.0) { want(b.pos, { speed: 'run', tol: 0.6 }); this.applyWish(this.mover.wish, 'run'); this.faceMove(dt); break; }
+        if (!this.atSpot(b.pos, 1.0, dt)) { want(b.pos, { speed: 'run', tol: 0.6 }); this.applyWish(this.mover.wish, 'run'); this.faceMove(dt); if (this.mover.failed) { t.fails = (t.fails || 0) + 0.04; if (t.fails > 1) this.dir.taskFailed(a, 'nopath'); } break; }
         this.mover.stop();
         if (!a.busy) this.sim.round.startDefuse(a);
         c.use = true; c.stance = CROUCH;
@@ -411,8 +429,8 @@ export class Brain {
     const a = this.a, c = a.ctl;
     c.stance = t.crouch ? CROUCH : STAND;
     this.scanT -= dt;
-    let yaw = t.facing ?? a.yaw;
-    if (this.watchT > 0 && this.watch) yaw = yawOf(this.watch[0] - a.pos[0], this.watch[2] - a.pos[2]);
+    let yaw = this.clearYaw(t.facing ?? a.yaw);
+    if (this.watchT > 0 && this.watch) yaw = this.clearYaw(yawOf(this.watch[0] - a.pos[0], this.watch[2] - a.pos[2]), 2.2);
     else yaw += Math.sin(this.sim.time * 0.6 + this.sweepPhase) * 0.5 * (t.sweep ?? 0.5);
     this.want.yaw = yaw; this.want.pitch = 0;
     this.turnTo(dt, 3.5);
@@ -437,7 +455,7 @@ export class Brain {
     const m = this.mover;
     let y = override ?? (m.faceYaw ?? this.a.yaw);
     // while moving, glance toward a recent sound
-    if (this.watchT > 0 && this.watch && this.prof.tactics >= 1 && !m.wish) y = yawOf(this.watch[0] - this.a.pos[0], this.watch[2] - this.a.pos[2]);
+    if (this.watchT > 0 && this.watch && this.prof.tactics >= 1 && !m.wish) y = this.clearYaw(yawOf(this.watch[0] - this.a.pos[0], this.watch[2] - this.a.pos[2]), 2.2);
     this.want.yaw = y; this.want.pitch = 0;
     this.turnTo(dt, this.moveMode === 'run' ? 8 : 5);
   }

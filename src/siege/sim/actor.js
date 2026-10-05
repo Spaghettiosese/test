@@ -38,7 +38,7 @@ export class Actor {
     this.lean = 0; this.leanT = 0; this.stance = STAND; this.curH = BODY.h[0]; this.eyeH = BODY.eye[0];
     this.grounded = true; this.fallFrom = this.pos[1]; this.speedMul = speedFor(this.op);
     this.maxHp = hpFor(this.op); this.hp = this.maxHp; this.armorPlates = 0;
-    this.state = 'alive'; this.downT = 0; this.reviveT = 0; this.diedAt = 0;
+    this.state = 'alive'; this.downT = 0; this.reviveT = 0; this.diedAt = 0; this.shieldUntil = 0; this.shieldOn = false;
     this.mode = 'normal'; // normal | vault | rappel | drone | climb
     this.ctl = { fwd: 0, strafe: 0, sprint: false, aim: false, fire: false, reload: false, stance: STAND, lean: 0, jump: false, use: false };
     this.trigPrev = false; this.ads = 0; this.bloom = 0; this.kick = [0, 0]; this.lastShotT = -9; this.lastStepT = 0; this.stepDist = 0;
@@ -56,6 +56,16 @@ export class Actor {
     if (this.op.ability === 'shield' || this.op.ability === 'flashshield') this.shield = { up: false, flash: this.op.ability === 'flashshield', cd: 0, bash: 0 };
   }
   get alive() { return this.state === 'alive'; }
+  // Attackers cannot be hurt in their spawn for the first seconds of the action phase (or until they fire or
+  // leave it): the building's windows look straight onto the yard, so without this the round is decided at once.
+  get spawnProtected() { return this.shieldOn && this.sim.time < this.shieldUntil; }
+  startSpawnShield(seconds = 20) { this.shieldOn = true; this.shieldUntil = this.sim.time + seconds; }
+  updateSpawnShield() {
+    if (!this.shieldOn) return;
+    const sp = this.sim.round && this.sim.round.spawn, m = 3.5;
+    const outside = sp && (this.pos[0] < sp.x0 - m || this.pos[0] > sp.x1 + m || this.pos[2] < sp.z0 - m || this.pos[2] > sp.z1 + m);
+    if (this.sim.time >= this.shieldUntil || outside || this.sim.time - (this.lastShotT || -9) < 0.1 || this.pos[1] > 1.5) { this.shieldOn = false; this.sim.emit('spawnshield', { actor: this, on: false }); }
+  }
   get downed() { return this.state === 'downed'; }
   get dead() { return this.state === 'dead'; }
   get gun() { return this.guns[this.cur]; }
@@ -90,6 +100,7 @@ export class Actor {
   // nearest hit of a ray on this actor: { t, region } or null
   hitTest(o, d, maxT) {
     if (!this.alive && !this.downed) return null;
+    if (this.spawnProtected) return null; // bullets go straight through a team still in its spawn
     const s = this.curH / BODY.h[0], lo = this.lean * LEAN_OFFSET, r = this.right;
     const lx = this.pos[0] + r[0] * lo, lz = this.pos[2] + r[2] * lo;
     let best = null;
@@ -102,6 +113,7 @@ export class Actor {
 
   // ------------------------------------------------------------------ per-frame update
   update(dt) {
+    this.updateSpawnShield();
     const st = this.status;
     for (const k in st) if (st[k] > 0) st[k] = Math.max(0, st[k] - dt);
     if (st.burn > 0) this.hurt(8 * dt, { src: null, region: 'torso', ignoreArmor: true, quiet: true });
@@ -294,6 +306,9 @@ export class Actor {
   hurt(amount, o = {}) {
     if (!this.alive && !(this.downed && !o.quiet)) return false;
     if (this.sim.godmode && this.isPlayer) return false;
+    // nobody can be hurt by another player during preparation, and a fresh spawn is protected
+    if (o.src && o.src !== this && this.sim.round && this.sim.round.inPrep() && !this.sim.allowPrepDamage) return false;
+    if (this.spawnProtected && !o.fall && !o.void) return false;
     const reg = o.region || 'torso';
     if (!o.ignoreArmor) {
       amount *= 1 - this.armor * 0.045; // heavier armour soaks a little of each hit

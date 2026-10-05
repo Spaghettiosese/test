@@ -35,6 +35,7 @@ export class Sense {
     const prep = this.sim.round.inPrep();
     for (const e of this.sim.actors) {
       if (e.team === a.team || (!e.alive && !e.downed)) continue;
+      if (e.spawnProtected) { this.mem.delete(e.id); continue; } // nobody wastes ammunition on a team that cannot be hurt
       const head = e.headPos(), chest = e.chestPos(), d = dist3(eye, chest);
       let visible = 0, seenPt = null;
       if (!blind && d < 95 && !prep) {

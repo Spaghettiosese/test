@@ -110,7 +110,7 @@ export class Round {
     this.confine();
     if (this.phase === PHASE.PREP) {
       this.t -= dt;
-      if (this.t <= 0) { this.phase = PHASE.ACTION; this.t = this.o.action; sim.emit('phase', { phase: PHASE.ACTION }); }
+      if (this.t <= 0) { this.phase = PHASE.ACTION; this.t = this.o.action; for (const a of sim.actors) if (a.team === 'atk' && a.alive) a.startSpawnShield(20); sim.emit('phase', { phase: PHASE.ACTION }); }
       return;
     }
     // action phase

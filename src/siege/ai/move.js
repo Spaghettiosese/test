@@ -1,7 +1,7 @@
 // Path following for bots: plans with the shared A*, walks the route between the standing points
 // of the cells, opens (and, if the bot is the careful kind, closes) doors, breaks barricades,
 // vaults windows, climbs stairs, steers round props, and notices when it stops making progress.
-import { STOREY } from '../world/grid.js';
+import { STOREY, CAST } from '../world/grid.js';
 import { yawOf, wrapAngle } from '../sim/util.js';
 
 export class Mover {
@@ -11,7 +11,7 @@ export class Mover {
     this.wish = null; this.speed = 'walk'; this.faceYaw = null; this.ver = -1; this.lastPlan = -9;
     this.stuckT = 0; this.lastPos = [...this.a.pos]; this.stuckN = 0; this.dodgeT = 0; this.dodgeDir = 0;
     this.waitT = 0; this.pending = false; this.blockedBy = null; this.subIdx = 0; this.vaulting = false;
-    this.avoid = new Map(); this.passed = []; this.prog = { best: 1e9, t: 0 }; this.stalls = 0; this.bar = null;
+    this.nopaths = 0; this.avoid = new Map(); this.passed = []; this.prog = { best: 1e9, t: 0 }; this.stalls = 0; this.bar = null;
   }
   stop() { this.steps = []; this.i = 0; this.goal = null; this.target = null; this.arrived = true; this.wish = null; this.pending = false; this.bar = null; }
   get active() { return !!this.goal && !this.arrived && !this.failed; }
@@ -53,8 +53,12 @@ export class Mover {
     const [sx, sz] = nav.standXZ(to); this.target = Math.hypot(sx - this.goal[0], sz - this.goal[2]) > 0.6 ? [sx, sz] : [this.goal[0], this.goal[2]];
     let path = nav.find(from, to, { cost: this.cost(), avoidDoors: false, goalTol: this.opts.goalTol || 0, breakBarriers: this.opts.breakBarriers ?? this.b.breaksBarriers });
     // the goal may sit in a sealed pocket: settle for the nearest place that can be reached
-    if (!path && !this.opts.goalTol) path = nav.find(from, to, { cost: this.cost(), avoidDoors: false, goalTol: 3.5, breakBarriers: this.opts.breakBarriers ?? this.b.breaksBarriers });
-    if (!path) { this.steps = []; this.failed = true; this.sim.emit('nopath', { actor: a }); return; }
+    if (!path && !this.opts.goalTol) {
+      path = nav.find(from, to, { cost: this.cost(), avoidDoors: false, goalTol: 3.5, breakBarriers: this.opts.breakBarriers ?? this.b.breaksBarriers });
+      // a path of no steps only counts if the bot really is there already
+      if (path && !path.length && Math.hypot(a.pos[0] - this.goal[0], a.pos[2] - this.goal[2]) > (this.opts.tol || 0.55) + 0.9) path = null;
+    }
+    if (!path) { this.steps = []; this.failed = true; this.sim.emit('nopath', { actor: a }); if (this.nopaths++ >= 1) this.rescue(); return; }
     this.steps = nav.smooth(a.pos[0], a.pos[2], nav.floorOf(a.pos[1]), path); this.i = 0; this.subIdx = 0; this.failed = false; this.bar = null;
     // already part-way up a staircase: carry on from the nearest step of it, not from the foot
     const s0 = this.steps[0];
@@ -170,6 +174,7 @@ export class Mover {
     this.wish = [dx / (dd || 1), dz / (dd || 1)];
     this.speed = this.opts.speed; this.faceYaw = yawOf(dx, dz);
     this.watchProgress(dt, this.remaining());
+    if (!this.wish || this.pending) return; // re-planned or pulled out of a pocket just now
     // stuck detection: the body is not moving at all
     this.stuckT += dt;
     if (this.stuckT > 0.6) {
@@ -184,6 +189,7 @@ export class Mover {
       } else this.stuckN = Math.max(0, this.stuckN - 1);
       this.lastPos = [...pos]; this.stuckT = 0;
     }
+    if (!this.wish) return;
     if (this.dodgeT > 0) { this.dodgeT -= dt; const r = a.right; this.wish = [this.wish[0] * 0.4 + r[0] * this.dodgeDir, this.wish[1] * 0.4 + r[2] * this.dodgeDir]; this.norm(); }
     // keep clear of friends
     const inDoor = this.nav.doorDist(pos[0], pos[2], s.f).d < 1.5;
@@ -214,6 +220,39 @@ export class Mover {
       this.plan();
     } else if (this.stalls === 2) this.unstick(...(this.steps[this.i] ? this.nav.standXZ(this.steps[this.i].node) : this.target || [a.pos[0], a.pos[2]]));
     else if (this.stalls >= 4) { this.failed = true; this.stalls = 0; this.sim.emit('nopath', { actor: a, stuck: true }); }
+  }
+  // Walled into a pocket (a deployable shield across the mouth of a gap, furniture all round): find the
+  // closest cell on the open side and hop out to it. Returns whether the bot was moved.
+  rescue() {
+    const nav = this.nav, a = this.a; if (a.mode !== 'normal' || a.busy) return false;
+    if (this.sim.time - (this.lastRescue || -99) < 6) return false;
+    const from = nav.snap(a.pos[0], a.pos[1], a.pos[2]), seen = new Set([from]), q = [from];
+    while (q.length && seen.size < 260) { const n = q.pop(); nav.each(n, (m) => { if (!seen.has(m)) { seen.add(m); q.push(m); } }, false); }
+    if (seen.size >= 260) return false; // plenty of room: not a pocket
+    // the nearest cell on this storey that is outside the pocket, has room to roam and can be reached
+    // without crossing a wall (a hop across the building's outer wall only gets pushed straight back)
+    const w = this.sim.world, [fx, fz, ff] = nav.parts(from); let best = -1, bd = 1e9;
+    const big = (n) => { const s2 = new Set([n]), q2 = [n]; while (q2.length && s2.size < 120) { const m = q2.pop(); nav.each(m, (k) => { if (!s2.has(k)) { s2.add(k); q2.push(k); } }, false); } return s2.size >= 120; };
+    const cands = [];
+    for (let r = 1; r <= 7; r++) for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
+      const x = fx + dx, z = fz + dz; if (!nav.walkable(x, z, ff) || nav.isHole(x, z, ff)) continue;
+      const n = nav.node(x, z, ff); if (seen.has(n) || !nav.fits(n)) continue;
+      cands.push([Math.hypot(dx, dz), n]);
+    }
+    cands.sort((p, q) => p[0] - q[0]);
+    for (const [d, n] of cands.slice(0, 40)) {
+      const c = nav.centre(n);
+      if (w.cast(a.pos[0], a.pos[1] + 1.0, a.pos[2], c[0] - a.pos[0], 0, c[2] - a.pos[2], Math.hypot(c[0] - a.pos[0], c[2] - a.pos[2]), CAST.GLASS | CAST.PROPS)) continue; // a wall in between
+      if (!big(n)) continue;
+      bd = d; best = n; break;
+    }
+    if (best < 0) return false;
+    this.lastRescue = this.sim.time;
+    const to = nav.centre(best);
+    if (bd <= 3.4) a.startVault([to[0], to[1], to[2]]); else { a.pos[0] = to[0]; a.pos[1] = to[1]; a.pos[2] = to[2]; a.vel[0] = a.vel[2] = 0; }
+    this.stop(); this.sim.emit('rescue', { actor: a, to });
+    return true;
   }
   // wedged between props for several seconds: hop to the closest free spot towards the next waypoint
   unstick(tx, tz) {
@@ -255,7 +294,7 @@ export class Mover {
     const a = this.a, d = Math.hypot(a.pos[0] - dc[0], a.pos[2] - dc[1]);
     if (d > 1.15) { this.wish = [dc[0] - a.pos[0], dc[1] - a.pos[2]]; this.norm(); this.speed = 'walk'; this.faceYaw = yawOf(this.wish[0], this.wish[1]); } else this.faceYaw = yawOf(tx - a.pos[0], tz - a.pos[2]);
   }
-  norm() { const l = Math.hypot(this.wish[0], this.wish[1]); if (l > 1) { this.wish[0] /= l; this.wish[1] /= l; } }
+  norm() { if (!this.wish) return; const l = Math.hypot(this.wish[0], this.wish[1]); if (l > 1) { this.wish[0] /= l; this.wish[1] /= l; } }
   // remaining distance along the route (metres, rough)
   remaining() {
     let d = 0, px = this.a.pos[0], pz = this.a.pos[2];

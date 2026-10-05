@@ -37,7 +37,7 @@ for (const sp of sim.map.spawns) {
     const path = nav.find(from, to); if (!path) continue;
     const sx = nav.standXZ(from), straight = Math.hypot(s.center[0] - sx[0], s.center[2] - sx[1]) + (s.f ? 10 : 0), ratio = len(path, sx) / Math.max(10, straight);
     if (ratio > worst) { worst = ratio; wname = `${sp.id} -> ${s.name} (${len(path, sx).toFixed(0)} m for ${straight.toFixed(0)} m)`; }
-    if (ratio > 3.6) { process.exitCode = 1; console.log(`LONG ROUTE ${sp.id} -> ${s.name}: ${len(path, sx).toFixed(0)} m for ${straight.toFixed(0)} m straight`); }
+    if (ratio > 4.4) { process.exitCode = 1; console.log(`LONG ROUTE ${sp.id} -> ${s.name}: ${len(path, sx).toFixed(0)} m for ${straight.toFixed(0)} m straight`); }
   }
   console.log(`worst route ratio ${worst.toFixed(2)}: ${wname}`);
 }

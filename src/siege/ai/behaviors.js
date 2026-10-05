@@ -198,7 +198,7 @@ export const behaviors = {
     if (!d || d.dead || d.barricade > 0 || d.target < 0.5) { this.dir && this.dir.taskDone(a, 'doorshut'); return; }
     const dc = [d.ax === 'x' ? d.ix : d.ix + 0.5, d.ax === 'x' ? d.iz + 0.5 : d.iz];
     const stand = t.stand;
-    if (dist2(a.pos, stand) > 0.8 || Math.abs(a.pos[1] - stand[1]) > 1.2) {
+    if (!this.atSpot(stand, 0.8, dt)) {
       if (!this.mover.goal || dist3(this.mover.goal, stand) > 0.8 || (this.mover.failed && this.stateT > 0.5)) { this.mover.goTo(stand, { speed: 'walk', tol: 0.5 }); this.stateT = 0; }
       this.applyWish(this.mover.wish, 'walk'); this.faceMove(dt);
       if (this.mover.failed) this.dir.taskFailed(a, 'nopath');
@@ -237,6 +237,54 @@ export const behaviors = {
       this.yieldDir = [n[0] * side, n[1] * side];
     }
     if (this.yieldT > 0 && this.yieldDir) this.applyWish(this.yieldDir, 'walk');
+  },
+
+  // ---------------------------------------------------------------- looking
+  // The way to face when waiting: `base` if there is room to see down it, otherwise the nearest direction
+  // with a view (nobody stands for a minute with their nose against a wall).
+  clearYaw(base, want = 3.2) {
+    const a = this.a, key = `${Math.round(a.pos[0] * 2)},${Math.round(a.pos[2] * 2)},${Math.round(base * 4)}`, c = this.lookCache;
+    if (c && c.key === key && this.sim.time < c.until) return c.yaw;
+    const w = this.sim.world, o = a.eye();
+    const see = a.team === 'def' ? CAST.GLASS : 0; // a defender may watch the yard through a window; an attacker staring into one is staring at a wall
+    const room = (yaw) => { const h = w.cast(o[0], o[1], o[2], Math.sin(yaw), 0, Math.cos(yaw), 10, see); return h ? h.t : 10; };
+    let best = base;
+    if (room(base) < want) {
+      let bs = -1e9;
+      for (const off of [0.3, -0.3, 0.6, -0.6, 0.9, -0.9, 1.3, -1.3, 1.8, -1.8, 2.4, -2.4, Math.PI]) { const y = base + off, sc = Math.min(room(y), 8) - Math.abs(off) * 1.1; if (sc > bs) { bs = sc; best = y; } }
+    }
+    this.lookCache = { key, yaw: best, until: this.sim.time + 4 };
+    return best;
+  },
+  // A post that cannot be reached (sealed behind furniture, or only a metre of corner): the closest
+  // spot to it that this bot can really walk to and that has a view down some line of at least 4 m.
+  altPost(pos, radius = 5) {
+    const a = this.a, nav = this.nav || this.sim.nav, w = this.sim.world, from = nav.snap(a.pos[0], a.pos[1], a.pos[2]);
+    const seen = new Set([from]), q = [from], list = [];
+    while (q.length && seen.size < 900) {
+      const n = q.shift(); list.push(n);
+      nav.each(n, (m) => { if (!seen.has(m)) { seen.add(m); q.push(m); } }, false);
+    }
+    let best = null, bs = 1e9;
+    for (const n of list) {
+      if (!nav.fits(n)) continue;
+      const c = nav.centre(n), d = Math.hypot(c[0] - pos[0], c[2] - pos[2]);
+      if (d > radius || Math.abs(c[1] - pos[1]) > 1.5) continue;
+      let room = 0; for (let k = 0; k < 8; k++) { const yaw = k * Math.PI / 4, h = w.cast(c[0], c[1] + 1.6, c[2], Math.sin(yaw), 0, Math.cos(yaw), 6, CAST.GLASS); room = Math.max(room, h ? h.t : 6); }
+      if (room < 4) continue;
+      const sc = d - room * 0.15;
+      if (sc < bs) { bs = sc; best = c; }
+    }
+    return best;
+  },
+  // close enough to a work spot to work from it: the mover has done all it can (a squad mate may be
+  // standing on the exact spot) and the bot is within a body or two of it
+  atSpot(pos, tol, dt) {
+    const a = this.a, m = this.mover;
+    if (Math.abs(a.pos[1] - pos[1]) > 1.3) return false;
+    const d = dist2(a.pos, pos); if (d <= tol) return true;
+    if ((m.arrived || m.failed) && !m.active) { this.nearT = (this.nearT || 0) + dt; return d < tol * 2.2 + 1.0 && this.nearT > 0.6; }
+    this.nearT = 0; return false;
   },
 
   // ---------------------------------------------------------------- roaming

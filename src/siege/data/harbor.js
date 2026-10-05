@@ -141,5 +141,13 @@ export const HARBOR = {
     ['car', 0, 6, 24, 90, { color: '#a4161a' }], ['car', 0, 22, 24, 90, { color: '#1c3c5c' }], ['barrier', 0, 14, 23, 0, { w: 3 }], ['barrier', 0, 27.5, 24, 0, { w: 3 }],
     ['shack', 0, 30, -4, 0], ['pole', 0, 0, -2], ['pole', 0, 28, -2], ['pole', 0, 28, 20], ['pole', 0, -2, 20], ['tree', 0, -10, 1], ['tree', 0, 37, 21], ['tree', 0, -10, 25], ['tree', 0, 14, -9],
     ['crate', 0, 10, 20, 0], ['crate', 0, 11, 20, 0], ['tires', 0, 24, 20, 0], ['barrel', 0, 2, 19, 0], ['barrel', 0, 3, 20, 0],
+    // screens: shipping containers standing between each attacker spawn and the windows, so a team that
+    // has just arrived is not in plain view of the whole building (gaps are left for the way out)
+    ['container', 0, 9.5, -2.7, 90, { color: '#3b6a8a' }], ['container', 0, 18.5, -2.7, 90, { color: '#8a5a2c' }],
+    ['container', 0, 10, 21, 90, { color: '#7c2b2b' }], ['container', 0, 19, 21, 90, { color: '#3b6a8a' }],
+    ['container', 0, 31.2, 7, 0, { color: '#8a5a2c' }], ['container', 0, 31.2, 16, 0, { color: '#3b6a8a' }],
+    ['container', 0, -2.6, 6.5, 0, { color: '#7c2b2b' }], ['container', 0, -2.6, 14.5, 0, { color: '#8a5a2c' }],
+    ['container', 0, 29.5, -2.5, 90, { color: '#3b6a8a' }], ['container', 0, 36.5, -2.5, 90, { color: '#7c2b2b' }],
+    ['container', 0, -8.5, 21.5, 90, { color: '#8a5a2c' }], ['container', 0, -0.5, 21.5, 90, { color: '#3b6a8a' }],
   ],
 };

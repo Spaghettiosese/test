@@ -87,10 +87,20 @@ export function setupRound(sim, cfg) {
 function siteSpawnCells(sim, site) {
   const nav = sim.nav, f = site.f, out = [];
   const cx = Math.floor(site.center[0]), cz = Math.floor(site.center[2]);
+  const open = new Map(); // cell -> size of the area it belongs to (capped), so sealed pockets are skipped
+  const room = (n) => {
+    if (open.has(n)) return open.get(n);
+    const seen = new Set([n]), q = [n];
+    while (q.length && seen.size < 260) { const m = q.pop(); nav.each(m, (k) => { if (!seen.has(k)) { seen.add(k); q.push(k); } }, false); }
+    for (const m of seen) open.set(m, seen.size);
+    return seen.size;
+  };
   for (let dz = -9; dz <= 9; dz++) for (let dx = -9; dx <= 9; dx++) {
     const x = cx + dx, z = cz + dz;
     if (!nav.walkable(x, z, f) || nav.partial[nav.node(x, z, f)] || sim.world.roomAt(x + 0.5, f * STOREY, z + 0.5) < 0) continue;
-    out.push([x + 0.5, f * STOREY, z + 0.5]);
+    if (!nav.fits(nav.node(x, z, f)) || room(nav.node(x, z, f)) < 260) continue;
+    const [sx, sz] = nav.standXZ(nav.node(x, z, f));
+    out.push([sx, f * STOREY, sz]);
   }
   return out;
 }

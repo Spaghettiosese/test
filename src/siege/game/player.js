@@ -20,7 +20,7 @@ export class Player {
     this.view = 'player'; // player | drone | cam | spectate | rappel
     this.prompt = null; this.fHeld = 0; this.fAction = null; this.camIndex = 0; this.specIndex = 0;
     this.camYaw = 0; this.camPitch = 0; this.pingT = 0; this.gadgetHeld = false; this.lastHit = 0; this.hitT = 0; this.msg = null; this.msgT = 0;
-    this.shake = 0; this.rappel = null; this.scanT = 0; this.dead = false;
+    this.shake = 0; this.rappel = null; this.scanT = 0; this.dead = false; this.useT = 0; this.useWas = false; this.doorPending = null;
   }
   get K() { return this.settings.keys; }
   say(text, t = 2.2) { this.msg = text; this.msgT = t; }
@@ -105,6 +105,7 @@ export class Player {
     if (!c.fire || !(a.gun && a.gun.def.auto)) { const back = this.recoilDebt * Math.min(1, dt * 5); a.pitch -= back; this.recoilDebt -= back; }
     // ---- contextual interaction
     this.interact(dt);
+    if (!this.prompt && a.spawnProtected) this.prompt = { text: `Spawn protection ${Math.ceil(a.shieldUntil - this.sim.time)} s`, key: '', sub: 'Ends when you fire or leave the spawn' };
     this.edge.clear();
   }
   selectGadget(i) {
@@ -176,6 +177,8 @@ export class Player {
     }
     a.ctl.use = false;
     const use = this.held('use'), tap = this.pressed('use');
+    if (use) this.useT += dt; else { if (this.useWas) this.doorRelease(); this.useT = 0; }
+    this.useWas = use;
     const hit = this.probe(2.8);
     const near = (p, d = 1.5) => dist2(a.pos, p) < d && Math.abs(a.pos[1] - p[1]) < 1.6;
     // bomb site actions
@@ -198,20 +201,18 @@ export class Player {
       if (an) { this.prompt = { text: 'Hold to rappel', key: 'F', hold: true }; if (use) { this.fHeld += dt; if (this.fHeld > 0.6) this.startRappel(an); } else this.fHeld = 0; return; }
     }
     this.fHeld = 0;
+    // doors. An open door is not solid, so the crosshair ray passes straight through it: look for it by hand
+    let door = hit && hit.panel && hit.panel.door ? hit.panel.door : null, doorPt = hit ? hit.pt : null;
+    if (!door) {
+      const od = this.openDoorInView(2.7);
+      if (od && (!hit || od.t < hit.t + 0.15)) { door = od.door; doorPt = od.pt; }
+    }
+    if (door) { this.doorPrompt(door, doorPt, use, tap); return; }
     if (!hit || !hit.panel) {
       if (hit && hit.prop && hit.prop.dev) { /* looking at a device */ }
       return;
     }
     const p = hit.panel;
-    // doors
-    if (p.door) {
-      const d = p.door;
-      if (d.barricade > 0) { this.prompt = { text: d.armored ? 'Armor panel' : 'Barricaded', key: '' }; return; }
-      if (a.team === 'def' && (use && this.fHeldTime(dt) > 0.45)) { const rr = r.barricadeAct(a, p); if (rr.ok) { a.ctl.use = true; return; } }
-      this.prompt = { text: d.open > 0.5 ? 'Close door' : 'Open door', key: 'F', sub: a.team === 'def' ? 'Hold to barricade' : '' };
-      if (tap) { if (d.setOpen(d.target < 0.5)) { this.game.audio && this.game.audio.door(hit.pt, d.target > 0.5); sim.noise(hit.pt, 8, 'door', a); } }
-      return;
-    }
     if (p.kind === 'glass') {
       this.prompt = a.team === 'def' ? { text: 'Hold to barricade', key: 'F', hold: true } : { text: 'Window', key: '' };
       if (a.team === 'def' && use) { const rr = r.barricadeAct(a, p); if (rr.ok) a.ctl.use = true; }
@@ -229,6 +230,44 @@ export class Player {
     }
   }
   fHeldTime(dt) { this.fHeld += dt; return this.fHeld; }
+  // the open door nearest the crosshair (within about 25 degrees), if one is in reach and in sight
+  openDoorInView(reach = 2.7) {
+    const a = this.a, w = this.sim.world, eye = a.eye(), look = a.look(); let best = null, bs = 0.9;
+    for (const d of w.doors) {
+      if (d.dead || d.open < 0.5 || Math.abs(d.f * STOREY - a.pos[1]) > 1.9) continue;
+      const c = [d.ax === 'x' ? d.ix : d.ix + 0.5, d.f * STOREY + 1.0, d.ax === 'x' ? d.iz + 0.5 : d.iz];
+      const v = [c[0] - eye[0], c[1] - eye[1], c[2] - eye[2]], L = Math.hypot(v[0], v[1], v[2]);
+      if (L > reach || L < 0.25) continue;
+      const dot = (v[0] * look[0] + v[1] * look[1] + v[2] * look[2]) / L; if (dot < bs) continue;
+      if (!w.visible(eye, [c[0] - v[0] / L * 0.3, c[1] - v[1] / L * 0.3, c[2] - v[2] / L * 0.3], CAST.GLASS)) continue;
+      bs = dot; best = { door: d, pt: c, t: L };
+    }
+    return best;
+  }
+  toggleDoor(d, pt) {
+    if (!d || d.dead || d.barricade > 0) return;
+    const closing = d.target > 0.5;
+    // do not shut a door on your own head
+    if (closing) { const c = [d.ax === 'x' ? d.ix : d.ix + 0.5, d.f * STOREY, d.ax === 'x' ? d.iz + 0.5 : d.iz]; if (dist2(this.a.pos, c) < 0.55 && Math.abs(this.a.pos[1] - c[1]) < 1.5) { this.say('You are standing in the doorway'); return; } }
+    if (d.setOpen(!closing)) { this.game.audio && this.game.audio.door(pt, d.target > 0.5); this.sim.noise(pt, closing ? 6 : 8, 'door', this.a); this.sim.emit('playerdoor', { actor: this.a, door: d, open: d.target > 0.5 }); }
+  }
+  // F on a door: a tap opens or shuts it; defenders hold F to barricade it instead
+  doorPrompt(d, pt, use, tap) {
+    const a = this.a, r = this.sim.round;
+    if (d.barricade > 0) { this.prompt = { text: d.armored ? 'Armor panel' : 'Barricaded', key: '' }; return; }
+    const def = a.team === 'def';
+    this.prompt = { text: d.target > 0.5 ? 'Close door' : 'Open door', key: 'F', sub: def ? 'Hold to barricade' : '' };
+    if (!def) { if (tap) this.toggleDoor(d, pt); return; }
+    if (tap) this.doorPending = { door: d, pt };
+    if (use && this.doorPending && this.doorPending.door === d && this.useT > 0.45) {
+      const rr = r.barricadeAct(a, d.panels[0]); this.doorPending = null; if (rr.ok) a.ctl.use = true; else if (rr.msg) this.say(rr.msg);
+    }
+  }
+  // a short tap on F released over a door toggles it (the hold is for barricading)
+  doorRelease() {
+    const pend = this.doorPending; this.doorPending = null;
+    if (pend && this.useT < 0.4 && !this.a.busy) this.toggleDoor(pend.door, pend.pt);
+  }
 
   // ---------------------------------------------------------------- rappelling
   startRappel(an) {
