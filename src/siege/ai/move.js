@@ -94,7 +94,10 @@ export class Mover {
       } else { this.i++; this.subIdx = 0; return; }
     }
     const dx = tx - pos[0], dz = tz - pos[2], dd = Math.hypot(dx, dz);
-    if (dd < reach && s.kind !== 'stair') {
+    const nx = this.steps[this.i + 1];
+    // do not cut a corner that would send the body into a wall: close in on the waypoint first
+    const clear = !nx || dd < 0.2 || nx.kind !== 'walk' || nx.f !== s.f || last || this.nav.canWalk(pos[0], pos[2], nx.x + 0.5, nx.z + 0.5, s.f);
+    if (dd < reach && s.kind !== 'stair' && clear) {
       // look ahead: cut the corner if the next hop is straight and free
       this.i++; if (this.i >= this.steps.length && !this.opts.exact) { if (Math.hypot(pos[0] - this.goal[0], pos[2] - this.goal[2]) < this.opts.tol + 0.4) this.arrived = true; }
       return;
@@ -107,9 +110,14 @@ export class Mover {
       const moved = Math.hypot(pos[0] - this.lastPos[0], pos[2] - this.lastPos[2]);
       if (moved < 0.12 && !a.busy && a.mode === 'normal') {
         this.stuckN++;
-        if (this.stuckN === 2) this.plan(); else if (this.stuckN >= 3) { this.dodgeT = 0.6; this.dodgeDir = this.b.prof.p.lefty * (this.stuckN % 2 ? 1 : -1); if (this.stuckN > 7) { this.failed = true; this.stuckN = 0; } }
+        const toGoal = Math.hypot(pos[0] - this.goal[0], pos[2] - this.goal[2]);
+        if (this.stuckN === 2) this.plan();
+        else if (this.stuckN === 3 && this.i < this.steps.length - 1 && this.steps[this.i].kind === 'walk' && this.steps[this.i + 1].kind === 'walk') this.i++; // a waypoint we cannot reach: skip it
+        else if (this.stuckN === 4 && toGoal < this.opts.tol + 2.2) { this.arrived = true; this.stuckN = 0; return; } // close enough
+        else if (this.stuckN >= 5) { this.dodgeT = 0.6; this.dodgeDir = this.b.prof.p.lefty * (this.stuckN % 2 ? 1 : -1); if (this.stuckN > 8) { this.failed = true; this.stuckN = 0; } }
       } else this.stuckN = Math.max(0, this.stuckN - 1);
       this.lastPos = [...pos]; this.stuckT = 0;
+      if (this.stuckN >= 5) { this.pinned = (this.pinned || 0) + 0.6; if (this.pinned > 3.2) { this.pinned = 0; this.unstick(tx, tz); } } else this.pinned = Math.max(0, (this.pinned || 0) - 0.3);
     }
     if (this.dodgeT > 0) { this.dodgeT -= dt; const r = a.right; this.wish = [this.wish[0] * 0.4 + r[0] * this.dodgeDir, this.wish[1] * 0.4 + r[2] * this.dodgeDir]; this.norm(); }
     // keep clear of friends
@@ -119,6 +127,32 @@ export class Mover {
       if (od < 0.9 && od > 1e-3) { this.wish[0] += (ox / od) * (0.9 - od) * 0.8; this.wish[1] += (oz / od) * (0.9 - od) * 0.8; }
     }
     this.norm();
+    if (s.kind === 'walk' && this.wish && (this.wish[0] || this.wish[1])) this.steer(pos);
+  }
+  // wedged between props for several seconds: hop to the closest free spot towards the next waypoint
+  unstick(tx, tz) {
+    const a = this.a, w = this.sim.world, pos = a.pos; let best = null, bd = 1e9;
+    for (let r = 0.45; r <= 1.3; r += 0.35) for (let k = 0; k < 16; k++) {
+      const ang = (k / 16) * Math.PI * 2, px = pos[0] + Math.sin(ang) * r, pz = pos[2] + Math.cos(ang) * r;
+      let ok = !w.cast(pos[0], pos[1] + 0.9, pos[2], px - pos[0], 0, pz - pos[2], r, 0);
+      for (let j = 0; ok && j < 8; j++) { const aa = (j / 8) * Math.PI * 2; if (w.cast(px, pos[1] + 0.5, pz, Math.sin(aa), 0, Math.cos(aa), 0.3, 0) || w.cast(px, pos[1] + 1.3, pz, Math.sin(aa), 0, Math.cos(aa), 0.3, 0)) ok = false; }
+      if (!ok) continue;
+      const d = Math.hypot(tx - px, tz - pz); if (d < bd) { bd = d; best = [px, pos[1], pz]; }
+    }
+    if (best) { a.pos[0] = best[0]; a.pos[2] = best[2]; a.vel[0] = a.vel[2] = 0; this.stuckN = 0; }
+    else { this.failed = true; }
+  }
+  // whiskers: if a prop or wall is right ahead, slide round it towards the freer side
+  steer(pos) {
+    const w = this.sim.world, y = pos[1], wish = this.wish, l = Math.hypot(wish[0], wish[1]); if (l < 1e-3) return;
+    const ux = wish[0] / l, uz = wish[1] / l, reach = 0.62;
+    const free = (dx, dz, d) => { for (const h of [0.4, 1.1]) { const hit = w.cast(pos[0], y + h, pos[2], dx, 0, dz, d, 0); if (hit && !(hit.panel && (hit.panel.door || hit.panel.kind === 'glass'))) return false; } return true; };
+    if (free(ux, uz, reach) && free(ux, uz, 0.3)) return;
+    // the body is wider than a ray: probe two side rays as well
+    for (const ang of [0.45, -0.45, 0.9, -0.9, 1.35, -1.35]) {
+      const c = Math.cos(ang), sn = Math.sin(ang), dx = ux * c - uz * sn, dz = ux * sn + uz * c;
+      if (free(dx, dz, reach)) { this.wish = [dx, dz]; return; }
+    }
   }
   slowApproach(tx, tz, dc) {
     const a = this.a, d = Math.hypot(a.pos[0] - dc[0], a.pos[2] - dc[1]);

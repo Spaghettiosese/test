@@ -243,11 +243,13 @@ export class AttackDirector extends Director {
   pushStep(dt) {
     const r = this.round, sim = this.sim, live = this.live();
     // keep the planter alive: if lost, the next free bot takes over
-    if (!this.planter || !this.planter.alive) {
-      const alt = live.find((b) => b.a.alive); if (alt) { this.planter = alt; this.roles.set(alt, 'planter'); this.planJobs(alt); }
+    if (!this.planter || !this.planter.a.alive) {
+      const free = live.filter((b) => b.a.alive && !['breach', 'hammer', 'point'].includes(this.roles.get(b)));
+      const alt = free[free.length - 1] || live.find((b) => b.a.alive);
+      if (alt) { this.planter = alt; this.roles.set(alt, 'planter'); this.planJobs(alt); }
     }
     // everyone but the planter heads into the site; the planter plants when the room is calm
-    const pb = live.find((b) => b.a === this.planter) || live.find((b) => this.roles.get(b) === 'planter');
+    const pb = live.find((b) => b === this.planter) || live.find((b) => this.roles.get(b) === 'planter');
     if (pb && pb.task && pb.task.type === 'plant') {
       const threats = this.intelAbout(r.site.center, 7, 6);
       const rush = r.t < 50 || this.stateT > 70;

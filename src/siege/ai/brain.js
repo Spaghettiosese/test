@@ -18,14 +18,14 @@ export class Brain {
     this.a = a; a.ai = this; this.sim = a.sim; this.dir = director; this.level = level;
     this.prof = profileFor(level, a.sim.rand);
     this.sense = new Sense(this); this.mover = new Mover(this);
-    this.task = null; this.mode = 'idle'; this.decideT = Math.random() * 0.3;
+    this.task = null; this.mode = 'idle'; this.decideT = a.sim.rand() * 0.3;
     this.tgt = null; this.reactT = 0; this.burstLeft = 0; this.pauseT = 0; this.strafeT = 0; this.strafeDir = 1; this.aimHead = false;
     this.cover = null; this.coverT = 0; this.cm = 'engage'; this.inCombat = false;
     this.noise = [0, 0]; this.noiseT = 0; this.want = { yaw: a.yaw, pitch: 0, snap: false };
     this.watch = null; this.watchT = 0; this.scanT = 0; this.scanDir = 1; this.lastSeenT = -9; this.pauseDoor = 0;
-    this.grenadeCd = 4 + Math.random() * 6; this.sweepPhase = Math.random() * 6; this.lastRoom = -2; this.peekT = 0; this.leanDir = 0;
+    this.grenadeCd = 4 + a.sim.rand() * 6; this.sweepPhase = a.sim.rand() * 6; this.lastRoom = -2; this.peekT = 0; this.leanDir = 0;
     this.holdUntil = 0; this.stateT = 0; this.gadgetT = 0; this.say = null; this.stuckHunt = 0; this.moveMode = 'walk'; this.hurtT = -9; this.fleeing = false;
-    this.talkCd = 0; this.lastTarget = null; this.dangerSpots = [];
+    this.talkCd = 0; this.lastTarget = null; this.dangerSpots = []; this.rvTarget = null; this.rvCd = 0;
   }
   get a_() { return this.a; }
 
@@ -275,13 +275,44 @@ export class Brain {
   }
 
   // ---------------------------------------------------------------- tasks (the director's orders)
+  // pick up a downed teammate when nobody is shooting at us
+  reviveTarget() {
+    const a = this.a, sim = this.sim; if (this.prof.tactics < 1 || !sim.downEnabled || this.sense.freshest(3.5)) return null;
+    let best = null, bd = 17;
+    for (const o of sim.actors) {
+      if (o === a || o.team !== a.team || !o.downed || (o.reviver && o.reviver !== a && o.reviver.alive && !o.reviver.downed)) continue;
+      const d = dist3(a.pos, o.pos) + Math.abs(a.pos[1] - o.pos[1]) * 2;
+      if (d < bd && o.downT > 5 + d / 4.5) { bd = d; best = o; }
+    }
+    return best;
+  }
+  reviveStep(dt) {
+    const a = this.a, c = a.ctl; let t = this.rvTarget;
+    if (t && (!t.downed || (t.reviver && t.reviver !== a))) { if (t.reviver === a) t.reviver = null; t = this.rvTarget = null; }
+    if (t && this.sense.freshest(1.5)) { if (t.reviver === a) t.reviver = null; this.rvTarget = null; return false; }
+    if (!t) { this.rvCd -= dt; if (this.rvCd > 0) return false; this.rvCd = 0.5; t = this.reviveTarget(); if (!t) return false; this.rvTarget = t; t.reviver = a; this.mover.stop(); }
+    const d = dist3(a.pos, t.pos);
+    if (d > 1.35 || Math.abs(a.pos[1] - t.pos[1]) > 1.2) {
+      if (!this.mover.goal || dist3(this.mover.goal, t.pos) > 1 || (this.mover.failed && this.stateT > 0.6)) { this.mover.goTo([t.pos[0], t.pos[1], t.pos[2]], { speed: 'run', tol: 1.0 }); this.stateT = 0; }
+      this.applyWish(this.mover.wish, 'run'); this.faceMove(dt);
+      if (this.mover.failed && this.stateT > 1.5) { t.reviver = null; this.rvTarget = null; this.rvCd = 3; }
+      return true;
+    }
+    this.mover.stop();
+    this.want.yaw = yawOf(t.pos[0] - a.pos[0], t.pos[2] - a.pos[2]); this.want.pitch = 0; this.turnTo(dt, 9);
+    c.use = true; c.stance = CROUCH;
+    if (!a.busy) a.busy = { kind: 'revive', t: 0, dur: 3.4, freeze: true, cancelIf: (x) => !x.ctl.use || !x.alive || !t.downed, onDone: () => { t.revive(a); this.rvTarget = null; if (a.stats) a.stats.score += 50; } };
+    return true;
+  }
   runTask(dt) {
     const a = this.a, t = this.task, c = a.ctl;
+    if (this.reviveStep(dt)) return;
     if (!t) { this.idleLook(dt); return; }
     const want = (p, o) => { if (!this.mover.goal || dist3(this.mover.goal, p) > 0.8 || (this.mover.failed && this.stateT > 0.5)) { this.mover.goTo(p, o); this.stateT = 0; } };
     if (runGadgetAI(this, dt, 'task')) return;
     switch (t.type) {
       case 'goto': {
+        if (this.mover.failed && this.stateT > 0.5) { t.fails = (t.fails || 0) + 1; if (t.fails >= 3 && this.dir) { this.dir.taskFailed(a, 'stuck'); break; } }
         want(t.pos, { speed: this.pickSpeed(t), tol: t.tol ?? 0.8 });
         if (this.mover.arrived) { this.dir && this.dir.arrived(a, t); }
         this.applyWish(this.mover.wish, this.pickSpeed(t)); this.faceMove(dt, t.facing);

@@ -163,15 +163,43 @@ export function buildMap(def) {
   }
 
   // ---- props
-  const put = (list) => {
+  // Furniture never blocks a way in or out: a prop that sits in front of a door, arch or window
+  // is slid along its wall to the nearest free spot (or kept if there is none).
+  const lanes = [];
+  for (const [fl, x, z, side, kind, count = 1] of def.openings) {
+    const f = fl - 1, vertical = side === 'E' || side === 'W';
+    const plane = side === 'E' ? bx + x + 1 : side === 'W' ? bx + x : side === 'N' ? bz + z + 1 : bz + z;
+    const lo = vertical ? bz + z : bx + x, hi = lo + count;
+    if (kind === 'door' || kind === 'open' || kind === 'arch') lanes.push(vertical ? { f, x0: plane - 1.45, x1: plane + 1.45, z0: lo, z1: hi } : { f, x0: lo, x1: hi, z0: plane - 1.45, z1: plane + 1.45 });
+    else if (kind === 'win') { // keep the floor under a window free so it can be vaulted
+      const inner = side === 'S' || side === 'W' ? 1 : -1, a = plane, b = plane + inner * 1.25;
+      lanes.push(vertical ? { f, x0: Math.min(a, b), x1: Math.max(a, b), z0: lo, z1: hi } : { f, x0: lo, x1: hi, z0: Math.min(a, b), z1: Math.max(a, b) });
+    }
+  }
+  const offsets = []; for (let i = -14; i <= 14; i++) for (let j = -14; j <= 14; j++) if (i || j) offsets.push([i * 0.25, j * 0.25]);
+  offsets.sort((a, b) => Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]));
+  const placed = []; // footprints of the indoor props already standing
+  const hit = (c, L) => c.min[0] < L.x1 && c.max[0] > L.x0 && c.min[2] < L.z1 && c.max[2] > L.z0;
+  const inside = (c) => c.min[0] > bx + 0.25 && c.max[0] < bx + bw - 0.25 && c.min[2] > bz + 0.25 && c.max[2] < bz + bd - 0.25;
+  const put = (list, indoor) => {
     for (const [kind, f, x, z, rot = 0, opts = {}] of list) {
-      const pl = placeProp(kind, bx + x, f * STOREY, bz + z, rot, opts);
+      let pl = placeProp(kind, bx + x, f * STOREY, bz + z, rot, opts);
+      if (indoor && pl.colliders.some((c) => c.kind !== 'rail' && lanes.some((L) => L.f === f && hit(c, L)))) {
+        const room0 = w.roomAt(bx + x, f * STOREY + 0.5, bz + z);
+        let done = false;
+        for (const [dx, dz] of offsets) {
+          const cand = placeProp(kind, bx + x + dx, f * STOREY, bz + z + dz, rot, opts);
+          const ok = cand.colliders.every((c) => inside(c) && !lanes.some((L) => L.f === f && hit(c, L)) && !placed.some((q) => q.f === f && hit(c, { x0: q.min[0], x1: q.max[0], z0: q.min[2], z1: q.max[2] })));
+          if (ok && w.roomAt(bx + x + dx, f * STOREY + 0.5, bz + z + dz) === room0) { pl = cand; done = true; break; }
+        }
+      }
+      if (indoor) for (const c of pl.colliders) placed.push({ f, min: c.min, max: c.max });
       for (const v of pl.visuals) out.statics.push(v);
       for (const c of pl.colliders) w.addProp({ ...c, kind: c.kind });
       if (pl.light) out.lights.push({ pos: pl.light, color: '#ffe2a8', intensity: 5, range: 11, outdoor: true });
     }
   };
-  put(def.props); put(def.yard);
+  put(def.props, true); put(def.yard, false);
 
   // ---- ceiling lights per room
   const rb = {};

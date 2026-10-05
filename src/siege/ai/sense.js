@@ -8,7 +8,7 @@ export class Sense {
     this.b = brain; this.a = brain.a; this.sim = brain.a.sim;
     this.mem = new Map(); // enemy id -> { id, pos, vel, t, seen, conf, src, actor }
     this.aware = new Map();
-    this.lastNoise = 0; this.vt = Math.random() * 0.12; this.hearingFlag = null;
+    this.lastNoise = 0; this.vt = this.sim.rand() * 0.12; this.hearingFlag = null;
     this.sightFirst = new Map(); // when a target first became visible (reaction clock)
     this.recentHit = null; this.hitDir = null; this.hitT = -9;
   }
@@ -93,7 +93,7 @@ export class Sense {
       if (mine) { if (n.kind === 'shot' || n.kind === 'explosion') this.b.onFriendlyFight(n); continue; }
       if (!n.src) continue;
       const err = d * 0.055 * (1.3 - Math.min(1, this.prof.hearing));
-      const pos = [n.pos[0] + (Math.random() - 0.5) * 2 * err, n.pos[1], n.pos[2] + (Math.random() - 0.5) * 2 * err];
+      const pos = [n.pos[0] + (this.b.sim.rand() - 0.5) * 2 * err, n.pos[1], n.pos[2] + (this.b.sim.rand() - 0.5) * 2 * err];
       const prev = this.mem.get(n.src.id);
       if (!prev || (!prev.seen && now - prev.t > 0.4) || prev.src !== 'sight') {
         this.mem.set(n.src.id, { id: n.src.id, actor: n.src, pos, vel: [0, 0, 0], t: now, seen: false, conf, src: 'sound', kind: n.kind });
