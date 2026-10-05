@@ -7,6 +7,8 @@ import { profileFor } from './profile.js';
 import { findCover, findPeek, lobPitch, facingOf } from './tactics.js';
 import { GADGETS } from '../data/gadgets.js';
 import { runGadgetAI } from './gadgetai.js';
+import { installBehaviors } from './behaviors.js';
+import { makePersona } from './persona.js';
 import { CAST, STOREY } from '../world/grid.js';
 import { STAND, CROUCH } from '../sim/actor.js';
 import { clamp, dist3, dist2, norm, sub, dot, wrapAngle, yawOf, pitchOf, approachAngle } from '../sim/util.js';
@@ -26,6 +28,8 @@ export class Brain {
     this.grenadeCd = 4 + a.sim.rand() * 6; this.sweepPhase = a.sim.rand() * 6; this.lastRoom = -2; this.peekT = 0; this.leanDir = 0;
     this.holdUntil = 0; this.stateT = 0; this.gadgetT = 0; this.say = null; this.stuckHunt = 0; this.moveMode = 'walk'; this.hurtT = -9; this.fleeing = false;
     this.talkCd = 0; this.lastTarget = null; this.dangerSpots = []; this.rvTarget = null; this.rvCd = 0;
+    this.persona = a.persona || makePersona(a.sim.rand, a.op, a.team, a.name); a.persona = this.persona;
+    this.breaksBarriers = a.team === 'atk'; this.hunt = null; this.dTgt = null; this.lastTgtId = null;
   }
   get a_() { return this.a; }
 
@@ -35,12 +39,31 @@ export class Brain {
     this.watch = pos; this.watchT = 3.5;
     if (this.mode !== 'combat') this.heardT = this.sim.time;
     if (n.kind === 'shot' && this.dir) this.dir.hint(this.a, pos, n);
+    // somebody else's trouble is worth a look: go and see, and tell the squad
+    if (this.mode === 'combat' || this.inCombat || conf < 0.28 || !this.persona || !this.dir) return;
+    if (!['shot', 'explosion', 'melee', 'breach', 'burn', 'plant'].includes(n.kind) && !(n.kind === 'door' && this.persona.p.curious > 0.6) && !(n.kind === 'step' && this.persona.p.curious > 0.75 && conf > 0.5)) return;
+    if (this.huntWilling('sound', pos)) this.startHunt(pos, 'sound', 12);
+    if (conf > 0.45) this.dir.alert(pos, 'sound', this, n.kind === 'shot' || n.kind === 'explosion' ? 2 : 1);
   }
-  onFriendlyFight(n) { this.friendFightPos = n.pos; this.friendFightT = this.sim.time; }
-  onTeamIntel() {}
+  onFriendlyFight(n) {
+    this.friendFightPos = n.pos; this.friendFightT = this.sim.time;
+    if (!this.inCombat && this.persona && this.huntWilling('assist', n.pos)) this.startHunt(n.pos, 'assist', 12);
+  }
+  onTeamIntel(entry) {
+    if (this.inCombat || !this.persona || !entry || !entry.pos) return;
+    if (this.huntWilling('sight', entry.pos)) this.startHunt(entry.pos, 'sight', 12);
+  }
   onHurt(src, from) {
     this.hurtT = this.sim.time; this.sense.hit(src, from);
-    if (src && !this.sense.mem.get(src.id)?.seen) { this.watch = [src.pos[0], src.pos[1] + 1.5, src.pos[2]]; this.watchT = 4; this.reactT = Math.min(this.reactT, this.prof.reaction * 0.5); }
+    if (src && !this.sense.mem.get(src.id)?.seen) {
+      this.watch = [src.pos[0], src.pos[1] + 1.5, src.pos[2]]; this.watchT = 4; this.reactT = Math.min(this.reactT, this.prof.reaction * 0.5);
+      // shot by someone we cannot see: that is where they are, so go and get them
+      if (this.persona && this.prof.tactics >= 1) {
+        const err = 1.5, spot = [src.pos[0] + (this.sim.rand() - 0.5) * err, src.pos[1], src.pos[2] + (this.sim.rand() - 0.5) * err];
+        if (this.persona.push > 0.3 || this.sim.rand() < 0.4) { this.rushT = this.sim.time; this.hurtSpot = spot; }
+        if (this.dir) this.dir.alert(spot, 'hurt', this, 2);
+      }
+    }
   }
   costFn() {
     const known = [], now = this.sim.time;
@@ -69,6 +92,7 @@ export class Brain {
     if (this.decideT <= 0) { this.decideT = 0.18 + sim.rand() * 0.1; this.decide(); }
     this.mover.update(dt);
     this.execute(dt);
+    this.trafficStep(dt);
     this.finish(dt);
   }
 
@@ -80,14 +104,19 @@ export class Brain {
       if (th && th.seen && th.dist < 9 && this.prof.tactics > 0) { a.busy = null; this.dir && this.dir.taskFailed(a, 'interrupted'); } else return;
     }
     if (th && th.seen) {
-      this.tgt = th; this.lastSeenT = now;
+      this.tgt = th; this.lastSeenT = now; this.lastTgtId = th.actor.id;
       if (this.mode !== 'combat') { this.mode = 'combat'; this.stateT = 0; this.cm = 'engage'; this.aimHead = this.sim.rand() < this.prof.headshot * (th.dist < 25 ? 1.3 : 0.5); this.burstLeft = 0; this.pickCombatPlan(th); }
       this.inCombat = true; return;
     }
     // lost sight: keep fighting for a few seconds
     if (this.tgt && this.tgt.actor.alive && now - this.lastSeenT < (3 + 4 * this.prof.p.patience)) { this.mode = 'combat'; this.inCombat = true; return; }
     this.tgt = null; this.inCombat = false;
-    if (this.mode === 'combat') { this.mode = 'task'; this.stateT = 0; this.mover.stop(); }
+    if (this.mode === 'combat') {
+      this.mode = 'task'; this.stateT = 0; this.mover.stop();
+      const m = this.lastTgtId != null ? this.sense.mem.get(this.lastTgtId) : null;
+      if (m && m.actor.alive && this.persona && this.huntWilling('chase', m.pos)) this.startHunt(this.sense.predict(m, 1.2), 'chase', 10);
+    }
+    if (this.rushT !== undefined && now - this.rushT < 0.6 && this.hurtSpot) { this.startHunt(this.hurtSpot, 'hurt', 12); this.rushT = undefined; }
     // hurt by someone unseen, or heard something very close
     if (now - this.hurtT < 2.5 && this.prof.tactics > 0 && this.mode !== 'react') { this.mode = 'react'; this.stateT = 0; this.reactKind = 'hit'; this.chooseReaction(); return; }
     this.mode = 'task';
@@ -275,38 +304,11 @@ export class Brain {
   }
 
   // ---------------------------------------------------------------- tasks (the director's orders)
-  // pick up a downed teammate when nobody is shooting at us
-  reviveTarget() {
-    const a = this.a, sim = this.sim; if (this.prof.tactics < 1 || !sim.downEnabled || this.sense.freshest(3.5)) return null;
-    let best = null, bd = 17;
-    for (const o of sim.actors) {
-      if (o === a || o.team !== a.team || !o.downed || (o.reviver && o.reviver !== a && o.reviver.alive && !o.reviver.downed)) continue;
-      const d = dist3(a.pos, o.pos) + Math.abs(a.pos[1] - o.pos[1]) * 2;
-      if (d < bd && o.downT > 5 + d / 4.5) { bd = d; best = o; }
-    }
-    return best;
-  }
-  reviveStep(dt) {
-    const a = this.a, c = a.ctl; let t = this.rvTarget;
-    if (t && (!t.downed || (t.reviver && t.reviver !== a))) { if (t.reviver === a) t.reviver = null; t = this.rvTarget = null; }
-    if (t && this.sense.freshest(1.5)) { if (t.reviver === a) t.reviver = null; this.rvTarget = null; return false; }
-    if (!t) { this.rvCd -= dt; if (this.rvCd > 0) return false; this.rvCd = 0.5; t = this.reviveTarget(); if (!t) return false; this.rvTarget = t; t.reviver = a; this.mover.stop(); }
-    const d = dist3(a.pos, t.pos);
-    if (d > 1.35 || Math.abs(a.pos[1] - t.pos[1]) > 1.2) {
-      if (!this.mover.goal || dist3(this.mover.goal, t.pos) > 1 || (this.mover.failed && this.stateT > 0.6)) { this.mover.goTo([t.pos[0], t.pos[1], t.pos[2]], { speed: 'run', tol: 1.0 }); this.stateT = 0; }
-      this.applyWish(this.mover.wish, 'run'); this.faceMove(dt);
-      if (this.mover.failed && this.stateT > 1.5) { t.reviver = null; this.rvTarget = null; this.rvCd = 3; }
-      return true;
-    }
-    this.mover.stop();
-    this.want.yaw = yawOf(t.pos[0] - a.pos[0], t.pos[2] - a.pos[2]); this.want.pitch = 0; this.turnTo(dt, 9);
-    c.use = true; c.stance = CROUCH;
-    if (!a.busy) a.busy = { kind: 'revive', t: 0, dur: 3.4, freeze: true, cancelIf: (x) => !x.ctl.use || !x.alive || !t.downed, onDone: () => { t.revive(a); this.rvTarget = null; if (a.stats) a.stats.score += 50; } };
-    return true;
-  }
   runTask(dt) {
     const a = this.a, t = this.task, c = a.ctl;
     if (this.reviveStep(dt)) return;
+    if (this.droneStep(dt)) return;
+    if (this.huntStep(dt)) return;
     if (!t) { this.idleLook(dt); return; }
     const want = (p, o) => { if (!this.mover.goal || dist3(this.mover.goal, p) > 0.8 || (this.mover.failed && this.stateT > 0.5)) { this.mover.goTo(p, o); this.stateT = 0; } };
     if (runGadgetAI(this, dt, 'task')) return;
@@ -351,6 +353,8 @@ export class Brain {
         this.dir.taskDone(a, r.ok ? 'placed' : r.msg);
         break;
       }
+      case 'roam': this.roamStep(dt); break;
+      case 'closedoor': this.closeDoorStep(dt); break;
       case 'plant': {
         const spot = this.sim.round.bombSpots[t.spot ?? 0];
         if (dist2(a.pos, spot) > 0.9) { want(spot, { speed: this.pickSpeed(t), tol: 0.5 }); this.applyWish(this.mover.wish, this.pickSpeed(t)); this.faceMove(dt); if (this.mover.failed) this.dir.taskFailed(a, 'nopath'); this.tacticalPause(dt); break; }
@@ -440,3 +444,4 @@ export class Brain {
   setTask(t) { this.task = t; this.stateT = 0; this.mover.stop(); if (t) t.reported = false; }
 }
 void STOREY; void CAST; void GADGETS; void facingOf; void findPeek;
+installBehaviors(Brain);

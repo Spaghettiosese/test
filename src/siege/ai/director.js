@@ -31,6 +31,22 @@ export class Director {
     void actor; void pos; void n;
   }
   knownTraps() { return this.trapSeen; }
+  // Something happened at `pos` (a shot, a breach, a bot hit by an unseen enemy): send the bots that
+  // are free, willing and close enough to have a look, the curious and aggressive ones first.
+  alert(pos, kind, from, count = 1) {
+    const now = this.sim.time; this.alertAt = this.alertAt || {};
+    if (now - (this.alertAt[kind] ?? -9) < 2.2) return; this.alertAt[kind] = now;
+    const cands = [];
+    for (const b of this.live()) {
+      if (b === from || b.inCombat || b.a.busy || b.rvTarget || (b.hunt && now < b.hunt.until)) continue;
+      const d = dist3(b.a.pos, pos); if (d > 36 || !b.persona) continue;
+      if (!b.huntWilling(kind === 'hurt' ? 'assist' : 'sound', pos)) continue;
+      const p = b.persona, bonus = { roamer: 0.4, rotator: 0.4, aggressor: 0.5, fragger: 0.3, lurker: 0.2, anchor: -0.3, trapper: -0.2, medic: -0.1 }[p.id] || 0;
+      cands.push({ b, s: p.p.curious * 0.4 + p.p.team * 0.3 + p.push * 0.3 + bonus - d / 40 });
+    }
+    cands.sort((q, r) => r.s - q.s);
+    for (let i = 0; i < Math.min(count, cands.length); i++) cands[i].b.startHunt(pos, kind === 'hurt' ? 'assist' : 'sound', 12);
+  }
   flushQueue() {
     const now = this.sim.time;
     while (this.queue.length && this.queue[0].t <= now) {
@@ -295,9 +311,11 @@ export class DefendDirector extends Director {
     this.an = analyseSite(sim, site); this.state = 'prep'; this.posts = []; this.retake = false; this.retakeT = 0; this.reinforceQueue = [];
     const live = this.live();
     // roles: the first two to get near the site anchor, the rest roam
-    const dist = (b) => dist3(b.a.pos, site.center);
-    live.sort((a, b) => dist(a) - dist(b));
-    this.anchors = live.slice(0, Math.ceil(live.length * 0.6)); this.roamers = live.slice(this.anchors.length);
+    // the squad splits by temperament: roamers and aggressors patrol, anchors and trappers hold the site
+    const roamPref = (b) => ({ roamer: 3, aggressor: 3, rotator: 2, watcher: 1, medic: 0, trapper: -1, anchor: -2 }[b.persona.id] ?? 0) + b.persona.p.flank + this.rand() * 0.3;
+    live.sort((a, b) => roamPref(b) - roamPref(a));
+    const nRoam = live.length >= 5 ? 2 : live.length >= 3 ? 1 : 0;
+    this.roamers = live.slice(0, nRoam); this.anchors = live.slice(nRoam);
     // reinforcement plan
     const units = this.an.units.filter((u) => !u.nr).slice(0, this.round.o.reinforce);
     const hatches = this.an.hatches.filter((h) => h.panel.dest).slice(0, 2);
@@ -322,9 +340,56 @@ export class DefendDirector extends Director {
     });
     // gadgets
     for (const b of live) { const g = this.gadgetJobs(b); b.jobs = [...g, ...(b.jobs || [])]; }
+    // every standing point must be somewhere a body fits and, for wall work, within reach of the wall
+    for (const b of live) b.jobs = (b.jobs || []).map((j) => this.fixStand(j));
     // final posts
     this.assignPosts();
     for (const b of live) { const fin = b.postTask; this.give(b, b.jobs || [], fin); }
+  }
+  // a standing point for a job: close to `hint`, a body fits, and `face` is in reach and in view
+  standFor(hint, face, maxD = 2.2, nearDoorOK = false) {
+    const nav = this.sim.nav, w = this.sim.world, def = this.sim.map.def, f = nav.floorOf(hint[1]), base = f * STOREY, cx = Math.floor(hint[0]), cz = Math.floor(hint[2]);
+    let best = null, bd = 1e9;
+    for (let dz = -3; dz <= 3; dz++) for (let dx = -3; dx <= 3; dx++) {
+      const x = cx + dx, z = cz + dz; if (!nav.walkable(x, z, f) || nav.isHole(x, z, f)) continue;
+      const n = nav.node(x, z, f); if (!nav.fits(n)) continue;
+      const [sx, sz] = nav.standXZ(n), dFace = Math.hypot(sx - face[0], sz - face[2]); if (dFace > maxD) continue;
+      if (sx < def.bx + 0.6 || sx > def.bx + def.bw - 0.6 || sz < def.bz + 0.6 || sz > def.bz + def.bd - 0.6) continue; // defenders work from inside the walls
+      const eye = [sx, base + 1.5, sz], v = [face[0] - sx, (face[1] ?? base + 1) - eye[1], face[2] - sz], L = Math.hypot(v[0], v[1], v[2]) || 1;
+      const h = w.cast(eye[0], eye[1], eye[2], v[0] / L, v[1] / L, v[2] / L, L + 0.05, 0);
+      if (h && L - h.t > 0.5) continue; // something other than the target is in the way
+      let sc = Math.hypot(sx - hint[0], sz - hint[2]);
+      if (!nearDoorOK && nav.doorDist(sx, sz, f).d < 1.15) sc += 3; // do not park in a doorway others have to use
+      if (sc < bd) { bd = sc; best = [sx, base, sz]; }
+    }
+    return best || nav.clearPos(hint);
+  }
+  fixStand(j) {
+    if (!j || !j.stand) return j;
+    const face = j.type === 'place' && !j.panel ? j.at : (j.face || j.at || j.stand);
+    j.stand = this.standFor(j.stand, face, j.type === 'place' && !j.panel ? 1.2 : 2.3, j.type === 'barricade' || j.type === 'closedoor' || j.type === 'breach');
+    return j;
+  }
+  // a loop of rooms for a roamer: the cells outside the site's openings, in the order that makes a walk
+  roamRoute(b) {
+    const nav = this.sim.nav, an = this.an, w = this.sim.world, pts = [], seen = new Set(), def = this.sim.map.def;
+    for (const o of an.openings) {
+      if (o.kind === 'wall' || o.kind === 'solid') continue;
+      let out = nav.centre(nav.snap(o.outside[0] + (o.outside[0] - o.inside[0]) * 1.5, o.outside[1], o.outside[2] + (o.outside[2] - o.inside[2]) * 1.5));
+      // a roamer stays under the roof: the cell outside an outer wall is watched from inside it instead
+      if (out[0] < def.bx + 0.8 || out[0] > def.bx + def.bw - 0.8 || out[2] < def.bz + 0.8 || out[2] > def.bz + def.bd - 0.8) out = nav.centre(nav.snap(o.inside[0], o.inside[1], o.inside[2]));
+      const key = `${Math.floor(out[0] / 3)},${Math.floor(out[2] / 3)},${Math.round(out[1])}`; if (seen.has(key)) continue; seen.add(key);
+      // watch the doorway from here
+      pts.push({ pos: out, facing: yawOf(o.centre[0] - out[0], o.centre[2] - out[2]) + (this.rand() - 0.5) * 0.5, crouch: this.rand() < 0.35 * b.persona.p.caution });
+    }
+    // plus a spot or two inside the site, so the loop always passes the objective
+    const inner = nav.centre(nav.snap(this.round.site.center[0], this.round.site.center[1], this.round.site.center[2]));
+    pts.push({ pos: inner, facing: yawOf(this.round.site.center[0] - inner[0], this.round.site.center[2] - inner[2]) + this.rand() * 2, crouch: false });
+    // order by angle round the site so the walk is a loop, start somewhere different for each roamer
+    const c = this.round.site.center; pts.sort((p, q) => Math.atan2(p.pos[2] - c[2], p.pos[0] - c[0]) - Math.atan2(q.pos[2] - c[2], q.pos[0] - c[0]));
+    const k = Math.floor(this.rand() * pts.length), ordered = pts.slice(k).concat(pts.slice(0, k));
+    if (b.persona.habit.side < 0) ordered.reverse();
+    return ordered;
   }
   // ---- gadget placement plans
   gadgetJobs(b) {
@@ -370,8 +435,8 @@ export class DefendDirector extends Director {
     const approach = an.openings.filter((o) => o.kind !== 'wall').map((o) => o.centre);
     const cands = [];
     for (const [x, z] of an.cells) {
-      if (!nav.walkable(x, z, an.f) || nav.partial[nav.node(x, z, an.f)]) continue;
-      const p = [x + 0.5, an.base, z + 0.5];
+      if (!nav.walkable(x, z, an.f) || nav.partial[nav.node(x, z, an.f)] || !nav.fits(nav.node(x, z, an.f))) continue;
+      const p = nav.centre(nav.node(x, z, an.f));
       // not directly in a doorway line, but with a view of at least one opening
       let seen = 0; for (const c of approach) if (w.visible([p[0], p[1] + 1.5, p[2]], [c[0], c[1], c[2]], CAST.GLASS)) seen++;
       if (!seen) continue;
@@ -386,7 +451,8 @@ export class DefendDirector extends Director {
         const ring = [];
         for (const o of an.openings) if (o.kind !== 'wall') ring.push(o.outside);
         const r = ring[this.rand.int(Math.max(1, ring.length))] || site.center;
-        pool = null; const rp = this.roamPost(r); b.postTask = { type: 'hold', pos: rp.pos, facing: rp.facing, sweep: 0.6, crouch: this.rand() < 0.4, peek: true, roam: true }; b.roamHome = rp.pos; continue;
+        pool = null; const rp = this.roamPost(r), route = this.roamRoute(b);
+        b.postTask = route.length >= 2 ? { type: 'roam', points: route, roam: true, pos: rp.pos } : { type: 'hold', pos: rp.pos, facing: rp.facing, sweep: 0.6, crouch: this.rand() < 0.4, peek: true, roam: true }; b.roamHome = rp.pos; continue;
       }
       let best = null, bs = -1e9;
       for (const c of pool) { let s = c.seen * 2 + this.rand() * 1.5; for (const t of taken) s -= Math.max(0, 3 - dist3(c.p, t)) * 2; s -= dist3(c.p, b.a.pos) * 0.05; if (s > bs) { bs = s; best = c; } }

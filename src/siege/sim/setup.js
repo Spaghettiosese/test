@@ -5,13 +5,15 @@ import { Brain } from '../ai/brain.js';
 import { AttackDirector, DefendDirector } from '../ai/director.js';
 import { STOREY } from '../world/grid.js';
 import { yawOf } from './util.js';
+import { makePersona, drawCallsigns } from '../ai/persona.js';
 
 export function randomLoadout(sim, opId) {
   const op = OPS_BY_ID[opId], r = sim.rand;
   return { primary: r.pick(op.primary), secondary: r.pick(op.secondary), gadget2: r.pick(op.gadgets) };
 }
 
-// cfg: { site, spawn, level, atk: [opIds], def: [opIds], player: { team, op, primary, secondary, gadget2 } | null }
+// cfg: { site, spawn, level, atk: [opIds], def: [opIds], player: { team, op, primary, secondary, gadget2 } | null,
+//        names: { atk: [5 callsigns], def: [5] } (kept for a whole match), memory: what the bots learned in earlier rounds }
 export function setupRound(sim, cfg) {
   const r = sim.rand, map = sim.map, round = sim.round;
   round.setSite(cfg.site ?? r.int(map.sites.length));
@@ -30,12 +32,18 @@ export function setupRound(sim, cfg) {
   };
   const P = cfg.player;
   const atkOps = pick('atk', 5, P && P.team === 'atk' ? P.op : null), defOps = pick('def', 5, P && P.team === 'def' ? P.op : null);
+  sim.memory = cfg.memory || null;
+  const atkNames = (cfg.names && cfg.names.atk) || drawCallsigns(r, 5);
+  const names = { atk: atkNames, def: (cfg.names && cfg.names.def) || drawCallsigns(r, 5, atkNames) };
+  const persona = (side, id, i) => makePersona(r, OPS_BY_ID[id], side, names[side][i]);
   const atkPos = round.spawnPositions('atk', spawn, 5);
   const face = yawOf(map.def.bx + map.def.bw / 2 - spawn.cx, map.def.bz + map.def.bd / 2 - spawn.cz);
   const actors = { atk: [], def: [] };
   atkOps.forEach((id, i) => {
     const isP = P && P.team === 'atk' && P.op === id, lo = isP ? P : randomLoadout(sim, id);
-    actors.atk.push(sim.addActor({ team: 'atk', op: id, isPlayer: !!isP, ...lo, pos: atkPos[i], yaw: face }));
+    const a = sim.addActor({ team: 'atk', op: id, isPlayer: !!isP, ...lo, pos: atkPos[i], yaw: face, name: isP ? undefined : names.atk[i] });
+    if (!isP) a.persona = persona('atk', id, i);
+    actors.atk.push(a);
   });
   // defenders start in or near the site rooms
   const an = round.siteCells || (round.siteCells = siteSpawnCells(sim, round.site));
@@ -45,7 +53,9 @@ export function setupRound(sim, cfg) {
     let c = an[(i * 7 + r.int(an.length)) % an.length];
     for (let k = 0; k < 12 && used.has(c.join()); k++) c = an[r.int(an.length)];
     used.add(c.join());
-    actors.def.push(sim.addActor({ team: 'def', op: id, isPlayer: !!isP, ...lo, pos: [c[0], c[1], c[2]], yaw: r() * 6.28 }));
+    const a = sim.addActor({ team: 'def', op: id, isPlayer: !!isP, ...lo, pos: [c[0], c[1], c[2]], yaw: r() * 6.28, name: isP ? undefined : names.def[i] });
+    if (!isP) a.persona = persona('def', id, i);
+    actors.def.push(a);
   });
   // brains and directors
   const dirs = { atk: new AttackDirector(sim, 'atk', level), def: new DefendDirector(sim, 'def', level) };

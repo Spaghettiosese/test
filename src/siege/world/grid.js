@@ -71,7 +71,7 @@ export class World {
     this.fy = new Array(W * D * (H + 1)).fill(null);
     this.props = []; this.propCols = Array.from({ length: W * D }, () => []);
     this.doors = []; this.units = new Map(); this.unitSeq = 1;
-    this.listeners = { break: [], damage: [], door: [] };
+    this.listeners = { break: [], damage: [], door: [], prop: [] };
     this.stamp = 0;
     this.rooms = []; // per floor: Uint8Array of room indices
     this.roomNames = [];
@@ -126,11 +126,13 @@ export class World {
     const x0 = Math.max(0, Math.floor(pr.min[0])), x1 = Math.min(this.W - 1, Math.floor(pr.max[0] - 1e-6));
     const z0 = Math.max(0, Math.floor(pr.min[2])), z1 = Math.min(this.D - 1, Math.floor(pr.max[2] - 1e-6));
     for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) this.propCols[z * this.W + x].push(pr);
+    this.emit('prop', { prop: pr, added: true });
     return pr;
   }
   removeProp(pr) {
     const i = this.props.indexOf(pr); if (i >= 0) this.props.splice(i, 1);
     for (const col of this.propCols) { const j = col.indexOf(pr); if (j >= 0) col.splice(j, 1); }
+    this.emit('prop', { prop: pr, added: false });
   }
 
   // ---------------------------------------------------------------- rooms

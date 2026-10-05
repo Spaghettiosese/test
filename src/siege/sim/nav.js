@@ -7,6 +7,8 @@ import { Heap } from './util.js';
 
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const DIAG = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+const NONE = [];
+const OFFS = [0, -0.1, 0.1, -0.2, 0.2, -0.3, 0.3];
 
 export class Nav {
   constructor(world) {
@@ -16,12 +18,16 @@ export class Nav {
     this.partial = new Uint8Array(this.N); // 1 = a prop takes part of the cell
     this.g = new Float32Array(this.N); this.from = new Int32Array(this.N); this.stamp = new Int32Array(this.N); this.closed = new Int32Array(this.N);
     this.gen = 0; this.heap = new Heap();
+    this.sx = new Float32Array(this.N); this.sz = new Float32Array(this.N); this.clr = new Float32Array(this.N); this.sst = new Uint8Array(this.N); // standing points (see computeStand)
+    this.travel = new Map(); // cached prop slides between neighbouring nodes
     this.links = new Map(); // node -> [{ to, cost, kind, pts }]
     this.holes = new Set(); // node keys of hatch cells (walkable while the hatch is gone)
     for (const [fl, x, z] of def.hatches) this.holes.add(this.node(def.bx + x, def.bz + z, fl - 1));
     for (const [x, z] of def.skylights) this.holes.add(this.node(def.bx + x, def.bz + z, w.floors));
     this.buildBlocked();
     this.buildStairs(def);
+    // props that appear or vanish during a round (deployable shields, wire) change where bodies fit
+    w.on('prop', (e) => { if (e.prop.solid && !e.prop.walk) this.invalidate(); });
   }
   node(x, z, f) { return (f * this.D + z) * this.W + x; }
   parts(n) { const x = n % this.W, r = (n - x) / this.W, z = r % this.D, f = (r - z) / this.D; return [x, z, f]; }
@@ -46,14 +52,76 @@ export class Nav {
       }
     }
   }
+  invalidate() { this.cellProps = null; this.sst.fill(0); this.travel.clear(); }
+  // ---------------------------------------------------------------- body clearance
+  // Solid props that can touch a body standing in a cell (indexed per storey and cell, built on first use).
+  propsNear(x, z, f) {
+    if (!this.cellProps) {
+      this.cellProps = new Map();
+      for (const pr of this.w.props) {
+        if (!pr.solid || pr.walk || pr.kind === 'rail' || pr.stair) continue;
+        for (let fl = 0; fl < this.F; fl++) {
+          const base = fl * STOREY; if (pr.max[1] <= base + 0.35 || pr.min[1] >= base + 1.7) continue;
+          for (let zz = Math.floor(pr.min[2] - 0.6); zz <= Math.floor(pr.max[2] + 0.6); zz++) for (let xx = Math.floor(pr.min[0] - 0.6); xx <= Math.floor(pr.max[0] + 0.6); xx++) {
+            const k = this.node(xx, zz, fl); let l = this.cellProps.get(k); if (!l) this.cellProps.set(k, l = []); l.push(pr);
+          }
+        }
+      }
+    }
+    return this.cellProps.get(this.node(x, z, f)) || NONE;
+  }
+  // Where in a cell a body of radius ~0.3 can best stand: the spot with the most room round it, which
+  // may be off-centre when a prop sits in the cell. Cells with no such spot are dead pockets.
+  computeStand(n) {
+    const [x, z, f] = this.parts(n), props = this.propsNear(x, z, f), w = this.w;
+    const open = (dx, dz) => w.edge(x, z, x + dx, z + dz, f) === 1;
+    const lim = [open(-1, 0) ? 0.35 : 0.2, open(1, 0) ? 0.35 : 0.2, open(0, -1) ? 0.35 : 0.2, open(0, 1) ? 0.35 : 0.2]; // -x +x -z +z
+    let best = null, bs = -1e9, bc = 0;
+    for (const ox of OFFS) for (const oz of OFFS) {
+      if (ox < -lim[0] || ox > lim[1] || oz < -lim[2] || oz > lim[3]) continue;
+      const px = x + 0.5 + ox, pz = z + 0.5 + oz; let pc = 1;
+      for (const p of props) { const dx = Math.max(p.min[0] - px, 0, px - p.max[0]), dz = Math.max(p.min[2] - pz, 0, pz - p.max[2]), d = Math.hypot(dx, dz); if (d < pc) pc = d; }
+      if (pc < 0.3) continue;
+      const sc = Math.min(pc, 0.7) - 0.3 * Math.hypot(ox, oz);
+      if (sc > bs) { bs = sc; best = [px, pz]; bc = pc; }
+    }
+    if (best) { this.sx[n] = best[0]; this.sz[n] = best[1]; this.clr[n] = bc; this.sst[n] = 1; } else { this.sx[n] = x + 0.5; this.sz[n] = z + 0.5; this.clr[n] = 0; this.sst[n] = 2; }
+  }
+  // can a body stand in this node at all?
+  fits(n) { if (this.sst[n] === 0) this.computeStand(n); return this.sst[n] === 1; }
+  standXZ(n) { if (this.sst[n] === 0) this.computeStand(n); return [this.sx[n], this.sz[n]]; }
+  isClear(x, z, f) { return this.fits(this.node(x, z, f)); }
+  // is the slide between the standing points of two neighbouring nodes free of props?
+  travelOK(n1, n2, r = 0.27) {
+    const key = n1 * this.N + n2, c = this.travel.get(key); if (c !== undefined) return c;
+    if (this.sst[n1] === 0) this.computeStand(n1); if (this.sst[n2] === 0) this.computeStand(n2);
+    const [x1, z1, f] = this.parts(n1), [x2, z2] = this.parts(n2);
+    const ax = this.sx[n1], az = this.sz[n1], bx = this.sx[n2], bz = this.sz[n2], dist = Math.hypot(bx - ax, bz - az), steps = Math.max(1, Math.ceil(dist / 0.15));
+    const l1 = this.propsNear(x1, z1, f), l2 = this.propsNear(x2, z2, f); let ok = true;
+    if (l1.length || l2.length) {
+      outer: for (let i = 0; i <= steps; i++) {
+        const t = i / steps, px = ax + (bx - ax) * t, pz = az + (bz - az) * t;
+        for (const list of [l1, l2]) for (const p of list) { const dx = Math.max(p.min[0] - px, 0, px - p.max[0]), dz = Math.max(p.min[2] - pz, 0, pz - p.max[2]); if (dx * dx + dz * dz < r * r) { ok = false; break outer; } }
+      }
+    }
+    this.travel.set(key, ok); return ok;
+  }
+  // nearest walkable cell where a body fits, as a node id (falls back to snap)
+  snapClear(x, y, z, maxR = 5) { return this.snap(x, y, z, maxR); }
+  // a world position a body can stand on, as near as possible to (x, y, z)
+  clearPos(p) { return this.centre(this.snap(p[0], p[1], p[2])); }
   buildStairs(def) {
     const w = this.w, bx = def.bx, bz = def.bz;
     const add = (a, b, cost, kind, pts) => { if (!this.links.has(a)) this.links.set(a, []); this.links.get(a).push({ to: b, cost, kind, pts }); };
+    this.stairZones = [];
     for (const st of def.stairs) {
       const rise = st.rise ?? STOREY, y0 = st.f * STOREY, top = st.ext ? w.floors : st.f + 1;
+      const zone = { x0: bx + st.x, x1: bx + st.x + st.w, z0: bz + st.z, z1: bz + st.z + st.run + (st.ext ? 2 : 0), y0, y1: y0 + rise, run: st.run, cols: [] };
+      this.stairZones.push(zone);
       for (let a = 0; a < st.w; a++) {
         const x = bx + st.x + a, z0 = bz + st.z;
         const lo = this.node(x, z0 - 1, st.f), hi = this.node(x, z0 + st.run + (st.ext ? 2 : 0), top);
+        zone.cols.push({ x, lo, hi });
         const up = [], down = [];
         for (let i = 0; i < st.run * 2; i++) up.push([x + 0.5, y0 + (rise * (i + 1)) / (st.run * 2), z0 + (i + 1) * 0.5]);
         for (let i = st.run * 2 - 1; i >= 0; i--) down.push([x + 0.5, y0 + (rise * i) / (st.run * 2), z0 + i * 0.5]);
@@ -74,6 +142,17 @@ export class Nav {
   }
   isHole(x, z, f) { return !this.w.hasFloor(x, z, f) && this.holes.has(this.node(x, z, f)); }
 
+  // the barricade (on a door or a window) between two neighbouring cells, if any
+  barrierAt(ix, iz, nx, nz, f) {
+    const w = this.w, y = f * STOREY; let lo, mid;
+    if (nx !== ix) { const face = Math.max(ix, nx); lo = w.getX(face, y, iz); mid = w.getX(face, y + 1, iz); } else { const face = Math.max(iz, nz); lo = w.getZ(ix, y, face); mid = w.getZ(ix, y + 1, face); }
+    const d = (lo && lo.door) || (mid && mid.door);
+    if (d && d.barricade > 0) return { door: d, panel: lo || mid, centre: [ix === nx ? ix + 0.5 : Math.max(ix, nx), y + 1, ix === nx ? Math.max(iz, nz) : iz + 0.5] };
+    const b = mid && mid.kind === 'barricade' ? mid : lo && lo.kind === 'barricade' ? lo : null;
+    if (b) return { panel: b, centre: [ix === nx ? ix + 0.5 : Math.max(ix, nx), y + 1, ix === nx ? Math.max(iz, nz) : iz + 0.5] };
+    return null;
+  }
+
   // neighbours of a node: callback(neighbour, cost, kind, extra)
   each(n, cb, avoidDoors = false) {
     const [x, z, f] = this.parts(n), w = this.w;
@@ -81,16 +160,26 @@ export class Nav {
     for (const [dx, dz] of DIRS) {
       const nx = x + dx, nz = z + dz;
       if (!this.walkable(nx, nz, f)) continue;
+      const m = this.node(nx, nz, f);
+      if (!this.fits(m)) continue; // a dead pocket between props: no body fits
       const e = w.edge(x, z, nx, nz, f);
-      if (!e) continue;
+      if (!e) {
+        // a barricaded door or window: only squads that can break it plan through it, at a price
+        if (this.allowBarrier) { const bar = this.barrierAt(x, z, nx, nz, f); if (bar) cb(m, 14, 'barrier', { barrier: bar }); }
+        continue;
+      }
       if (e === 2 && avoidDoors) continue;
-      cb(this.node(nx, nz, f), e === 1 ? 1 : e === 2 ? 2.2 : 5, e === 1 ? 'walk' : e === 2 ? 'door' : 'vault');
+      if (!this.travelOK(n, m)) continue;
+      cb(m, (e === 1 ? 1 : e === 2 ? 2.2 : 5) + (this.clr[m] < 0.46 ? 0.45 : 0), e === 1 ? 'walk' : e === 2 ? 'door' : 'vault');
     }
     for (const [dx, dz] of DIAG) {
       const nx = x + dx, nz = z + dz;
       if (!this.walkable(nx, nz, f) || !this.walkable(x + dx, z, f) || !this.walkable(x, z + dz, f)) continue;
+      const m = this.node(nx, nz, f);
+      if (!this.fits(m)) continue;
       if (w.edge(x, z, x + dx, z, f) !== 1 || w.edge(x, z, x, z + dz, f) !== 1 || w.edge(x + dx, z, nx, nz, f) !== 1 || w.edge(x, z + dz, nx, nz, f) !== 1) continue;
-      cb(this.node(nx, nz, f), 1.42, 'walk');
+      if (!this.travelOK(n, m) || !this.fits(this.node(x + dx, z, f)) || !this.fits(this.node(x, z + dz, f))) continue;
+      cb(m, 1.42, 'walk');
     }
     const ls = this.links.get(n);
     if (ls) for (const l of ls) cb(l.to, l.cost, l.kind, l);
@@ -98,8 +187,9 @@ export class Nav {
 
   // A*: returns an array of steps [{ x, z, f, kind, pts? }] from `a` to `b` (node ids), or null.
   // cost(nodeId) adds danger to a cell; maxNodes bounds the search.
-  find(a, b, { cost = null, maxNodes = 9000, avoidDoors = false, goalTol = 0 } = {}) {
+  find(a, b, { cost = null, maxNodes = 9000, avoidDoors = false, goalTol = 0, breakBarriers = false } = {}) {
     if (a === b) return [];
+    this.allowBarrier = breakBarriers;
     const gen = ++this.gen, H = this.heap; H.clear();
     const [bx, bz, bf] = this.parts(b);
     const hfn = (n) => { const [x, z, f] = this.parts(n); const dx = Math.abs(x - bx), dz = Math.abs(z - bz); return (dx + dz + (1.42 - 2) * Math.min(dx, dz)) + Math.abs(f - bf) * 7; };
@@ -130,24 +220,57 @@ export class Nav {
     const out = [];
     for (let n = found; n !== a; n = this.from[n]) {
       const [x, z, f] = this.parts(n), li = linkInfo.get(n);
-      out.push({ x, z, f, node: n, kind: li && li.from === this.from[n] ? li.kind : 'walk', pts: li && li.link ? li.link.pts : null, prev: this.from[n] });
+      out.push({ x, z, f, node: n, kind: li && li.from === this.from[n] ? li.kind : 'walk', pts: li && li.link ? li.link.pts : null, barrier: li && li.link ? li.link.barrier : null, prev: this.from[n] });
     }
     out.reverse();
     return out;
   }
 
-  // nearest walkable node to a world position (spiral search)
-  snap(x, y, z) {
-    const f = this.floorOf(y), cx = Math.floor(x), cz = Math.floor(z);
-    for (let r = 0; r < 6; r++) for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
+  // nearest walkable node where a body fits, to a world position (spiral search)
+  // standing on a staircase (not at its foot or head): which one, which column, and how far up it is (0..1)
+  stairAt(x, y, z) {
+    for (const zn of this.stairZones || []) {
+      if (x < zn.x0 || x > zn.x1 || z < zn.z0 || z > zn.z1 || y < zn.y0 - 0.2 || y > zn.y1 + 0.2) continue;
+      const col = zn.cols[Math.min(zn.cols.length - 1, Math.max(0, Math.floor(x - zn.x0)))];
+      return { zone: zn, col, t: Math.max(0, Math.min(1, (z - zn.z0) / (zn.z1 - zn.z0))) };
+    }
+    return null;
+  }
+  snap(x, y, z, maxR = 6) {
+    const sa = this.stairAt(x, y, z);
+    if (sa && y > sa.zone.y0 + 0.05) return sa.t < 0.5 ? sa.col.lo : sa.col.hi;
+    const f = this.floorOf(y), cx = Math.floor(x), cz = Math.floor(z); let best = -1, bd = 1e9;
+    for (let r = 0; r < maxR; r++) {
+      for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
+        const nx = cx + dx, nz = cz + dz;
+        if (!this.walkable(nx, nz, f)) continue;
+        const n = this.node(nx, nz, f); if (!this.fits(n)) continue;
+        const d = Math.hypot(this.sx[n] - x, this.sz[n] - z); if (d < bd) { bd = d; best = n; }
+      }
+      if (best >= 0 && bd <= r + 0.4) return best;
+    }
+    if (best >= 0) return best;
+    for (let r = 0; r < maxR; r++) for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
       if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
       if (this.walkable(cx + dx, cz + dz, f)) return this.node(cx + dx, cz + dz, f);
     }
     return this.node(Math.max(0, Math.min(this.W - 1, cx)), Math.max(0, Math.min(this.D - 1, cz)), f);
   }
-  centre(n) { const [x, z, f] = this.parts(n); return [x + 0.5, f * STOREY, z + 0.5]; }
+  // the standing point of a node, as a world position
+  centre(n) { const [, , f] = this.parts(n); const [sx, sz] = this.standXZ(n); return [sx, f * STOREY, sz]; }
 
   // is the straight walk from a to b (world xz, standing at storey f) free of walls, props and closed doors?
+  // distance to the nearest door on this storey (the door's centre line), and that door
+  doorDist(x, z, f, ignoreDead = true) {
+    let best = 1e9, bd = null;
+    for (const d of this.w.doors) {
+      if ((ignoreDead && d.dead) || d.f !== f) continue;
+      const dx = (d.ax === 'x' ? d.ix : d.ix + 0.5) - x, dz = (d.ax === 'x' ? d.iz + 0.5 : d.iz) - z, h = Math.hypot(dx, dz);
+      if (h < best) { best = h; bd = d; }
+    }
+    return { d: best, door: bd };
+  }
   canWalk(ax, az, bx, bz, f, r = 0.28) {
     const w = this.w, y = f * STOREY, dx = bx - ax, dz = bz - az, d = Math.hypot(dx, dz);
     if (d < 1e-3) return true;
@@ -159,6 +282,13 @@ export class Nav {
     // the floor must continue under the whole line
     const steps = Math.ceil(d / 0.5);
     for (let i = 1; i <= steps; i++) { const t = i / steps; if (!this.walkable(Math.floor(ax + dx * t), Math.floor(az + dz * t), f) || this.isHole(Math.floor(ax + dx * t), Math.floor(az + dz * t), f)) return false; }
+    // slide the real body along the line: the rays above only sample three thin lines, which lets a
+    // diagonal slip past a doorframe that a body of that width cannot
+    const ps = Math.max(1, Math.ceil(d / 0.18)), q = [0, y, 0];
+    for (let i = 0; i <= ps; i++) {
+      const t = i / ps; q[0] = ax + dx * t; q[1] = y; q[2] = az + dz * t;
+      if (w.pushOut(q, Math.max(r, 0.29), 1.8, 0.4, { ignoreDoors: false })) return false;
+    }
     return true;
   }
   // string-pull a path: drop waypoints that can be skipped on a straight, door-free line at one storey
@@ -167,10 +297,10 @@ export class Nav {
     let i = 0, cx = startX, cz = startZ;
     while (i < steps.length) {
       const s = steps[i];
-      if (s.kind !== 'walk') { out.push(s); cx = s.x + 0.5; cz = s.z + 0.5; i++; continue; }
+      if (s.kind !== 'walk') { out.push(s); [cx, cz] = this.standXZ(s.node); i++; continue; }
       let j = i;
-      while (j + 1 < steps.length && steps[j + 1].kind === 'walk' && steps[j + 1].f === s.f && this.canWalk(cx, cz, steps[j + 1].x + 0.5, steps[j + 1].z + 0.5, s.f)) j++;
-      out.push(steps[j]); cx = steps[j].x + 0.5; cz = steps[j].z + 0.5; i = j + 1;
+      while (j + 1 < steps.length && steps[j + 1].kind === 'walk' && steps[j + 1].f === s.f && this.canWalk(cx, cz, ...this.standXZ(steps[j + 1].node), s.f)) j++;
+      out.push(steps[j]); [cx, cz] = this.standXZ(steps[j].node); i = j + 1;
     }
     return out;
   }
