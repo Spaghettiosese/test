@@ -1,0 +1,13 @@
+<!doctype html><meta charset="utf-8"><title>menu</title>
+<style>html,body{margin:0;background:#000}canvas{display:block;width:100vw;height:100vh}</style>
+<canvas id="c"></canvas>
+<script type="module">
+import * as E from '../engine/index.js';
+import { MaterialLib } from '../src/siege/world/materials.js';
+import { MenuScene } from '../src/siege/ui/menuscene.js';
+import { OPS_BY_ID } from '../src/siege/data/operators.js';
+const r = new E.Renderer(document.getElementById('c')); r.settings.ssr = false; r.settings.volumetrics = false;
+const ms = new MenuScene(r, new MaterialLib());
+window.show = (o) => { ms.setMode(o.mode); ms.setOperator(OPS_BY_ID[o.op], null, { gun: o.gun || 'deagle', twoHanded: !!o.two }); ms.targetYaw = o.yaw || 0; ms.yaw = ms.targetYaw; for (let i = 0; i < 30; i++) ms.update(1 / 30); ms.render({}); ms.render({}); return 1; };
+window.ready = true;
+</script>

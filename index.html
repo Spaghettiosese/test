@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SiegeForge</title>
+<meta name="description" content="A tactical 5v5 siege shooter with destructible walls, reinforced defences and a full menu suite, built on the ShapeForge engine.">
+<link rel="preload" href="assets/fonts/oswald.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="src/siege/ui/siege.css">
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="ui"></div>
+<div class="lockhint" id="lockhint" hidden>Click to take control</div>
+<div class="scr splash" id="splash"><div><div id="splashEmblem"></div><h1>SiegeForge</h1><p>Tactical 5v5 siege · destructible walls · AI squads</p><div class="go">Click or press any key</div></div></div>
+<div id="fade"></div>
+<script type="module" src="src/siege/main.js"></script>
+<noscript>SiegeForge needs JavaScript and WebGL2.</noscript>
+</body>
+</html>

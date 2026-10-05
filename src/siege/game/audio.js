@@ -78,8 +78,9 @@ export class GameAudio extends Sfx {
   }
   // generative ambience / menu music: a slow minor pad with a pulse
   startMusic(kind = 'menu') {
-    if (!this.ctx || this.music === kind) return; this.stopMusic(); this.music = kind;
-    const c = this.ctx, g = c.createGain(); g.gain.value = 0.0001; g.gain.exponentialRampToValueAtTime(kind === 'menu' ? 0.07 : 0.035, c.currentTime + 3); g.connect(this.master);
+    if (!this.ctx || this.music === kind) return; this.stopMusic();
+    const mv = (this.musicVol ?? 0.5) * 2; if (mv <= 0) return; this.music = kind;
+    const c = this.ctx, g = c.createGain(); g.gain.value = 0.0001; g.gain.exponentialRampToValueAtTime((kind === 'menu' ? 0.07 : 0.035) * mv, c.currentTime + 3); g.connect(this.master);
     const oscs = [];
     const chord = kind === 'menu' ? [110, 164.8, 196, 261.6] : [55, 82.4, 110];
     for (const f of chord) { for (const det of [-4, 4]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = kind === 'menu' ? 700 : 400; o.connect(lp); lp.connect(g); o.start(); oscs.push(o); } }

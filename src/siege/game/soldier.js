@@ -128,9 +128,10 @@ export function soldierDef(op, { hero = false } = {}) {
     P('Pelvis', sq(0.17, 0.1, 0.1, 0.5, 0.7, 14), 'uniDark', HP, { position: at(0, 1.0, 0) }),
     P('Abdomen', sq(0.155, 0.12, 0.095, 0.5, 0.7, 14), 'uni', { bones: ['hips', 'spine'], falloff: 7 }, { position: at(0, 1.12, 0) }),
     P('Chest', sq(0.185, 0.17, 0.105, 0.5, 0.65, 16), 'uni', { bones: ['spine', 'chest'], falloff: 7 }, { position: at(0, 1.31, 0) }),
-    P('Neck', cyl(0.045, 0.05, 0.12, 12), 'skin', { bones: ['chest', 'neck', 'head'], falloff: 6 }, { position: at(0, 1.52, 0) }),
-    P('Head', sq(0.088, 0.108, 0.098, 0.75, 0.85, 20), 'skin', { bone: 'head' }, { position: at(0, 1.675, 0.006) }),
-    P('Nose', rbox(0.02, 0.03, 0.03, 0.008), 'skin', { bone: 'head' }, { position: at(0, 1.665, 0.1) }),
+    P('Neck', cyl(0.045, 0.05, 0.1, 12), 'skin', { bones: ['chest', 'neck', 'head'], falloff: 6 }, { position: at(0, 1.53, 0) }),
+    P('Collar', cyl(0.082, 0.11, 0.06, 14), 'uni', { bones: ['chest', 'neck'], falloff: 6 }, { position: at(0, 1.49, 0) }),
+    P('Head', sq(0.088, 0.108, 0.098, 0.75, 0.85, 20), 'skin', { bone: 'head' }, { position: at(0, 1.665, 0.006), scale: [1.04, 1.04, 1.04] }),
+    P('Nose', rbox(0.02, 0.03, 0.03, 0.008), 'skin', { bone: 'head' }, { position: at(0, 1.665, 0.112) }),
     // plate carrier, mag pouches, belt
     P('Plate Carrier', rbox(0.37, 0.34, 0.235, 0.05), 'trim', { bones: ['spine', 'chest'], falloff: 8 }, { position: at(0, 1.3, 0.0) }),
     P('Plate Front', rbox(0.25, 0.26, 0.03, 0.02), 'trimLight', T, { position: at(0, 1.33, 0.125) }),
@@ -161,6 +162,10 @@ export function soldierDef(op, { hero = false } = {}) {
   );
   parts.push(...headParts(look), ...packParts(look));
   // ---- extra detail for the menu hero
+  if (hero && !['gasmask', 'balaclava'].includes(look.head)) {
+    parts.push(P('Eye', sph(0.0125, 10, 8), 'black', { bone: 'head' }, { position: at(0.034, 1.68, 0.104), mirror: true, scale: [1.2, 0.8, 0.6] }), P('Brow', rbox(0.04, 0.008, 0.01, 0.003), 'black', { bone: 'head' }, { position: at(0.036, 1.7, 0.106), rotation: [0, 0, -6], mirror: true }),
+      P('Mouth', rbox(0.045, 0.007, 0.008, 0.003), 'red', { bone: 'head' }, { position: at(0, 1.625, 0.106) }), P('Ear', rbox(0.01, 0.036, 0.024, 0.004), 'skin', { bone: 'head' }, { position: at(0.09, 1.675, 0), mirror: true }));
+  }
   if (hero) parts.push(P('Watch', rbox(0.014, 0.034, 0.034, 0.006), 'black', { bone: 'foreArm.L' }, { position: at(WR[0] + 0.04, WR[1] + 0.07, WR[2]) }), P('Radio Pouch', rbox(0.06, 0.1, 0.05, 0.012), 'black', T, { position: at(-0.19, 1.28, 0.1) }));
   return {
     name: op.name, skeleton: SKELETON, materials: lookMaterials(look), parts, clips: [],

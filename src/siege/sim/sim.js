@@ -38,8 +38,9 @@ export class Sim {
   // ------------------------------------------------------------------ frame
   update(dt) {
     dt = Math.min(dt, 0.05); this.time += dt; this.pathBudget = 4;
-    for (const d of this.directors) d.update(dt);
-    for (const a of this.actors) { if (a.ai && a.alive || a.ai && a.downed) a.ai.think(dt); }
+    const idle = this.passive;
+    for (const d of this.directors) if (!(idle && idle[d.team])) d.update(dt);
+    for (const a of this.actors) { if (a.ai && (a.alive || a.downed) && !(idle && idle[a.team])) a.ai.think(dt); }
     for (const a of this.actors) a.update(dt);
     this.updateDoors(dt);
     this.devices.update(dt);

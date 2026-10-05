@@ -9,7 +9,7 @@ import { createGadgetRig, GADGET_VM } from './gadgetvm.js';
 const META = { m4a1: 0.2, sniper: 0.07, shotgun: 0.3, revolver: 0.3, smg: 0.2, double: 0.3, garand: 0.2, mp7: 0.2, ak47: 0.2, deagle: 0.28 };
 const PM = E.physicsMath;
 const Qid = E.quat.create();
-export const VM_SCALE = 0.55;
+export const VM_SCALE = 0.46;
 
 export class ViewModel {
   constructor(game) {
@@ -126,7 +126,7 @@ export class ViewModel {
     const sw = this.pendingEntry ? this.swapT / 0.2 : this.swapT < 0 ? -this.swapT / 0.28 : 0;
     const sprintLower = actor.sprinting ? 0.5 : 0;
     this.sprintK = (this.sprintK || 0) + (sprintLower - (this.sprintK || 0)) * Math.min(1, dt * 7);
-    const off = [Math.sin(this.bob) * 0.012 * bobAmt + this.sway[0] * (1 - a * 0.9), -Math.abs(Math.cos(this.bob)) * 0.01 * bobAmt + this.sway[1] * (1 - a * 0.9) - sw * 0.35 - this.sprintK * 0.08, -this.kickZ];
+    const off = [-0.05 * (1 - a) + Math.sin(this.bob) * 0.012 * bobAmt + this.sway[0] * (1 - a * 0.9), -0.04 * (1 - a) - Math.abs(Math.cos(this.bob)) * 0.01 * bobAmt + this.sway[1] * (1 - a * 0.9) - sw * 0.35 - this.sprintK * 0.08, -this.kickZ];
     const offM = E.mat4.fromRTS(E.mat4.create(), E.quat.fromEuler(E.quat.create(), -this.kickRot * (1 - a * 0.6) + sw * 40 + this.sprintK * 35, this.sprintK * 12, 0), off);
     let ads = E.mat4.create();
     if (!e.gadget) ads = this.adsTransform(e, a);

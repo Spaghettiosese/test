@@ -35,6 +35,7 @@ const FIXED = {
   asphalt: { color: '#4a4b4d', pattern: 'dirt', patternScale: 1.2, patternColor: '#323335', roughness: 0.95 },
   perimeter: { color: '#9b978e', pattern: 'stucco', patternScale: 2, patternColor: '#6c685f', roughness: 0.95 },
   parapet: { color: '#8f8b83', pattern: 'stucco', patternScale: 2, patternColor: '#625e56', roughness: 0.95 },
+  stripe: { color: '#d6b020', roughness: 0.6 },
   skylight: { color: '#6a8aa0', roughness: 0.08, metallic: 0.2 },
 };
 
