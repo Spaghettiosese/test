@@ -2,7 +2,11 @@
 
 A tactical 5v5 siege shooter built on the [ShapeForge Engine](https://github.com/Spaghettiosese/Engine), in the browser, with no build step. Defenders turn the walls of a two-storey depot into steel and barricade the doors; attackers fly drones, open the walls with hammers, thermite and breaching rounds, and plant a defuser. Every operator on both sides is an AI squad member unless you take the slot.
 
-![menu](docs/menu.png)
+![Main menu](docs/menu.png)
+
+![Operator select](docs/operator-select.png)
+
+![In a match](docs/in-game.png)
 
 ```bash
 npm start      # serves the folder on http://localhost:8080 (any static server works)
