@@ -174,6 +174,7 @@ export class Devices {
           pn.hp -= 1000; for (const q of hole) w.damage(q, 1000, { actor: a, melee: true });
           a.stats.breached += hole.length; this.sim.emit('swing', { actor: a, hit: true, pos: wallHit.pt, soft: true });
         } else if (pn.door || pn.kind === 'glass') { w.damage(pn, pn.kind === 'glass' ? 99 : hammer ? 120 : 40, { actor: a, melee: true }); this.sim.emit('swing', { actor: a, hit: true, pos: wallHit.pt, soft: true }); }
+        else if (pn.kind === 'barricade' && !pn.armor) { w.damage(pn, hammer ? 130 : 45, { actor: a, melee: true }); this.sim.emit('swing', { actor: a, hit: true, pos: wallHit.pt, soft: true }); } // planks give way to a few kicks
         else { w.damage(pn, hammer ? 70 : 10, { actor: a, melee: true }); this.sim.emit('swing', { actor: a, hit: true, pos: wallHit.pt, soft: false }); }
         return { ok: true };
       }
@@ -421,9 +422,11 @@ export class Devices {
 
   // ------------------------------------------------------------------ drones (wheeled recon, controlled by the player or the AI)
   spawnDrone(owner, pos, yaw = 0) {
-    const dr = { id: DEV_ID++, kind: 'drone', owner, team: owner.team, pos: [...pos], yaw, pitch: 0, vel: [0, 0, 0], hp: 12, dead: false, jam: 0, ctl: { fwd: 0, strafe: 0, turn: 0, pitch: 0, jump: false }, seen: new Map(), age: 0, view: null, y: pos[1], cam: false };
+    const dr = { id: DEV_ID++, kind: 'drone', owner, team: owner.team, pos: [...pos], yaw, pitch: 0, vel: [0, 0, 0], vy: 0, grounded: true, hp: 12, dead: false, jam: 0, ctl: { fwd: 0, strafe: 0, turn: 0, pitch: 0, jump: false }, seen: new Map(), age: 0, view: null, y: pos[1], cam: false, stuckT: 0 };
     this.drones.push(dr); owner.drone = dr; this.sim.emit('drone', { drone: dr }); return dr;
   }
+  // Wheeled recon drones: they climb stairs and kerbs up to 30 cm by driving at them and can hop (Space)
+  // over anything up to about 60 cm, so a bench or a low ledge is no longer the end of the road.
   updateDrones(dt) {
     const w = this.world;
     for (const dr of this.drones) {
@@ -432,14 +435,25 @@ export class Devices {
       const c = dr.ctl, spd = dr.jam > 0 ? 0 : 2.6;
       dr.yaw += c.turn * dt * 2.4; dr.pitch = clamp(dr.pitch + c.pitch * dt * 1.6, -1.2, 1.2);
       const f = [Math.sin(dr.yaw), Math.cos(dr.yaw)], r = [-Math.cos(dr.yaw), Math.sin(dr.yaw)];
-      const tx = (f[0] * c.fwd + r[0] * c.strafe) * spd, tz = (f[1] * c.fwd + r[1] * c.strafe) * spd;
-      dr.vel[0] += (tx - dr.vel[0]) * Math.min(1, dt * 8); dr.vel[2] += (tz - dr.vel[2]) * Math.min(1, dt * 8);
-      const np = [dr.pos[0] + dr.vel[0] * dt, dr.pos[1], dr.pos[2] + dr.vel[2] * dt];
-      // the drone is a low box: slide along walls
-      w.pushOut(np, 0.22, 0.3, 0.12);
-      const g = w.groundY(np[0], np[2], 0.2, dr.pos[1], 0.3);
-      np[1] = g > -Infinity ? g : dr.pos[1];
+      const air = dr.grounded ? 1 : 0.75;
+      const tx = (f[0] * c.fwd + r[0] * c.strafe) * spd * air, tz = (f[1] * c.fwd + r[1] * c.strafe) * spd * air;
+      dr.vel[0] += (tx - dr.vel[0]) * Math.min(1, dt * (dr.grounded ? 8 : 2)); dr.vel[2] += (tz - dr.vel[2]) * Math.min(1, dt * (dr.grounded ? 8 : 2));
+      if (c.jump && dr.grounded && dr.jam <= 0) { dr.vy = 3.4; dr.grounded = false; this.sim.emit('dronejump', { drone: dr }); }
+      c.jump = false;
+      dr.vy -= 9.81 * dt;
+      const from = [dr.pos[0], dr.pos[1], dr.pos[2]];
+      const np = [dr.pos[0] + dr.vel[0] * dt, dr.pos[1] + dr.vy * dt, dr.pos[2] + dr.vel[2] * dt];
+      // the drone is a low box: slide along walls and props, stepping over what is lower than a kerb
+      w.pushOut(np, 0.22, 0.3, 0.3);
+      const g = w.groundY(np[0], np[2], 0.2, np[1], 0.3);
+      const floor = g > -Infinity ? g : Math.max(0, Math.floor(dr.pos[1] / STOREY) * STOREY);
+      if (np[1] <= floor + 1e-3 && dr.vy <= 0) { np[1] = floor; dr.vy = 0; dr.grounded = true; }
+      else dr.grounded = false;
+      if (dr.vy > 0) { const cl = w.ceilingY(np[0], np[2], np[1] + 0.3); if (np[1] + 0.3 > cl) { np[1] = cl - 0.3; dr.vy = 0; } }
       dr.pos = np;
+      // how much it actually moved against what it was asked to do (the pilots use this to hop or turn back)
+      const asked = Math.hypot(tx, tz) * dt, got = Math.hypot(np[0] - from[0], np[2] - from[2]);
+      dr.blocked = asked > 0.004 && got < asked * 0.35; dr.stuckT = dr.blocked ? dr.stuckT + dt : Math.max(0, dr.stuckT - dt * 2);
       // spotting: anything with a clear line to the drone's eye within 14 m is marked for the team
       const eye = [dr.pos[0], dr.pos[1] + 0.25, dr.pos[2]], fw = dirOf(dr.yaw, dr.pitch);
       for (const a of this.sim.actors) {

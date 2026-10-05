@@ -40,7 +40,7 @@ export class Actor {
     this.ctl = { fwd: 0, strafe: 0, sprint: false, aim: false, fire: false, reload: false, stance: STAND, lean: 0, jump: false, use: false };
     this.trigPrev = false; this.ads = 0; this.bloom = 0; this.kick = [0, 0]; this.lastShotT = -9; this.lastStepT = 0; this.stepDist = 0;
     this.status = { blind: 0, deaf: 0, slow: 0, shock: 0, gas: 0, tag: 0, jam: 0, burn: 0, heal: 0, bleed: 0, stun: 0 };
-    this.stats = { kills: 0, deaths: 0, assists: 0, headshots: 0, damage: 0, plants: 0, defuses: 0, score: 0, shots: 0, hits: 0, reinforced: 0, breached: 0 };
+    this.stats = { kills: 0, deaths: 0, assists: 0, downs: 0, revives: 0, headshots: 0, damage: 0, plants: 0, defuses: 0, score: 0, shots: 0, hits: 0, reinforced: 0, breached: 0 };
     this.damagers = new Map(); // actor id -> time of last damage (assists)
     this.guns = []; this.cur = 0;
     this.gadgets = []; // [{ id, count }]; index 0 = operator gadget, 1 = secondary gadget
@@ -259,7 +259,7 @@ export class Actor {
     }
     c.reload = false;
     // trigger (weapons are safed during the preparation phase)
-    if (this.sim.round && this.sim.round.inPrep()) c.fire = false;
+    if (this.sim.round && this.sim.round.inPrep() && !(this.team === 'def' && this.sim.devices.drones.some((d) => !d.dead && d.team !== this.team))) c.fire = false;
     const rising = c.fire && !this.trigPrev;
     if (c.fire && !g.reloading && g.cd <= 0 && g.draw <= 0 && !this.busy && this.mode !== 'vault' && !(this.shield && this.shield.up && this.cur === 0 && !this.gunWithShield(g))) {
       if (g.mag > 0 && (g.def.auto || rising)) {
@@ -317,17 +317,30 @@ export class Actor {
   down(o) {
     this.state = 'downed'; this.hp = 30; this.downT = 28; this.stance = PRONE; this.busy = null; this.shield && (this.shield.up = false);
     this.lastDamager = o.src || this.lastDamager;
+    // a takedown is a kill on the scoreboard (the kill feed says "downed"); finishing or reviving does not change it
+    this.downCredit = null; const k = o.src;
+    if (k && k !== this && k.stats) {
+      if (k.team !== this.team) {
+        k.stats.kills++; k.stats.downs++; k.stats.score += o.region === 'head' ? 125 : 100; if (o.region === 'head') k.stats.headshots++; this.downCredit = k;
+        for (const [id, t] of this.damagers) if (id !== k.id && this.sim.time - t < 8) { const a = this.sim.byId(id); if (a && a.team !== this.team) { a.stats.assists++; a.stats.score += 40; } }
+      } else k.stats.score -= 150;
+    }
     this.sim.emit('down', { actor: this, src: o.src, wpn: o.wpn });
   }
-  revive(by) { if (!this.downed) return; this.state = 'alive'; this.hp = Math.round(this.maxHp * 0.35); this.stance = CROUCH; this.sim.emit('revive', { actor: this, by }); }
+  revive(by) { if (!this.downed) return; this.state = 'alive'; this.hp = Math.round(this.maxHp * 0.35); this.stance = CROUCH; this.downCredit = this.downCredit; if (by && by.stats && by !== this) { by.stats.revives++; by.stats.score += 50; } this.sim.emit('revive', { actor: this, by }); }
   die(o = {}) {
     if (this.dead) return;
     const was = this.state; this.state = 'dead'; this.hp = 0; this.diedAt = this.sim.time; this.busy = null; this.stats.deaths++;
     const killer = o.src || this.lastDamager;
-    if (killer && killer !== this && killer.stats) {
-      if (killer.team !== this.team) { killer.stats.kills++; killer.stats.score += o.region === 'head' ? 125 : 100; if (o.region === 'head') killer.stats.headshots++; } else killer.stats.score -= 150;
+    if (this.downCredit) { // already counted when it went down: finishing it is worth a little, bleeding out nothing
+      if (killer && killer !== this.downCredit && killer.team !== this.team && killer.stats) killer.stats.score += 25;
+    } else {
+      if (killer && killer !== this && killer.stats) {
+        if (killer.team !== this.team) { killer.stats.kills++; killer.stats.score += o.region === 'head' ? 125 : 100; if (o.region === 'head') killer.stats.headshots++; } else killer.stats.score -= 150;
+      }
+      for (const [id, t] of this.damagers) if (killer && id !== killer.id && this.sim.time - t < 8) { const a = this.sim.byId(id); if (a && a.team !== this.team) { a.stats.assists++; a.stats.score += 40; } }
     }
-    for (const [id, t] of this.damagers) if (killer && id !== killer.id && this.sim.time - t < 8) { const a = this.sim.byId(id); if (a && a.team !== this.team) { a.stats.assists++; a.stats.score += 40; } }
+    this.downCredit = null;
     this.sim.emit('death', { actor: this, killer, region: o.region, wpn: o.wpn, headshot: o.region === 'head', bleed: !!o.bleed, from: o.from, explosion: !!o.explosion, was });
   }
   applyStatus(k, t) { this.status[k] = Math.max(this.status[k], t); }

@@ -78,12 +78,19 @@ export const HARBOR = {
     { id: 'workshop', name: 'WORKSHOP / PARTS STORE', f: 0, a: [4, 14], b: [4, 8.5], area: [4, 13], rooms: ['W', 'P'], hint: 'West wing. Hatches above the Parts Store.' },
     { id: 'lounge', name: 'GARAGE LOUNGE / ARMORY', f: 1, a: [4, 3], b: [4, 8.5], area: [4, 4], rooms: ['G', 'P'], hint: 'Upper west. Lockers, couches and a hatch above the Garage.' },
     { id: 'manager', name: 'MANAGER OFFICE / SERVER ROOM', f: 1, a: [13.5, 14], b: [17.5, 13], area: [13.5, 14.5], rooms: ['O', 'A'], hint: 'Upper north-centre. Two roof skylights.' },
+    { id: 'lobby', name: 'LOBBY / RECEPTION', f: 0, a: [15.5, 4.5], b: [15.5, 7.5], area: [15.5, 5.5], rooms: ['L', 'R'], hint: 'Ground floor centre. A big open room with the main entrance and a counter to hold behind.' },
+    { id: 'locker', name: 'LOCKER ROOM / PANTRY', f: 0, a: [26.5, 5.5], b: [26.5, 8.5], area: [25.5, 5.5], rooms: ['K', 'Y'], hint: 'East wing. Rows of lockers and a pantry on the other side of a soft wall.' },
+    { id: 'bar', name: 'STAFF BAR / VENDING HALL', f: 1, a: [24.5, 16.5], b: [24.5, 8.5], area: [24.5, 11.5], rooms: ['C', 'Y'], hint: 'Upper east. A long bar to hold from and a hallway that opens onto the stairs.' },
+    { id: 'conference', name: 'CONFERENCE / COPY ROOM', f: 1, a: [15.5, 5.5], b: [15.5, 7.5], area: [15.5, 4.5], rooms: ['L', 'R'], hint: 'Upper centre. A long table, glass walls and a copy room behind it.' },
   ],
   // where each attacking team can start (absolute world cells)
   spawns: [
     { id: 'south', name: 'SOUTH LOT', x0: 22, z0: 3, x1: 34, z1: 9, face: 0 },
     { id: 'east', name: 'EAST YARD', x0: 47, z0: 16, x1: 53, z1: 30, face: -Math.PI / 2 },
     { id: 'west', name: 'WEST YARD', x0: 3, z0: 16, x1: 9, z1: 30, face: Math.PI / 2 },
+    { id: 'north', name: 'NORTH LOT', x0: 22, z0: 38, x1: 34, z1: 43, face: Math.PI },
+    { id: 'southeast', name: 'SOUTH-EAST CORNER', x0: 40, z0: 3, x1: 52, z1: 9, face: -Math.PI / 4 },
+    { id: 'northwest', name: 'NORTH-WEST CORNER', x0: 3, z0: 38, x1: 14, z1: 43, face: Math.PI * 0.75 },
   ],
   // rappel anchors on the roof edge: [x, z, outward side]
   anchors: [[3, 0, 'S'], [7, 0, 'S'], [13, 0, 'S'], [17, 0, 'S'], [24, 0, 'S'], [0, 4, 'W'], [0, 13, 'W'], [3, 17, 'N'], [14, 17, 'N'], [23, 17, 'N'], [27, 4, 'E'], [27, 13, 'E']],
@@ -98,7 +105,7 @@ export const HARBOR = {
     ['bench', 0, 3.0, 16.4, 180, { w: 3 }], ['bench', 0, 0.8, 14, 90, { w: 2.4 }], ['crate', 0, 7.4, 16.2, 0, { stack: 2 }], ['crate', 0, 8.2, 14.2, 0], ['barrel', 0, 6.6, 10.7, 0], ['toolbox', 0, 5.2, 12.4, 0],
     ['pallet', 0, 4.6, 11.4, 0], ['shelf', 0, 7.5, 10.45, 0, { w: 2 }],
     // ---- 1F Lobby / Reception
-    ['counter', 0, 13.4, 8.1, 0, { w: 2.4 }], ['couch', 0, 12.9, 1.0, 180, {}], ['couch', 0, 17.2, 1.0, 180, {}], ['table', 0, 15.0, 2.6, 0, { w: 1.2, d: 1.2 }], ['plant', 0, 12.5, 6.3], ['plant', 0, 18.4, 6.3], ['vending', 0, 18.4, 3.4, 90],
+    ['counter', 0, 13.4, 8.1, 0, { w: 2.4 }], ['couch', 0, 12.9, 1.0, 180, {}], ['couch', 0, 17.2, 1.0, 180, {}], ['table', 0, 12.9, 4.2, 0, { w: 1.2, d: 1.0 }], ['plant', 0, 12.5, 6.3], ['plant', 0, 18.4, 6.3], ['vending', 0, 18.4, 3.4, 90],
     // ---- 1F Office / Archive
     ['desk', 0, 13.6, 15.6, 180, { w: 2 }], ['desk', 0, 13.6, 12.3, 0, { w: 2 }], ['chair', 0, 13.6, 14.6, 0], ['shelf', 0, 12.55, 16.5, 90, { w: 2.0 }], ['plant', 0, 15.5, 10.6],
     ['archive', 0, 16.7, 16.6, 90], ['archive', 0, 16.7, 13.4, 90], ['archive', 0, 18.3, 16.5, 270], ['archive', 0, 18.3, 12.4, 270], ['crate', 0, 17.6, 10.8, 0],

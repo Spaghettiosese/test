@@ -281,6 +281,7 @@ export class Player {
     if (this.pressed('drone') || this.pressed('use')) { dr.ctl.fwd = dr.ctl.strafe = 0; this.exitAux(); return; }
     dr.ctl.fwd = (this.held('forward') ? 1 : 0) - (this.held('back') ? 1 : 0); dr.ctl.strafe = (this.held('right') ? 1 : 0) - (this.held('left') ? 1 : 0);
     dr.yaw = this.camYaw; dr.pitch = this.camPitch; dr.ctl.turn = 0; dr.ctl.pitch = 0;
+    if (this.pressed('jump') || this.held('jump')) dr.ctl.jump = true; // the drone hops kerbs and benches
     if (this.pressed('ping') || this.edge.has('mouse0')) this.ping(dr);
   }
   camInput(dt) {

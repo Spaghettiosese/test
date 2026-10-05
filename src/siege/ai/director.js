@@ -6,6 +6,7 @@ import { analyseSite } from './analysis.js';
 import { findCover } from './tactics.js';
 import { STOREY, CAST } from '../world/grid.js';
 import { dist2, dist3, norm, sub, yawOf, clamp } from '../sim/util.js';
+import { DronePilot } from './dronepilot.js';
 
 export class Director {
   constructor(sim, team, level) {
@@ -66,9 +67,10 @@ export class Director {
     // devices a teammate has a clear view of are known to the whole team
     for (const d of this.sim.devices.list) {
       if (d.dead || d.team === this.team || !['mat', 'claymore', 'edd', 'mines', 'barbwire'].includes(d.kind) || d.seenBy) continue;
-      for (const b of this.live()) {
-        const e = b.a.eye();
-        if (dist3(e, d.pos) < 11 && this.sim.world.visible(e, d.pos, CAST.GLASS)) { d.seenBy = this.team; this.trapSeen.push(d.pos); break; }
+      const eyes = this.live().map((b) => [b.a.eye(), 11]);
+      for (const p of this.scouts || []) if (!p.dr.dead) eyes.push([[p.dr.pos[0], p.dr.pos[1] + 0.25, p.dr.pos[2]], 8]);
+      for (const [e, r] of eyes) {
+        if (dist3(e, d.pos) < r && this.sim.world.visible(e, d.pos, CAST.GLASS)) { d.seenBy = this.team; this.trapSeen.push(d.pos); break; }
       }
     }
     this.trapSeen = this.trapSeen.filter((p) => this.sim.devices.list.some((d) => !d.dead && d.pos === p));
@@ -96,34 +98,46 @@ export class AttackDirector extends Director {
     // everyone waits at the spawn during preparation; two bots fly drones
     const live = this.live();
     live.forEach((b, i) => b.setTask({ type: 'hold', pos: sim.nav.centre(sim.nav.snap(this.spawn.cx + (i - 2) * 1.6, 0, this.spawn.cz)), facing: yawOf(this.sitePos[0] - this.spawn.cx, this.sitePos[2] - this.spawn.cz), sweep: 0.2 }));
-    const droners = live.slice(0, 2);
-    for (const b of droners) this.launchDrone(b);
+    this.droneIntel = new Map();
+    // the careful, curious and team-minded bots fly drones, the recon operators first
+    const score = (b) => (b.persona ? b.persona.p.caution * 0.4 + b.persona.p.curious * 0.3 + b.persona.p.team * 0.2 - b.persona.p.aggr * 0.3 + (b.persona.id === 'intel' ? 1 : 0) : 0);
+    const droners = live.slice().sort((x, y) => score(y) - score(x)).slice(0, this.level >= 3 ? 3 : 2);
+    droners.forEach((b, k) => this.launchDrone(b, k));
   }
-  launchDrone(b) {
+  // where a drone should look, in order: the way in, then the site, then the openings round it
+  dronePlan(k) {
+    const nav = this.sim.nav, an = this.an, site = this.sitePos, spawn = this.spawn;
+    const at = (p) => nav.centre(nav.snap(p[0], p[1], p[2]));
+    const sitePt = at(site);
+    const route = nav.find(nav.snap(spawn.cx, 0, spawn.cz), nav.snap(site[0], site[1], site[2])) || [];
+    const mid = route[Math.floor(route.length * 0.55)], entry = route.find((st) => st.f === 0 && this.sim.world.roomAt(st.x + 0.5, 0, st.z + 0.5) >= 0);
+    const outs = an.openings.filter((o) => o.kind !== 'wall' && o.kind !== 'solid').map((o) => at(o.outside)).sort((p, q) => dist3(p, sitePt) - dist3(q, sitePt));
+    const far = (p) => entry ? dist3(p, nav.centre(entry.node)) : 0;
+    const mem = this.sim.memory && this.sim.memory.rounds ? this.sim.memory : null;
+    const before = mem ? mem.defSeen.top(3).map((e) => at([e.x, e.f * STOREY, e.z])) : [];
+    if (k === 0 && before.length) return [entry && nav.centre(entry.node), before[0], sitePt, before[1] || outs[0]];
+    if (k === 1 && before.length > 1) return [before[1], before[2] || outs[1], sitePt];
+    if (k === 0) return [entry && nav.centre(entry.node), mid && nav.centre(mid.node), sitePt, outs[0]];
+    if (k === 1) { const o = outs.slice().sort((p, q) => far(q) - far(p)); return [o[0], o[1], sitePt, o[2]]; }
+    // the third looks at the floors above and below, where the roamers wait
+    const rooms = [];
+    for (let i = 0; i < 4; i++) { const ang = this.rand() * Math.PI * 2, r = 4 + this.rand() * 6; rooms.push(at([site[0] + Math.cos(ang) * r, site[1] + (this.rand() < 0.4 ? (site[1] > 1 ? -STOREY : STOREY) : 0), site[2] + Math.sin(ang) * r])); }
+    return [...rooms, sitePt];
+  }
+  // a defender or a trap the drone has found: shared with the squad and kept for the plan
+  droneSaw(owner, enemy, dr) {
+    const pos = [enemy.pos[0], enemy.pos[1], enemy.pos[2]], room = this.sim.world.roomName(pos[0], pos[1], pos[2]);
+    this.droneIntel.set(enemy.id, { pos, t: this.sim.time, room });
+    this.callout(owner, enemy, pos);
+    this.sim.emit('dronespot', { drone: dr, enemy, room });
+  }
+  launchDrone(b, k = 0) {
     const a = b.a, sim = this.sim;
     const dr = sim.devices.spawnDrone(a, [a.pos[0] + a.fwd[0], a.pos[1], a.pos[2] + a.fwd[2]], a.yaw);
-    const target = this.sitePos, nav = sim.nav;
-    const path = nav.find(nav.snap(dr.pos[0], 0, dr.pos[2]), nav.snap(target[0], target[1], target[2]), { avoidDoors: true }) || nav.find(nav.snap(dr.pos[0], 0, dr.pos[2]), nav.snap(target[0], target[1], target[2]));
-    this.scouts.push({ dr, path: path || [], i: 0, look: 0, wait: 0 });
+    this.scouts.push(new DronePilot(this, b, dr, this.dronePlan(k)));
   }
   updateDrones(dt) {
-    const sim = this.sim, nav = sim.nav;
-    for (const s of this.scouts) {
-      const dr = s.dr; if (dr.dead) continue;
-      const step = s.path[s.i];
-      dr.ctl.fwd = 0; dr.ctl.turn = 0; dr.ctl.pitch = 0;
-      if (!step) { dr.ctl.turn = 0.6; continue; }
-      const tx = step.x + 0.5, tz = step.z + 0.5, f = step.f;
-      if (f * STOREY > dr.pos[1] + 0.5 || step.kind === 'stair') { s.i++; continue; } // a wheeled drone cannot climb: it surveys from where it is
-      // doors: nudge them open by driving into them (the drone opens a door by touch)
-      const d = nav.each ? null : null; void d;
-      const dx = tx - dr.pos[0], dz = tz - dr.pos[2], dd = Math.hypot(dx, dz), want = yawOf(dx, dz);
-      let da = want - dr.yaw; while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
-      dr.ctl.turn = clamp(da * 3, -1, 1); dr.ctl.fwd = Math.abs(da) < 0.6 ? 1 : 0.1;
-      if (step.kind === 'door') { const dd2 = sim.world.getX(Math.max(step.x, nav.parts(step.prev)[0]), step.f * STOREY, step.z); void dd2; for (const door of sim.world.doors) if (!door.dead && Math.abs((door.ax === 'x' ? door.ix : door.ix + 0.5) - dr.pos[0]) < 1.6 && Math.abs((door.ax === 'x' ? door.iz + 0.5 : door.iz) - dr.pos[2]) < 1.6 && door.barricade <= 0) door.setOpen(true); }
-      if (dd < 0.5) s.i++;
-      dr.ctl.pitch = Math.sin(sim.time * 0.7) * 0.1;
-    }
+    for (const p of this.scouts) if (!p.dr.dead) p.update(dt);
   }
   update(dt) {
     super.update(dt);
@@ -148,11 +162,22 @@ export class AttackDirector extends Director {
     const sim = this.sim, nav = sim.nav, live = this.live(), r = this.round;
     this.state = 'stage'; this.stateT = 0;
     const from = nav.snap(this.spawn.cx, 0, this.spawn.cz), to = nav.snap(this.sitePos[0], this.sitePos[1], this.sitePos[2]);
-    const route = nav.find(from, to);
+    // rooms where the drones saw defenders cost more to walk through: the squad picks another way in
+    const seenAt = [...(this.droneIntel ? this.droneIntel.values() : [])].filter((e) => sim.time - e.t < 60).map((e) => e.pos);
+    const mem = sim.memory && sim.memory.rounds ? sim.memory : null;
+    const lastEntry = mem && mem.lastEntry && mem.lastWon === false ? mem.lastEntry : null; // lost with that entry: try another
+    const heat = seenAt.length || mem ? (n) => {
+      const [x, z, f] = nav.parts(n); let h = 0;
+      for (const p of seenAt) { const d = Math.hypot(p[0] - x - 0.5, p[2] - z - 0.5); if (d < 4) h += (4 - d) * 1.1; }
+      if (mem) { h += mem.deaths.atk.at(x + 0.5, z + 0.5, f) + mem.defSeen.at(x + 0.5, z + 0.5, f) * 0.6; if (lastEntry) { const d = Math.hypot(lastEntry[0] - x - 0.5, lastEntry[2] - z - 0.5); if (d < 3.5) h += (3.5 - d) * 1.4; } }
+      return h;
+    } : null;
+    this.learnedNote = mem && (mem.deaths.atk.size || mem.defSeen.size) ? 'planned around where the defenders were found last round' : null;
+    const route = nav.find(from, to, { cost: heat });
     this.routeA = route || [];
     // a second, different way in: punish the first route's interior cells
     const used = new Set(); if (route) for (const s of route) used.add(s.node);
-    const costFn = (n) => { if (used.has(n)) return 7; const x = n % nav.W, z = Math.floor(n / nav.W) % nav.D; for (const u of used) { if (Math.abs((u % nav.W) - x) + Math.abs((Math.floor(u / nav.W) % nav.D) - z) < 2) return 3.5; } return 0; };
+    const costFn = (n) => { const hh = heat ? heat(n) : 0; if (used.has(n)) return 7 + hh; const x = n % nav.W, z = Math.floor(n / nav.W) % nav.D; for (const u of used) { if (Math.abs((u % nav.W) - x) + Math.abs((Math.floor(u / nav.W) % nav.D) - z) < 2) return 3.5; } return 0; };
     this.routeB = nav.find(from, to, { cost: this.level >= 2 ? costFn : null }) || this.routeA;
     // roles
     const roles = new Map();
@@ -317,7 +342,12 @@ export class DefendDirector extends Director {
     const nRoam = live.length >= 5 ? 2 : live.length >= 3 ? 1 : 0;
     this.roamers = live.slice(0, nRoam); this.anchors = live.slice(nRoam);
     // reinforcement plan
-    const units = this.an.units.filter((u) => !u.nr).slice(0, this.round.o.reinforce);
+    // walls the attackers opened in earlier rounds are reinforced first
+    const mem = sim.memory && sim.memory.rounds ? sim.memory : null;
+    const breachHeat = (u) => mem ? mem.breaches.at(u.mid.centre[0], u.mid.centre[2], Math.round(u.mid.centre[1] / STOREY)) : 0;
+    let candUnits = this.an.units.filter((u) => !u.nr);
+    if (mem) { candUnits = candUnits.map((u) => ({ u, h: breachHeat(u) })).sort((a, b) => b.h - a.h || 0).map((x) => x.u); this.learned = candUnits.length && breachHeat(candUnits[0]) > 0.4 ? 'reinforced the wall you opened last round' : null; }
+    const units = candUnits.slice(0, this.round.o.reinforce);
     const hatches = this.an.hatches.filter((h) => h.panel.dest).slice(0, 2);
     this.reinforcePlan = [...units.map((u) => ({ kind: 'wall', u })), ...hatches.map((h) => ({ kind: 'hatch', h }))];
     // spread jobs across the bots that carry no special building task
@@ -341,10 +371,36 @@ export class DefendDirector extends Director {
     // gadgets
     for (const b of live) { const g = this.gadgetJobs(b); b.jobs = [...g, ...(b.jobs || [])]; }
     // every standing point must be somewhere a body fits and, for wall work, within reach of the wall
-    for (const b of live) b.jobs = (b.jobs || []).map((j) => this.fixStand(j));
+    const def0 = sim.map.def, inside = (p) => p[0] > def0.bx + 0.3 && p[0] < def0.bx + def0.bw - 0.3 && p[2] > def0.bz + 0.3 && p[2] < def0.bz + def0.bd - 0.3;
+    for (const b of live) b.jobs = (b.jobs || []).map((j) => this.fixStand(j)).filter((j) => !j.stand || inside(j.stand)); // jobs that can only be done outside the walls wait for the action phase
     // final posts
     this.assignPosts();
+    this.doorJobs(live);
     for (const b of live) { const fin = b.postTask; this.give(b, b.jobs || [], fin); }
+  }
+  // Shut the doors that the attackers would otherwise walk straight through: each open door near the
+  // site goes to the defender whose post is closest, if that defender is the kind to bother.
+  doorJobs(live) {
+    const sim = this.sim, w = sim.world, nav = sim.nav, site = this.round.site, taken = new Map();
+    const cands = w.doors.filter((d) => !d.dead && !d.ext && d.target > 0.5 && d.barricade <= 0 && d.f === site.f);
+    for (const d of cands) {
+      const dc = [d.ax === 'x' ? d.ix : d.ix + 0.5, d.f * STOREY, d.ax === 'x' ? d.iz + 0.5 : d.iz];
+      if (dist2(dc, site.center) > 15) continue;
+      let best = null, bs = -1e9;
+      for (const b of live) {
+        if (!b.persona || (taken.get(b) || 0) >= 2) continue;
+        const post = b.postTask && (b.postTask.pos || b.postTask.stand); const dd = post ? dist2(post, dc) : 12;
+        const sc = b.persona.p.close * 2 + (b.persona.p.team - 0.5) - dd / 10 + (this.roamers.includes(b) ? -1 : 0);
+        if (sc > bs) { bs = sc; best = b; }
+      }
+      if (!best || this.rand() > best.persona.p.close + 0.3) continue;
+      // stand on the side nearer the site, one step back from the door
+      const n = d.ax === 'x' ? [1, 0] : [0, 1], side = Math.sign((site.center[0] - dc[0]) * n[0] + (site.center[2] - dc[2]) * n[1]) || 1;
+      const stand = nav.centre(nav.snap(dc[0] + n[0] * side * 1.1, dc[1], dc[2] + n[1] * side * 1.1));
+      best.jobs = best.jobs || [];
+      best.jobs.push(this.fixStand({ type: 'closedoor', door: d, stand, face: [dc[0], dc[1] + 1, dc[2]] }));
+      taken.set(best, (taken.get(best) || 0) + 1);
+    }
   }
   // a standing point for a job: close to `hint`, a body fits, and `face` is in reach and in view
   standFor(hint, face, maxD = 2.2, nearDoorOK = false) {
@@ -381,6 +437,12 @@ export class DefendDirector extends Director {
       const key = `${Math.floor(out[0] / 3)},${Math.floor(out[2] / 3)},${Math.round(out[1])}`; if (seen.has(key)) continue; seen.add(key);
       // watch the doorway from here
       pts.push({ pos: out, facing: yawOf(o.centre[0] - out[0], o.centre[2] - out[2]) + (this.rand() - 0.5) * 0.5, crouch: this.rand() < 0.35 * b.persona.p.caution });
+    }
+    // and the places the attackers came through before
+    const mem = this.sim.memory && this.sim.memory.rounds ? this.sim.memory : null;
+    if (mem) for (const e of [...mem.entries.top(2), ...mem.breaches.top(1)]) {
+      if (Math.abs(Math.round(e.f) - an.f) > 0) continue;
+      const p = nav.centre(nav.snap(e.x, an.base, e.z)); pts.push({ pos: p, facing: yawOf(this.round.site.center[0] - p[0], this.round.site.center[2] - p[2]) + (this.rand() - 0.5) * 0.8, crouch: this.rand() < 0.4 });
     }
     // plus a spot or two inside the site, so the loop always passes the objective
     const inner = nav.centre(nav.snap(this.round.site.center[0], this.round.site.center[1], this.round.site.center[2]));

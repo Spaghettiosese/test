@@ -109,11 +109,12 @@ export class App {
     const s = this.store.settings, custom = L.id === 'custom', follow = !(L.ranked || L.id === 'elite');
     const cfg = {
       player: { team: sel.side, op: sel.op, primary: sel.loadout.primary, secondary: sel.loadout.secondary, gadget2: sel.loadout.gadget2 },
-      site: sel.side === 'def' ? sel.site : undefined, spawn: sel.side === 'atk' ? sel.spawn : undefined,
+      site: sel.side === 'def' ? sel.site : undefined, spawn: sel.side === 'atk' ? sel.spawn : undefined, start: sel.side === 'def' ? sel.start : undefined,
       level: follow ? s.difficulty : L.level, down: custom ? s.down : (L.down ?? true), friendlyFire: custom ? s.friendlyFire : !!L.ff,
       prep: custom ? s.prep : (L.prep ?? 45), action: custom ? s.action : (L.action ?? 180), mode: L.mode, tod: this.todHours(), seed: (Math.random() * 1e9) | 0,
     };
     cfg[sel.side] = sel.mates;
+    if (this.match) Object.assign(cfg, this.match.simCfg());
     return cfg;
   }
   showLoading(title, sub) {
@@ -239,8 +240,18 @@ export class App {
       <div class="kpis">${kpi(t.kills, 'Kills')}${kpi(t.deaths, 'Deaths')}${kpi(t.assists, 'Assists')}${kpi(t.headshots, 'Headshots')}${kpi(acc + '%', 'Accuracy')}${kpi(t.score, 'Score')}</div>
       <div class="split"><div><h3 style="font:700 26px var(--display);text-transform:uppercase;margin:0 0 6px">Rounds</h3>${rounds}</div>
       <div><h3 style="font:700 26px var(--display);text-transform:uppercase;margin:0 0 6px">Rewards</h3>${parts}<div class="statrow" style="color:#fff"><span>Total</span><span>+${rw.xp} XP · +${rw.renown} renown</span></div>${mmr}${ups}${chal}</div></div>
+      ${this.boardHtml(m)}
       <div style="margin-top:18px;display:flex;gap:10px"><button class="btn red" data-r="again">Play again</button><button class="btn ghost" data-r="menu">Main menu</button></div></div></div>`;
     this.audio.ui(m.won ? 'win' : 'lose');
+  }
+  // both squads' totals over the whole match, for the results screen
+  boardHtml(m) {
+    const name = this.store.settings.playerName;
+    const sq = (key, title, cls) => {
+      const rows = [0, 1, 2, 3, 4].map((i) => ({ k: `${key}:${i}`, b: m.board.get(`${key}:${i}`) })).filter((r) => r.b).sort((a, b) => b.b.score - a.b.score);
+      return `<h3 class="${cls}" style="font:700 22px var(--display);text-transform:uppercase;margin:10px 0 2px">${title}</h3><table class="table"><tr><th>Name</th><th>Score</th><th>K</th><th>A</th><th>D</th><th>Revives</th><th>HS</th></tr>${rows.map(({ k, b }) => `<tr class="${k === 'me:0' ? 'me' : ''}"><td>${k === 'me:0' ? name : b.name}</td><td>${b.score}</td><td>${b.kills}</td><td>${b.assists}</td><td>${b.deaths}</td><td>${b.revives}</td><td>${b.headshots}</td></tr>`).join('')}</table>`;
+    };
+    return `<div style="margin-top:14px">${sq('me', 'Your squad', 'atk')}${sq('foe', 'Opposing squad', 'def')}</div>`;
   }
   finishWatch() {
     const w = this.watching, res = this.game.sim.round.result || { winner: 'def' }, winner = res.winner === 'atk' ? 0 : 1;

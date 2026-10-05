@@ -1,6 +1,8 @@
 // A match is a short series of rounds between "your side" and "their side". The sides swap
 // every round, the first to the target wins, and the totals become XP and renown.
 import { OPS_BY_ID } from '../data/operators.js';
+import { MatchMemory } from '../ai/memory.js';
+import { drawCallsigns } from '../ai/persona.js';
 
 const other = (s) => (s === 'atk' ? 'def' : 'atk');
 
@@ -10,6 +12,23 @@ export class Match {
     this.roundNo = 1; this.score = { me: 0, foe: 0 }; this.results = [];
     this.totals = { kills: 0, deaths: 0, assists: 0, headshots: 0, shots: 0, hits: 0, plants: 0, defuses: 0, reinforced: 0, breached: 0, damage: 0, score: 0 };
     this.seconds = 0; this.last = null; this.ops = {};
+    // the two squads keep their callsigns for the whole match, and the bots remember earlier rounds
+    const names = drawCallsigns(Math.random, 10);
+    this.squads = { me: names.slice(0, 5), foe: names.slice(5) };
+    this.memory = new MatchMemory();
+    this.board = new Map(); // slot -> totals over the finished rounds
+  }
+  // what the sim needs to know about this match when it builds a round
+  simCfg() {
+    const me = this.side, foe = other(me), slots = (sq) => [0, 1, 2, 3, 4].map((i) => `${sq}:${i}`);
+    return { names: { [me]: this.squads.me, [foe]: this.squads.foe }, slots: { [me]: slots('me'), [foe]: slots('foe') }, memory: this.memory };
+  }
+  // totals for a slot including the round in progress
+  slot(key, live) {
+    const b = this.board.get(key) || { score: 0, kills: 0, assists: 0, deaths: 0, downs: 0, revives: 0, headshots: 0, damage: 0, rounds: 0 };
+    if (!live) return b;
+    const o = { ...b }; for (const k of Object.keys(o)) if (k !== 'rounds' && typeof live.stats[k] === 'number') o[k] += live.stats[k];
+    return o;
   }
   get ranked() { return !!this.list.ranked; }
   mySide(n = this.roundNo) { return n % 2 === 1 ? this.startSide : other(this.startSide); }
@@ -27,6 +46,13 @@ export class Match {
   record(sim, meActor) {
     const res = sim.round.result || { winner: 'def', reason: 'time' }, mine = res.winner === this.side;
     if (mine) this.score.me++; else this.score.foe++;
+    for (const a of sim.actors) {
+      if (!a.slot) continue;
+      const b = this.board.get(a.slot) || { score: 0, kills: 0, assists: 0, deaths: 0, downs: 0, revives: 0, headshots: 0, damage: 0, rounds: 0 };
+      for (const k of Object.keys(b)) if (k !== 'rounds' && typeof a.stats[k] === 'number') b[k] += a.stats[k];
+      b.rounds++; b.name = a.isPlayer ? 'You' : a.name; this.board.set(a.slot, b);
+    }
+    this.memory.commit(sim, mine);
     if (meActor) { for (const k of Object.keys(this.totals)) this.totals[k] += meActor.stats[k] || 0; this.ops[meActor.op.id] = (this.ops[meActor.op.id] || 0) + 1; }
     this.seconds += sim.round.elapsed || 0;
     this.last = { n: this.roundNo, side: this.side, winner: res.winner, reason: res.reason, mine };

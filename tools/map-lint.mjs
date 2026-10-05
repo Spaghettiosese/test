@@ -27,3 +27,17 @@ for (const sp of sim.map.spawns) {
   const seen = seenFrom(sp.cx, sp.cz);
   for (const s of sim.map.sites) for (const [label, p] of [['A', s.a], ['B', s.b], ['centre', s.center]]) if (!seen.has(nav.snap(p[0], p[1], p[2]))) { process.exitCode = 1; console.log(`UNREACHABLE from ${sp.id}: ${s.name} ${label}`); }
 }
+
+// no route should be absurdly longer than the straight line (a doorway plugged by furniture sends bots round the block)
+{
+  const len = (path, from) => { let d = 0, px = from[0], pz = from[1]; for (const st of path) { const [x, z] = nav.standXZ(st.node); d += Math.hypot(x - px, z - pz); px = x; pz = z; } return d; };
+  let worst = 0, wname = '';
+  for (const sp of sim.map.spawns) for (const s of sim.map.sites) {
+    const from = nav.snap(sp.cx, 0, sp.cz), to = nav.snap(s.center[0], s.center[1], s.center[2]);
+    const path = nav.find(from, to); if (!path) continue;
+    const sx = nav.standXZ(from), straight = Math.hypot(s.center[0] - sx[0], s.center[2] - sx[1]) + (s.f ? 10 : 0), ratio = len(path, sx) / Math.max(10, straight);
+    if (ratio > worst) { worst = ratio; wname = `${sp.id} -> ${s.name} (${len(path, sx).toFixed(0)} m for ${straight.toFixed(0)} m)`; }
+    if (ratio > 3.6) { process.exitCode = 1; console.log(`LONG ROUTE ${sp.id} -> ${s.name}: ${len(path, sx).toFixed(0)} m for ${straight.toFixed(0)} m straight`); }
+  }
+  console.log(`worst route ratio ${worst.toFixed(2)}: ${wname}`);
+}

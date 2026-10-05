@@ -45,6 +45,7 @@ export class Sim {
     this.updateDoors(dt);
     this.devices.update(dt);
     this.round.update(dt);
+    if (this.memory && this.memory.tick) this.memory.tick(this);
     // forget old noises
     while (this.noises.length && this.time - this.noises[0].t > 3) this.noises.shift();
   }

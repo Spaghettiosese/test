@@ -165,7 +165,15 @@ export class Nav {
       const e = w.edge(x, z, nx, nz, f);
       if (!e) {
         // a barricaded door or window: only squads that can break it plan through it, at a price
-        if (this.allowBarrier) { const bar = this.barrierAt(x, z, nx, nz, f); if (bar) cb(m, 14, 'barrier', { barrier: bar }); }
+        if (this.allowBarrier) {
+          const bar = this.barrierAt(x, z, nx, nz, f);
+          if (bar) {
+            // planks are a few kicks; an armour panel is only worth the walk for a hammer
+            const armored = !!((bar.panel && bar.panel.armor) || (bar.door && bar.door.armored));
+            if (armored && this.allowBarrier < 2) continue;
+            cb(m, armored ? 26 : 12, 'barrier', { barrier: bar });
+          }
+        }
         continue;
       }
       if (e === 2 && avoidDoors) continue;

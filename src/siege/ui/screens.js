@@ -176,6 +176,17 @@ export function siteMapSvg(sim, highlight = null, sel = null) {
   const w = d.bw * cw;
   return `<svg viewBox="0 0 ${w * 2 + 30} ${d.bd * cw + pad + 4}">${floor(0, 2)}${floor(1, w + 22)}</svg>`;
 }
+// the whole yard from above: the ground-floor plan, the fence and every attacker spawn (the chosen one lit)
+export function yardMapSvg(sel) {
+  const d = HARBOR, k = 6, colors = { G: '#35506e', P: '#44505c', W: '#4e4a38', h: '#2b323a', j: '#2b323a', k: '#2b323a', L: '#3a5a78', R: '#4a4a38', O: '#3a5a3a', A: '#454a52', e: '#2b323a', f: '#2b323a', g: '#2b323a', K: '#3a5a78', Y: '#4e4a38', C: '#4e4438' };
+  let s = `<rect x="0" y="0" width="${d.W * k}" height="${d.D * k}" fill="#1b2128"/><rect x="${2 * k}" y="${2 * k}" width="${(d.W - 4) * k}" height="${(d.D - 4) * k}" fill="none" stroke="#56606c" stroke-width="1.4" stroke-dasharray="4 3"/>`;
+  for (let z = 0; z < d.bd; z++) for (let x = 0; x < d.bw; x++) s += `<rect x="${(d.bx + x) * k}" y="${(d.D - 1 - (d.bz + z)) * k}" width="${k}" height="${k}" fill="${colors[d.plan[0][d.bd - 1 - z][x]] || '#333'}" stroke="#0b0d12" stroke-width=".4"/>`;
+  d.spawns.forEach((sp, i) => {
+    const on = sp.id === sel, x = sp.x0 * k, y = (d.D - sp.z1) * k, w = (sp.x1 - sp.x0) * k, h = (sp.z1 - sp.z0) * k;
+    s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${on ? 'rgba(241,194,76,.45)' : 'rgba(80,150,230,.22)'}" stroke="${on ? '#f1c24c' : '#4d8fd6'}" stroke-width="${on ? 2 : 1}"/><text x="${x + w / 2}" y="${y + h / 2 + 5}" text-anchor="middle" fill="#fff" font-size="15" font-family="Oswald,sans-serif">${i + 1}</text>`;
+  });
+  return `<svg viewBox="0 0 ${d.W * k} ${d.D * k}">${s}</svg>`;
+}
 export const OS_TABS = [['locations', 'Locations'], ['operators', 'Operators'], ['loadout', 'Loadout'], ['ready', 'Ready']];
 export function opGridHtml(app, os) {
   const st = app.store; const row = (list) => list.map((o) => {

@@ -55,7 +55,13 @@ export class Hud {
       feed(k && k !== e.actor ? `${nm(k)} ${icon(e.headshot ? 'skull' : 'swords')} ${nm(e.actor)}` : `${nm(e.actor)} ${icon('skull')} ${how || 'died'}`, (k && k.isPlayer ? 'me ' : '') + (e.actor.team === 'atk' ? 'a' : 'd'));
       if (k && k.isPlayer && k !== e.actor && k.team !== e.actor.team) this.showKill(e);
     });
-    sim.on('down', (e) => feed(`${nm(e.actor)} ${icon('lock')} downed`, e.actor.team === 'atk' ? 'a' : 'd'));
+    sim.on('down', (e) => {
+      const k = e.src;
+      feed(k && k !== e.actor ? `${nm(k)} ${icon('swords')} ${nm(e.actor)} <i style="opacity:.7;font-style:normal">downed</i>` : `${nm(e.actor)} ${icon('lock')} downed`, (k && k.isPlayer ? 'me ' : '') + (e.actor.team === 'atk' ? 'a' : 'd'));
+      if (k && k.isPlayer && k !== e.actor && k.team !== e.actor.team) this.showKill({ headshot: e.region === 'head' });
+    });
+    sim.on('dronespot', (e) => { if (me && me.team === 'atk') feed(`${icon('camera')} Drone: ${e.enemy.name} in ${e.room || 'the building'}`, 'a'); });
+    for (const note of sim.notes || []) setTimeout(() => feed(`${icon('ping')} ${note}`, ''), 3500);
     sim.on('revive', (e) => feed(`${nm(e.by || e.actor)} revived ${nm(e.actor)}`, e.actor.team === 'atk' ? 'a' : 'd'));
     sim.on('callout', (e) => { if (e.team !== (me ? me.team : 'atk')) return; if (e.actor === me) return; const d = document.createElement('div'); d.className = e.team === 'atk' ? '' : 'd'; d.textContent = `${e.actor.name}: ${e.enemy.name} spotted — ${e.room}`; this.q('hCall').prepend(d); setTimeout(() => d.remove(), 5200); if (this.app.store.settings.voice && Math.random() < 0.5) game.audio && game.audio.say(`Contact. ${e.room.replace(/^\d F /, '')}`, 0.9 + Math.random() * 0.3); });
     sim.on('planted', (e) => this.bannerShow('DEFUSER PLANTED', `${e.actor.name} planted the defuser`, 2.6));
@@ -91,7 +97,7 @@ export class Hud {
     if (p && p.prompt && (me.alive || me.downed) && p.view === 'player') { pr.hidden = false; const q = p.prompt; pr.innerHTML = `<div class="tx">${q.key ? `<span class="btnglyph">${q.key}</span>` : ''}${q.text}</div>${q.sub ? `<div class="sub">${q.sub}</div>` : ''}${q.progress !== undefined ? `<div class="prog"><b style="width:${clamp(q.progress, 0, 1) * 100}%"></b></div>` : ''}`; } else pr.hidden = true;
     // overlays
     const scope = game.scopeOn && p && p.view === 'player'; this.q('hScope').hidden = !scope; if (scope) { const h = sim.world.cast(...me.eye(), ...me.look(), 400, 0); this.q('hRange').textContent = h ? `${h.t.toFixed(0)} m` : '– – –'; }
-    const dr = p && (p.view === 'drone' || p.view === 'cam'); this.q('hDrone').hidden = !dr; if (dr) this.q('hDroneLbl').textContent = (p.view === 'drone' ? 'DRONE FEED' : 'CAMERA FEED') + (game.droneJam ? ' — SIGNAL JAMMED' : '') + '  [F] exit';
+    const dr = p && (p.view === 'drone' || p.view === 'cam'); this.q('hDrone').hidden = !dr; if (dr) this.q('hDroneLbl').textContent = (p.view === 'drone' ? 'DRONE FEED' : 'CAMERA FEED') + (game.droneJam ? ' — SIGNAL JAMMED' : '') + '  [WASD] drive  [Space] hop  [F] exit';
     this.q('hFlash').style.opacity = me && me.alive ? clamp(me.status.blind / 1.3, 0, 0.98) : 0;
     this.q('hGas').style.opacity = me && me.status.gas > 0 ? 0.8 : 0;
     this.vig = Math.max(0, (game.hurtFlash || 0) - dt * 1.6); game.hurtFlash = this.vig;
@@ -176,9 +182,18 @@ export class Hud {
   }
   updateStatus(dt) { void dt; }
   scoreboardHtml() {
-    const sim = this.sim, me = this.me;
-    const tbl = (team) => `<h3 class="${team}">${team === 'atk' ? 'Attackers' : 'Defenders'}<span>${sim.team(team).filter((a) => a.alive).length} alive</span></h3><table class="table"><tr><th>Operator</th><th>Name</th><th>Score</th><th>K</th><th>A</th><th>D</th><th>Status</th></tr>${sim.team(team).sort((a, b) => b.stats.score - a.stats.score).map((a) => `<tr class="${a === me ? 'me' : ''}"><td>${opIcon(a.op)} ${a.op.name}</td><td>${a.isPlayer ? this.app.store.settings.playerName : a.name}</td><td>${a.stats.score}</td><td>${a.stats.kills}</td><td>${a.stats.assists}</td><td>${a.stats.deaths}</td><td>${a.dead ? 'KIA' : a.downed ? 'Down' : 'Alive'}</td></tr>`).join('')}</table>`;
-    return `<div class="box">${tbl('atk')}${tbl('def')}</div>`;
+    const sim = this.sim, me = this.me, m = this.app.match;
+    const cell = (v, d) => (m && d ? `${v}<small>${d ? ' (' + d + ')' : ''}</small>` : `${v}`);
+    const tbl = (team) => {
+      const rows = sim.team(team).map((a) => {
+        const tot = m && a.slot ? m.slot(a.slot, a) : { ...a.stats };
+        return { a, tot, live: a.stats };
+      }).sort((x, y) => y.tot.score - x.tot.score);
+      const sq = m && rows[0] && rows[0].a.slot ? (rows[0].a.slot.startsWith('me') ? 'Your squad' : 'Opposing squad') : (team === 'atk' ? 'Attackers' : 'Defenders');
+      return `<h3 class="${team}">${sq} · ${team === 'atk' ? 'Attack' : 'Defense'}<span>${sim.team(team).filter((a) => a.alive).length} alive</span></h3><table class="table"><tr><th>Operator</th><th>Name</th><th>Score</th><th>K</th><th>A</th><th>D</th><th>Revives</th><th>Status</th></tr>${rows.map(({ a, tot, live }) => `<tr class="${a === me ? 'me' : ''}"><td>${opIcon(a.op)} ${a.op.name}</td><td>${a.isPlayer ? this.app.store.settings.playerName : a.name}</td><td>${tot.score}</td><td>${cell(tot.kills, live.kills)}</td><td>${tot.assists}</td><td>${cell(tot.deaths, live.deaths)}</td><td>${tot.revives || 0}</td><td>${a.dead ? 'KIA' : a.downed ? 'Down' : 'Alive'}</td></tr>`).join('')}</table>`;
+    };
+    const head = m ? `<div class="hint" style="text-align:center;margin-bottom:4px">Round ${m.roundNo} · match score ${m.score.me} – ${m.score.foe} · totals include this round, (brackets) = this round</div>` : '';
+    return `<div class="box">${head}${tbl('atk')}${tbl('def')}</div>`;
   }
   updateMarkers(dt) {
     const g = this.game, sim = this.sim, me = this.me, cam = g.cam, host = this.q('hMarkers'); if (!me) return;

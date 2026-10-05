@@ -13,7 +13,8 @@ export function randomLoadout(sim, opId) {
 }
 
 // cfg: { site, spawn, level, atk: [opIds], def: [opIds], player: { team, op, primary, secondary, gadget2 } | null,
-//        names: { atk: [5 callsigns], def: [5] } (kept for a whole match), memory: what the bots learned in earlier rounds }
+//        names: { atk: [5 callsigns], def: [5] } (kept for a whole match), slots: { atk: [5 keys], def: [5] } for the match
+//        scoreboard, memory: a MatchMemory with what the bots learned in earlier rounds }
 export function setupRound(sim, cfg) {
   const r = sim.rand, map = sim.map, round = sim.round;
   round.setSite(cfg.site ?? r.int(map.sites.length));
@@ -32,7 +33,7 @@ export function setupRound(sim, cfg) {
   };
   const P = cfg.player;
   const atkOps = pick('atk', 5, P && P.team === 'atk' ? P.op : null), defOps = pick('def', 5, P && P.team === 'def' ? P.op : null);
-  sim.memory = cfg.memory || null;
+  sim.memory = cfg.memory || null; if (sim.memory && sim.memory.attach) sim.memory.attach(sim);
   const atkNames = (cfg.names && cfg.names.atk) || drawCallsigns(r, 5);
   const names = { atk: atkNames, def: (cfg.names && cfg.names.def) || drawCallsigns(r, 5, atkNames) };
   const persona = (side, id, i) => makePersona(r, OPS_BY_ID[id], side, names[side][i]);
@@ -43,6 +44,7 @@ export function setupRound(sim, cfg) {
     const isP = P && P.team === 'atk' && P.op === id, lo = isP ? P : randomLoadout(sim, id);
     const a = sim.addActor({ team: 'atk', op: id, isPlayer: !!isP, ...lo, pos: atkPos[i], yaw: face, name: isP ? undefined : names.atk[i] });
     if (!isP) a.persona = persona('atk', id, i);
+    a.slot = cfg.slots ? cfg.slots.atk[i] : null; if (a.persona && sim.memory) sim.memory.restoreMood(a.persona);
     actors.atk.push(a);
   });
   // defenders start in or near the site rooms
@@ -51,18 +53,34 @@ export function setupRound(sim, cfg) {
   defOps.forEach((id, i) => {
     const isP = P && P.team === 'def' && P.op === id, lo = isP ? P : randomLoadout(sim, id);
     let c = an[(i * 7 + r.int(an.length)) % an.length];
+    // the human may have chosen which room of the site to start in
+    if (isP && cfg.start !== undefined && cfg.start !== 'spread') {
+      const letter = round.site.rooms[+cfg.start], nm = letter && map.def.rooms[round.site.f][letter] && map.def.rooms[round.site.f][letter][0];
+      const mine = nm ? an.filter((q) => sim.world.roomName(q[0], q[1], q[2]) === nm) : [];
+      if (mine.length) c = mine[r.int(mine.length)];
+    }
     for (let k = 0; k < 12 && used.has(c.join()); k++) c = an[r.int(an.length)];
     used.add(c.join());
     const a = sim.addActor({ team: 'def', op: id, isPlayer: !!isP, ...lo, pos: [c[0], c[1], c[2]], yaw: r() * 6.28, name: isP ? undefined : names.def[i] });
     if (!isP) a.persona = persona('def', id, i);
+    a.slot = cfg.slots ? cfg.slots.def[i] : null; if (a.persona && sim.memory) sim.memory.restoreMood(a.persona);
     actors.def.push(a);
   });
+  // doors start the round the way they were left: most inside ones open, the outside ones shut
+  for (const d of sim.world.doors) { if (d.dead || d.barricade > 0) continue; const open = !d.ext && r() < 0.7; d.open = d.target = open ? 1 : 0; }
+  sim.worldVer++;
   // brains and directors
   const dirs = { atk: new AttackDirector(sim, 'atk', level), def: new DefendDirector(sim, 'def', level) };
   for (const team of ['atk', 'def']) for (const a of actors[team]) if (!a.isPlayer) dirs[team].add(new Brain(a, dirs[team], level));
   sim.directors = [dirs.atk, dirs.def];
   for (const d of sim.directors) d.init();
   sim.dirs = dirs; sim.teams = actors;
+  // what the bots remember from earlier rounds, shown to the human on the HUD
+  sim.notes = [];
+  if (sim.memory && sim.memory.rounds) {
+    if (dirs.def.learned) sim.notes.push(dirs.def.learned.replace(/^./, (c) => 'Defenders ' + c));
+    if (dirs.atk.learnedNote) sim.notes.push('Attackers ' + dirs.atk.learnedNote);
+  }
   return { actors, dirs, spawn };
 }
 // walkable cells in and around the site rooms for defender starts

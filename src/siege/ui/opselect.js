@@ -5,7 +5,7 @@ import { OPS_BY_ID, attackers, defenders } from '../data/operators.js';
 import { WEAPONS } from '../data/weapons.js';
 import { HARBOR } from '../data/harbor.js';
 import { icon, opIcon, weaponIcon, gadgetIcon } from './icons.js';
-import { OS_TABS, siteMapSvg, opGridHtml, loadoutHtml, opInfoHtml } from './screens.js';
+import { OS_TABS, siteMapSvg, yardMapSvg, opGridHtml, loadoutHtml, opInfoHtml } from './screens.js';
 import { GADGETS } from '../data/gadgets.js';
 
 const fmt = (s) => { s = Math.max(0, Math.ceil(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
@@ -28,7 +28,7 @@ export class OpSelect {
     const side = opts.side, pool = (side === 'atk' ? attackers : defenders);
     const fav = st.profile.fav[side], owned = pool.filter((o) => st.owns('operator', o.id));
     const first = (OPS_BY_ID[fav] && st.owns('operator', fav) && OPS_BY_ID[fav].side === side) ? fav : (owned[0] || pool[0]).id;
-    this.os = { side, tab: 'operators', chosen: first, loadout: null, taken: new Set(), mates: [], tleft: opts.seconds, site: opts.site ?? Math.floor(Math.random() * HARBOR.sites.length), spawn: opts.spawn || HARBOR.spawns[Math.floor(Math.random() * HARBOR.spawns.length)].id, ready: false, team: false, readyT: 0 };
+    this.os = { side, tab: 'operators', chosen: first, loadout: null, taken: new Set(), mates: [], tleft: opts.seconds, site: opts.site ?? Math.floor(Math.random() * HARBOR.sites.length), spawn: opts.spawn || HARBOR.spawns[Math.floor(Math.random() * HARBOR.spawns.length)].id, start: 'spread', ready: false, team: false, readyT: 0 };
     this.os.loadout = this.defaultLoadout(first);
     // the squad: four bots lock in operators over the countdown
     const total = opts.seconds, n = 4;
@@ -81,12 +81,13 @@ export class OpSelect {
   locations() {
     const os = this.os, side = os.side;
     if (side === 'def') {
-      const list = HARBOR.sites.map((s, i) => `<button class="listrow ${os.site === i ? 'sel' : ''}" data-ossite="${i}"><b style="min-width:0;font-size:24px">${s.name}</b><span>${s.f + 1}F</span></button>`).join('');
-      const s = HARBOR.sites[os.site];
-      return `<div class="sitelist"><div class="hint" style="margin-bottom:8px">Pick the objective you will defend. Attackers do not know which one it is.</div>${list}</div><div class="sitemap">${siteMapSvg(null, { f: s.f, rooms: s.rooms })}<div class="hint" style="margin-top:6px">${s.hint}</div></div>`;
+      const list = HARBOR.sites.map((s, i) => `<button class="listrow ${os.site === i ? 'sel' : ''}" data-ossite="${i}"><b style="min-width:0;font-size:22px">${s.name}</b><span>${s.f + 1}F</span></button>`).join('');
+      const s = HARBOR.sites[os.site], rooms = HARBOR.rooms[s.f];
+      const starts = [['spread', 'Spread out'], ...s.rooms.map((L, i) => [String(i), rooms[L][0]])].map(([v, label]) => `<button class="chip ${String(os.start) === v ? 'on' : ''}" data-osstart="${v}">${label}</button>`).join('');
+      return `<div class="sitelist"><div class="hint" style="margin-bottom:6px">Pick the objective you will defend (${HARBOR.sites.length} to choose from). Attackers do not know which one it is.</div><div class="sites">${list}</div></div><div class="sitemap">${siteMapSvg(null, { f: s.f, rooms: s.rooms })}<div class="hint" style="margin:6px 0 4px">${s.hint}</div><div class="hint">Start in:</div><div class="chips">${starts}</div></div>`;
     }
-    const list = HARBOR.spawns.map((s) => `<button class="listrow ${os.spawn === s.id ? 'sel' : ''}" data-osspawn="${s.id}"><b style="min-width:0;font-size:24px">${s.name}</b><span>${Math.round(s.x1 - s.x0)} × ${Math.round(s.z1 - s.z0)} m</span></button>`).join('');
-    return `<div class="sitelist"><div class="hint" style="margin-bottom:8px">Pick where your squad starts. The defenders have chosen an objective; your drone will find them.</div>${list}</div><div class="sitemap">${siteMapSvg(null, null)}<div class="hint" style="margin-top:6px">Bomb sites sit on both floors. Defenders can reinforce walls and barricade windows during preparation.</div></div>`;
+    const list = HARBOR.spawns.map((s, i) => `<button class="listrow ${os.spawn === s.id ? 'sel' : ''}" data-osspawn="${s.id}"><b style="min-width:0;font-size:22px">${i + 1} · ${s.name}</b><span>${Math.round(s.x1 - s.x0)} × ${Math.round(s.z1 - s.z0)} m</span></button>`).join('');
+    return `<div class="sitelist"><div class="hint" style="margin-bottom:6px">Pick where your squad starts (${HARBOR.spawns.length} spawns). The defenders have chosen an objective; your drone will find them.</div>${list}</div><div class="sitemap">${yardMapSvg(os.spawn)}<div class="hint" style="margin-top:6px">Bomb sites sit on both floors. Defenders can reinforce walls and barricade windows during preparation.</div></div>`;
   }
   teamRows() {
     const os = this.os, lo = os.loadout, ids = [os.chosen, ...os.mates];
@@ -102,7 +103,7 @@ export class OpSelect {
   // ---------------------------------------------------------------- input
   click(e) {
     const os = this.os; if (!os || os.ready) return;
-    const t = e.target.closest('[data-ostab],[data-os-op],[data-os-w],[data-os-g],[data-ossite],[data-osspawn],[data-act]'); if (!t) return;
+    const t = e.target.closest('[data-ostab],[data-os-op],[data-os-w],[data-os-g],[data-ossite],[data-osspawn],[data-osstart],[data-act]'); if (!t) return;
     const au = this.app.audio, st = this.app.store;
     if (t.dataset.ostab) { os.tab = t.dataset.ostab; au.ui('click'); this.draw(); }
     else if (t.dataset.osOp) {
@@ -116,6 +117,7 @@ export class OpSelect {
     } else if (t.dataset.osG) { os.loadout.gadget2 = t.dataset.osG; au.ui('click'); this.draw(); }
     else if (t.dataset.ossite !== undefined) { os.site = +t.dataset.ossite; au.ui('click'); this.draw(); }
     else if (t.dataset.osspawn) { os.spawn = t.dataset.osspawn; au.ui('click'); this.draw(); }
+    else if (t.dataset.osstart !== undefined) { os.start = t.dataset.osstart; au.ui('click'); this.draw(); }
     else if (t.dataset.act === 'ready') this.ready();
   }
   key(k) {
@@ -151,7 +153,7 @@ export class OpSelect {
   finish() {
     const os = this.os, o = this.opts; this.close();
     // any unfilled squad slots are filled by the sim
-    this.done({ side: os.side, op: os.chosen, loadout: { ...os.loadout }, site: os.site, spawn: os.spawn, mates: [...os.mates], round: o.round });
+    this.done({ side: os.side, op: os.chosen, loadout: { ...os.loadout }, site: os.site, spawn: os.spawn, start: os.start, mates: [...os.mates], round: o.round });
   }
 }
 void icon;

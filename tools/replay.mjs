@@ -3,7 +3,7 @@ import { HARBOR } from '../src/siege/data/harbor.js';
 import { Sim } from '../src/siege/sim/sim.js';
 import { setupRound } from '../src/siege/sim/setup.js';
 const [seed, name, T] = [+process.argv[2], process.argv[3], +process.argv[4]];
-const level = seed % 5, site = seed % 4, spawn = HARBOR.spawns[seed % 3].id;
+const level = seed % 5, site = seed % HARBOR.sites.length, spawn = HARBOR.spawns[seed % HARBOR.spawns.length].id;
 const sim = new Sim(HARBOR, { seed: seed * 104729, difficulty: level });
 setupRound(sim, { level, site, spawn });
 const d = sim.actors.find((a) => a.name === name);

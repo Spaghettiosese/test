@@ -319,6 +319,7 @@ svg.ic { width: 1em; height: 1em; vertical-align: -0.14em; }
 .sb { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .6); display: grid; place-items: center; pointer-events: none; }
 .sb .box { width: min(980px, 94vw); background: rgba(8, 10, 14, .92); border: 1px solid rgba(255, 255, 255, .25); padding: 14px 20px; }
 .sb h3 { margin: 6px 0; font: 700 28px var(--display); text-transform: uppercase; display: flex; justify-content: space-between; }
+.table small { opacity: .6; font-size: 14px; }
 .sb h3.atk { color: var(--blue2); } .sb h3.def { color: #ff7d70; }
 .pause { background: rgba(0, 0, 0, .66); display: grid; place-items: center; }
 .pause .box { width: 420px; background: #0c0f14; border: 1px solid rgba(255, 255, 255, .3); padding: 22px; display: grid; gap: 10px; }

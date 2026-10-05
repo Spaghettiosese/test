@@ -70,7 +70,7 @@ export class Game {
     if (this.tod > 19 || this.tod < 6) { env.ambient = 0.85; env.sunIntensity = 1.4; env.sunColor = [0.65, 0.75, 1.0]; env.sunDirection = E.vec3.normalize([0, 0, 0], [0.4, 0.75, 0.5]); } // a bright moon: no night vision in this game
     this.applySettings();
     this.phys = new E.PhysicsWorld({ iterations: 8, gravity: [0, -9.81, 0] }); this.colliders = new Colliders(this);
-    const setup = setupRound(sim, { level: cfg.level, site: cfg.site, spawn: cfg.spawn, player: cfg.player, atk: cfg.atk, def: cfg.def });
+    const setup = setupRound(sim, { level: cfg.level, site: cfg.site, spawn: cfg.spawn, player: cfg.player, atk: cfg.atk, def: cfg.def, names: cfg.names, slots: cfg.slots, memory: cfg.memory, start: cfg.start });
     this.setup = setup;
     // world
     const mesher = this.mesher = new WorldMesher(sim.world, this.lib, scene);

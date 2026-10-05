@@ -34,8 +34,14 @@ export class Mover {
   }
   cost() {
     const base = this.opts.cost || this.b.costFn();
-    if (!this.avoid.size) return base;
-    return (n) => base(n) + (this.avoid.get(n) || 0);
+    // in the preparation phase the defenders may not leave the building, so no route goes outside it
+    const prep = this.a.team === 'def' && this.sim.round && this.sim.round.inPrep && this.sim.round.inPrep();
+    if (!this.avoid.size && !prep) return base;
+    const nav = this.nav, def = this.sim.map.def;
+    return (n) => {
+      if (prep) { const [x, z] = nav.parts(n); if (x < def.bx || x >= def.bx + def.bw || z < def.bz || z >= def.bz + def.bd) return 1e6; }
+      return base(n) + (this.avoid.get(n) || 0);
+    };
   }
   plan() {
     const sim = this.sim, a = this.a;
@@ -45,7 +51,9 @@ export class Mover {
     this.lastPlan = sim.time; this.ver = sim.worldVer || 0; this.pending = false;
     // where the body will actually end up: the goal itself if a body fits there, else the nearest spot that fits
     const [sx, sz] = nav.standXZ(to); this.target = Math.hypot(sx - this.goal[0], sz - this.goal[2]) > 0.6 ? [sx, sz] : [this.goal[0], this.goal[2]];
-    const path = nav.find(from, to, { cost: this.cost(), avoidDoors: false, goalTol: this.opts.goalTol || 0, breakBarriers: this.opts.breakBarriers ?? this.b.breaksBarriers });
+    let path = nav.find(from, to, { cost: this.cost(), avoidDoors: false, goalTol: this.opts.goalTol || 0, breakBarriers: this.opts.breakBarriers ?? this.b.breaksBarriers });
+    // the goal may sit in a sealed pocket: settle for the nearest place that can be reached
+    if (!path && !this.opts.goalTol) path = nav.find(from, to, { cost: this.cost(), avoidDoors: false, goalTol: 3.5, breakBarriers: this.opts.breakBarriers ?? this.b.breaksBarriers });
     if (!path) { this.steps = []; this.failed = true; this.sim.emit('nopath', { actor: a }); return; }
     this.steps = nav.smooth(a.pos[0], a.pos[2], nav.floorOf(a.pos[1]), path); this.i = 0; this.subIdx = 0; this.failed = false; this.bar = null;
     // already part-way up a staircase: carry on from the nearest step of it, not from the foot

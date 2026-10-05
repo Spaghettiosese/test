@@ -19,6 +19,8 @@ export class Brain {
   constructor(a, director, level = 2) {
     this.a = a; a.ai = this; this.sim = a.sim; this.dir = director; this.level = level;
     this.prof = profileFor(level, a.sim.rand);
+    // defenders sit behind pre-aimed angles and know the rooms: a little quicker on the first shot
+    if (a.team === 'def') { this.prof.reaction *= 0.9; this.prof.aimNoise *= 0.94; }
     this.sense = new Sense(this); this.mover = new Mover(this);
     this.task = null; this.mode = 'idle'; this.decideT = a.sim.rand() * 0.3;
     this.tgt = null; this.reactT = 0; this.burstLeft = 0; this.pauseT = 0; this.strafeT = 0; this.strafeDir = 1; this.aimHead = false;
@@ -29,7 +31,7 @@ export class Brain {
     this.holdUntil = 0; this.stateT = 0; this.gadgetT = 0; this.say = null; this.stuckHunt = 0; this.moveMode = 'walk'; this.hurtT = -9; this.fleeing = false;
     this.talkCd = 0; this.lastTarget = null; this.dangerSpots = []; this.rvTarget = null; this.rvCd = 0;
     this.persona = a.persona || makePersona(a.sim.rand, a.op, a.team, a.name); a.persona = this.persona;
-    this.breaksBarriers = a.team === 'atk'; this.hunt = null; this.dTgt = null; this.lastTgtId = null;
+    this.breaksBarriers = a.team === 'atk' ? (a.op.ability === 'hammer' ? 2 : 1) : 0; this.hunt = null; this.dTgt = null; this.lastTgtId = null;
   }
   get a_() { return this.a; }
 
@@ -42,8 +44,16 @@ export class Brain {
     // somebody else's trouble is worth a look: go and see, and tell the squad
     if (this.mode === 'combat' || this.inCombat || conf < 0.28 || !this.persona || !this.dir) return;
     if (!['shot', 'explosion', 'melee', 'breach', 'burn', 'plant'].includes(n.kind) && !(n.kind === 'door' && this.persona.p.curious > 0.6) && !(n.kind === 'step' && this.persona.p.curious > 0.75 && conf > 0.5)) return;
+    // somebody keeps firing: stop wondering and go and get them, following the sound as it moves
+    if (n.kind === 'shot') {
+      const now = this.sim.time; this.shotLog = (this.shotLog || []).filter((q) => now - q.t < 6); this.shotLog.push({ t: now, pos });
+      const near = this.shotLog.filter((q) => dist3(q.pos, pos) < 12).length;
+      const h = this.hunt;
+      if (h && h.press && dist3(h.pos, pos) < 14) { h.pos = [pos[0], pos[1], pos[2]]; h.until = Math.max(h.until, now + 8); if (h.phase === 'look' || h.phase === 'search') { h.phase = 'go'; this.mover.stop(); } return; }
+      if (near >= 3 && this.persona.push > 0.3 && this.huntWilling('sight', pos)) { if (this.startHunt(pos, 'sight', 20) && this.hunt) this.hunt.press = true; return; }
+    }
     if (this.huntWilling('sound', pos)) this.startHunt(pos, 'sound', 12);
-    if (conf > 0.45) this.dir.alert(pos, 'sound', this, n.kind === 'shot' || n.kind === 'explosion' ? 2 : 1);
+    if (conf > 0.45) this.dir.alert(pos, 'sound', this, n.kind === 'shot' || n.kind === 'explosion' ? 3 : 1);
   }
   onFriendlyFight(n) {
     this.friendFightPos = n.pos; this.friendFightT = this.sim.time;
@@ -69,9 +79,10 @@ export class Brain {
     const known = [], now = this.sim.time;
     for (const m of this.sense.mem.values()) if (m.actor.alive && now - m.t < 8) known.push(m.pos);
     const nav = this.sim.nav, tact = this.prof.tactics, W = nav.W, D = nav.D;
-    const traps = this.dir ? this.dir.knownTraps(this.a.team) : [];
+    const traps = this.dir ? this.dir.knownTraps(this.a.team) : [], mem = this.sim.memory && this.sim.memory.rounds ? this.sim.memory : null, team = this.a.team;
     return (n) => {
       let extra = 0;
+      if (mem) { const x = n % W, z = Math.floor(n / W) % D; extra += mem.danger(team, x + 0.5, z + 0.5, Math.floor(n / (W * D))) * Math.min(1.5, tact); }
       if (tact >= 1 && known.length) { const x = n % W, z = Math.floor(n / W) % D; for (const p of known) { const d = Math.hypot(x + 0.5 - p[0], z + 0.5 - p[2]); if (d < 7) extra += (7 - d) * 0.35 * tact; } }
       if (traps.length) { const x = n % W, z = Math.floor(n / W) % D; for (const p of traps) if (Math.abs(x + 0.5 - p[0]) < 1.1 && Math.abs(z + 0.5 - p[2]) < 1.1) extra += 40; }
       return extra;
