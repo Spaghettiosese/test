@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8"><title>Siege dev</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block;width:100vw;height:100vh}</style>
+<canvas id="stage"></canvas>
+<script type="module">
+import { Game } from '../src/siege/game/game.js';
+import { GameAudio } from '../src/siege/game/audio.js';
+import { DEFAULT_KEYS } from '../src/siege/game/player.js';
+const q = new URLSearchParams(location.search);
+const settings = { sens: 1, adsSens: 1, fov: 72, keys: DEFAULT_KEYS, quality: 'high', aimToggle: false, renderScale: 1 };
+const audio = new GameAudio();
+const game = new Game(document.getElementById('stage'), { settings, audio });
+const team = q.get('team') || 'atk';
+window.__g = game;
+window.start = (o = {}) => game.startRound({ player: o.noplayer ? null : { team: o.team || team, op: o.op || (team === 'atk' ? 'hammer' : 'anvil'), primary: o.primary || 'm4a1', secondary: o.secondary || 'compact', gadget2: o.gadget2 || (team === 'atk' ? 'stun' : 'barbwire') }, site: o.site ?? 0, spawn: o.spawn || 'south', level: o.level ?? 2, prep: o.prep ?? 45, seed: o.seed ?? 7, tod: o.tod ?? 15.2 });
+window.step = (sec, fn) => { const n = Math.round(sec * 30); for (let i = 0; i < n; i++) { if (fn) fn(i); game.update(1 / 30); } game.render(1 / 30); };
+window.frame = () => { game.update(1 / 60); game.render(1 / 60); };
+let last = performance.now();
+if (q.get('live')) { window.start(); requestAnimationFrame(function f(now) { const dt = Math.min(0.05, (now - last) / 1000); last = now; game.update(dt); game.render(dt); requestAnimationFrame(f); }); }
+window.ready = true;
+</script>
