@@ -92,7 +92,7 @@ export function buildMap(def) {
         const d = new Door({ ax, ix, iz, f, kind: 'door', ext, lat: ax === 'x' ? iz : ix, line: ax === 'x' ? ix : iz });
         const mk = (r) => new Panel({ kind: 'door', mat: 'wood', hp: 70, door: d, sa: proto.sa, sb: proto.sb, pair: proto.pair, f, ext });
         const a = w.put(ax, ix, base, iz, mk(0)), b = w.put(ax, ix, base + 1, iz, mk(1));
-        d.panels = [a, b]; out.doors.push(d);
+        d.panels = [a, b]; out.doors.push(d); w.doors.push(d);
         if (ext) out.entrances.push({ type: 'door', door: d, f, x: ix, z: iz, ax });
       } else if (kind === 'open') { w.remove(ps[0]); w.remove(ps[1]); }
       else if (kind === 'arch') { for (const p of ps) w.remove(p); }

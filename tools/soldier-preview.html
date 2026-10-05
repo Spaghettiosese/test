@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8"><title>Soldier preview</title>
+<style>html,body{margin:0;background:#111}canvas{display:block;width:100vw;height:100vh}</style>
+<canvas id="c"></canvas>
+<script type="module">
+import * as E from '../engine/index.js';
+import { OPS_BY_ID, OPERATORS } from '../src/siege/data/operators.js';
+import { makeSoldier, equipWeapon, poseHold } from '../src/siege/game/soldier.js';
+import { makeWeaponProp } from '../src/weapons/index.js';
+const renderer = new E.Renderer(document.getElementById('c'));
+renderer.settings.ssr = false; renderer.settings.volumetrics = false;
+const scene = new E.Scene(), env = scene.environment;
+E.applyTimeOfDay(env, 15); env.shadowRadius = 8; env.shadowFar = 30;
+const floor = new E.Mesh(E.plane({ width: 30, depth: 30 }), new E.Material({ color: '#555a55', roughness: 0.9 }), 'floor'); scene.add(floor);
+const camera = new E.Camera(); camera.near = 0.05; camera.far = 100;
+let chars = [];
+let t0 = performance.now();
+window.setup = (ids, gun = 'm4a1') => {
+  for (const c of chars) scene.remove(c); chars = [];
+  ids.forEach((id, i) => {
+    const op = OPS_BY_ID[id];
+    const c = makeSoldier(op, { hero: ids.length < 3 });
+    const prop = makeWeaponProp(gun, { detail: 0.8 });
+    equipWeapon(c, prop, { twoHanded: gun !== 'deagle' });
+    c.position.set([(i - (ids.length - 1) / 2) * 1.1, 0, 0]);
+    scene.add(c); chars.push(c);
+  });
+  window.buildMs = performance.now() - t0;
+  return window.buildMs;
+};
+window.show = (s) => {
+  chars.forEach((c, i) => {
+    if (s.clip) c.play(s.clip, { fade: 0 });
+    c.setEuler(0, s.yaw ?? 0, 0);
+    poseHold(c, { aim: s.aim ?? 1, pitch: (s.pitch || 0) * E.DEG });
+    for (let k = 0; k < 20; k++) c.update(1 / 30);
+  });
+  camera.position.set(s.pos); camera.target.set(s.target); camera.fov = (s.fov || 40) * E.DEG;
+  env.shadowCenter = s.target;
+  for (let i = 0; i < 2; i++) renderer.render(scene, camera, { background: 'sky' });
+  return { tris: renderer.stats.triangles, draws: renderer.stats.drawCalls, build: window.buildMs };
+};
+window.ready = true;
+</script>
