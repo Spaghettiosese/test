@@ -2,6 +2,8 @@
 // rewards: XP and levels, challenge progress, purchases, battle pass claims and match results.
 import { DEFAULT_PROFILE, DEFAULT_SETTINGS, NEWCOMER, dailyList, levelFromXp, rankOf, shopItems, passRewards, PASS_XP, PASS_TIERS, UNIFORMS, HEADGEAR, WEAPON_SKINS, TITLES, BANNERS, CHARMS } from './progression.js';
 import { DEFAULT_KEYS } from '../game/player.js';
+import { OPERATORS } from './operators.js';
+import { WEAPONS } from './weapons.js';
 
 const KEY = 'siegeforge.v1';
 
@@ -9,6 +11,7 @@ export class Store {
   constructor() {
     this.profile = DEFAULT_PROFILE(); this.settings = DEFAULT_SETTINGS(); this.listeners = new Set();
     this.load();
+    this.unlockAll();
     this.settings.keys = { ...DEFAULT_KEYS, ...(this.settings.keys || {}) };
     this.refreshDaily();
   }
@@ -19,10 +22,12 @@ export class Store {
       this.profile = merge(DEFAULT_PROFILE(), o.profile || {}); this.settings = merge(DEFAULT_SETTINGS(), o.settings || {});
     } catch { /* private mode or corrupt: start fresh */ }
   }
+  // every operator and weapon is available from the start
+  unlockAll() { const p = this.profile; for (const o of OPERATORS) if (!p.unlockedOps.includes(o.id)) p.unlockedOps.push(o.id); for (const id of Object.keys(WEAPONS)) if (!p.weapons.includes(id)) p.weapons.push(id); }
   save() { try { localStorage.setItem(KEY, JSON.stringify({ profile: this.profile, settings: this.settings })); } catch { /* storage unavailable */ } this.emit(); }
   on(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
   emit() { for (const f of this.listeners) f(); }
-  reset() { this.profile = DEFAULT_PROFILE(); this.refreshDaily(); this.save(); }
+  reset() { this.profile = DEFAULT_PROFILE(); this.unlockAll(); this.refreshDaily(); this.save(); }
   refreshDaily() {
     const key = new Date().toISOString().slice(0, 10);
     if (this.profile.daily.day !== key) { this.profile.daily = { day: key, list: dailyList(Math.random, key) }; this.save(); }
