@@ -216,7 +216,7 @@ export const medalIcon = (id) => `<svg viewBox="0 0 24 24" width="30" height="30
 
 // ------------------------------------------------------------------ settings
 export const SETTINGS_SCHEMA = [
-  ['AUDIO', [['vol', 'Master volume', 'range', 0, 1, 0.05], ['voice', 'Hero voicelines', 'toggle'], ['voiceVol', 'Voice volume', 'range', 0, 1, 0.05], ['subs', 'Subtitles', 'toggle']]],
+  ['AUDIO', [['vol', 'Master volume', 'range', 0, 1, 0.05], ['music', 'Music volume', 'range', 0, 1, 0.05], ['voice', 'Hero voicelines', 'toggle'], ['voiceVol', 'Voice volume', 'range', 0, 1, 0.05], ['subs', 'Subtitles', 'toggle']]],
   ['CONTROLS', [['sens', 'Mouse sensitivity', 'range', 0.3, 2.5, 0.05], ['fov', 'Field of view', 'range', 70, 105, 1], ['invert', 'Invert vertical look', 'toggle']]],
   ['HUD', [['minimap', 'Minimap', 'toggle'], ['rotateMap', 'Rotate minimap with view', 'toggle'], ['numbers', 'Damage numbers', 'toggle'], ['xhair', 'Crosshair', 'select', ['auto', 'cross', 'circle', 'dot', 'none']], ['xcolor', 'Crosshair colour', 'select', ['#ffffff', '#6dff9c', '#ffd36b', '#5fd8ff', '#ff6ad0']], ['showFps', 'Show FPS', 'toggle']]],
 ];

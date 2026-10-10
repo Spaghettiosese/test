@@ -6,6 +6,7 @@ import { Sim } from './sim.js';
 import { Brain } from './ai.js';
 import { View } from './view.js';
 import { Sfx } from './audio.js';
+import { Music } from './music.js';
 import { Voice, LINES } from './voice.js';
 import { Portraits } from './portraits.js';
 import { Hud, CommWheel, $, el } from './ui.js';
@@ -22,9 +23,11 @@ let view;
 try { view = new View($('stage')); } catch (e) { $('fatal').hidden = false; $('fatal').textContent = 'ShapeWatch needs WebGL2. ' + e.message; throw e; }
 const sfx = new Sfx(); view.sound = sfx;
 const voice = new Voice();
+const music = new Music(sfx);
+let heat = 0; // recent combat around the player, drives the music
 
 // ------------------------------------------------------------------ settings
-const settings = { sens: 1, fov: 90, vol: 0.6, voice: true, voiceVol: 0.9, subs: true, invert: false, minimap: true, rotateMap: true, numbers: true, xhair: 'auto', xcolor: '#ffffff', showFps: false, side: 0, diff: 1, mut: 1, mode: 'escort', map: 'frostgate', hero: 'sabre', skin: 'default' };
+const settings = { sens: 1, fov: 90, vol: 0.6, music: 0.5, voice: true, voiceVol: 0.9, subs: true, invert: false, minimap: true, rotateMap: true, numbers: true, xhair: 'auto', xcolor: '#ffffff', showFps: false, side: 0, diff: 1, mut: 1, mode: 'escort', map: 'frostgate', hero: 'sabre', skin: 'default' };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('shapewatch2') || '{}')); } catch { /* storage blocked */ }
 const save = () => { try { localStorage.setItem('shapewatch2', JSON.stringify(settings)); } catch { /* ignore */ } };
 if (!HERO[settings.hero]) settings.hero = 'sabre'; if (!MODES[settings.mode]) settings.mode = 'escort'; if (!MAPS[settings.map]?.modes.includes(settings.mode)) settings.map = Object.values(MAPS).find((m) => m.modes.includes(settings.mode)).id;
@@ -43,7 +46,7 @@ const SCREENS = ['menu', 'hud', 'select', 'gallery', 'help', 'pause', 'end', 'sc
 const hideAll = () => { for (const id of SCREENS) show(id, false); };
 
 function applySettings(k) {
-  sfx.setVolume(settings.vol); view.fovH = settings.fov; voice.enabled = settings.voice; voice.volume = settings.voiceVol; voice.subs = settings.subs;
+  sfx.setVolume(settings.vol); music.setVolume(settings.music); view.fovH = settings.fov; voice.enabled = settings.voice; voice.volume = settings.voiceVol; voice.subs = settings.subs;
   if (hud) { hud.settings.minimap = settings.minimap; hud.settings.xhair = settings.xhair; hud.settings.xcolor = settings.xcolor; hud.minimap.rotate = settings.rotateMap; $('mmWrap').hidden = !settings.minimap; hud.hero = null; }
   view.showNumbers = settings.numbers; $('fps').style.display = settings.showFps ? '' : 'none';
   if (k) save();
@@ -152,8 +155,8 @@ function showReport() {
 }
 
 // ------------------------------------------------------------------ events from the simulation
-view.onHit = (e) => { if (e.tgt && !e.tgt.alive) return; hud.hitmark(e.crit ? (e.head ? 'crit head' : 'crit') : e.head ? 'head' : ''); if (e.crit && !e.head && Math.random() < 0.5) hud.popup('CRITICAL HIT', 'crit'); };
-view.onHurt = (e) => { if (e.src) hud.damageDir(e.src); hud.noteDamage(e); const p = me(); if (p && p.alive && (p.hp + p.armor) / (p.maxHp + p.maxArmor) < 0.3 && sim.time - lastLowHp > 14) { lastLowHp = sim.time; voice.hero(p.hero, 'hurt', { name: 'YOU', force: false }); } };
+view.onHit = (e) => { heat = Math.min(1, heat + 0.05); if (e.tgt && !e.tgt.alive) return; hud.hitmark(e.crit ? (e.head ? 'crit head' : 'crit') : e.head ? 'head' : ''); if (e.crit && !e.head && Math.random() < 0.5) hud.popup('CRITICAL HIT', 'crit'); };
+view.onHurt = (e) => { heat = Math.min(1, heat + 0.08); if (e.src) hud.damageDir(e.src); hud.noteDamage(e); const p = me(); if (p && p.alive && (p.hp + p.armor) / (p.maxHp + p.maxArmor) < 0.3 && sim.time - lastLowHp > 14) { lastLowHp = sim.time; voice.hero(p.hero, 'hurt', { name: 'YOU', force: false }); } };
 view.onHeal = (e) => hud.heal(e);
 view.onKill = (e) => {
   if (mode === 'menu') return;
@@ -171,6 +174,7 @@ view.onKill = (e) => {
   }
 };
 view.onUlt = (e) => {
+  heat = Math.min(1, heat + 0.3);
   const u = e.unit, mine = u.team === sim.playerTeam && sim.modeId !== 'ffa';
   if (mode !== 'menu') hud.popup(`${u.isPlayer ? 'YOUR' : mine ? 'ALLY' : 'ENEMY'} ULTIMATE · ${u.def.ult.name.toUpperCase()}`, mine ? 'save' : 'kill', u.isPlayer ? '' : u.name.toUpperCase());
 };
@@ -305,6 +309,23 @@ function drivePlayer() {
   u.in.move = [mx, mz]; u.in.jump = k.has(' '); const blocked = wheel.open; u.in.fire1 = mouse.l && !blocked; u.in.fire2 = mouse.r && !blocked;
 }
 
+// ------------------------------------------------------------------ music
+function driveMusic(dt) {
+  heat *= Math.exp(-dt * 0.35);
+  const theme = sim?.level?.theme, p = me();
+  let mood = 'menu';
+  if (mode === 'select' || mode === 'select-mid' || mode === 'paused-select') mood = 'select';
+  else if (mode === 'play' || mode === 'killcam' || mode === 'paused') mood = sim.inOvertime ? 'overtime' : 'match';
+  else if (mode === 'potg') mood = 'potg';
+  else if (mode === 'over' || mode === 'end') mood = (sim.winner === sim.playerTeam || (sim.modeId === 'ffa' && sim.winnerUnit === p)) ? 'victory' : 'defeat';
+  music.setMood(mood, mood === 'menu' ? null : theme);
+  if (mood === 'match' && p) {
+    let near = 0; for (const u of sim.units) if (u.alive && !u.deploy && u.team !== p.team && Math.hypot(u.pos[0] - p.pos[0], u.pos[2] - p.pos[2]) < 26) near++;
+    const contested = sim.payload?.contested || sim.control?.contested || sim.cap?.contested;
+    music.setIntensity(0.12 + heat * 0.7 + Math.min(4, near) * 0.07 + (contested ? 0.25 : 0) + (sim.state === 'setup' ? -0.1 : 0));
+  }
+}
+
 // ------------------------------------------------------------------ frame
 const HZ = 1 / 60;
 function liteEvents(events) {
@@ -330,6 +351,7 @@ function frame(now) {
     if (pendingKillcam && !replay && mode === 'play' && sim.state === 'live') { pendingKillcam.t -= dt; if (pendingKillcam.t <= 0 && !me().alive) { const c = pendingKillcam.clip; pendingKillcam = null; startReplay(c, 'killcam'); } }
     view.syncPreview(dt); view.syncUnits(dt); view.fx.syncProjs(dt); view.fx.syncZones(dt); view.syncWorld(dt);
     view.updateCamera(dt); view.updateViewmodel(dt); view.updateOverlays(dt); view.tick(dt); view.render(dt);
+    driveMusic(dt);
     if (mode === 'select' || mode === 'select-mid') select.update(dt);
     if (mode === 'play' || mode === 'over' || mode === 'paused') {
       hud.killcamOn = false; hud.update(dt, fpsS);
