@@ -269,14 +269,16 @@ function lumen() {
   for (const [x, z, w, d] of [[-7, -7, 4, 0.9], [7, -7, 4, 0.9], [-7, 7, 4, 0.9], [7, 7, 4, 0.9], [-9.5, 0, 0.9, 4], [9.5, 0, 0.9, 4]]) B(x, z, w, d, 1.2, 'barrier');
   B(0, 0, 2, 2, 5.5, 'neonA');
   const keep = [lane(-6, -6, 6, 6)];
+  // props are scattered on the south half and mirrored through the centre so both teams get the same map
+  const n0 = boxes.length;
   b.scatter(rand, [-12, -40, 12, -12], 7, KINDS.city, [...keep, lane(-14, -26, 14, -22)]);
-  b.scatter(rand, [-12, 12, 12, 40], 7, KINDS.city, [...keep, lane(-14, 22, 14, 26)]);
-  b.scatter(rand, [-36, -6, 36, 6], 6, KINDS.city, [lane(-12, -12, 12, 12)]);
-  b.scatter(rand, [-36, -40, -28, 40], 6, KINDS.city); b.scatter(rand, [28, -40, 36, 40], 6, KINDS.city);
-  b.scatter(rand, [-36, 46, 36, 62], 5, KINDS.city, [lane(-12, 44, 12, 64)]); b.scatter(rand, [-36, -62, 36, -46], 5, KINDS.city, [lane(-12, -64, 12, -44)]);
+  b.scatter(rand, [-36, -6, 36, -1.5], 3, KINDS.city, [lane(-12, -12, 12, 12)]);
+  b.scatter(rand, [-36, -40, -28, -2], 3, KINDS.city); b.scatter(rand, [28, -40, 36, -2], 3, KINDS.city);
+  b.scatter(rand, [-36, -62, 36, -46], 5, KINDS.city, [lane(-12, -64, 12, -44)]);
+  for (const bx of boxes.slice(n0)) boxes.push({ ...bx, x0: -bx.x1, x1: -bx.x0, z0: -bx.z1, z1: -bx.z0 });
   const dm = [[-32, 0, -30], [32, 0, -30], [-32, 0, 30], [32, 0, 30], [0, 0, -34], [0, 0, 34], [-32, 0, 0], [32, 0, 0], [-8, 0, -40], [8, 0, 40]];
   return {
-    id: 'lumen', boxes, bounds: { x0: -64, x1: 64, z0: -64, z1: 64 }, spawns: [row(0, -60, 5, 4, 3), row(0, 57, 5, 4, 3)], dmSpawns: dm,
+    id: 'lumen', boxes, bounds: { x0: -64, x1: 64, z0: -64, z1: 64 }, spawns: [row(0, -60, 5, 4, 3), row(0, 60, 5, 4, -3)], dmSpawns: dm,
     points: [{ pos: [0, 0, 0], r: 9, name: 'CENTRAL PLAZA' }], packs: [{ pos: [-32, 0, -20], big: false }, { pos: [32, 0, 20], big: false }, { pos: [-32, 0, 22], big: false }, { pos: [32, 0, -22], big: false }, { pos: [0, 0, -34], big: true }, { pos: [0, 0, 34], big: true }, { pos: [-20, 0, 0], big: false }, { pos: [20, 0, 0], big: false }],
     attackTime: 600, lampX: [-14, 14], decorZones: [[-36, -42, 36, 42]],
   };

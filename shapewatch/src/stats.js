@@ -85,7 +85,11 @@ export class Career {
     this.data.matches++; this.data.time += s.time; if (won) this.data.wins++; else this.data.losses++;
     for (const m of medals) this.data.medals[m.id] = (this.data.medals[m.id] || 0) + 1;
     // xp
+    const day = dayKey(), firstWin = won && this.data.firstWinDay !== day; if (firstWin) this.data.firstWinDay = day;
+    this.data.winStreak = won ? (this.data.winStreak || 0) + 1 : 0;
     const parts = [['Match completed', 120], [won ? 'Victory' : 'Effort', won ? 180 : 50], ['Eliminations', s.elims * 12], ['Assists', s.assists * 6], ['Damage', Math.round(s.dmg / 60)], ['Healing', Math.round(s.heal / 70)], ['Objective', Math.round(s.obj * 1.2)], ['Medals', medals.reduce((a, m) => a + m.tier * 20, 0)]].filter((p) => p[1] > 0);
+    if (firstWin) parts.push(['First win of the day', 500]);
+    const streakBonus = Math.min(0.5, Math.max(0, (this.data.winStreak - 1) * 0.1));
     // challenges
     const ctx = { won, role, sub }, done = [];
     for (const c of this.refreshChallenges().list) {
@@ -93,6 +97,7 @@ export class Career {
       c.progress = t.max ? Math.max(c.progress, v) : c.progress + v;
       if (c.progress >= c.goal) { c.done = true; c.progress = c.goal; done.push(c); parts.push(['Challenge: ' + c.text, c.xp]); }
     }
+    if (streakBonus > 0) parts.push([`Win streak ×${this.data.winStreak} (+${Math.round(streakBonus * 100)}%)`, Math.round(parts.reduce((a, p) => a + p[1], 0) * streakBonus)]);
     const gain = parts.reduce((a, p) => a + p[1], 0); this.data.xp += gain; const after = levelInfo(this.data.xp);
     const entry = { t: Date.now(), hero: me.hero, map: sim.level.name, mode: sim.modeId, won, k: s.elims, a: s.assists, d: s.deaths, xp: gain };
     this.data.history.unshift(entry); this.data.history.length = Math.min(this.data.history.length, 14);

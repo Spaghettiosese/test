@@ -84,6 +84,7 @@ export class Voice {
     } catch { /* speech not available */ }
   }
   pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  pickCall(heroId, id) { const o = OVERRIDE[heroId]?.[id] || CALLS[id]; return o ? this.pick(o) : null; }
   line(heroId, kind) { const l = LINES[heroId]?.[kind]; return l ? this.pick(l) : null; }
   hero(heroId, kind, opts = {}) { const t = this.line(heroId, kind); if (t) this.say(heroId, t, { pri: kind === 'ult' ? 3 : 1, ...opts, key: opts.key || heroId + ':' + kind }); }
   call(heroId, id, opts = {}) { const o = OVERRIDE[heroId]?.[id] || CALLS[id]; if (!o) return; this.say(heroId, this.pick(o), { pri: 2, ...opts, key: opts.key || 'call:' + opts.team }); }

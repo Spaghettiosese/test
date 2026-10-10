@@ -105,8 +105,8 @@ export class Sim {
     }
   }
   swapHero(u, heroId) {
-    const d = HERO[heroId]; u.def = d; u.hero = heroId; u.maxHp = u.dummy ? 400 : d.hp; u.maxArmor = d.armor; u.s = {}; u.cd = { a1: 0, a2: 0, w2: 0 };
-    u.charges = d.a1.charges || 0; u.ammo = d.w1.ammo || 0; u.ult = 0; u.st = {};
+    const frac = u.def ? Math.min(1, u.ult / u.def.ult.cost) : 0, d = HERO[heroId]; u.def = d; u.hero = heroId; u.maxHp = u.dummy ? 400 : d.hp; u.maxArmor = d.armor; u.s = {}; u.cd = { a1: 0, a2: 0, w2: 0 };
+    u.charges = d.a1.charges || 0; u.ammo = d.w1.ammo || 0; u.ult = this.state === 'setup' ? 0 : frac * 0.3 * d.ult.cost; u.st = {};
     if (u.alive) { u.hp = u.maxHp; u.armor = u.maxArmor; }
     this.emit({ type: 'swap', unit: u });
   }
@@ -131,7 +131,6 @@ export class Sim {
     u.alive = true; u.hp = u.maxHp; u.armor = u.maxArmor; u.shield = 0; u.st = {}; u.s = {};
     u.ammo = u.def.w1.ammo || 0; u.reloadT = 0; u.fireT = 0; u.cd = { a1: 0, a2: 0, w2: 0 }; u.charges = u.def.a1.charges || 0; u.hist = [];
     u.invuln = first ? 0 : 2.5; u.hurt = {}; u.lastHit = null; u.killedBy = null; u.dmgT = -99;
-    if (!first) u.ult = Math.max(0, u.ult * 0.5);
     this.emit({ type: 'spawn', unit: u });
   }
   resetUnits() { for (const u of [...this.units]) { if (u.deploy) { this.units.splice(this.units.indexOf(u), 1); continue; } u.held = false; this.spawn(u, true); } this.projs = []; this.zones = []; this.cores = []; this.corpses = []; this.pings = []; for (const p of this.packs) { p.ready = true; } }
@@ -306,6 +305,7 @@ export class Sim {
     let m = 1; if (u.st.resist) m *= 1 - u.st.resist.f; if (u.st.nano) m *= 0.5; if (u.s.bunker) m *= 0.7;
     if (u.st.marked) m *= 1 + u.st.marked.f; if (u.st.discord) m *= 1 + u.st.discord.f;
     for (const z of this.zones) if (z.kind === 'dome' && z.team === u.team && v3.dist2d(z.pos, u.pos) < z.r) m *= 0.4;
+    if (u.def.sub === 'Stalwart' && (u.s.barrier?.up || u.s.bunker || u.s.wall)) m *= 0.85;
     if (u.s.block && src) { // Wrecker's Power Block only turns damage from the front
       const to = v3.norm([src.pos[0] - u.pos[0], 0, src.pos[2] - u.pos[2]]), f = [Math.sin(u.yaw), 0, Math.cos(u.yaw)];
       if (v3.dot(to, f) > 0.3) { m *= 1 - u.s.block.f; u.s.block.pending = true; }
@@ -326,6 +326,8 @@ export class Sim {
     if (tgt.invuln > 0 && !tgt.deploy) return 0;
     if (tgt.st.phased || tgt.st.frozen) return 0;
     let d = amt * (noBoost ? 1 : this.multOut(src)) * this.multIn(tgt, src);
+    if (src && !src.deploy && src.def.sub === 'Bruiser' && v3.dist2d(src.pos, tgt.pos) < 6) d *= 1.12;
+    if (src && !src.deploy && src.def.sub === 'Recon' && src.team !== tgt.team && !tgt.deploy) this.addStatus(tgt, 'reveal', 2);
     const before = amt * (noBoost ? 1 : this.multOut(src));
     if (tgt.s.block?.pending) { tgt.s.block.pending = false; tgt.s.block.stored = Math.min(120, (tgt.s.block.stored || 0) + (before - d) * 0.8); }
     const dealt = d;
@@ -349,6 +351,7 @@ export class Sim {
     if (!tgt.alive || tgt.deploy) return 0;
     if (tgt.st.nohealing) return 0;
     if (tgt.st.healAmp) amt *= 1 + tgt.st.healAmp.f;
+    if (src && !src.deploy && src.def.sub === 'Medic' && tgt.hp < tgt.maxHp * 0.5) amt *= 1.15;
     const a = Math.min(amt, tgt.maxHp - tgt.hp);
     if (a <= 0) return 0;
     tgt.hp += a;
@@ -357,7 +360,7 @@ export class Sim {
     if (!quiet && this.time - acc.t > 0.3 && acc.amt >= 1) { this.emit({ type: 'heal', tgt, src, amt: acc.amt }); acc.amt = 0; acc.t = this.time; }
     return a;
   }
-  chargeUlt(u, pts) { if (u.deploy || !u.alive || u.dummy) return; u.ult = Math.min(u.def.ult.cost, u.ult + pts); }
+  chargeUlt(u, pts) { if (u.deploy || !u.alive || u.dummy) return; if (u.def.sub === 'Tactician') pts *= 1.12; u.ult = Math.min(u.def.ult.cost, u.ult + pts); }
   kill(tgt, src, head) {
     tgt.alive = false; tgt.hp = 0; tgt.shield = 0; tgt.streakLost = tgt.streak; tgt.streak = 0;
     if (tgt.deploy) { this.emit({ type: 'destroy', unit: tgt }); this.units.splice(this.units.indexOf(tgt), 1); return; }
@@ -535,12 +538,12 @@ export class Sim {
     if (u.shield > 0 && u.shieldDecay) u.shield = Math.max(0, u.shield - u.shieldDecay * dt);
     // passive regeneration for everyone, faster and sooner for supports
     if (this.state === 'live' && u.hp < u.maxHp && !u.dummy) {
-      const wait = u.def.role === 'support' ? 1.6 : 4.5; if (this.time - u.dmgT > wait) u.hp = Math.min(u.maxHp, u.hp + (u.def.role === 'support' ? 16 : u.def.sub === 'Survivor' ? 14 : 8) * dt);
+      const wait = u.def.role === 'support' ? 1.6 : 4.5; if (this.time - u.dmgT > wait) u.hp = Math.min(u.maxHp, u.hp + (u.def.sub === 'Survivor' ? 24 : u.def.role === 'support' ? 16 : 8) * dt);
     }
     const tick = dt * (this.mutator?.id === 'overclock' ? 2 : 1);
     for (const k of ['a1', 'a2', 'w2']) u.cd[k] = Math.max(0, u.cd[k] - tick);
     if (u.def.a1.charges && u.charges < u.def.a1.charges) { u.chargeT += tick; if (u.chargeT >= u.def.a1.cd) { u.charges++; u.chargeT = 0; } }
-    if (this.state === 'live' && !u.dummy) this.chargeUlt(u, 5.2 * dt);
+    if (this.state === 'live' && !u.dummy) this.chargeUlt(u, 9 * dt);
     const kit = KITS[u.hero], inp = u.in, can = this.canAct(u);
     if (kit?.update) kit.update(this, u, dt);
     if (u.def.role === 'support' && this.state === 'live' && u.stats.heal > 0) this.noteHealHighlight(u);
@@ -592,7 +595,8 @@ export class Sim {
   }
   spendAbility(u, k) {
     if (k === 'a1' && u.def.a1.charges) { u.charges--; if (u.charges === u.def.a1.charges - 1) u.chargeT = 0; u.cd.a1 = 0.25; return; }
-    u.cd[k] = u.def[k].cd;
+    u.cd[k] = u.def[k].cd * (u.def.sub === 'Specialist' ? 0.9 : 1);
+    if (u.def.sub === 'Initiator') this.addStatus(u, 'speed', 2, { f: 0.15 });
   }
   moveUnit(u, dt) {
     const r = u.def.radius, h = u.def.height;
@@ -655,6 +659,7 @@ export class Sim {
   bulletHit(u, w, hit, origin, dmgOverride = null) {
     if (hit.kind === 'unit') {
       const d = v3.dist(origin, hit.point), r = this.critRoll(u, hit.head, w);
+      if (r.crit && u.def.sub === 'Sharpshooter' && d > 25) r.mul *= 1.1;
       const dmg = (dmgOverride ?? w.dmg) * this.falloff(w, d) * r.mul;
       u._hitShot = true; this.damage(hit.unit, dmg, u, { head: hit.head, crit: r.crit, point: hit.point });
     } else if (hit.kind === 'barrier') this.hitBarrier(hit.unit, (dmgOverride ?? w.dmg) * (w.pellets ? 0.6 : 1), u, hit.point);
@@ -726,7 +731,7 @@ export class Sim {
     for (const p of this.packs) {
       if (!p.ready) { p.t -= dt; if (p.t <= 0) p.ready = true; continue; }
       for (const u of this.units) if (u.alive && !u.deploy && !u.dummy && u.hp < u.maxHp && v3.dist2d(u.pos, p.pos) < 1.4 && Math.abs(u.pos[1] - p.pos[1]) < 1.5) {
-        this.heal(u, p.big ? 250 : 75, null); p.ready = false; p.t = p.big ? 14 : 9; this.emit({ type: 'pack', unit: u, pos: p.pos }); break;
+        this.heal(u, (p.big ? 250 : 75) * (u.def.sub === 'Flanker' ? 1.25 : 1), null); p.ready = false; p.t = p.big ? 14 : 9; this.emit({ type: 'pack', unit: u, pos: p.pos }); break;
       }
     }
     this.pings = this.pings.filter((p) => { p.t -= dt; if (p.target && !p.target.alive) return false; if (p.target) p.pos = this.center(p.target); return p.t > 0; });

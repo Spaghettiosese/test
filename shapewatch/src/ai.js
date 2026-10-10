@@ -59,7 +59,7 @@ export class Brain {
       if (!(clear && (inFov || reveal)) && !(reveal && clear)) { if (!inFov || sim.time - (this.seen.get(e.id) ?? -99) > 0.4) this.seen.delete(e.id); if (!reveal || !clear) continue; }
       if (!this.seen.has(e.id)) {
         this.seen.set(e.id, sim.time);
-        const tb = this.tb; if (tb && sim.time - this.pingT > 7 && !e.deploy && this.r() < 0.5 && !u.isPlayer) { this.pingT = sim.time; sim.pingAt(u, 'enemy', c, e); }
+        const tb = this.tb; if (tb && sim.time - this.pingT > 9 && sim.time - (tb.pingBudget || -99) > 5 && !e.deploy && this.r() < 0.5 && !u.isPlayer && !sim.pings.some((p) => p.target === e)) { this.pingT = sim.time; tb.pingBudget = sim.time; sim.pingAt(u, 'enemy', c, e); }
       }
       if (sim.time - this.seen.get(e.id) >= this.sk.react) vis.push({ e, d: l });
     }
@@ -349,6 +349,8 @@ export class Brain {
     }
     if (sim.state !== 'live' && sim.modeId !== 'training') return;
     (HANDLERS[id] || (() => {}))(ctx);
+    // nobody sits on an ultimate forever: after a while any decent opening will do
+    if (ultReady) { this.ultHeld = (this.ultHeld || 0) + dt; const wait = sim.modeId === 'ffa' ? 5 : 14; if (!inp.ult && this.ultHeld > wait && e && los && d < 30 && (near(30) >= (sim.modeId === 'ffa' ? 1 : 2) || this.ultHeld > wait * 2)) { this.hold.ultAim = this.hold.ultAim || sim.center(e); inp.ult = true; } } else this.ultHeld = 0;
   }
   // Commit to an aim point for a moment before using a lobbed ability (random gating happens only when
   // we are not already lining one up). Returns true once the aim has settled and the throw can go.
@@ -368,11 +370,13 @@ export class Brain {
   // pick a better hero for the next life, using what the enemy team looks like
   counterPick() {
     const sim = this.sim, u = this.u; if (sim.modeId === 'training' || sim.modeId === 'ffa') return null;
-    if (u.stats.deaths - this.lastDeaths < 2 || this.r() > 0.55) return null;
+    // bots keep their heroes: at most one switch per round, only after a rough patch
+    if (u.stats.deaths - this.lastDeaths < 3 || this.r() > 0.35 || (this.swapRound ?? -1) === sim.round || sim.time - (this.swapT ?? -999) < 150) return null;
     this.lastDeaths = u.stats.deaths;
     const foes = sim.units.filter((o) => o.team !== u.team && !o.deploy), mates = sim.units.filter((o) => o.team === u.team && !o.deploy && o !== u);
     let best = u.hero, bs = this.matchScore(HERO[u.hero], foes) - 0.2;
     for (const h of HEROES) { if (h.role !== u.def.role || mates.some((m) => m.hero === h.id)) continue; const s = this.matchScore(h, foes) + this.r() * 0.4; if (s > bs + 0.45) { bs = s; best = h.id; } }
+    if (best !== u.hero) { this.swapRound = sim.round; this.swapT = sim.time; }
     return best;
   }
   matchScore(h, foes) { let s = 0; for (const f of foes) s += MATCHUP[h.sub]?.[f.def.sub] || 0; return s / Math.max(1, foes.length) * 3; }

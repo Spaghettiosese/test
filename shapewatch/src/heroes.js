@@ -8,16 +8,16 @@ export const ROLES = {
 };
 // subclasses: what a hero is *for* inside its role
 export const SUBCLASSES = {
-  Bruiser: { role: 'tank', icon: 'fist', blurb: 'Brawlers who thrive up close and shrug off pressure.' },
-  Initiator: { role: 'tank', icon: 'arrow', blurb: 'Start the fight on your terms: pull, leap, dive.' },
-  Stalwart: { role: 'tank', icon: 'tower', blurb: 'Anchor a position and protect everything behind it.' },
-  Flanker: { role: 'damage', icon: 'chevrons', blurb: 'Mobile hunters who pick off the isolated.' },
-  Sharpshooter: { role: 'damage', icon: 'crosshair', blurb: 'Precision weapons, strong at mid to long range.' },
-  Specialist: { role: 'damage', icon: 'gear', blurb: 'Unusual toolkits that bend the rules of the fight.' },
-  Recon: { role: 'damage', icon: 'eye', blurb: 'See first, shoot first, shoot once.' },
-  Medic: { role: 'support', icon: 'heart', blurb: 'Direct healing and revival.' },
-  Tactician: { role: 'support', icon: 'flag', blurb: 'Buffs, debuffs and battlefield control.' },
-  Survivor: { role: 'support', icon: 'drop', blurb: 'Self-sufficient supports who hurt as much as they heal.' },
+  Bruiser: { role: 'tank', icon: 'fist', blurb: 'Brawlers who thrive up close and shrug off pressure.', passive: '+12% damage to enemies within 6 m.' },
+  Initiator: { role: 'tank', icon: 'arrow', blurb: 'Start the fight on your terms: pull, leap, dive.', passive: 'Using an ability grants +15% speed for 2 s.' },
+  Stalwart: { role: 'tank', icon: 'tower', blurb: 'Anchor a position and protect everything behind it.', passive: 'Take 15% less damage while your barrier, wall or bunker is up.' },
+  Flanker: { role: 'damage', icon: 'chevrons', blurb: 'Mobile hunters who pick off the isolated.', passive: 'Health packs heal you 25% more.' },
+  Sharpshooter: { role: 'damage', icon: 'crosshair', blurb: 'Precision weapons, strong at mid to long range.', passive: 'Crits beyond 25 m deal 10% more damage.' },
+  Specialist: { role: 'damage', icon: 'gear', blurb: 'Unusual toolkits that bend the rules of the fight.', passive: 'Ability cooldowns are 10% shorter.' },
+  Recon: { role: 'damage', icon: 'eye', blurb: 'See first, shoot first, shoot once.', passive: 'Enemies you damage are revealed to your team for 2 s.' },
+  Medic: { role: 'support', icon: 'heart', blurb: 'Direct healing and revival.', passive: 'Healing on allies below half health is 15% stronger.' },
+  Tactician: { role: 'support', icon: 'flag', blurb: 'Buffs, debuffs and battlefield control.', passive: 'Ultimate charges 12% faster.' },
+  Survivor: { role: 'support', icon: 'drop', blurb: 'Self-sufficient supports who hurt as much as they heal.', passive: 'Your passive regeneration is 50% faster.' },
 };
 
 // crit: head = headshot multiplier, chance = chance any other hit crits for 1.5x

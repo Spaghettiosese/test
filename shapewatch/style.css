@@ -297,3 +297,5 @@ body.touch .kit { bottom: auto; top: 1rem; right: .8rem; } body.touch .vitals { 
 @media (prefers-reduced-motion: reduce) { .f-row, .pop, .banner.show, .sub { animation: none; } }
 
 .mk.bounty { color: #ffd36b; font: italic 700 .8rem var(--display); letter-spacing: .1em; } .mk.bounty .dia { box-shadow: 0 0 12px #ffd36b; animation: pulse .7s infinite; }
+.passive.sub { border-left-color: #7fc4ff; } .passive.sub b { color: #7fc4ff; }
+.e-next { text-align: center; font: italic 700 1rem var(--display); letter-spacing: .14em; color: var(--dim); } .e-next b { color: var(--orange); font-size: 1.4rem; margin: 0 .3rem; }

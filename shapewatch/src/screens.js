@@ -41,7 +41,7 @@ export class MenuScreen {
   constructor({ portraits, career, sfx, onPlay, onQuick, onHeroes, onCareer, onSettings, onHelp }) { Object.assign(this, { portraits, career, sfx }); this.root = $('menu'); this.cb = { onPlay, onQuick, onHeroes, onCareer, onSettings, onHelp }; this.build(); }
   build() {
     this.root.innerHTML = `<div class="m-top"><div class="m-logo"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" class="l1"/><path d="M50 14 L82 68 H18 Z" class="l2"/><circle cx="50" cy="50" r="12" class="l3"/></svg><div><b>SHAPE<i>WATCH</i></b><small>A SHAPEFORGE HERO SHOOTER</small></div></div><div class="m-profile panel" id="mProfile"></div></div>
-      <div class="m-body"><nav class="m-nav"><button class="m-btn primary" data-a="play" type="button">PLAY <small>6 MODES · 5 MAPS · 26 HEROES</small></button><button class="m-btn" data-a="quick" type="button">QUICK MATCH <small id="mQuick">REPEAT LAST SETTINGS</small></button><button class="m-btn" data-a="heroes" type="button">HEROES <small>STATS · ABILITIES · VOICELINES</small></button><button class="m-btn" data-a="career" type="button">CAREER <small>LEVEL · MEDALS · HISTORY</small></button><button class="m-btn" data-a="settings" type="button">SETTINGS <small>AUDIO · HUD · CONTROLS</small></button><button class="m-btn" data-a="help" type="button">HOW TO PLAY <small>CONTROLS · SYSTEMS</small></button></nav>
+      <div class="m-body"><nav class="m-nav"><button class="m-btn primary" data-a="play" type="button">PLAY <small>6 MODES · 5 MAPS · 26 HEROES</small></button><button class="m-btn" data-a="quick" type="button">QUICK PLAY <small id="mQuick">RANDOM MODE, MAP AND SIDE</small></button><button class="m-btn" data-a="heroes" type="button">HEROES <small>STATS · ABILITIES · VOICELINES</small></button><button class="m-btn" data-a="career" type="button">CAREER <small>LEVEL · MEDALS · HISTORY</small></button><button class="m-btn" data-a="settings" type="button">SETTINGS <small>AUDIO · HUD · CONTROLS</small></button><button class="m-btn" data-a="help" type="button">HOW TO PLAY <small>CONTROLS · SYSTEMS</small></button></nav>
       <aside class="m-daily panel" id="mDaily"></aside></div><div class="m-foot">Built on the ShapeForge Engine · every hero, map, voice and sound is generated in code</div>`;
     for (const b of this.root.querySelectorAll('.m-btn')) { b.onmouseenter = () => this.sfx.ui('hover'); b.onclick = () => { this.sfx.unlock(); this.sfx.ui('select'); ({ play: this.cb.onPlay, quick: this.cb.onQuick, heroes: this.cb.onHeroes, career: this.cb.onCareer, settings: this.cb.onSettings, help: this.cb.onHelp })[b.dataset.a](); }; }
   }
@@ -50,7 +50,7 @@ export class MenuScreen {
     $('mProfile').innerHTML = `<div class="lv"><b>${L.level}</b><small>LEVEL</small></div><div class="pf"><b>${titleFor(L.level).toUpperCase()}</b><div class="xp"><i style="width:${L.pct * 100}%"></i></div><small>${L.into} / ${L.need} XP · ${d.wins}W ${d.losses}L${top ? ' · MAIN ' + HERO[top[0]].name : ''}</small></div>${top ? '' : ''}`;
     const ch = this.career.refreshChallenges().list;
     $('mDaily').innerHTML = `<h3>DAILY CHALLENGES</h3>` + ch.map((c) => `<div class="ch ${c.done ? 'done' : ''}"><span>${c.text}</span><div class="bar"><i style="width:${Math.min(100, c.progress / c.goal * 100)}%"></i></div><em>${c.done ? '✔ +' + c.xp + ' XP' : Math.min(c.progress, c.goal) + ' / ' + c.goal + ' · ' + c.xp + ' XP'}</em></div>`).join('');
-    if (settings) { const m = MODES[settings.mode], mp = MAPS[settings.map]; $('mQuick').textContent = `${m?.name || ''} · ${mp?.name || ''} · ${DIFFS[settings.diff][0]}`; }
+    if (settings) $('mQuick').textContent = `RANDOM MODE, MAP AND SIDE · ${DIFFS[settings.diff][0]} BOTS`;
   }
 }
 
@@ -128,7 +128,7 @@ export class SelectScreen {
     const h = HERO[this.sel];
     $('selName').textContent = h.name; $('selRole').innerHTML = roleSvg(h.role, 36, ROLE_COLORS[h.role]) ; $('selSub').innerHTML = `${subSvg(SUBCLASSES[h.sub].icon, 18, '#fff')}<span>${h.sub.toUpperCase()}</span><em>${h.title.toUpperCase()}</em>`;
     for (const [id, b] of this.tiles) b.classList.toggle('on', id === this.sel);
-    $('selInfo').innerHTML = `<div class="role">${ROLES[h.role].label} · ${h.sub.toUpperCase()}</div><div class="blurb">${h.blurb}</div><div class="ratings">${bars(h.rating)}</div><div class="passive"><b>${ROLES[h.role].label} PASSIVE</b>${ROLE_PASSIVE[h.role]}</div><div class="tips">${tipsFor(h)}</div><div class="stats-line"><span><b>${h.hp + h.armor}</b> HEALTH</span><span><b>${h.speed.toFixed(1)}</b> M/S</span><span><b>${Math.round((h.crit.chance) * 100)}%</b> CRIT</span><span><b>×${h.crit.head}</b> HEAD</span></div>` + abilityHtml(h);
+    $('selInfo').innerHTML = `<div class="role">${ROLES[h.role].label} · ${h.sub.toUpperCase()}</div><div class="blurb">${h.blurb}</div><div class="ratings">${bars(h.rating)}</div><div class="passive"><b>${ROLES[h.role].label} PASSIVE</b>${ROLE_PASSIVE[h.role]}</div><div class="passive sub"><b>${h.sub.toUpperCase()} PASSIVE</b>${SUBCLASSES[h.sub].passive}</div><div class="tips">${tipsFor(h)}</div><div class="stats-line"><span><b>${h.hp + h.armor}</b> HEALTH</span><span><b>${h.speed.toFixed(1)}</b> M/S</span><span><b>${Math.round((h.crit.chance) * 100)}%</b> CRIT</span><span><b>×${h.crit.head}</b> HEAD</span></div>` + abilityHtml(h);
     paintAbilities($('selInfo'), h.id);
     const slot = this.slots?.find((s) => s.u.isPlayer); if (slot) this.paintSlot(slot);
     this.teamCount();
@@ -180,7 +180,7 @@ export class Gallery {
     const career = s ? `<div class="career-box"><h4>YOUR CAREER WITH ${h.name}</h4><div class="stats-line"><span><b>${fmtT(s.time)}</b> PLAYED</span><span><b>${s.matches}</b> MATCHES</span><span><b>${pct(s.wins, s.matches)}%</b> WIN</span></div><div class="stats-line"><span><b>${s.elims}</b> ELIMS</span><span><b>${pct(s.hits, s.shots)}%</b> ACC</span><span><b>${pct(s.crits, s.hits)}%</b> CRIT</span><span><b>${s.bestStreak}</b> STREAK</span></div></div>` : `<div class="career-box dim"><h4>YOUR CAREER WITH ${h.name}</h4>No matches yet. Take ${h.name} into a game.</div>`;
     $('gDetail').innerHTML = `<div class="g-title"><div><div class="role">${ROLES[h.role].label} · ${h.sub.toUpperCase()}</div><h3>${h.name}</h3><small>${h.title.toUpperCase()}</small></div><div class="g-badges">${roleSvg(h.role, 38, ROLE_COLORS[h.role])}${subSvg(SUBCLASSES[h.sub].icon, 30, '#cfe0ff')}</div></div>
       <p>${h.blurb}</p><div class="ratings">${bars(h.rating)}</div><div class="stats-line"><span><b>${h.hp}</b> HEALTH</span><span><b>${h.armor}</b> ARMOR</span><span><b>${h.speed.toFixed(1)}</b> M/S</span><span><b>${Math.round(h.crit.chance * 100)}%</b> CRIT</span><span><b>×${h.crit.head}</b> HEAD</span></div>
-      <div class="passive"><b>${ROLES[h.role].label} PASSIVE</b>${ROLE_PASSIVE[h.role]}</div><div class="tips">${tipsFor(h)}</div>
+      <div class="passive"><b>${ROLES[h.role].label} PASSIVE</b>${ROLE_PASSIVE[h.role]}</div><div class="passive sub"><b>${h.sub.toUpperCase()} PASSIVE</b>${SUBCLASSES[h.sub].passive}</div><div class="tips">${tipsFor(h)}</div>
       <div class="g-skins">${SKINS.map((k) => `<button class="chip-b ${k.id === this.skin ? 'on' : ''}" data-k="${k.id}" type="button">${k.name}</button>`).join('')}</div>
       <div class="g-abil">${abilityHtml(h)}</div>
       <div class="g-voice"><h4>VOICELINES</h4>${['pick', 'ult', 'kill', 'win'].map((k) => `<button class="vl" data-k="${k}" type="button"><i>▶</i><b>${k === 'pick' ? 'SELECTED' : k === 'ult' ? 'ULTIMATE' : k === 'kill' ? 'ELIMINATION' : 'VICTORY'}</b><span>“${lines[k][0]}”</span></button>`).join('')}</div>${career}`;
@@ -216,7 +216,7 @@ export const medalIcon = (id) => `<svg viewBox="0 0 24 24" width="30" height="30
 
 // ------------------------------------------------------------------ settings
 export const SETTINGS_SCHEMA = [
-  ['AUDIO', [['vol', 'Master volume', 'range', 0, 1, 0.05], ['music', 'Music volume', 'range', 0, 1, 0.05], ['voice', 'Hero voicelines', 'toggle'], ['voiceVol', 'Voice volume', 'range', 0, 1, 0.05], ['subs', 'Subtitles', 'toggle']]],
+  ['AUDIO', [['vol', 'Master volume', 'range', 0, 1, 0.05], ['music', 'Music volume', 'range', 0, 1, 0.05], ['voice', 'Hero voicelines', 'toggle'], ['voiceVol', 'Voice volume', 'range', 0, 1, 0.05], ['subs', 'Subtitles', 'toggle'], ['chatter', 'Team chatter', 'select', ['all', 'important', 'off']]]],
   ['CONTROLS', [['sens', 'Mouse sensitivity', 'range', 0.3, 2.5, 0.05], ['fov', 'Field of view', 'range', 70, 105, 1], ['invert', 'Invert vertical look', 'toggle']]],
   ['HUD', [['minimap', 'Minimap', 'toggle'], ['rotateMap', 'Rotate minimap with view', 'toggle'], ['numbers', 'Damage numbers', 'toggle'], ['xhair', 'Crosshair', 'select', ['auto', 'cross', 'circle', 'dot', 'none']], ['xcolor', 'Crosshair colour', 'select', ['#ffffff', '#6dff9c', '#ffd36b', '#5fd8ff', '#ff6ad0']], ['showFps', 'Show FPS', 'toggle']]],
 ];

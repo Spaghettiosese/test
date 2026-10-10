@@ -7,6 +7,7 @@ import { Brain } from './ai.js';
 import { View } from './view.js';
 import { Sfx } from './audio.js';
 import { Music } from './music.js';
+import { Comms } from './comms.js';
 import { Voice, LINES } from './voice.js';
 import { Portraits } from './portraits.js';
 import { Hud, CommWheel, $, el } from './ui.js';
@@ -24,10 +25,11 @@ try { view = new View($('stage')); } catch (e) { $('fatal').hidden = false; $('f
 const sfx = new Sfx(); view.sound = sfx;
 const voice = new Voice();
 const music = new Music(sfx);
+const comms = new Comms(voice);
 let heat = 0; // recent combat around the player, drives the music
 
 // ------------------------------------------------------------------ settings
-const settings = { sens: 1, fov: 90, vol: 0.6, music: 0.5, voice: true, voiceVol: 0.9, subs: true, invert: false, minimap: true, rotateMap: true, numbers: true, xhair: 'auto', xcolor: '#ffffff', showFps: false, side: 0, diff: 1, mut: 1, mode: 'escort', map: 'frostgate', hero: 'sabre', skin: 'default' };
+const settings = { sens: 1, fov: 90, vol: 0.6, music: 0.5, voice: true, voiceVol: 0.9, subs: true, invert: false, minimap: true, rotateMap: true, numbers: true, xhair: 'auto', xcolor: '#ffffff', showFps: false, chatter: 'all', side: 0, diff: 1, mut: 1, mode: 'escort', map: 'frostgate', hero: 'sabre', skin: 'default' };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('shapewatch2') || '{}')); } catch { /* storage blocked */ }
 const save = () => { try { localStorage.setItem('shapewatch2', JSON.stringify(settings)); } catch { /* ignore */ } };
 if (!HERO[settings.hero]) settings.hero = 'sabre'; if (!MODES[settings.mode]) settings.mode = 'escort'; if (!MAPS[settings.map]?.modes.includes(settings.mode)) settings.map = Object.values(MAPS).find((m) => m.modes.includes(settings.mode)).id;
@@ -46,7 +48,7 @@ const SCREENS = ['menu', 'hud', 'select', 'gallery', 'help', 'pause', 'end', 'sc
 const hideAll = () => { for (const id of SCREENS) show(id, false); };
 
 function applySettings(k) {
-  sfx.setVolume(settings.vol); music.setVolume(settings.music); view.fovH = settings.fov; voice.enabled = settings.voice; voice.volume = settings.voiceVol; voice.subs = settings.subs;
+  sfx.setVolume(settings.vol); music.setVolume(settings.music); comms.level = settings.chatter; view.fovH = settings.fov; voice.enabled = settings.voice; voice.volume = settings.voiceVol; voice.subs = settings.subs;
   if (hud) { hud.settings.minimap = settings.minimap; hud.settings.xhair = settings.xhair; hud.settings.xcolor = settings.xcolor; hud.minimap.rotate = settings.rotateMap; $('mmWrap').hidden = !settings.minimap; hud.hero = null; }
   view.showNumbers = settings.numbers; $('fps').style.display = settings.showFps ? '' : 'none';
   if (k) save();
@@ -58,16 +60,24 @@ function startAttract() {
   stopReplay(true);
   const [map, md] = ATTRACT[Math.floor(Math.random() * ATTRACT.length)];
   sim = new Sim({ autoPlayer: true, seed: (Math.random() * 1e6) | 0, difficulty: 1, mutators: false, mode: md, map });
-  sim.setupT = 0.2; for (let i = 0; i < 60 * 24; i++) sim.step(1 / 60); sim.events.length = 0; recorder = null;
+  sim.setupT = 0.2; for (let i = 0; i < 60 * 24; i++) sim.step(1 / 60); sim.events.length = 0; recorder = null; comms.reset(null);
   view.attach(sim, { skin: 'default' }); view.mode = 'orbit'; mode = 'menu'; endShown = false; paused = false;
   hideAll(); show('menu'); menuScreen?.refresh(settings);
 }
-function startMatch() {
-  sfx.unlock(); voice.unlock(); stopReplay(true); save();
-  const M = MODES[settings.mode], team = M.teams ? settings.side : 0;
+// Quick Play: a random mode, map and side, so the next match is never the same as the last
+const QUICK = ['escort', 'escort', 'hybrid', 'control', 'control', 'tdm'];
+let quickMatch = false, nextT = 0;
+function startQuick() {
+  settings.mode = QUICK[Math.floor(Math.random() * QUICK.length)];
+  const maps = Object.values(MAPS).filter((m) => m.modes.includes(settings.mode)); settings.map = maps[Math.floor(Math.random() * maps.length)].id;
+  settings.side = Math.random() < 0.5 ? 0 : 1; startMatch(true);
+}
+function startMatch(quick = false) {
+  sfx.unlock(); voice.unlock(); stopReplay(true); save(); quickMatch = quick === true; nextT = 0;
+  const M = MODES[settings.mode], team = M.teams ? (settings.mode === 'control' || settings.mode === 'tdm' ? (Math.random() < 0.5 ? 0 : 1) : settings.side) : 0;
   sim = new Sim({ playerTeam: SIDE_MODES.has(settings.mode) || settings.mode === 'control' ? team : (M.teams ? settings.side : 0), playerHero: settings.hero, difficulty: settings.diff, mutators: !!settings.mut && settings.mode !== 'training', seed: (Math.random() * 1e6) | 0, mode: settings.mode, map: settings.map });
   if (settings.mode === 'training') sim.setupT = 9999;
-  recorder = new Recorder(sim);
+  recorder = new Recorder(sim); comms.reset(sim);
   view.attach(sim, { skin: settings.skin }); hud.reset(sim); view.fovH = settings.fov; paused = false; endShown = false; overT = 0; report = null; clipQueue = []; pendingKillcam = null; lastLowHp = -99;
   view.mode = 'select'; mode = 'select'; positionPreview(); voice.stop();
   hideAll(); openSelect(false);
@@ -150,16 +160,18 @@ function endMatch() {
 }
 function showReport() {
   mode = 'end'; hideAll(); const clips = recorder ? recorder.best(3) : [];
-  endScreen.render(sim, report, { clips, onAgain: () => { sfx.ui('select'); startMatch(); }, onMenu: () => { sfx.ui(); toMenu(); }, onHighlights: () => { sfx.ui('select'); clipQueue = []; beginPotg(recorder.best(3)); } });
+  endScreen.render(sim, report, { clips, onAgain: () => { sfx.ui('select'); nextT = 0; if (quickMatch) startQuick(); else startMatch(); }, onMenu: () => { sfx.ui(); nextT = 0; toMenu(); }, onHighlights: () => { sfx.ui('select'); nextT = 0; clipQueue = []; beginPotg(recorder.best(3)); } });
+  if (quickMatch) { nextT = 20; const d = el('div', 'e-next', 'NEXT QUICK PLAY IN <b id="eNextT">20</b> <button class="btn ghost small" id="eNextX" type="button">STAY HERE</button>'); document.querySelector('#end .e-btns')?.before(d); $('eNextX').onclick = () => { nextT = 0; d.remove(); }; }
   menuScreen.refresh(settings);
 }
 
 // ------------------------------------------------------------------ events from the simulation
 view.onHit = (e) => { heat = Math.min(1, heat + 0.05); if (e.tgt && !e.tgt.alive) return; hud.hitmark(e.crit ? (e.head ? 'crit head' : 'crit') : e.head ? 'head' : ''); if (e.crit && !e.head && Math.random() < 0.5) hud.popup('CRITICAL HIT', 'crit'); };
 view.onHurt = (e) => { heat = Math.min(1, heat + 0.08); if (e.src) hud.damageDir(e.src); hud.noteDamage(e); const p = me(); if (p && p.alive && (p.hp + p.armor) / (p.maxHp + p.maxArmor) < 0.3 && sim.time - lastLowHp > 14) { lastLowHp = sim.time; voice.hero(p.hero, 'hurt', { name: 'YOU', force: false }); } };
-view.onHeal = (e) => hud.heal(e);
+view.onHeal = (e) => { hud.heal(e); comms.onEvent(e); };
 view.onKill = (e) => {
   if (mode === 'menu') return;
+  comms.onEvent(e);
   hud.feedRow(e); const p = me();
   if (e.killer === p) {
     hud.hitmark('kill'); sfx.kill(); hud.popup('ELIMINATED', 'kill', e.victim.name.toUpperCase());
@@ -193,17 +205,11 @@ view.onEvent = (e) => {
     case 'mutatorEnd': hud.popup('THE SURGE FADES', 'save'); break;
     case 'ult': {
       const u = e.unit, mine = u.team === sim.playerTeam && sim.modeId !== 'ffa';
+      comms.onEvent(e);
       if (mine || u.isPlayer) voice.hero(u.hero, 'ult', { name: u.isPlayer ? 'YOU' : u.name.toUpperCase(), force: true, ally: true }); else voice.announce('ultEnemy', u.def.ult.name);
       break;
     }
-    case 'callout': {
-      const u = e.unit; if (!u) break;
-      if (e.id === 'ultUsed') break; // spoken by the 'ult' event
-      if (u.team !== sim.playerTeam && sim.modeId !== 'ffa') break;
-      if (e.id === 'ultReady') voice.hero(u.hero, 'ready', { name: u.name.toUpperCase(), key: 'ur' + u.id, minGap: 15 });
-      else if (CALL_TEXT.has(e.id)) voice.call(u.hero, e.id, { name: u.isPlayer ? 'YOU' : u.name.toUpperCase(), team: u.team, key: 'call' + u.id, minGap: 1.6 });
-      break;
-    }
+    case 'callout': comms.onEvent(e); break;
     case 'bounty': { const u = e.unit, mine = u.team === sim.playerTeam && sim.modeId !== 'ffa'; hud.banner(mine ? 'BOUNTY ON YOUR TEAM' : 'BOUNTY PLACED', `${u.isPlayer ? 'YOU' : u.name.toUpperCase()} · ${u.def.name} IS ON A ${u.streak} STREAK`, mine ? '#ffd36b' : '#ff6a72'); sfx.stinger('round'); break; }
     case 'bountyClaimed': { const k = e.killer; hud.popup('BOUNTY CLAIMED', 'streak', k.isPlayer ? '+30% ULT' : k.name.toUpperCase()); break; }
     case 'core': if (e.unit === me()) hud.popup('ECHO CORE', 'streak', '+12% ULT'); break;
@@ -242,7 +248,7 @@ function look(dx, dy, base) {
 document.addEventListener('pointerlockchange', () => { if (!locked() && mode === 'play' && sim.state !== 'over') pauseGame(true); });
 addEventListener('blur', () => { keys.clear(); mouse.l = mouse.r = false; wheel?.hide(false); });
 function doPing() { const u = me(); if (!u || !u.alive || mode !== 'play' || sim.state === 'setup') return; sim.ping(u); }
-function doCall(id) { const u = me(); if (!u || mode !== 'play') return; sim.callout(u, id); hud.popup('COMMS · ' + id.replace(/([A-Z])/g, ' $1').toUpperCase(), 'save'); }
+function doCall(id) { const u = me(); if (!u || mode !== 'play') return; sim.callout(u, id); comms.playerCall(id); hud.popup('COMMS · ' + id.replace(/([A-Z])/g, ' $1').toUpperCase(), 'save'); }
 addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
   if (k === 'tab') { e.preventDefault(); if (mode === 'play' || mode === 'over') { show('score'); renderScoreboard(sim, portraits); } return; }
@@ -351,7 +357,8 @@ function frame(now) {
     if (pendingKillcam && !replay && mode === 'play' && sim.state === 'live') { pendingKillcam.t -= dt; if (pendingKillcam.t <= 0 && !me().alive) { const c = pendingKillcam.clip; pendingKillcam = null; startReplay(c, 'killcam'); } }
     view.syncPreview(dt); view.syncUnits(dt); view.fx.syncProjs(dt); view.fx.syncZones(dt); view.syncWorld(dt);
     view.updateCamera(dt); view.updateViewmodel(dt); view.updateOverlays(dt); view.tick(dt); view.render(dt);
-    driveMusic(dt);
+    if (nextT > 0 && mode === 'end') { nextT -= dt; const n = $('eNextT'); if (n) n.textContent = Math.ceil(nextT); if (nextT <= 0) startQuick(); }
+    driveMusic(dt); if (mode === 'play' || mode === 'select' || mode === 'killcam') comms.tick(dt);
     if (mode === 'select' || mode === 'select-mid') select.update(dt);
     if (mode === 'play' || mode === 'over' || mode === 'paused') {
       hud.killcamOn = false; hud.update(dt, fpsS);
@@ -374,7 +381,7 @@ async function boot() {
   settingsPanel = new SettingsPanel(settings, sfx, applySettings);
   playScreen = new PlayScreen({ settings, sfx, onStart: () => { playScreen.close(); startMatch(); }, onBack: backToMenu });
   careerScreen = new CareerScreen(portraits, career, sfx); careerScreen.onBack = backToMenu; gallery.onBack = backToMenu;
-  menuScreen = new MenuScreen({ portraits, career, sfx, onPlay: openPlay, onQuick: () => startMatch(), onHeroes: openGallery, onCareer: openCareer, onSettings: () => settingsPanel.open(), onHelp: () => show('help') });
+  menuScreen = new MenuScreen({ portraits, career, sfx, onPlay: openPlay, onQuick: () => startQuick(), onHeroes: openGallery, onCareer: openCareer, onSettings: () => settingsPanel.open(), onHelp: () => show('help') });
   hud.onUltReady = () => { const p = me(); if (p) voice.hero(p.hero, 'ready', { name: 'YOU', minGap: 25 }); };
   voice.unlock(); applySettings();
   startAttract(); hud.reset(sim); view.fovH = settings.fov;
