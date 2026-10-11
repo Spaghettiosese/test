@@ -22,5 +22,6 @@ import './school/index.js';
 import './economy/index.js';
 import './hobbies/index.js';
 import './story/index.js';
+import './events/index.js';
 import './ui/index.js';
 import './mochi/index.js';

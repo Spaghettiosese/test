@@ -87,7 +87,10 @@ function frame(now) {
 const sheets = (typeof window !== 'undefined' && window.MOONKAI_SHEETS) || {};
 const src = (k, path) => sheets[k] || path;
 const castIds = all('npc').map((n) => n.id);
+// Extra images registered by content: register('image', key, { src: 'assets/...png' }) (outfit sheets, etc.)
+const extraImages = all('image').map((im) => loadImage(im.id, src(im.id, im.src)));
 Promise.all([
+  ...extraImages,
   loadOverrides().catch(() => {}),
   loadImage('misa_sheet', src('misa_sheet', 'assets/moonkai/misa_sheet.png')),
   loadImage('misa_portraits', src('misa_portraits', 'assets/moonkai/misa_portraits.png')),

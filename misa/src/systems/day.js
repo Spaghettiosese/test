@@ -49,7 +49,10 @@ export function sleep(game, { passedOut = false } = {}) {
     : [{ t: 'fade', to: 1, dur: 0.8 }];
   return game.run(steps.concat([{ t: 'call', fn: () => new Promise((res) => game.open('summary', info, res)) }, { t: 'call', fn: () => {
     game.nextDay(passedOut ? 9 * 60 : 6 * 60 + 30);
-    s.energy = Math.round(s.maxEnergy * energy / 100);
+    // mood (cozy) drifts back toward 50 overnight; a cozy evening means a fresher morning
+    const moodBonus = s.mood >= 75 ? 10 : s.mood <= 25 ? -10 : 0;
+    s.mood = Math.round(s.mood + (50 - s.mood) * 0.2);
+    s.energy = Math.max(10, Math.min(s.maxEnergy, Math.round(s.maxEnergy * (energy + moodBonus) / 100)));
     game.passingOut = false;
     if (game.world) game.world.load('home', ...(get('map', 'home').spawns.bed || [4, 10]).map((v, i) => v * 16 + (i ? 14 : 8)), 'down');
     game.dayStartSnap = snapshot(game);
@@ -89,4 +92,5 @@ features('Daily life', [
   'Eat food from the bag to restore energy and mood',
   'Weather forecast for tomorrow shown before sleeping',
   'Autosave every time you sleep (can be turned off)',
+  'Cozy mood matters: a cozy evening (75+) means waking with extra energy, a gloomy one (25-) with less; mood drifts back toward neutral overnight',
 ]);

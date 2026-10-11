@@ -58,6 +58,7 @@ export function sheetFor(key, look) {
   if (canv[key]) return canv[key];
   const base = imgs.misa_sheet;
   if (key === 'misa') return base || null;
+  if (key.startsWith('misa@') && imgs['outfit_' + key.slice(5)]) return (canv[key] = imgs['outfit_' + key.slice(5)]);
   if (imgs['cast_' + key]) return (canv[key] = imgs['cast_' + key]);
   if (!base || !look) return base || null;
   return (canv[key] = recolor(base, lookPairs(look)));

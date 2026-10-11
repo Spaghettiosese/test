@@ -1,6 +1,6 @@
 // Home life: the original chore minigames become optional daily home tasks (Mom pays a small allowance),
 // plus the Mochi petting menu and a few cozy home interactions.
-import { register, registerMany, features } from '../core/registry.js';
+import { register, registerMany, features, get } from '../core/registry.js';
 import { DishGame, SweepGame, LaundryGame, PlantGame, FeedGame } from '../minigames/chores.js';
 import { PetGame } from '../minigames/pet.js';
 
@@ -36,7 +36,7 @@ function doTask(game, id) {
   if (!t) return game.toast(id === 'feed' ? 'Mochi already ate today.' : 'All clean here for today!');
   if (t.done) return game.toast('Already done. Nice work!');
   if (!game.useEnergy(id === 'feed' ? 0 : 4)) return;
-  game.minigame(id, {}).then((r) => {
+  const finish = (r) => {
     if (r.quit) return;
     t.done = true;
     const def = TASKS[id], stars = r.stars + (r.bonus || 0);
@@ -45,10 +45,18 @@ function doTask(game, id) {
     game.addMood(4 + stars);
     game.advance(20);
     if (id === 'feed') { game.state.mochi.fed = true; game.state.mochi.fedDay = game.day; game.state.mochi.affection = Math.min(100, game.state.mochi.affection + 3); }
-    game.stat('homeTasks');
+    game.stat('homeTasks'); game.stat('task_' + id);
     game.bus.emit('homeTask', { id, stars });
     if (ht.list.every((x) => x.done)) { game.toast('All home tasks done! Mom sends a bonus', 'i_star'); game.addMoney(30); game.stat('perfectHomeDays'); }
-  });
+  };
+  const play = () => game.minigame(id === 'feed' && get('minigame', 'mochi_feed') ? 'mochi_feed' : id, {}).then(finish);
+  // Once a chore is mastered (done 5+ times and homemaking 2+) it can be finished quickly for 2 stars.
+  if (id !== 'feed' && (game.state.stats['task_' + id] || 0) >= 5 && game.skillLevel('homemaking') >= 2) {
+    game.run([{ t: 'choice', prompt: TASKS[id].name, options: [
+      { text: 'Quick finish (2 stars)', steps: [{ t: 'call', fn: () => { game.advance(15); finish({ score: 0.7, stars: 2, bonus: 0 }); } }] },
+      { text: 'Do it properly', steps: [{ t: 'call', fn: () => { setTimeout(play, 0); } }] },
+    ] }]);
+  } else play();
 }
 
 const pending = (game, id) => { const t = game.state.homeTasks.list.find((x) => x.id === id); return !!t && !t.done; };
@@ -90,4 +98,5 @@ features('Home', [
   'Mochi\'s bowl shows whether she has eaten today',
   'Sit on the sofa to rest; cuddling Mochi restores more energy and mood',
   'Homemaking skill levels up as you do home tasks',
+  'Mastered home tasks (done 5 times, homemaking level 2) can be quick-finished for 2 stars',
 ]);

@@ -96,6 +96,29 @@ Looks, personalities, schedules, gifts, birthdays and heart events are in `docs/
   `task_feed`, `sofa`, `bookshelf`, `desk`, `stove`; bed uses `interact: { run: (g) => g.sleepPrompt() }`.
 - Sprite names: prefix with your area's map or system (`cafe_`, `town_`, `beach_`, `school_`, `furn_`, `ic_`...).
 
+## Shared interaction ids (placed by map owners, registered by the area in the last column)
+
+Map owners place objects with `use: '<id>'`. Until the registering area lands, the validator reports them as missing;
+that's expected.
+
+| id | placed in | registered by |
+|---|---|---|
+| `shop_mart`, `shop_cafe`, `shop_bait`, `shop_fishmarket`, `shop_salon`, `shop_clinic`, `shop_woodworks`, `shop_stall`, `shop_market`, `shop_ramen`, `shop_noodles`, `shop_shavedice`, `shop_post`, `vending` | mart register, cafe counter, harbour, shotengai, town, beach, post office, lane | economy |
+| `job_cafe`, `job_mart`, `job_library`, `job_clock`, `job_fishmarket` | cafe, mart, library, clock_shop, harbour | economy |
+| `noticeboard` | town noticeboard (requests + story paper stars) | economy (story hooks in through flags/talk) |
+| `museum`, `craft_bench`, `telescope` | library museum corner, yard shed, school_roof + home skylight | hobbies |
+| `class_seat`, `school_notice`, `club_room` | classroom desk_misa, school_halls notice board, club rooms | school |
+| `wardrobe`, `mirror` | home bedroom | cast_art |
+| `mailbox` | yard mailbox | events (parcels, letters) |
+| `mystery_board`, `keeper_trunk`, `lantern_lamp`, `logbook` | attic, lighthouse | story |
+| `offering_box`, `fortune_stand`, `ema_board`, `shrine_bell` | shrine | coast |
+| `bench`, `bus_stop`, `fountain` | anywhere / lane + town | town |
+| `tv`, `radio` | home living room | ui |
+| `decor_box` | home | interiors |
+| `pet_bed`, `cat_tree`, `mochi_toys` | home | mochi |
+| garden plots | `yard` map def field `gardenPlots: [x, y, w, h]` (tiles; make them `dirt`) | hobbies (worldLayer + targetProvider) |
+| fishing / bug spots | any water or grass tile | hobbies (targetProvider) |
+
 ## Ownership (who may edit what)
 
 | area | owns |
@@ -108,7 +131,8 @@ Looks, personalities, schedules, gifts, birthdays and heart events are in `docs/
 | `school` | `src/content/school/**`, `src/minigames/school/**` |
 | `economy` | `src/content/economy/**`, `src/minigames/jobs/**`, `src/ui/shop.js` |
 | `hobbies` | `src/content/hobbies/**`, `src/minigames/hobbies/**` |
-| `story` | `src/content/story/**`, `src/systems/quests.js`, `src/systems/festivals.js` |
+| `story` | `src/content/story/**`, `src/systems/quests.js` |
+| `events` | `src/content/events/**`, `src/systems/festivals.js` |
 | `ui` | `src/ui/**` (except `src/ui/shop.js`), `src/font.js`, `src/content/ui/**` |
 | `mochi` | `src/content/mochi/**`, `src/systems/mochi.js`, `src/minigames/pet.js` |
 | lead (integration) | everything else: `src/core/**`, `src/world/**`, `src/gfx/**`, `src/art.js`, `src/artcache.js`, `src/main.js`, `src/audio.js`, `src/content/index.js`, `src/content/{tiles,icons,music,home_life}.js`, `src/systems/{social,day}.js`, `src/minigames/chores.js`, `tests/*` (shared), `docs/*`, `index.html`, `package.json` |
