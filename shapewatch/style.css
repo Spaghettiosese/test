@@ -384,3 +384,5 @@ body.touch .kit { bottom: auto; top: 1rem; right: .8rem; } body.touch .vitals { 
 .kc-how b { color: #fff; font: italic 700 1.05rem var(--display); letter-spacing: .04em; } .kc-how em { color: var(--gold); font-style: normal; }
 /* low health: red, pulsing numbers */
 .vitals.low #vHp { color: #ff5a62; animation: pulse .8s infinite; }
+
+.push-track { position: relative; } .push-track .ob-fill.a { left: 50%; right: auto; } .push-track .ob-fill.d { right: 50%; left: auto; } .pu-mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: #fff; opacity: .7; }

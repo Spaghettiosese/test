@@ -106,6 +106,13 @@ export class Brain {
       if (role === 'damage') return [c[0] + Math.cos(a) * (pt.r - 2.5), 0, c[2] + Math.sin(a) * (pt.r - 2.5)];
       return [c[0] + side * 3, 0, c[2] + (u.team === 0 ? -pt.r + 1 : pt.r - 1)];
     }
+    if (mode === 'push' && sim.push) {
+      // push: crowd the robot, tank in front (toward the enemy end), supports just behind
+      const R = sim.push, sgn = u.team === 0 ? 1 : -1, yaw = R.yaw, fw = [Math.sin(yaw) * sgn, Math.cos(yaw) * sgn], rt = [fw[1], -fw[0]], at = (f, l) => [R.pos[0] + fw[0] * f + rt[0] * l, 0, R.pos[2] + fw[1] * f + rt[1] * l];
+      if (role === 'tank') return at(2.4, side * 1);
+      if (role === 'damage') return at(0.6 + (idx % 3) * 1.2, side * (2.6 + (idx % 3) * 0.6));
+      return at(-2.4, side * 2.4);
+    }
     if (mode === 'escort' || mode === 'hybrid') {
       const P = sim.payload, atk = u.team === 0, zP = P.pos[2], xP = P.pos[0];
       // positions are along the payload's heading so they work on turning routes

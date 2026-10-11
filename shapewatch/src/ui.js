@@ -26,7 +26,8 @@ export class Minimap {
     const boxes = [...level.boxes].sort((a, b) => a.y1 - b.y1);
     for (const b of boxes) { const h = b.y1; if (h < 0.35) continue; const t = clamp(h / 12, 0, 1), lift = b.y0 > 2.5 ? 0.55 : 1; g.globalAlpha = lift; g.fillStyle = `rgb(${Math.round(70 + t * 90)},${Math.round(88 + t * 95)},${Math.round(120 + t * 85)})`; g.fillRect(X(b.x0), Z(b.z0), (b.x1 - b.x0) * this.ppm, (b.z1 - b.z0) * this.ppm); }
     g.globalAlpha = 1;
-    if (level.path) { g.strokeStyle = 'rgba(255,214,107,.7)'; g.setLineDash([6, 5]); g.lineWidth = 3; g.beginPath(); level.path.forEach((p, i) => (i ? g.lineTo(X(p[0]), Z(p[1])) : g.moveTo(X(p[0]), Z(p[1])))); g.stroke(); g.setLineDash([]); }
+    const lane = level.mode === 'push' ? level.pushLane : level.path;
+    if (lane) { g.strokeStyle = 'rgba(255,214,107,.7)'; g.setLineDash([6, 5]); g.lineWidth = 3; g.beginPath(); lane.forEach((p, i) => (i ? g.lineTo(X(p[0]), Z(p[1])) : g.moveTo(X(p[0]), Z(p[1])))); g.stroke(); g.setLineDash([]); }
     for (const t of [0, 1]) { const sp = level.spawns[t], cx = sp.reduce((a, p) => a + p[0], 0) / sp.length, cz = sp.reduce((a, p) => a + p[2], 0) / sp.length; g.fillStyle = TEAM_HEX[t === viewTeam ? 0 : 1]; g.globalAlpha = 0.7; g.fillRect(X(cx) - 14, Z(cz) - 8, 28, 16); g.globalAlpha = 1; }
     for (const p of level.points || []) { g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(X(p.pos[0]), Z(p.pos[2]), p.r * this.ppm, 0, 7); g.stroke(); }
     this.B = B;
@@ -42,7 +43,7 @@ export class Minimap {
     g.drawImage(this.off, 0, 0); g.setTransform(1, 0, 0, 1, 0, 0);
     const team = me?.team, vt = sim.playerTeam, marks = (x, z, col, r = 4, shape = 'dot', rot = 0) => { const [X, Z] = m(x, z); if (Math.hypot(X - cx, Z - cy) > cx - 3) return; g.fillStyle = col; g.strokeStyle = '#000'; g.lineWidth = 1; g.beginPath(); if (shape === 'tri') { const a = rot - yaw; g.moveTo(X + Math.sin(a) * (r + 2), Z - Math.cos(a) * (r + 2)); g.lineTo(X + Math.sin(a + 2.5) * r, Z - Math.cos(a + 2.5) * r); g.lineTo(X + Math.sin(a - 2.5) * r, Z - Math.cos(a - 2.5) * r); g.closePath(); } else if (shape === 'dia') { g.moveTo(X, Z - r); g.lineTo(X + r, Z); g.lineTo(X, Z + r); g.lineTo(X - r, Z); g.closePath(); } else g.arc(X, Z, r, 0, 7); g.fill(); g.stroke(); };
     // objectives
-    const P = sim.payload; if (P && P.active !== false) marks(P.pos[0], P.pos[2], P.contested ? '#ffd36b' : '#fff', 6, 'dia');
+    const P = sim.payload || sim.push; if (P && P.active !== false) marks(P.pos[0], P.pos[2], P.contested ? '#ffd36b' : sim.push && P.owner >= 0 ? (P.owner === vt ? '#3a9bff' : '#ff4a52') : '#fff', 6, 'dia');
     for (const p of sim.level.points || []) if ((sim.control && sim.control.point === p) || (sim.cap && p === sim.level.points[0]) || (sim.elim?.open && sim.elim.point === p)) { const own = sim.control ? sim.control.owner : sim.cap ? (sim.cap.done ? 0 : -1) : -1; marks(p.pos[0], p.pos[2], own < 0 ? '#e8eef9' : own === vt ? '#3a9bff' : '#ff4a52', 6, 'dia'); }
     for (const p of sim.packs) if (p.ready) marks(p.pos[0], p.pos[2], '#7dff9a', 2.5);
     // units
@@ -146,7 +147,7 @@ export class Hud {
   }
   // ---------------------------------------------------------------- objective bar, one layout per mode
   buildObjective(sim) {
-    const m = sim.modeId, bar = $('objbar'); this.objKey = m; this.o = {};
+    const m = sim.modeId, bar = $('objbar'); this.objKey = m; this.o = {}; bar.classList.remove('ob-def-view');
     const pips = (n) => Array.from({ length: n }, () => '<i></i>').join('');
     if (m === 'escort' || m === 'hybrid') {
       const cps = (sim.level.checkpoints || []).map((d) => `<div class="ob-cp" data-d="${d}" style="left:${(d / sim.level.pathLen * 100).toFixed(1)}%"></div>`).join('');
@@ -156,6 +157,9 @@ export class Hud {
     } else if (m === 'control' || m === 'elim') {
       bar.innerHTML = `<div class="ob-row ctl"><div class="ctl-side a"><div class="ctl-pips" id="cpA">${pips(m === 'elim' ? 3 : 2)}</div><b id="ctlA">0%</b></div><div class="ctl-mid"><div class="ob-time" id="obTime"><span>ROUND 1</span><i id="obOT"></i></div><div class="ctl-point" id="ctlPoint"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="42"/><circle class="fg" id="ctlRing" cx="50" cy="50" r="42" pathLength="100"/></svg><b id="ctlOwner">·</b></div></div><div class="ctl-side d"><b id="ctlD">0%</b><div class="ctl-pips" id="cpD">${pips(m === 'elim' ? 3 : 2)}</div></div></div>
         <div class="ob-track ctl-track"><div class="ob-fill a" id="ctlFillA"></div><div class="ob-fill d" id="ctlFillD"></div></div><div class="ob-status" id="obStatus"></div>`;
+    } else if (m === 'push') {
+      bar.innerHTML = `<div class="ob-row"><div class="ob-dist atk"><b id="puA">0</b><small>M</small></div><div class="ob-time" id="obTime"><span>6:00</span><i id="obOT"></i></div><div class="ob-dist def"><b id="puD">0</b><small>M</small></div></div>
+        <div class="ob-track push-track"><div class="ob-fill a" id="puFillA"></div><div class="ob-fill d" id="puFillD"></div><i class="pu-mid"></i><div class="ob-pay" id="puBot"><span id="puN">0</span></div></div><div class="ob-status" id="obStatus"></div>`;
     } else if (m === 'tdm') {
       bar.innerHTML = `<div class="ob-row"><div class="ob-dist atk big"><b id="tdA">0</b></div><div class="ob-time" id="obTime"><span>8:00</span><i id="obOT">FIRST TO ${sim.scoreTarget}</i></div><div class="ob-dist def big"><b id="tdD">0</b></div></div><div class="ob-track"><div class="ob-fill a" id="tdFillA"></div><div class="ob-fill d" id="tdFillD"></div></div><div class="ob-status" id="obStatus"></div>`;
     } else if (m === 'ffa') {
@@ -188,10 +192,17 @@ export class Hud {
       set('ctlOwner', c.owner < 0 ? '·' : c.owner === vt ? '▲' : '▼'); $('ctlPoint').classList.toggle('contested', !!c.contested);
       $('cpA').children[0].classList.toggle('on', sim.wins[vt] >= 1); $('cpA').children[1].classList.toggle('on', sim.wins[vt] >= 2); $('cpD').children[0].classList.toggle('on', sim.wins[1 - vt] >= 1); $('cpD').children[1].classList.toggle('on', sim.wins[1 - vt] >= 2);
       $('obStatus').textContent = sim.state === 'setup' ? 'TAKE AND HOLD THE POINT' : c.owner < 0 ? 'POINT IS NEUTRAL: CAPTURE IT' : c.owner === vt ? 'YOUR TEAM CONTROLS THE POINT' : 'ENEMY CONTROLS THE POINT';
+    } else if (m === 'push') {
+      const R = sim.push, mine = R.best[vt], theirs = R.best[1 - vt], half = R.half, sgn = vt === 0 ? 1 : -1;
+      timeEl.textContent = sim.state === 'setup' ? String(t) : fmtTime(t); $('obTime').classList.toggle('ot', sim.inOvertime); set('obOT', sim.inOvertime ? 'OVERTIME ' + Math.max(0, sim.overtime).toFixed(1) : sim.state === 'setup' ? 'SETUP' : '');
+      set('puA', mine.toFixed(1)); set('puD', theirs.toFixed(1)); $('puFillA').style.width = mine / half * 50 + '%'; $('puFillD').style.width = theirs / half * 50 + '%';
+      $('puBot').style.left = 50 + sgn * R.d / half * 50 + '%'; $('puBot').classList.toggle('contested', !!R.contested); set('puN', R.present[vt] || 0);
+      const st = sim.state === 'setup' ? 'TAKE THE ROBOT AND PUSH IT TO THEIR SPAWN' : R.contested ? 'ROBOT CONTESTED' : R.owner === vt ? (R.walking ? 'ROBOT HEADING TO YOUR BARRICADE' : 'YOUR TEAM IS PUSHING') : R.owner >= 0 ? (R.walking ? 'ENEMY TAKING THE ROBOT' : 'ENEMY IS PUSHING') : 'TAKE THE ROBOT';
+      $('obStatus').textContent = st; $('obStatus').className = 'ob-status' + (R.owner === vt && !R.contested ? ' good' : R.owner >= 0 && R.owner !== vt && !R.contested ? ' bad' : '');
     } else if (m === 'elim') {
       const E = sim.elim, alive = (tm) => sim.units.filter((u) => u.team === tm && !u.deploy && u.alive).length, a = alive(vt), dd = alive(1 - vt);
       timeEl.textContent = 'ROUND ' + sim.round; $('obTime').classList.toggle('ot', !!E.open);
-      set('obOT', sim.state === 'setup' ? 'SETUP ' + Math.ceil(sim.setupT) : sim.state === 'roundbreak' ? 'ROUND OVER' : E.open ? 'POINT OPEN' : 'POINT IN ' + Math.ceil(sim.timer));
+      set('obOT', sim.state === 'setup' ? 'SETUP ' + Math.ceil(sim.setupT) : sim.state === 'roundbreak' ? 'ROUND OVER' : E.open ? 'POINT OPEN · ' + Math.ceil(sim.timer) : 'POINT IN ' + Math.ceil(sim.timer));
       set('ctlA', String(a)); set('ctlD', String(dd)); $('ctlFillA').style.width = a * 10 + '%'; $('ctlFillD').style.width = dd * 10 + '%';
       const hold = Math.max(E.hold[0], E.hold[1]) / 6, ht = E.hold[0] >= E.hold[1] ? 0 : 1;
       $('ctlRing').style.strokeDasharray = `${E.open ? hold * 100 : 0} 100`; $('ctlRing').style.stroke = ht === vt ? '#3a9bff' : '#ff4a52'; set('ctlOwner', E.open ? '◆' : '·');
@@ -354,6 +365,7 @@ export class Hud {
     }
     const P = sim.payload, atk = me.team === 0;
     if (P && P.active !== false) mk('payload', 'obj', `<span class="dia"></span>${atk ? 'ESCORT' : 'DEFEND'}<small>${Math.round(v3.dist2d(P.pos, me.pos))} M</small>`, [P.pos[0], P.pos[1] + 3.2, P.pos[2]], true);
+    const R = sim.push; if (R) mk('robot', 'obj', `<span class="dia"></span>${R.contested ? 'CONTESTED' : R.owner === me.team ? 'PUSH' : R.owner >= 0 ? 'STOP THEM' : 'TAKE THE ROBOT'}<small>${Math.round(v3.dist2d(R.pos, me.pos))} M</small>`, [R.pos[0], 3.2, R.pos[2]], true);
     const pt = sim.control?.point || (sim.elim?.open ? sim.elim.point : null) || (sim.cap ? sim.level.points?.[0] : null); if (pt && (sim.control || sim.elim?.open || (sim.cap && !sim.cap.done))) { const own = sim.control ? sim.control.owner : -1, label = own < 0 ? 'CAPTURE' : own === vt ? 'HOLD' : 'RETAKE'; mk('point', 'obj', `<span class="dia"></span>${sim.modeId === 'hybrid' ? (atk ? 'CAPTURE' : 'DEFEND') : label}<small>${Math.round(v3.dist2d(pt.pos, me.pos))} M</small>`, [pt.pos[0], 4.2, pt.pos[2]], true); }
     sim.packs.forEach((p, i) => { if (p.ready && v3.dist2d(p.pos, me.pos) < 30 && me.hp < me.maxHp) mk('p' + i, 'pack', '', [p.pos[0], 1.5, p.pos[2]]); });
     for (const p of sim.pings || []) if (p.team === me.team) { const label = { enemy: 'ENEMY', go: 'GO HERE', objective: 'OBJECTIVE', health: 'HEALTH', help: 'NEEDS HELP', ally: 'ALLY', defend: 'DEFEND' }[p.kind] || 'PING'; mk('ping' + p.id, 'ping ' + p.kind, `<span class="pi" style="--c:${pingColor(p.kind)}"></span>${label}<small>${p.owner.isPlayer ? 'YOUR PING' : 'PINGED BY ' + p.owner.name.toUpperCase()} · ${Math.round(v3.dist2d(p.pos, me.pos))} M</small>`, [p.pos[0], p.pos[1] + 1.4, p.pos[2]], true); }

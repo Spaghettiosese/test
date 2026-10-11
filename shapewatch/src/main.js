@@ -68,7 +68,7 @@ function startAttract() {
   hideAll(); show('menu'); menuScreen?.refresh(settings);
 }
 // Quick Play: a random mode, map and side, so the next match is never the same as the last
-const QUICK = ['escort', 'escort', 'hybrid', 'control', 'control', 'tdm'];
+const QUICK = ['escort', 'escort', 'hybrid', 'control', 'control', 'push', 'tdm'];
 let quickMatch = false, nextT = 0;
 function startQuick() {
   settings.mode = QUICK[Math.floor(Math.random() * QUICK.length)];
@@ -77,7 +77,7 @@ function startQuick() {
 }
 function startMatch(quick = false) {
   sfx.unlock(); voice.unlock(); stopReplay(true); save(); quickMatch = quick === true; nextT = 0;
-  const M = MODES[settings.mode], sym = settings.mode === 'control' || settings.mode === 'tdm' || settings.mode === 'elim', team = M.teams ? (sym ? (Math.random() < 0.5 ? 0 : 1) : settings.side) : 0;
+  const M = MODES[settings.mode], sym = settings.mode === 'control' || settings.mode === 'tdm' || settings.mode === 'elim' || settings.mode === 'push', team = M.teams ? (sym ? (Math.random() < 0.5 ? 0 : 1) : settings.side) : 0;
   const variant = quickMatch || settings.mode === 'training' ? null : settings.variant || null;
   sim = new Sim({ playerTeam: M.teams ? team : 0, playerHero: settings.hero, difficulty: settings.diff, mutators: false, variant, seed: (Math.random() * 1e6) | 0, mode: settings.mode, map: settings.map, roster: true });
   if (settings.mode === 'training') sim.setupT = 9999;
@@ -113,6 +113,7 @@ const BRIEF = {
   hybrid: (a) => [a ? 'ATTACK' : 'DEFEND', a ? 'CAPTURE THE POINT, THEN ESCORT THE PAYLOAD' : 'DEFEND THE POINT, THEN THE PAYLOAD', a ? '#5ab0ff' : '#ff6a72'],
   control: () => ['CONTROL', 'CAPTURE AND HOLD ' + (sim.control?.point?.name || 'THE POINT') + ' · BEST OF THREE', '#ffd36b'],
   elim: () => ['ELIMINATION', 'NO RESPAWNS · FIRST TO THREE ROUNDS', '#ff9a4a'],
+  push: () => ['PUSH', 'TAKE THE ROBOT AND DRIVE IT TO THE ENEMY SPAWN', '#ffd36b'],
   tdm: () => ['TEAM DEATHMATCH', 'FIRST TO ' + sim.scoreTarget + ' ELIMINATIONS', '#ff9a4a'],
   ffa: () => ['FREE FOR ALL', 'FIRST TO ' + sim.scoreTarget + ' ELIMINATIONS', '#c79bff'],
   training: () => ['TRAINING RANGE', 'TRY EVERY ABILITY · INFINITE ULTIMATE', '#7dffb0'],
@@ -386,7 +387,7 @@ function driveMusic(dt) {
   music.setMood(mood, mood === 'menu' ? null : theme);
   if (mood === 'match' && p) {
     let near = 0; for (const u of sim.units) if (u.alive && !u.deploy && u.team !== p.team && Math.hypot(u.pos[0] - p.pos[0], u.pos[2] - p.pos[2]) < 26) near++;
-    const contested = sim.payload?.contested || sim.control?.contested || sim.cap?.contested;
+    const contested = sim.payload?.contested || sim.control?.contested || sim.cap?.contested || sim.push?.contested;
     music.setIntensity(0.12 + heat * 0.7 + Math.min(4, near) * 0.07 + (contested ? 0.25 : 0) + (sim.state === 'setup' ? -0.1 : 0));
   }
 }

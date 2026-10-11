@@ -134,6 +134,43 @@ export class ControlMode extends Base {
   }
 }
 
+// ------------------------------------------------------------------ push: one robot in the middle, push it toward their spawn
+export const PUSH_RADIUS = 5;
+export class PushMode extends Base {
+  constructor(sim) { super(sim); this.id = 'push'; }
+  init() {
+    const s = this.sim, [a, b] = s.level.pushLane, len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    this.a = a; this.dir = [(b[0] - a[0]) / len, (b[1] - a[1]) / len]; this.half = len / 2;
+    s.timer = s.level.pushTime || 420; s.inOvertime = false; s.overtime = 0;
+    s.push = { d: 0, best: [0, 0], owner: -1, contested: false, pushers: 0, present: [0, 0], walking: false, active: true, pos: this.at(0), yaw: Math.atan2(this.dir[0], this.dir[1]), half: this.half, speed: 0 };
+  }
+  at(d) { const t = this.half + d; return [this.a[0] + this.dir[0] * t, 0, this.a[1] + this.dir[1] * t]; }
+  respawn() { return 7; }
+  spawnList(u) { return this.sim.level.spawns[u.team]; }
+  step(dt) {
+    const s = this.sim, R = s.push, pr = presence(s, R.pos, PUSH_RADIUS, 3.5), a = pr.n[0] || 0, b = pr.n[1] || 0, slip = s.mutator?.id === 'blizzard' ? 1.3 : 1;
+    R.present = [a, b]; R.contested = a > 0 && b > 0; R.pushers = a + b; R.speed = 0;
+    if (!R.contested && (a || b)) {
+      const t = a ? 0 : 1, sgn = t === 0 ? 1 : -1, n = a || b; R.owner = t;
+      // the robot first walks to this team's barricade (their furthest push), then starts pushing it
+      if (sgn * R.d < R.best[t] - 0.3) { R.d += sgn * 2.5 * dt; R.walking = true; R.speed = 2.5; }
+      else { R.walking = false; R.speed = 1.3 * (1 + 0.15 * (Math.min(n, 3) - 1)) * slip; R.d += sgn * R.speed * dt; R.best[t] = Math.max(R.best[t], sgn * R.d); for (const u of s.units) if (u.alive && u.team === t && !u.deploy && v3.dist2d(u.pos, R.pos) < PUSH_RADIUS) u.stats.obj += dt; }
+    }
+    R.d = clamp(R.d, -this.half, this.half); R.pos = this.at(R.d);
+    for (const t of [0, 1]) if (R.best[t] >= this.half - 0.5) { s.finish(t, 'Pushed the robot all the way'); return; }
+    // the clock: the leader wins at zero, unless the trailing team is pushing (overtime)
+    const lead = R.best[0] === R.best[1] ? -1 : R.best[0] > R.best[1] ? 0 : 1, trailing = lead < 0 ? -1 : 1 - lead;
+    const trailingPushing = trailing >= 0 && R.owner === trailing && (R.present[trailing] > 0);
+    if (!s.inOvertime) { s.timer -= dt; if (s.timer <= 0) { s.timer = 0; if (trailingPushing || R.contested || lead < 0) { s.inOvertime = true; s.overtime = 12; s.overtimeSeen = true; s.emit({ type: 'overtime' }); } else s.finish(lead, 'Pushed further when time ran out'); } }
+    else {
+      const lead2 = R.best[0] === R.best[1] ? -1 : R.best[0] > R.best[1] ? 0 : 1;
+      if (lead2 >= 0 && lead2 !== lead) { /* lead changed hands: keep fighting */ }
+      s.overtime -= (R.present[0] || R.present[1]) ? 0 : dt * 1.4; s.overtime = Math.min(12, s.overtime + (R.contested ? dt * 0.5 : 0));
+      if (s.overtime <= 0) s.finish(lead2 < 0 ? (s.rand() < 0.5 ? 0 : 1) : lead2, lead2 < 0 ? 'Dead even: decided by a coin toss' : 'Pushed further in overtime');
+    }
+  }
+}
+
 // ------------------------------------------------------------------ elimination (arcade): no respawns, first to three rounds
 export class EliminationMode extends Base {
   constructor(sim) { super(sim); this.id = 'elim'; }
@@ -153,7 +190,9 @@ export class EliminationMode extends Base {
       if (a && b) { /* contested: frozen */ } else if (!a && !b) { E.hold[0] = Math.max(0, E.hold[0] - dt * 0.5); E.hold[1] = Math.max(0, E.hold[1] - dt * 0.5); }
       for (const t of [0, 1]) if (E.hold[t] >= 6) { this.endRound(t, 'POINT CAPTURED'); return; }
     }
-    s.timer = Math.max(0, 60 - E.roundT);
+    // sudden death: after two and a half minutes the team with more players (then more health) left takes it
+    if (E.roundT > 150) { const hp = (t) => s.units.filter((u) => u.team === t && !u.deploy && u.alive).reduce((a, u) => a + (u.hp + u.armor) / (u.maxHp + u.maxArmor), 0); const w = alive[0] !== alive[1] ? (alive[0] > alive[1] ? 0 : 1) : hp(0) >= hp(1) ? 0 : 1; this.endRound(w, 'TIME: MORE PLAYERS STANDING'); return; }
+    s.timer = E.open ? Math.max(0, 150 - E.roundT) : Math.max(0, 60 - E.roundT);
   }
   endRound(w, how) {
     const s = this.sim; s.wins[w]++;
@@ -201,6 +240,7 @@ export function createMode(sim, id) {
     case 'hybrid': return new EscortMode(sim, true);
     case 'control': return new ControlMode(sim);
     case 'elim': return new EliminationMode(sim);
+    case 'push': return new PushMode(sim);
     case 'tdm': return new DeathmatchMode(sim, false);
     case 'ffa': return new DeathmatchMode(sim, true);
     case 'training': return new TrainingMode(sim);

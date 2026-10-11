@@ -75,6 +75,7 @@ export class Recorder {
       zones: s.zones.map(snapZone), cores: s.cores.map((c) => ({ pos: [...c.pos], team: c.team })), packs: s.packs.map((p) => p.ready),
       payload: P ? { pos: [...P.pos], yaw: P.yaw, pushers: P.pushers, contested: P.contested, dist: P.dist, active: P.active, cp: P.cp, defenders: P.defenders } : null,
       control: s.control ? { point: s.control.point, owner: s.control.owner, capTeam: s.control.capTeam, capProg: s.control.capProg, contested: s.control.contested, ctl: [...s.control.ctl], present: [...s.control.present] } : null,
+      push: s.push ? { pos: [...s.push.pos], yaw: s.push.yaw, d: s.push.d, best: [...s.push.best], owner: s.push.owner, contested: s.push.contested, pushers: s.push.pushers, present: [...s.push.present], active: true, half: s.push.half, walking: s.push.walking } : null,
       elim: s.elim ? { point: s.elim.point, open: s.elim.open, hold: [...s.elim.hold], present: [...s.elim.present], roundT: s.elim.roundT } : null,
       cap: s.cap ? { prog: s.cap.prog, contested: s.cap.contested, done: s.cap.done } : null, mutator: s.mutator ? { id: s.mutator.id } : null, milestone: s.milestone || 0,
       events: this.pending,
@@ -155,7 +156,7 @@ export class ReplayPlayer {
     r.units = units; r.time = first ? a.t : a.t + (b.t - a.t) * k;
     r.projs = a.projs.map((p) => ({ id: p.id, pos: p.pos, spec: { color: p.color, size: p.size } }));
     r.zones = a.zones.map((z) => ({ ...z })); r.cores = a.cores; r.packs.forEach((p, i) => { p.ready = a.packs[i] ?? true; });
-    r.payload = a.payload; r.control = a.control; r.elim = a.elim; r.cap = a.cap; r.mutator = a.mutator; r.milestone = a.milestone;
+    r.payload = a.payload; r.control = a.control; r.elim = a.elim; r.push = a.push; r.cap = a.cap; r.mutator = a.mutator; r.milestone = a.milestone;
     r.player = units.find((u) => u.id === this.focus) || null;
   }
   resolve(o) {

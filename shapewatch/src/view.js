@@ -66,7 +66,7 @@ export class View {
     const L = sim.level; this.levelRef = L; this.theme = THEMES[L.theme];
     this.applyTheme(this.theme);
     this.levelRoot = buildLevelVisuals(this.scene, L);
-    if (L.pathInfo) this.buildPayload();
+    if (L.pathInfo || L.mode === 'push') this.buildPayload();
     this.buildPoint(L);
     this.buildPacks(sim);
     this.fwdPads = (L.fwd || []).map((list) => {
@@ -283,12 +283,12 @@ export class View {
 
   // ------------------------------------------------------------------ world objects
   syncWorld(dt) {
-    const sim = this.sim, t = sim.time, P = sim.payload, vt = this.viewTeam();
+    const sim = this.sim, t = sim.time, P = sim.payload || sim.push, vt = this.viewTeam();
     if (this.payload) {
       const show = !!P && P.active !== false; this.payload.visible = show;
       if (show) {
         this.payload.position.set(P.pos); this.payload.setEuler(0, (P.yaw || 0) / DEG, 0); this.payOrb.position.set([0, 1.75 + Math.sin(t * 2) * 0.05, -0.2]);
-        const col = P.contested ? '#ffd36b' : '#3a9bff'; this.zoneMat.color = col; this.zoneMat.emissive = col; this.zoneMat.opacity = 0.16 + (P.pushers ? 0.1 : 0); this.payLight.intensity = 10 + Math.sin(t * 3) * 3;
+        const col = P.contested ? '#ffd36b' : sim.push ? (P.owner >= 0 ? this.teamHex(P.owner) : '#e8eef9') : '#3a9bff'; this.zoneMat.color = col; this.zoneMat.emissive = col; this.zoneMat.opacity = 0.16 + (P.pushers ? 0.1 : 0); this.payLight.intensity = 10 + Math.sin(t * 3) * 3;
       }
     }
     this.fwdPads.forEach((m, i) => { m.visible = (sim.milestone || 0) > i; });

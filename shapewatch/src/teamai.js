@@ -82,6 +82,11 @@ export class TeamBrain {
         this.urgent = short && (capture ? s.cap.present > 0 : P.pushers > 0);
         if (!capture && P.pushers > 0) { const c = alive.filter((u) => !u.isPlayer && u.def.role !== 'support').sort((a, b) => v3.dist2d(a.pos, P.pos) - v3.dist2d(b.pos, P.pos))[0]; if (c) this.roles.set(c.id, 'contest'); }
       }
+    } else if (m === 'push' && s.push) {
+      const R = s.push, behind = R.best[this.team] < R.best[1 - this.team];
+      this.urgent = s.timer < 30 && (behind || R.owner !== this.team);
+      const tank = alive.find((u) => u.def.role === 'tank' && !u.isPlayer), sup = alive.filter((u) => u.def.role === 'support' && !u.isPlayer).sort((a, b) => v3.dist2d(a.pos, R.pos) - v3.dist2d(b.pos, R.pos))[0];
+      for (const u of [tank, sup]) if (u) this.roles.set(u.id, 'sit');
     } else if (m === 'control' && s.control) {
       const c = s.control, them = c.ctl[1 - this.team];
       this.urgent = (c.owner === 1 - this.team && them > 85) || (c.owner !== this.team && c.ctl[this.team] > 90);

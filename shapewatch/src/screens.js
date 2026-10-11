@@ -25,16 +25,29 @@ const pct = (a, b) => (b ? Math.round(a / b * 100) : 0);
 const fmtT = (s) => { s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? `${h}h ${m}m` : `${m}m ${s % 60}s`; };
 
 // ------------------------------------------------------------------ level thumbnails
+// map cards: a little diorama of the level (long axis across, boxes extruded with the theme's colours)
 export function drawLevelPreview(canvas, level, theme) {
-  const g = canvas.getContext('2d'), B = level.bounds, W = B.x1 - B.x0, H = B.z1 - B.z0, k = Math.min((canvas.width - 14) / W, (canvas.height - 14) / H), ox = (canvas.width - W * k) / 2, oz = (canvas.height - H * k) / 2;
-  const grad = g.createLinearGradient(0, 0, 0, canvas.height); const sky = theme.horizon.map((v) => Math.round(v * 120)), zen = theme.zenith.map((v) => Math.round(v * 90)); grad.addColorStop(0, `rgb(${zen})`); grad.addColorStop(1, `rgb(${sky})`); g.fillStyle = grad; g.fillRect(0, 0, canvas.width, canvas.height);
-  g.fillStyle = 'rgba(8,14,28,.55)'; g.fillRect(ox - 3, oz - 3, W * k + 6, H * k + 6);
-  const X = (x) => ox + (x - B.x0) * k, Z = (z) => oz + (z - B.z0) * k, boxes = [...level.boxes].sort((a, b) => a.y1 - b.y1);
-  for (const b of boxes) { if (b.y1 < 0.35) continue; const t = Math.min(1, b.y1 / 12), a = b.y0 > 2.5 ? 0.5 : 1; g.globalAlpha = a; g.fillStyle = `rgb(${Math.round(90 + t * 100)},${Math.round(110 + t * 95)},${Math.round(140 + t * 85)})`; g.fillRect(X(b.x0), Z(b.z0), Math.max(1, (b.x1 - b.x0) * k), Math.max(1, (b.z1 - b.z0) * k)); }
-  g.globalAlpha = 1;
-  if (level.path) { g.strokeStyle = '#ffd36b'; g.lineWidth = 2; g.setLineDash([5, 4]); g.beginPath(); level.path.forEach((p, i) => (i ? g.lineTo(X(p[0]), Z(p[1])) : g.moveTo(X(p[0]), Z(p[1])))); g.stroke(); g.setLineDash([]); }
-  for (const p of level.points || []) { g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.arc(X(p.pos[0]), Z(p.pos[2]), Math.max(4, p.r * k), 0, 7); g.stroke(); }
-  [['#3a9bff', 0], ['#ff4a52', 1]].forEach(([c, t]) => { const sp = level.spawns[t], x = sp.reduce((a, p) => a + p[0], 0) / sp.length, z = sp.reduce((a, p) => a + p[2], 0) / sp.length; g.fillStyle = c; g.fillRect(X(x) - 7, Z(z) - 4, 14, 8); });
+  const g = canvas.getContext('2d'), cw = canvas.width, ch = canvas.height, B = level.bounds, Wx = B.x1 - B.x0, Hz = B.z1 - B.z0, rot = Hz > Wx;
+  const Lg = rot ? Hz : Wx, Sh = rot ? Wx : Hz, tilt = 0.55, hk = 0.5, k = Math.min((cw - 16) / Lg, (ch - 24) / (Sh * tilt + 16 * hk));
+  const U = (x, z) => (rot ? z - B.z0 : x - B.x0), V = (x, z) => (rot ? B.x1 - x : z - B.z0);
+  const ox = (cw - Lg * k) / 2, oy = (ch - Sh * tilt * k) / 2 + 6 * hk * k, P = (u, v, y) => [ox + u * k, oy + v * tilt * k - y * hk * k];
+  const sky = g.createLinearGradient(0, 0, 0, ch), z = theme.zenith.map((v) => Math.round(v * 255)), h = theme.horizon.map((v) => Math.round(v * 255));
+  sky.addColorStop(0, `rgb(${z})`); sky.addColorStop(1, `rgb(${h})`); g.fillStyle = sky; g.fillRect(0, 0, cw, ch);
+  const poly = (pts, fill) => { g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath(); g.fillStyle = fill; g.fill(); };
+  poly([P(0, 0, 0), P(Lg, 0, 0), P(Lg, Sh, 0), P(0, Sh, 0)], theme.ground);
+  const col = (m) => (theme.mats[m] || theme.mats.wallA)[m === 'neonA' || m === 'neonB' ? 2 : 0] || theme.mats.wallA[0];
+  const sh = (hex, f) => { const c = hex.replace('#', ''), n = parseInt(c.length === 3 ? c.split('').map((x) => x + x).join('') : c, 16); return `rgb(${Math.min(255, ((n >> 16) & 255) * f) | 0},${Math.min(255, ((n >> 8) & 255) * f) | 0},${Math.min(255, (n & 255) * f) | 0})`; };
+  if (level.path) { g.strokeStyle = 'rgba(255, 211, 107, .9)'; g.lineWidth = 2; g.setLineDash([5, 4]); g.beginPath(); level.path.forEach(([x, zz], i) => { const p = P(U(x, zz), V(x, zz), 0.1); i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); }); g.stroke(); g.setLineDash([]); }
+  for (const pt of level.points || []) { const c = P(U(pt.pos[0], pt.pos[2]), V(pt.pos[0], pt.pos[2]), 0); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(c[0], c[1], Math.max(3, pt.r * k), Math.max(2, pt.r * k * tilt), 0, 0, 7); g.stroke(); }
+  // painter's order: far rows first, low boxes before tall ones
+  const boxes = level.boxes.filter((b) => b.y1 > 0.3 && b.m !== 'cliff').map((b) => { const us = [U(b.x0, b.z0), U(b.x1, b.z1)], vs = [V(b.x0, b.z0), V(b.x1, b.z1)]; return { b, u0: Math.min(...us), u1: Math.max(...us), v0: Math.min(...vs), v1: Math.max(...vs) }; }).sort((a, c) => a.v1 - c.v1 || a.b.y1 - c.b.y1);
+  for (const { b, u0, u1, v0, v1 } of boxes) {
+    const c = col(b.m);
+    poly([P(u0, v1, b.y0), P(u1, v1, b.y0), P(u1, v1, b.y1), P(u0, v1, b.y1)], sh(c, 0.62));
+    poly([P(u0, v0, b.y1), P(u1, v0, b.y1), P(u1, v1, b.y1), P(u0, v1, b.y1)], sh(c, 1.08));
+  }
+  [['#3a9bff', 0], ['#ff4a52', 1]].forEach(([c, t]) => { const sp = level.spawns[t], x = sp.reduce((a, p) => a + p[0], 0) / sp.length, zz = sp.reduce((a, p) => a + p[2], 0) / sp.length, p = P(U(x, zz), V(x, zz), 0); g.fillStyle = c; g.beginPath(); g.arc(p[0], p[1], 4, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 1; g.stroke(); });
+  const vg = g.createLinearGradient(0, ch * 0.6, 0, ch); vg.addColorStop(0, 'rgba(6,10,22,0)'); vg.addColorStop(1, 'rgba(6,10,22,.55)'); g.fillStyle = vg; g.fillRect(0, 0, cw, ch);
 }
 
 // ------------------------------------------------------------------ main menu
@@ -42,7 +55,7 @@ export class MenuScreen {
   constructor({ portraits, career, sfx, onPlay, onQuick, onHeroes, onCareer, onSettings, onHelp }) { Object.assign(this, { portraits, career, sfx }); this.root = $('menu'); this.cb = { onPlay, onQuick, onHeroes, onCareer, onSettings, onHelp }; this.build(); }
   build() {
     this.root.innerHTML = `<div class="m-top"><div class="m-logo"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" class="l1"/><path d="M50 14 L82 68 H18 Z" class="l2"/><circle cx="50" cy="50" r="12" class="l3"/></svg><div><b>SHAPE<i>WATCH</i></b><small>A SHAPEFORGE HERO SHOOTER</small></div></div><div class="m-profile panel" id="mProfile"></div></div>
-      <div class="m-body"><nav class="m-nav"><button class="m-btn primary" data-a="play" type="button">PLAY <small>7 MODES · ARCADE RULES · 5 MAPS · 26 HEROES</small></button><button class="m-btn" data-a="quick" type="button">QUICK PLAY <small id="mQuick">RANDOM MODE, MAP AND SIDE</small></button><button class="m-btn" data-a="heroes" type="button">HEROES <small>STATS · ABILITIES · VOICELINES</small></button><button class="m-btn" data-a="career" type="button">CAREER <small>LEVEL · MEDALS · HISTORY</small></button><button class="m-btn" data-a="settings" type="button">SETTINGS <small>AUDIO · HUD · CONTROLS</small></button><button class="m-btn" data-a="help" type="button">HOW TO PLAY <small>CONTROLS · SYSTEMS</small></button></nav>
+      <div class="m-body"><nav class="m-nav"><button class="m-btn primary" data-a="play" type="button">PLAY <small>8 MODES · ARCADE RULES · 5 MAPS · 26 HEROES</small></button><button class="m-btn" data-a="quick" type="button">QUICK PLAY <small id="mQuick">RANDOM MODE, MAP AND SIDE</small></button><button class="m-btn" data-a="heroes" type="button">HEROES <small>STATS · ABILITIES · VOICELINES</small></button><button class="m-btn" data-a="career" type="button">CAREER <small>LEVEL · MEDALS · HISTORY</small></button><button class="m-btn" data-a="settings" type="button">SETTINGS <small>AUDIO · HUD · CONTROLS</small></button><button class="m-btn" data-a="help" type="button">HOW TO PLAY <small>CONTROLS · SYSTEMS</small></button></nav>
       <aside class="m-daily panel" id="mDaily"></aside></div><div class="m-foot">Built on the ShapeForge Engine · every hero, map, voice and sound is generated in code</div>`;
     for (const b of this.root.querySelectorAll('.m-btn')) { b.onmouseenter = () => this.sfx.ui('hover'); b.onclick = () => { this.sfx.unlock(); this.sfx.ui('select'); ({ play: this.cb.onPlay, quick: this.cb.onQuick, heroes: this.cb.onHeroes, career: this.cb.onCareer, settings: this.cb.onSettings, help: this.cb.onHelp })[b.dataset.a](); }; }
   }
@@ -106,7 +119,7 @@ export class SelectScreen {
   open(sim, { mid = false, onReady, onPick, onSkin, skin = 'default' } = {}) {
     this.sim = sim; this.mid = mid; this.onReady = onReady; this.onPick = onPick; this.onSkin = onSkin; this.open_ = true; this.t = 0;
     const me = sim.player; this.sel = me.hero; $('select').hidden = false; $('selSkin').value = skin;
-    const M = MODES[sim.modeId]; $('selSide').textContent = sim.modeId === 'ffa' ? 'FREE FOR ALL' : sim.modeId === 'training' ? 'TRAINING' : sim.playerTeam === 0 ? (sim.modeId === 'control' || sim.modeId === 'elim' || sim.modeId === 'tdm' ? 'TEAM BLUE' : 'ATTACK') : (sim.modeId === 'control' || sim.modeId === 'elim' || sim.modeId === 'tdm' ? 'TEAM RED' : 'DEFEND'); $('selSide').className = sim.playerTeam === 1 && sim.modeId !== 'ffa' ? 'def' : ''; $('selMap').textContent = sim.level.name; $('selModeName').textContent = M.name;
+    const M = MODES[sim.modeId]; $('selSide').textContent = sim.modeId === 'ffa' ? 'FREE FOR ALL' : sim.modeId === 'training' ? 'TRAINING' : sim.playerTeam === 0 ? (sim.modeId === 'control' || sim.modeId === 'elim' || sim.modeId === 'tdm' || sim.modeId === 'push' ? 'TEAM BLUE' : 'ATTACK') : (sim.modeId === 'control' || sim.modeId === 'elim' || sim.modeId === 'tdm' || sim.modeId === 'push' ? 'TEAM RED' : 'DEFEND'); $('selSide').className = sim.playerTeam === 1 && sim.modeId !== 'ffa' ? 'def' : ''; $('selMap').textContent = sim.level.name; $('selModeName').textContent = M.name;
     $('selReady').textContent = mid ? 'CONFIRM' : 'READY'; document.querySelector('.sel-assemble span').textContent = mid ? 'CHOOSE YOUR HERO' : sim.modeId === 'ffa' || sim.modeId === 'training' ? 'PICK YOUR HERO' : 'ASSEMBLE YOUR TEAM';
     $('selTeam').style.display = mid || sim.modeId === 'ffa' || sim.modeId === 'training' ? 'none' : ''; this.buildTeam(); this.refresh();
     $('selSkin').onchange = () => { this.sfx.ui('select'); this.onSkin?.($('selSkin').value); };
@@ -275,7 +288,7 @@ export class EndScreen {
   render(sim, report, { onAgain, onMenu, onHighlights, clips }) {
     const me = sim.player, won = sim.winner === sim.playerTeam || (sim.modeId === 'ffa' && sim.winnerUnit === me), side = SIDE_MODES.has(sim.modeId);
     const winText = sim.modeId === 'ffa' ? (sim.winnerUnit?.isPlayer ? 'YOU' : sim.winnerUnit?.name?.toUpperCase() || '') + ' WIN' + (sim.winnerUnit?.isPlayer ? '' : 'S') : sim.modeId === 'training' ? 'PRACTICE' : side ? (sim.winner === 0 ? 'ATTACKERS WIN' : 'DEFENDERS WIN') : (sim.winner === sim.playerTeam ? 'YOUR TEAM WINS' : 'ENEMY TEAM WINS');
-    const objMode = sim.modeId === 'escort' || sim.modeId === 'hybrid' || sim.modeId === 'control' || sim.modeId === 'elim';
+    const objMode = sim.modeId === 'escort' || sim.modeId === 'hybrid' || sim.modeId === 'control' || sim.modeId === 'elim' || sim.modeId === 'push';
     const us = sim.units.filter((u) => !u.deploy && !u.dummy), best = (f) => us.slice().sort((a, b) => f(b) - f(a))[0];
     const mvp = best((u) => matchScore(u.stats)), title = sim.modeId === 'training' ? 'SESSION COMPLETE' : won ? 'VICTORY' : 'DEFEAT';
     const cards = [['MOST ELIMINATIONS', best((u) => u.stats.elims), (u) => u.stats.elims + ' ELIMS'], ['MOST DAMAGE', best((u) => u.stats.dmg), (u) => Math.round(u.stats.dmg) + ' DAMAGE'], ['MOST HEALING', best((u) => u.stats.heal), (u) => Math.round(u.stats.heal) + ' HEALED'], ['MOST CRITS', best((u) => u.stats.crits), (u) => u.stats.crits + ' CRITS'], ['ON THE OBJECTIVE', best((u) => u.stats.obj), (u) => Math.round(u.stats.obj) + ' SEC']];
