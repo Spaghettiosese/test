@@ -2,6 +2,7 @@
 // canvases in the browser and exported to PNG (tools/build-art.mjs) for editing
 // in Moonkai Pixel Studio or any other pixel editor.
 import { BufferSurface, MirrorSurface } from './surface.js';
+import { materials } from './gfx/palette.js';
 
 export const P = {
   ink: '#2b1d2e', white: '#fffaf0', cream: '#fff1d6', paper: '#f4e4c1',
@@ -18,7 +19,20 @@ export const P = {
 };
 
 export const SPRITES = {};
-const def = (name, w, h, draw, flip = false, outline = false) => { SPRITES[name] = { w, h, draw, flip, outline }; };
+// def(name, w, h, draw, flip?, outline?)  (legacy 16px-density sprites, upscaled with Scale2x in the world), or
+// def(name, w, h, draw, { hd, outline, flip, seasonal }) where:
+//   hd: true      -> authored at screen density (1 art px = 1 canvas px, 32px per tile); never upscaled
+//   outline       -> 'selective' (props: darkened neighbour colour, ink along the bottom), 'ink' (characters), true (legacy)
+//                    hd sprites with an outline get a 1px margin added automatically (draw in 0..w-1, 0..h-1)
+//   seasonal: true -> draw(R, ctx) receives ctx = { season, M: materials(season) } and is cached per season
+const def = (name, w, h, draw, flip = false, outline = false) => {
+  if (SPRITES[name]) throw new Error(`duplicate sprite ${name}`);
+  const o = typeof flip === 'object' && flip ? flip : { flip, outline };
+  const pad = o.hd && o.outline ? 1 : 0;
+  SPRITES[name] = { w: w + pad * 2, h: h + pad * 2, draw, flip: !!o.flip, outline: o.outline || false, hd: !!o.hd, seasonal: !!o.seasonal, pad };
+};
+// Content modules add sprites with defineSprite(name, w, h, (R, ctx) => { R(x,y,w,h,color); R.e(cx,cy,rx,ry,c); R.t([x,y],[x,y],[x,y],c) }, opts).
+export const defineSprite = def;
 
 // R(x,y,w,h,color) plus R.e (ellipse: cx,cy,rx,ry,color) and R.t (triangle: [x,y]x3, color).
 export function makeR(surface, ox = 0, oy = 0) {
@@ -53,7 +67,7 @@ const MC = { hair: '#8b5a44', hairH: '#b98262', hairD: '#5a3a2e', pink: '#f0a0b8
 // ---------- Mochi the cat (auto-outlined, facing right; flipped at runtime) ----------
 const CC = { o: '#f2b56b', o2: '#d98d45', o3: '#b8702f', cream: '#fff1d6', pink: '#f7a1b1', eye: '#6fcf7a', ink: '#2a1a22' };
 function mochiWalk(R0, p) {
-  const R = R0.at(1, 1), tw = [0, -1, 0, 1][p];
+  const R = R0.at(2, 2), tw = [0, -1, 0, 1][p];
   R(2 + tw, 7, 3, 3, CC.o2); R(1 + tw, 9, 3, 4, CC.o2); R(2, 12, 4, 3, CC.o2); R(2 + tw, 6, 3, 2, CC.cream);
   const a = [2, 0, -2, 0][p], b = -a;
   R(16 + a, 17, 3, 5, CC.o3); R(7 + b, 17, 3, 5, CC.o3);
@@ -62,9 +76,9 @@ function mochiWalk(R0, p) {
   R.e(19, 10, 5, 5, CC.o); R.t([15, 8], [17, 2], [20, 7], CC.o); R.t([20, 7], [23, 2], [24, 9], CC.o); R(17, 4, 1, 3, CC.pink); R(23, 4, 1, 3, CC.pink);
   R.e(22, 13, 3, 2, CC.cream); R(24, 11, 1, 1, CC.pink); R(21, 8, 2, 3, CC.eye); R(22, 8, 1, 1, '#ffffff'); R(18, 6, 1, 2, CC.o2);
 }
-for (let f = 0; f < 4; f++) def(`mochi_walk_${f}`, 27, 25, (R) => mochiWalk(R, f), false, true);
+for (let f = 0; f < 4; f++) def(`mochi_walk_${f}`, 30, 28, (R) => mochiWalk(R, f), { hd: true, outline: true });
 function mochiSit(R0, tail, blink) {
-  const R = R0.at(1, 1);
+  const R = R0.at(2, 2);
   const tx = [0, 1, 2, 1][tail];
   R(16, 15, 4 + tx, 3, CC.o2); R(18 + tx, 11, 3, 6, CC.o2); R(19 + tx, 9, 3, 3, CC.cream);
   R.e(11, 17, 6, 6, CC.o); R.e(11, 20, 4, 3, CC.cream); R(7, 21, 3, 2, CC.cream); R(12, 21, 3, 2, CC.cream);
@@ -76,21 +90,19 @@ function mochiSit(R0, tail, blink) {
   else { R(7, 8, 3, 4, CC.eye); R(13, 8, 3, 4, CC.eye); R(8, 8, 1, 4, CC.ink); R(14, 8, 1, 4, CC.ink); R(7, 8, 1, 1, '#ffffff'); R(13, 8, 1, 1, '#ffffff'); }
   R.e(11, 13, 3, 2, CC.cream); R(11, 11, 1, 1, CC.pink);
 }
-for (let t = 0; t < 4; t++) def(`mochi_sit_${t}`, 26, 26, (R) => mochiSit(R, t, false), false, true);
-def('mochi_sit_b', 26, 26, (R) => mochiSit(R, 0, true), false, true);
+for (let t = 0; t < 4; t++) def(`mochi_sit_${t}`, 29, 29, (R) => mochiSit(R, t, false), { hd: true, outline: true });
+def('mochi_sit_b', 29, 29, (R) => mochiSit(R, 0, true), { hd: true, outline: true });
 function mochiSleep(R0, br) {
-  const R = R0.at(1, 1);
+  const R = R0.at(2, 2);
   R.e(13, 11 - br, 11, 5 + br, CC.o); R(17, 6 - br, 1, 3, CC.o2); R(12, 5 - br, 1, 3, CC.o2); R(8, 6 - br, 1, 3, CC.o2);
   R(16, 12, 9, 3, CC.o2); R(22, 12, 3, 3, CC.cream);
   R.e(6, 11, 4, 4, CC.o); R.t([3, 9], [3, 5], [6, 8], CC.o); R.t([6, 8], [9, 5], [9, 9], CC.o); R(4, 6, 1, 2, CC.pink);
   R(3, 11, 3, 1, CC.ink); R(5, 13, 1, 1, CC.pink); R(3, 13, 3, 1, CC.cream);
 }
-for (let b = 0; b < 2; b++) def(`mochi_sleep_${b}`, 28, 18, (R) => mochiSleep(R, b), false, true);
+for (let b = 0; b < 2; b++) def(`mochi_sleep_${b}`, 31, 21, (R) => mochiSleep(R, b), { hd: true, outline: true });
 def('heart', 7, 6, (R) => { R(1, 0, 2, 1, P.red); R(4, 0, 2, 1, P.red); R(0, 1, 7, 2, P.red); R(1, 3, 5, 1, P.red); R(2, 4, 3, 1, P.red); R(3, 5, 1, 1, P.red); R(1, 1, 1, 1, P.white); });
 def('zzz', 8, 8, (R) => { R(0, 0, 4, 1, P.white); R(2, 1, 1, 1, P.white); R(1, 2, 1, 1, P.white); R(0, 3, 4, 1, P.white); });
 
-def('heart', 7, 6, (R) => { R(1, 0, 2, 1, P.red); R(4, 0, 2, 1, P.red); R(0, 1, 7, 2, P.red); R(1, 3, 5, 1, P.red); R(2, 4, 3, 1, P.red); R(3, 5, 1, 1, P.red); R(1, 1, 1, 1, P.white); });
-def('zzz', 8, 8, (R) => { R(0, 0, 4, 1, P.white); R(2, 1, 1, 1, P.white); R(1, 2, 1, 1, P.white); R(0, 3, 4, 1, P.white); });
 
 // ---------- Tiles (16x16) ----------
 def('t_wood', 16, 16, (R) => {
@@ -238,7 +250,7 @@ function facePortrait(R, who, mood, mouth, blink) {
   if (who === 'misa') R.t([37, 20], [43, 22], [40, 30], MC.pink);
   if (who === 'pip') { R.e(32, 15, 24, 11, '#5a8cc0'); R(8, 22, 48, 4, '#3f6a98'); R(40, 16, 22, 8, '#5a8cc0'); R.e(32, 15, 8, 5, '#ffd76a'); R.e(32, 15, 5, 3, '#e0707a'); R.e(20, 46, 1, 1, '#c9805e'); R.e(43, 47, 1, 1, '#c9805e'); }
 }
-for (const who of ['misa', 'pip']) for (const mood of who === 'misa' ? ['neutral', 'happy', 'surprised', 'sleepy'] : ['neutral', 'happy'])
+for (const who of ['pip']) for (const mood of ['neutral', 'happy'])
   for (const m of [0, 1]) for (const b of [0, 1]) def(`p_${who}_${mood}_${m}${b}`, 64, 64, (R) => facePortrait(R, who, mood, m, !!b), false, true);
 
 function mochiPortrait(R, mood, mouth, blink) {
@@ -277,10 +289,11 @@ def('pip', 22, 34, (R0) => {
   R(5, 10, 3, 3, MC.ink); R(12, 10, 3, 3, MC.ink); R(5, 10, 1, 1, '#ffffff'); R(12, 10, 1, 1, '#ffffff'); R(9, 15, 2, 1, MC.mouth); R(3, 13, 2, 1, MC.blush); R(15, 13, 2, 1, MC.blush);
 }, false, true);
 
-export function drawSprite(name, surface) {
+export function drawSprite(name, surface, season = 'summer') {
   const d = SPRITES[name];
   if (!d) throw new Error(`unknown sprite ${name}`);
-  d.draw(makeR(surface));
+  const R = makeR(surface, d.pad || 0, d.pad || 0);
+  d.draw(R, { season, M: d.seasonal ? materials(season) : null });
 }
 
 // Selective outline: every empty pixel touching the sprite gets a dark shade of its neighbour's colour.
@@ -300,11 +313,41 @@ function outlineBuffer(b, k = 0.36) {
   data.set(out);
 }
 
+// Props: each empty pixel touching the sprite gets the neighbour colour darkened and pushed toward plum;
+// pixels under the sprite's bottom edge get ink, which grounds the object.
+function selectiveOutline(b) {
+  const { w, h, data } = b, out = new Uint8ClampedArray(data);
+  const solid = (x, y) => x >= 0 && y >= 0 && x < w && y < h && data[(y * w + x) * 4 + 3] > 40;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (solid(x, y)) continue;
+    const nb = [[0, -1], [-1, 0], [1, 0], [0, 1]].filter(([dx, dy]) => solid(x + dx, y + dy));
+    if (!nb.length) continue;
+    const o = (y * w + x) * 4;
+    if (solid(x, y - 1) && !solid(x, y + 1)) { out[o] = 0x2a; out[o + 1] = 0x1a; out[o + 2] = 0x22; out[o + 3] = 255; continue; }
+    let r = 0, g = 0, bl = 0;
+    for (const [dx, dy] of nb) { const q = ((y + dy) * w + x + dx) * 4; r += data[q]; g += data[q + 1]; bl += data[q + 2]; }
+    r /= nb.length; g /= nb.length; bl /= nb.length;
+    out[o] = r * 0.42 + 14; out[o + 1] = g * 0.36 + 8; out[o + 2] = bl * 0.42 + 26; out[o + 3] = 255;
+  }
+  data.set(out);
+}
+function inkOutline(b) {
+  const { w, h, data } = b, out = new Uint8ClampedArray(data);
+  const solid = (x, y) => x >= 0 && y >= 0 && x < w && y < h && data[(y * w + x) * 4 + 3] > 40;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (solid(x, y) || !(solid(x - 1, y) || solid(x + 1, y) || solid(x, y - 1) || solid(x, y + 1))) continue;
+    const o = (y * w + x) * 4; out[o] = 0x2a; out[o + 1] = 0x1a; out[o + 2] = 0x22; out[o + 3] = 255;
+  }
+  data.set(out);
+}
+
 // Render a sprite to an RGBA buffer (mirrored / outlined as its definition asks).
-export function renderSprite(name, flip = false) {
+export function renderSprite(name, flip = false, season = 'summer') {
   const d = SPRITES[name];
   const buf = new BufferSurface(d.w, d.h);
-  drawSprite(name, flip !== d.flip ? new MirrorSurface(buf, d.w) : buf);
-  if (d.outline) outlineBuffer(buf);
+  drawSprite(name, flip !== d.flip ? new MirrorSurface(buf, d.w) : buf, season);
+  if (d.outline === 'selective') selectiveOutline(buf);
+  else if (d.outline === 'ink') inkOutline(buf);
+  else if (d.outline) outlineBuffer(buf);
   return buf;
 }

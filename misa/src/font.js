@@ -14,25 +14,41 @@ const G = {
   "'": '010010000000000', ':': '000010000010000', '-': '000000111000000', '+': '000010111010000',
   '/': '001001010100100', '%': '101001010100101', '*': '101111111010000', '(': '010100100100010',
   ')': '010001001001010', '>': '100010001010100', '<': '001010100010001', ' ': '000000000000000',
-  '"': '101101000000000', '^': '010101000000000', '~': '000011110000000',
+  '"': '101101000000000', '#': '101111101111101', '=': '000111000111000', '[': '110100100100110', ']': '011001001001011',
+  '_': '000000000000111', '&': '010101010101011', '$': '011110010011110', '@': '010101111100011', ';': '000010000010100', '|': '010010010010010', '^': '010101000000000', '~': '000011110000000',
 };
 export const CHAR_W = 4, LINE_H = 7;
 export const measure = (s, scale = 1) => s.length * CHAR_W * scale;
 
-export function drawText(g, str, x, y, color = '#fff8e8', scale = 1, shadow = '#2b1d2eaa') {
-  const s = String(str).toUpperCase();
+function rawText(g, s, x, y, color, scale, shadow) {
   for (const pass of shadow ? [1, 0] : [0]) {
+    g.fillStyle = pass ? shadow : color;
     let cx = x;
     for (const ch of s) {
       const bits = G[ch] || G['?'];
-      for (let i = 0; i < 15; i++) if (bits[i] === '1') {
-        const px = cx + (i % 3) * scale, py = y + Math.floor(i / 3) * scale;
-        g.fillStyle = pass ? shadow : color;
-        g.fillRect(px + pass * scale, py + pass * scale, scale, scale);
-      }
+      for (let i = 0; i < 15; i++) if (bits[i] === '1') g.fillRect(cx + (i % 3) * scale + pass * scale, y + Math.floor(i / 3) * scale + pass * scale, scale, scale);
       cx += CHAR_W * scale;
     }
   }
+}
+// Rendered strings are cached as small canvases (LRU), so a dialogue box is a few drawImage calls per frame.
+const textCache = new Map();
+const MAX_CACHE = 700;
+export function drawText(g, str, x, y, color = '#fff8e8', scale = 1, shadow = '#2b1d2eaa') {
+  const s = String(str).toUpperCase();
+  if (!s) return;
+  if (typeof document === 'undefined') return rawText(g, s, x, y, color, scale, shadow);
+  const key = s + '|' + color + '|' + scale + '|' + shadow;
+  let c = textCache.get(key);
+  if (c) { textCache.delete(key); textCache.set(key, c); }
+  else {
+    c = document.createElement('canvas');
+    c.width = s.length * CHAR_W * scale + scale; c.height = 6 * scale;
+    rawText(c.getContext('2d'), s, 0, 0, color, scale, shadow);
+    textCache.set(key, c);
+    if (textCache.size > MAX_CACHE) textCache.delete(textCache.keys().next().value);
+  }
+  g.drawImage(c, Math.round(x), Math.round(y));
 }
 export function drawTextC(g, str, cx, y, color, scale = 1, shadow) {
   drawText(g, str, Math.round(cx - measure(str, scale) / 2), y, color, scale, shadow);
@@ -40,7 +56,7 @@ export function drawTextC(g, str, cx, y, color, scale = 1, shadow) {
 export function wrap(str, maxChars) {
   const out = []; let line = '';
   for (const w of String(str).split(' ')) {
-    if ((line + ' ' + w).trim().length > maxChars) { out.push(line); line = w; }
+    if ((line + ' ' + w).trim().length > maxChars && line) { out.push(line); line = w; }
     else line = (line + ' ' + w).trim();
   }
   if (line) out.push(line);

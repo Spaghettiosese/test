@@ -1,9 +1,9 @@
 // Close-up chore minigames. Each has update(dt,input), draw(g,sprite), done, score (0..1).
 // Every one works with mouse OR keyboard (arrows/WASD + Space/E).
-import { Cursor, act, actHeld } from './input.js';
-import { drawText, drawTextC } from './font.js';
-import { sfx } from './audio.js';
-import { pick, range, clamp } from './rng.js';
+import { Cursor, act, actHeld } from '../input.js';
+import { drawText, drawTextC } from '../font.js';
+import { sfx } from '../audio.js';
+import { pick, range, clamp } from '../rng.js';
 
 const rect = (g, c, x, y, w, h) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
 const disc = (g, c, cx, cy, r) => { for (let y = -r; y <= r; y++) { const w = Math.floor(Math.sqrt(r * r - y * y)); rect(g, c, cx - w, cy + y, w * 2 + 1, 1); } };

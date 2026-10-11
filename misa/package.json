@@ -1,11 +1,13 @@
 {
-  "name": "misa-cozy-home",
+  "name": "misa-little-life",
   "version": "0.1.0",
-  "description": "Misa's Little House - a cozy top-down pixel chore sim with close-up chore minigames, a cat, random events and cutscenes.",
+  "description": "Misa's Little Life - a cozy pixel-art town life sim with school, friends, a story and a cat.",
   "type": "module",
   "scripts": {
     "start": "python3 -m http.server 8080",
+    "test": "node --test tests/*.test.mjs",
     "art": "node tools/build-art.mjs",
-    "test": "node tools/test.mjs"
+    "paint": "node tools/misa-studio.mjs",
+    "build": "node tools/build-artifact.mjs"
   }
 }

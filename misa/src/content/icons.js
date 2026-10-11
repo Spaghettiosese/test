@@ -1,0 +1,33 @@
+// UI icons (weather, phone apps, misc). 10x10-ish pixel icons, outlined.
+import { defineSprite as def } from '../art.js';
+
+const Y = '#ffd76a', Y2 = '#e8a83a', W = '#fffaf0', G = '#c8d0dc', G2 = '#8a96a8', B = '#7fb2e0', B2 = '#4a78b0', K = '#2b1d2e', RD = '#e0707a', P = '#f7a1b1', M = '#86cdb0', BR = '#a67548';
+def('i_sun', 12, 12, (R0) => { const R = R0.at(1, 1); R(4, 0, 2, 2, Y); R(4, 8, 2, 2, Y); R(0, 4, 2, 2, Y); R(8, 4, 2, 2, Y); R.e(5, 5, 3, 3, Y); R(4, 3, 2, 1, '#fff3c0'); }, false, true);
+def('i_cloud', 12, 10, (R0) => { const R = R0.at(1, 1); R.e(3, 5, 3, 2, W); R.e(6, 4, 3, 3, W); R(1, 5, 9, 3, W); R(2, 7, 8, 1, G); }, false, true);
+def('i_rain', 12, 12, (R0) => { const R = R0.at(1, 1); R.e(3, 3, 3, 2, G); R.e(6, 2, 3, 2, G); R(1, 3, 9, 2, G); R(2, 7, 1, 2, B); R(5, 8, 1, 2, B); R(8, 7, 1, 2, B); }, false, true);
+def('i_storm', 12, 12, (R0) => { const R = R0.at(1, 1); R.e(3, 3, 3, 2, G2); R.e(6, 2, 3, 2, G2); R(1, 3, 9, 2, G2); R(5, 5, 2, 2, Y); R(4, 7, 2, 1, Y); R(3, 8, 2, 2, Y); }, false, true);
+def('i_snow', 12, 12, (R0) => { const R = R0.at(1, 1); R(4, 0, 2, 10, W); R(0, 4, 10, 2, W); R(1, 1, 2, 2, W); R(7, 7, 2, 2, W); R(7, 1, 2, 2, W); R(1, 7, 2, 2, W); }, false, true);
+def('i_wind', 12, 10, (R0) => { const R = R0.at(1, 1); R(0, 1, 7, 1, W); R(7, 0, 2, 1, W); R(1, 4, 9, 1, W); R(9, 3, 1, 1, W); R(0, 7, 6, 1, W); R(6, 6, 1, 1, W); }, false, true);
+def('i_bag', 12, 12, (R0) => { const R = R0.at(1, 1); R(3, 0, 4, 1, BR); R(2, 1, 1, 2, BR); R(7, 1, 1, 2, BR); R(1, 3, 8, 7, '#c99a6b'); R(1, 3, 8, 2, BR); R(4, 5, 2, 2, Y); }, false, true);
+def('i_quest', 10, 12, (R0) => { const R = R0.at(1, 1); R(0, 0, 8, 10, '#fff1d6'); R(0, 0, 8, 2, RD); R(2, 4, 4, 1, BR); R(2, 6, 4, 1, BR); R(2, 8, 3, 1, BR); }, false, true);
+def('i_gear', 12, 12, (R0) => { const R = R0.at(1, 1); R(4, 0, 2, 10, G2); R(0, 4, 10, 2, G2); R(1, 1, 8, 8, G2); R.e(5, 5, 3, 3, G); R(4, 4, 2, 2, K); }, false, true);
+def('i_save', 12, 12, (R0) => { const R = R0.at(1, 1); R(0, 0, 10, 10, B2); R(2, 0, 6, 4, W); R(5, 1, 2, 2, B2); R(2, 6, 6, 4, B); }, false, true);
+def('i_phone', 9, 13, (R0) => { const R = R0.at(1, 1); R(0, 0, 7, 11, K); R(1, 1, 5, 8, B); R(3, 9, 1, 1, W); R(2, 2, 2, 1, W); }, false, true);
+def('i_map', 12, 11, (R0) => { const R = R0.at(1, 1); R(0, 0, 10, 9, '#d8e8b0'); R(3, 0, 1, 9, '#b0c890'); R(7, 0, 1, 9, '#b0c890'); R(1, 5, 7, 1, B); R(5, 2, 2, 2, RD); }, false, true);
+def('i_cal', 11, 11, (R0) => { const R = R0.at(1, 1); R(0, 1, 9, 8, W); R(0, 1, 9, 2, RD); R(2, 0, 1, 2, K); R(6, 0, 1, 2, K); R(2, 5, 1, 1, K); R(4, 5, 1, 1, K); R(6, 5, 1, 1, K); R(2, 7, 1, 1, K); R(4, 7, 1, 1, RD); }, false, true);
+def('i_book', 11, 11, (R0) => { const R = R0.at(1, 1); R(0, 0, 9, 9, '#5a8cc0'); R(1, 0, 1, 9, '#3f6a98'); R(3, 2, 5, 1, W); R(3, 4, 4, 1, W); }, false, true);
+def('i_trophy', 11, 11, (R0) => { const R = R0.at(1, 1); R(1, 0, 7, 4, Y); R(0, 1, 1, 2, Y2); R(8, 1, 1, 2, Y2); R(3, 4, 3, 2, Y2); R(4, 6, 1, 1, Y2); R(2, 7, 5, 2, BR); }, false, true);
+def('i_fishicon', 12, 9, (R0) => { const R = R0.at(1, 1); R.e(4, 3, 4, 2, B); R(8, 1, 2, 5, B2); R(2, 2, 1, 1, K); }, false, true);
+def('i_energy', 8, 11, (R0) => { const R = R0.at(1, 1); R(3, 0, 3, 3, Y); R(1, 3, 4, 2, Y); R(2, 5, 3, 2, Y); R(1, 7, 2, 2, Y); }, false, true);
+def('i_school', 12, 12, (R0) => { const R = R0.at(1, 1); R(0, 3, 10, 7, '#e8d0b0'); R.t([0, 3], [5, 0], [9, 3], RD); R(4, 6, 2, 4, BR); R(1, 5, 2, 2, B); R(7, 5, 2, 2, B); }, false, true);
+def('i_mail', 12, 9, (R0) => { const R = R0.at(1, 1); R(0, 0, 10, 7, W); R(1, 1, 1, 1, G2); R(2, 2, 2, 1, G2); R(4, 3, 2, 1, G2); R(6, 2, 2, 1, G2); R(8, 1, 1, 1, G2); }, false, true);
+def('i_camera', 12, 10, (R0) => { const R = R0.at(1, 1); R(0, 2, 10, 6, K); R(3, 0, 4, 2, K); R.e(5, 5, 2, 2, B); R(8, 3, 1, 1, Y); }, false, true);
+def('i_leaf', 10, 10, (R0) => { const R = R0.at(1, 1); R.e(4, 4, 3, 3, M); R(1, 7, 2, 1, '#4f9558'); R(4, 2, 1, 4, '#4f9558'); }, false, true);
+def('i_chat', 12, 10, (R0) => { const R = R0.at(1, 1); R(0, 0, 10, 6, W); R(2, 6, 2, 2, W); R(2, 2, 1, 1, K); R(5, 2, 1, 1, K); R(8, 2, 1, 1, K); }, false, true);
+def('i_check', 10, 9, (R0) => { const R = R0.at(1, 1); R(0, 3, 2, 2, M); R(2, 5, 2, 2, M); R(4, 3, 2, 2, M); R(6, 1, 2, 2, M); }, false, true);
+def('i_exclaim', 6, 12, (R0) => { const R = R0.at(1, 1); R(1, 0, 2, 7, Y); R(1, 8, 2, 2, Y); }, false, true);
+def('i_question', 8, 12, (R0) => { const R = R0.at(1, 1); R(1, 0, 4, 2, W); R(5, 1, 1, 3, W); R(3, 4, 2, 2, W); R(3, 8, 2, 2, W); }, false, true);
+def('i_music', 11, 11, (R0) => { const R = R0.at(1, 1); R(6, 0, 1, 7, K); R(7, 0, 1, 1, K); R(8, 1, 1, 2, K); R.e(4, 7, 2, 1, K); }, false, true);
+def('i_sweat', 7, 9, (R0) => { const R = R0.at(1, 1); R(2, 0, 1, 2, B); R(1, 2, 3, 3, B); R(2, 5, 1, 1, B); }, false, true);
+def('i_zzz', 10, 10, (R0) => { const R = R0.at(1, 1); R(0, 0, 4, 1, W); R(2, 1, 1, 1, W); R(0, 2, 4, 1, W); R(5, 4, 3, 1, W); R(6, 5, 1, 1, W); R(5, 6, 3, 1, W); }, false, true);
+def('i_anger', 10, 10, (R0) => { const R = R0.at(1, 1); R(1, 1, 2, 2, RD); R(5, 1, 2, 2, RD); R(1, 5, 2, 2, RD); R(5, 5, 2, 2, RD); R(3, 3, 2, 2, RD); }, false, true);

@@ -5,7 +5,7 @@ import { SPRITES, renderSprite } from './art.js';
 const cache = new Map();
 const overrides = new Map();
 
-function bake(name, flip) {
+function bake(name, flip, season) {
   const d = SPRITES[name];
   const c = document.createElement('canvas');
   c.width = d.w; c.height = d.h;
@@ -15,16 +15,18 @@ function bake(name, flip) {
     if (flip) { g.translate(d.w, 0); g.scale(-1, 1); }
     g.drawImage(ov, 0, 0);
   } else {
-    const buf = renderSprite(name, flip);
+    const buf = renderSprite(name, flip, season);
     g.putImageData(new ImageData(buf.data, d.w, d.h), 0, 0);
   }
   return c;
 }
 
-export function sprite(name, flip = false) {
-  const k = name + (flip ? '@f' : '');
+export function sprite(name, flip = false, season = 'summer') {
+  const d = SPRITES[name];
+  if (!d) throw new Error(`unknown sprite ${name}`);
+  const k = name + (flip ? '@f' : '') + (d.seasonal ? '@' + season : '');
   let c = cache.get(k);
-  if (!c) { c = bake(name, flip); cache.set(k, c); }
+  if (!c) { c = bake(name, flip, d.seasonal ? season : 'summer'); cache.set(k, c); }
   return c;
 }
 
@@ -48,10 +50,13 @@ export function epx(src) {
   return c;
 }
 const cache2 = new Map();
-export function sprite2(name, flip = false) {
-  const k = name + (flip ? '@f' : '');
+// World-density image: hd sprites are already at screen density; legacy 16px sprites get Scale2x.
+export function sprite2(name, flip = false, season = 'summer') {
+  const d = SPRITES[name];
+  if (d && d.hd) return sprite(name, flip, season);
+  const k = name + (flip ? '@f' : '') + (d && d.seasonal ? '@' + season : '');
   let c = cache2.get(k);
-  if (!c) { c = epx(sprite(name, flip)); cache2.set(k, c); }
+  if (!c) { c = epx(sprite(name, flip, season)); cache2.set(k, c); }
   return c;
 }
 

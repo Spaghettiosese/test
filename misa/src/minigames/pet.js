@@ -1,9 +1,9 @@
 // Close-up "pet Mochi" menu: a big animated pixel cat and a hand you move with the mouse (or WASD).
 // Hold the button (or Space) and stroke slowly. Head and chin are favourites; stroking too fast annoys her.
-import { Cursor, actHeld } from './input.js';
-import { drawText, drawTextC } from './font.js';
-import { sfx } from './audio.js';
-import { clamp, range } from './rng.js';
+import { Cursor, actHeld } from '../input.js';
+import { drawText, drawTextC } from '../font.js';
+import { sfx } from '../audio.js';
+import { clamp, range } from '../rng.js';
 
 const K = '#5a3020', O = '#f2b56b', O2 = '#d98d45', CR = '#fff1d6', PK = '#f7a1b1', GR = '#6fcf7a', GR2 = '#3f9a52';
 const CX = 160;
