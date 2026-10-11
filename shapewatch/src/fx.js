@@ -29,7 +29,7 @@ export class Fx {
     for (const m of this.projs.values()) v.scene.remove(m);
     for (const f of this.zoneFx.values()) for (const n of f.nodes) v.scene.remove(n);
     for (const s of this.shells) { v.scene.remove(s.mesh); v.scene.remove(s.warn); }
-    for (const n of this.nums) n.el.remove();
+    for (const n of this.nums) n.el.remove(); for (const b of this.balls || []) v.scene.remove(b.mesh); for (const p of this.pillars || []) v.scene.remove(p.mesh); this.balls = []; this.pillars = [];
     this.beams = []; this.rings = []; this.tracers = []; this.nums = []; this.projs.clear(); this.zoneFx.clear(); this.shells = [];
   }
   teamHex(team) { return this.v.teamHex(team); }
@@ -58,6 +58,8 @@ export class Fx {
           break;
         }
         case 'tracer': {
+          // thin out rapid-fire tracers from other shooters so fights read as streaks, not a hairball
+          if (e.unit && e.unit !== me && (e.unit.def?.w1?.rate || 0) > 7 && (e.width || 1) <= 1.4 && (this.trN = (this.trN || 0) + 1) % 3) break;
           const w = e.width || 1, from = e.unit === me && v.mode === 'fps' ? v.muzzleFP() : e.from;
           if (w > 1.4 || e.hit === 'lance' || e.hit === 'grapple') {
             const mesh = new E.Mesh(this.cylGeo, new E.Material({ name: 'Rail', color: e.color, emissive: e.color, emissiveStrength: 5, opacity: 0.85, doubleSided: true }), 'Rail'); mesh.castShadow = false; v.scene.add(mesh);
@@ -109,6 +111,8 @@ export class Fx {
           v.particles.emit(e.pos, { count: big ? 14 : 6, spread: big ? 3 : 1.4, up: 1, size: big ? 0.9 : 0.5, color: [0.7, 0.72, 0.78, 0.5], colorEnd: [0.85, 0.87, 0.9, 0], life: 2, grow: 4, buoyancy: 0.5, jitter: 0.3 });
           this.flash.position.set(e.pos); this.flash.intensity = big ? 60 : 24; this.flashT = 0.12; this.flash.color = e.color || '#ffb061';
           v.sound?.boom(e.pos, big); this.addRing(e.pos, e.r || 1, e.color || '#ffb061', 0.4);
+          // a hot flash ball that swells and fades, and a scorch on the ground
+          this.addFlashBall(e.pos, (e.r || 1) * 0.6, e.color || '#ffb061'); if ((e.pos[1] || 0) < 1.2 && e.r > 1.5) v.decals.add([e.pos[0], 0.02, e.pos[2]], [0, 1, 0], Math.min(2.4, e.r * 0.5));
           const d = v3.dist(e.pos, v.camera.position); if (d < 30) v.shake = Math.min(1, v.shake + (big ? 0.6 : 0.2) * (1 - d / 30));
           break;
         }
@@ -128,7 +132,8 @@ export class Fx {
         case 'barrierBreak': this.addRing(e.unit.pos, 3, '#5bbcff', 0.5); v.sound?.boom(e.unit.pos, false); break;
         case 'pack': v.sound?.pack(e.pos); break;
         case 'core': v.sound?.core(e.pos); this.addRing(e.pos, 2, '#ffd36b', 0.5); break;
-        case 'ult': { v.sound?.ult(e.unit.pos, e.unit === me); this.addRing(e.unit.pos, 9, this.teamHex(e.unit.team), 0.9); v.shake = Math.min(1, v.shake + 0.1); if (!rp) v.onUlt?.(e); break; }
+        case 'ult': { v.sound?.ult(e.unit.pos, e.unit === me); this.addRing(e.unit.pos, 9, this.teamHex(e.unit.team), 0.9); this.addPillar(e.unit.pos, this.teamHex(e.unit.team));
+          if (me && e.unit.team !== me.team && v3.dist(e.unit.pos, me.pos) < 30 && !rp) v.onEnemyUlt?.(e); v.shake = Math.min(1, v.shake + 0.1); if (!rp) v.onUlt?.(e); break; }
         case 'revive': this.addRing(e.unit.pos, 3, '#fff1a8', 0.8); v.sound?.core(e.unit.pos); v.sparks.emit(e.unit.pos, { count: 40, spread: 1.2, up: 3, size: 0.08, color: [4, 3.6, 1.4, 1], life: 1.2, jitter: 0.3, buoyancy: 1 }); break;
         case 'spawn': if (!e.unit.isPlayer || sim.time > 1) this.addRing(e.unit.pos, 1.6, this.teamHex(e.unit.team), 0.5); if (e.unit === me) v.deathCam = null; break;
         case 'deploy': this.addRing(e.unit.pos, 2, this.teamHex(e.unit.team), 0.5); break;
@@ -154,6 +159,14 @@ export class Fx {
     v.sparks.emit(p, { count: 24, spread: 2, up: 2.4, size: 0.08, color: [...c, 1], colorEnd: [c[0] * 0.2, c[1] * 0.2, c[2] * 0.2, 0.1], life: 0.9, jitter: 0.2 });
     v.particles.emit(p, { count: 5, spread: 0.8, up: 0.6, size: 0.5, color: [0.55, 0.58, 0.66, 0.45], colorEnd: [0.7, 0.72, 0.78, 0], life: 1.8, grow: 4, buoyancy: 0.3 });
     if (t === v.me && !v.replay) v.deathCam = { killer: e.killer, t: 0 };
+  }
+  addFlashBall(pos, r, color) {
+    const v = this.v, m = new E.Mesh(this.sphereGeo, new E.Material({ name: 'Flash', color, emissive: color, emissiveStrength: 8, opacity: 0.9 }), 'FlashBall'); m.castShadow = false; m.receiveShadow = false;
+    m.position.set(pos); m.scale.set([0.05, 0.05, 0.05]); v.scene.add(m); (this.balls ||= []).push({ mesh: m, t: 0.22, t0: 0.22, r });
+  }
+  addPillar(pos, color) {
+    const v = this.v, m = new E.Mesh(this.cylGeo, new E.Material({ name: 'UltPillar', color, emissive: color, emissiveStrength: 3, opacity: 0.5, doubleSided: true }), 'UltPillar'); m.castShadow = false; m.receiveShadow = false;
+    m.position.set([pos[0], (pos[1] || 0) + 7, pos[2]]); m.scale.set([0.9, 14, 0.9]); v.scene.add(m); (this.pillars ||= []).push({ mesh: m, t: 0.7, t0: 0.7 });
   }
   addRing(pos, r, color, dur) {
     const v = this.v, m = new E.Mesh(this.ribbonGeo, new E.Material({ name: 'Ring', color, emissive: color, emissiveStrength: 3, opacity: 0.8, doubleSided: true }), 'Ring');
@@ -271,6 +284,10 @@ export class Fx {
     for (const t of this.tracers) t.age += dt; this.tracers = this.tracers.filter((t) => t.age < 0.1);
     for (const b of this.beams) { b.t -= dt; b.mesh.material.opacity = 0.85 * clamp(b.t / b.t0, 0, 1); b.mesh.scale.set([b.mesh.scale[0] * (1 - dt * 1.5), b.mesh.scale[1], b.mesh.scale[2] * (1 - dt * 1.5)]); if (b.t <= 0) v.scene.remove(b.mesh); }
     this.beams = this.beams.filter((b) => b.t > 0);
+    for (const b of this.balls || []) { b.t -= dt; const k = 1 - clamp(b.t / b.t0, 0, 1), s = b.r * Math.min(1, k / 0.35); b.mesh.scale.set([s, s, s]); b.mesh.material.opacity = 0.9 * (1 - k); if (b.t <= 0) v.scene.remove(b.mesh); }
+    if (this.balls) this.balls = this.balls.filter((b) => b.t > 0);
+    for (const p of this.pillars || []) { p.t -= dt; const k = 1 - clamp(p.t / p.t0, 0, 1); p.mesh.scale.set([0.9 * (1 - k * 0.7), 14 + k * 10, 0.9 * (1 - k * 0.7)]); p.mesh.material.opacity = 0.5 * (1 - k); if (p.t <= 0) v.scene.remove(p.mesh); }
+    if (this.pillars) this.pillars = this.pillars.filter((p) => p.t > 0);
     for (const r of this.rings) { r.t -= dt; const k = 1 - clamp(r.t / r.t0, 0, 1); r.mesh.scale.set([Math.max(0.2, r.r * (0.2 + k * 0.8)), 1, Math.max(0.2, r.r * (0.2 + k * 0.8))]); r.mesh.material.opacity = 0.8 * (1 - k); if (r.t <= 0) v.scene.remove(r.mesh); }
     this.rings = this.rings.filter((r) => r.t > 0);
     if (this.flashT > 0) { this.flashT -= dt; if (this.flashT <= 0) this.flash.intensity = 0; }
@@ -278,7 +295,7 @@ export class Fx {
   tracerLines() {
     const lines = [];
     for (const t of this.tracers) {
-      const l = t.len, d = [(t.b[0] - t.a[0]) / (l || 1), (t.b[1] - t.a[1]) / (l || 1), (t.b[2] - t.a[2]) / (l || 1)], head = Math.min(l, t.age * 420 + 6), tail = Math.max(0, head - 14);
+      const l = t.len, d = [(t.b[0] - t.a[0]) / (l || 1), (t.b[1] - t.a[1]) / (l || 1), (t.b[2] - t.a[2]) / (l || 1)], head = Math.min(l, t.age * 420 + 6), tail = Math.max(0, head - 9);
       const a = v3.madd(t.a, d, tail), b = v3.madd(t.a, d, head), al = clamp(1 - t.age / 0.1, 0, 1);
       lines.push(...a, ...t.c, al * 0.2, ...b, ...t.c, al);
     }

@@ -181,25 +181,42 @@ export class View {
           const k = u.killedBy, dx = k ? u.pos[0] - k.pos[0] : -Math.sin(u.yaw), dz = k ? u.pos[2] - k.pos[2] : -Math.cos(u.yaw), l = Math.hypot(dx, dz) || 1;
           r.dDir = [dx / l, 0, dz / l]; r.dPow = (u.lastHit?.head ? 1.5 : 1.0) * (u.def.role === 'tank' ? 0.6 : 1); r.dRoll = (R() - 0.5) * 50;
         }
-        r.deadT += dt; const f = clamp(r.deadT / 0.55, 0, 1), e = f * f * (3 - 2 * f), sl = (1 - Math.exp(-r.deadT * 5)) * r.dPow;
+        r.deadT += dt; const f = clamp(r.deadT / 0.55, 0, 1), e = Math.min(1.08, f * f * (3 - 2 * f) * 1.08) - Math.max(0, f - 0.85) * 0.5, sl = (1 - Math.exp(-r.deadT * 5)) * r.dPow;
+        if (d.shinL) { const kb = clamp(r.deadT / 0.15, 0, 1) * 70; d.shinL.setEuler(kb, 0, 0); d.shinR.setEuler(kb * 0.8, 0, 0); }
+        // after a few seconds the body breaks up into team-coloured light
+        if (r.deadT > 3 && r.deadT < 3.6) { const c = E.hexToRGB(this.teamHex(u.team)); for (let i = 0; i < 3; i++) this.sparks.emit([u.pos[0] + r.dDir[0] * sl + (R() - 0.5) * 1.2, u.pos[1] + 0.2 + R() * 0.5, u.pos[2] + r.dDir[2] * sl + (R() - 0.5) * 1.2], { count: 1, spread: 0.2, up: 1.2, size: 0.07, color: [c[0] * 3, c[1] * 3, c[2] * 3, 1], colorEnd: [c[0], c[1], c[2], 0], life: 0.8, jitter: 0.1, buoyancy: 1 }); }
+        if (r.deadT > 3.6) m.visible = false;
         let px = u.pos[0] + r.dDir[0] * sl, pz = u.pos[2] + r.dDir[2] * sl; if (sim.blockedAt?.(px, pz, u.pos[1], 0.3, 1)) { px = u.pos[0]; pz = u.pos[2]; }
         m.position.set([px, u.pos[1], pz]); m.setEuler(-88 * e, Math.atan2(-r.dDir[0], -r.dDir[2]) / DEG, r.dRoll * e);
         d.armL.setEuler(-160 * e, 0, 30 * e); d.armR.setEuler(-150 * e, 0, -30 * e); d.legL.setEuler(-18 * e, 0, 0); d.legR.setEuler(24 * e, 0, 0); d.head.setEuler(-25 * e, 0, 0);
         d.ring.visible = false; this.hideBeams(r); if (r.barrier) r.barrier.visible = false; continue;
       }
-      r.deadT = 0; d.ring.visible = true;
+      r.deadT = 0; d.ring.visible = true; if (r.dissolved) { r.dissolved = false; }
       const sp = Math.hypot(u.vx, u.vz) * (u.grounded ? 1 : 0.3); r.speed += (sp - r.speed) * Math.min(1, dt * 10);
-      r.phase += dt * r.speed * 1.9;
-      const skate = u.hero === 'zephyr', amp = Math.min(1, r.speed / 5) * (skate ? 14 : 42) * DEG, sw = Math.sin(r.phase) * amp;
+      // movement relative to facing: backpedalling runs the stride backwards, strafes turn the hips toward the motion
+      const fwdV = u.vx * Math.sin(u.yaw) + u.vz * Math.cos(u.yaw), rtV = u.vx * -Math.cos(u.yaw) + u.vz * Math.sin(u.yaw), back = fwdV < -0.5;
+      r.phase += dt * r.speed * 1.9 * (back ? -1 : 1);
+      const skate = u.hero === 'zephyr', k01 = Math.min(1, r.speed / 5), amp = k01 * (skate ? 14 : 42) * DEG, sw = Math.sin(r.phase) * amp;
       d.legL.setEuler(sw / DEG, 0, 0); d.legR.setEuler(-sw / DEG, 0, 0);
-      d.hips.position.set([0, 0.86 + (skate ? 0 : Math.abs(Math.cos(r.phase)) * 0.03 * Math.min(1, r.speed / 4)), 0]);
-      const p = u.pitch / DEG; d.head.setEuler(-p * 0.8, 0, 0); d.spine.setEuler(-p * 0.25 + (skate ? Math.min(1, r.speed / 5) * 12 : 0) - r.flinch * 12 + (u.crouch ? 22 : 0), 0, 0);
+      if (d.shinL) { const kb = skate ? 8 : 55; d.shinL.setEuler(Math.max(0, -Math.sin(r.phase)) * kb * k01 + (u.crouch ? 60 : 0), 0, 0); d.shinR.setEuler(Math.max(0, Math.sin(r.phase)) * kb * k01 + (u.crouch ? 60 : 0), 0, 0); }
+      const hipYaw = r.speed > 1 ? clamp(Math.atan2(rtV, Math.abs(fwdV) + 0.01) / DEG * (back ? -1 : 1), -60, 60) : 0; r.hipYaw = (r.hipYaw || 0) + (hipYaw - (r.hipYaw || 0)) * Math.min(1, dt * 8);
+      // landing squash
+      if (!u.grounded) r.air = true; else if (r.air) { r.air = false; r.squash = 1; }
+      r.squash = Math.max(0, (r.squash || 0) - dt / 0.12);
+      d.hips.position.set([0, 0.86 + (skate ? 0 : Math.abs(Math.cos(r.phase)) * 0.03 * Math.min(1, r.speed / 4)) - r.squash * 0.08, 0]); d.hips.setEuler(0, r.hipYaw, 0);
+      const p = u.pitch / DEG, breathe = 1 + Math.sin(t * 1.6 + r.phase * 0.1) * 0.01 * (1 - k01);
+      d.head.setEuler(-p * 0.8, 0, 0);
+      // torso: aim pitch, a lean into the run, a counter-twist against the stride
+      d.spine.setEuler(-p * 0.25 + (skate ? k01 * 12 : 0) + k01 * 8 * (back ? -0.5 : 1) - r.flinch * 12 + (u.crouch ? 22 : 0), -r.hipYaw + Math.sin(r.phase) * 6 * k01, 0); d.spine.scale.set([1, breathe, 1]);
       if (u.crouch) d.hips.position.set([0, 0.62, 0]);
       const fire = u.in.fire1; if (fire && !r.lastFire) r.punch = 1; r.lastFire = fire; r.punch = Math.max(0, r.punch - dt * 4);
       if (this.mode === 'select') { d.armR.setEuler(-28, 0, -8); d.armL.setEuler(-12, 0, 14); }
       else if (u.hero === 'wrecker') { const a = fire ? Math.sin(t * 16) * 38 : 0; d.armR.setEuler(-(70 + p) + a, 0, -6); d.armL.setEuler(-(70 + p) - a, 0, 14); }
       else if (u.hero === 'cantor' || u.hero === 'orbit' && u.dash) { d.armR.setEuler(-(70 + p), 0, -22); d.armL.setEuler(-(70 + p), 0, 22); }
-      else { d.armR.setEuler(-(90 + p) + r.punch * 8, 0, -6); d.armL.setEuler(-(90 + p) + 12, 0, 22); }
+      else {
+        const swing = Math.sin(r.phase) * k01, reload = u.reloadT > 0 ? 35 : 0;
+        d.armR.setEuler(-(90 + p) + r.punch * 8 + swing * 6 + reload, 0, -6); d.armL.setEuler(-(90 + p) + 12 - swing * 22 + reload * 0.6, 0, 22);
+      }
       if (u.st.stun) d.spine.setEuler(18, 0, 0);
       if (u.dash && (u.hero === 'bulwark' || u.hero === 'wrecker')) d.spine.setEuler(24, 0, 0);
       if (!u.grounded && !u.s.flying) { d.legL.setEuler(-25, 0, 0); d.legR.setEuler(20, 0, 0); }
@@ -209,7 +226,7 @@ export class View {
       if (d.weaponSpin) { r.spin += dt * (u.s.spun || 0) * 900; d.weaponSpin.setEuler(0, 0, r.spin); }
       animateHero(m, t, { flying: !!u.s.flying, speed: r.speed });
       // footsteps for everyone nearby
-      if (u.grounded && r.speed > 2.5) { r.stepT -= dt * r.speed; if (r.stepT <= 0) { r.stepT = 2.4; this.sound?.step(u.pos); } }
+      if (u.grounded && r.speed > 2.5) { r.stepT -= dt * r.speed; if (r.stepT <= 0) { r.stepT = 2.4; this.sound?.step(u.pos, this.isEnemy(u)); } }
       // frontal barrier and Bastille's wall
       const bar = sim.barrierOf(u);
       if (bar && !r.barrier) { r.barrier = new E.Mesh(E.box({ width: 3.8, height: 2.5, depth: 0.14, bevel: 0.03 }), new E.Material({ name: 'Barrier', color: this.teamHex(u.team), emissive: this.teamHex(u.team), emissiveStrength: 1.1, opacity: 0.3, doubleSided: true }), 'Barrier'); r.barrier.castShadow = false; this.scene.add(r.barrier); }

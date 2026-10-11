@@ -116,6 +116,8 @@ export class Hud {
   // ---------------------------------------------------------------- announcements and feedback
   banner(text, sub = '', color = '#fff') { const b = $('banner'); b.innerHTML = `<span style="color:${color}">${text}</span>${sub ? `<small>${sub}</small>` : ''}`; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }
   popup(text, cls = '', sub = '') { const d = el('div', 'pop ' + cls, text + (sub ? `<small>${sub}</small>` : '')); $('popups').append(d); setTimeout(() => d.remove(), 2600); while ($('popups').children.length > 4) $('popups').firstChild.remove(); }
+  // a red pulse round the screen edge when an enemy ultimate goes off nearby
+  edgePulse() { const e = $('edgeWarn'); if (!e) return; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); }
   hitmark(kind) {
     // weak markers (damage over time, barrier hits) never stomp a fresh hit or kill marker
     const h = $('hitmark'), now = performance.now(), weak = kind === 'dot' || kind === 'barrier';
@@ -190,7 +192,7 @@ export class Hud {
       const E = sim.elim, alive = (tm) => sim.units.filter((u) => u.team === tm && !u.deploy && u.alive).length, a = alive(vt), dd = alive(1 - vt);
       timeEl.textContent = 'ROUND ' + sim.round; $('obTime').classList.toggle('ot', !!E.open);
       set('obOT', sim.state === 'setup' ? 'SETUP ' + Math.ceil(sim.setupT) : sim.state === 'roundbreak' ? 'ROUND OVER' : E.open ? 'POINT OPEN' : 'POINT IN ' + Math.ceil(sim.timer));
-      set('ctlA', a + ' ALIVE'); set('ctlD', dd + ' ALIVE'); $('ctlFillA').style.width = a * 10 + '%'; $('ctlFillD').style.width = dd * 10 + '%';
+      set('ctlA', String(a)); set('ctlD', String(dd)); $('ctlFillA').style.width = a * 10 + '%'; $('ctlFillD').style.width = dd * 10 + '%';
       const hold = Math.max(E.hold[0], E.hold[1]) / 6, ht = E.hold[0] >= E.hold[1] ? 0 : 1;
       $('ctlRing').style.strokeDasharray = `${E.open ? hold * 100 : 0} 100`; $('ctlRing').style.stroke = ht === vt ? '#3a9bff' : '#ff4a52'; set('ctlOwner', E.open ? '◆' : '·');
       for (let i = 0; i < 3; i++) { $('cpA').children[i]?.classList.toggle('on', sim.wins[vt] > i); $('cpD').children[i]?.classList.toggle('on', sim.wins[1 - vt] > i); }
@@ -276,7 +278,7 @@ export class Hud {
       this.xhair.className = 'hud xhair ' + style; this.xhair.style.setProperty('--xc', this.settings.xcolor);
     }
     const maxT = me.maxHp + me.maxArmor, cur = Math.ceil(me.alive ? me.hp + me.armor + me.shield : 0);
-    $('vHp').textContent = cur; $('vMax').textContent = '/ ' + maxT;
+    $('vHp').textContent = cur; $('vMax').textContent = '/ ' + maxT; $('vitals').classList.toggle('low', me.alive && cur / maxT < 0.3); $('kit').style.visibility = me.alive ? '' : 'hidden';
     const sig = `${Math.ceil(me.hp / 25)}|${Math.ceil(me.armor / 25)}|${Math.ceil(me.shield / 25)}|${maxT}`;
     if (sig !== this.lastSig.hp) {
       this.lastSig.hp = sig; let html = ''; const hpN = Math.ceil(me.hp / 25), arN = Math.ceil(me.armor / 25), shN = Math.ceil(me.shield / 25), hpMax = Math.ceil(me.maxHp / 25), arMax = Math.ceil(me.maxArmor / 25);

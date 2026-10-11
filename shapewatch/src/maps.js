@@ -483,6 +483,58 @@ function makeMats(theme) {
   return out;
 }
 
+// ------------------------------------------------------------------ visual dressing (no collision): plinths, cornices, windows, pilasters, roof clutter
+function shade(hex, f) { const c = E.hexToRGB(hex), h = (v) => Math.max(0, Math.min(255, Math.round(v * 255 * f))).toString(16).padStart(2, '0'); return '#' + h(c[0]) + h(c[1]) + h(c[2]); }
+function dressBuildings(kit, level, theme, M) {
+  const city = !!theme.neon, rnd = (() => { let a = 1234567; return () => { a = (a * 1103515245 + 12345) & 0x7fffffff; return a / 0x7fffffff; }; })();
+  const glass = new E.Material({ name: 'Glass', color: city ? '#0e1424' : '#1c2433', roughness: 0.25, metallic: 0.05 });
+  const lit = new E.Material({ name: 'LitWindow', color: city ? '#ffb347' : '#ffcf8a', emissive: city ? '#ffb347' : '#ffcf8a', emissiveStrength: city ? 1.1 : 0.8, roughness: 0.4 });
+  const sign = city ? new E.Material({ name: 'Sign', color: '#b6ff4a', emissive: '#b6ff4a', emissiveStrength: 1.6, roughness: 0.4 }) : null;
+  const plinthM = {}, trimM = M.trim, clutter = new E.Material({ name: 'Clutter', color: shade(theme.mats.stone[0], 0.9), roughness: 0.8 });
+  const B = level.boxes, inside = (x, z, y) => B.some((b) => x > b.x0 + 0.05 && x < b.x1 - 0.05 && z > b.z0 + 0.05 && z < b.z1 - 0.05 && y > b.y0 && y < b.y1);
+  const { x0: bx0, x1: bx1, z0: bz0, z1: bz1 } = level.bounds;
+  let budget = 2600;
+  for (const b of B) {
+    if (!(b.m === 'wallA' || b.m === 'wallB') || b.y0 > 0.01) continue;
+    const w = b.x1 - b.x0, d = b.z1 - b.z0, h = b.y1 - b.y0; if (h < 4 || w < 2.5 || d < 2.5) continue;
+    const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
+    const pm = plinthM[b.m] ||= new E.Material({ name: 'Plinth' + b.m, color: shade(theme.mats[b.m][0], 0.62), roughness: 0.9 });
+    kit.box(pm, [cx, 0.4, cz], [w + 0.3, 0.8, d + 0.3]);
+    kit.box(trimM, [cx, b.y1 - 0.2, cz], [w + 0.6, 0.4, d + 0.6]);
+    // faces that look into the playable area get windows and pilasters
+    const faces = [[b.x0, cz, -1, 0, d], [b.x1, cz, 1, 0, d], [cx, b.z0, 0, -1, w], [cx, b.z1, 0, 1, w]];
+    for (const [fx, fz, nx, nz, len] of faces) {
+      const ox = fx + nx * 0.6, oz = fz + nz * 0.6;
+      if (ox < bx0 || ox > bx1 || oz < bz0 || oz > bz1 || inside(ox, oz, 2.4)) continue;
+      const along = nx ? [0, 1] : [1, 0], n = Math.floor((len - 1.6) / 3);
+      for (let i = 0; i < n && budget > 0; i++) {
+        const t = -((n - 1) * 3) / 2 + i * 3, px = fx + along[0] * t + nx * 0.04, pz = fz + along[1] * t + nz * 0.04;
+        for (const wy of [2.4, 5.4, 8.4]) { if (wy > h - 1.4) break; const on = rnd() < (city ? 0.6 : 0.25); kit.box(on ? lit : glass, [px, wy, pz], nx ? [0.06, 1.8, 1.2] : [1.2, 1.8, 0.06]); budget--; }
+        if (i % 2 === 1 && i < n - 1) { const qx = px + along[0] * 1.5 + nx * 0.06, qz = pz + along[1] * 1.5 + nz * 0.06; kit.box(trimM, [qx, h / 2, qz], nx ? [0.12, h - 0.2, 0.4] : [0.4, h - 0.2, 0.12]); budget--; }
+      }
+      if (sign && len > 8 && rnd() < 0.35) { const sx = fx + nx * 0.6, sz = fz + nz * 0.6; kit.box(sign, [sx, Math.min(h - 2, 5.5), sz], nx ? [1.0, 3.6, 0.12] : [0.12, 3.6, 1.0]); }
+    }
+    // roof clutter on tall blocks nobody can reach
+    if (h >= 7 && budget > 0) for (let i = 0; i < 1 + Math.floor(w * d / 120); i++) { const ux = b.x0 + 1.2 + rnd() * (w - 2.4), uz = b.z0 + 1.2 + rnd() * (d - 2.4); if (rnd() < 0.6) kit.box(clutter, [ux, b.y1 + 0.4, uz], [1.2, 0.8, 1.0]); else { kit.cyl(clutter, [ux, b.y1 + 0.9, uz], 0.9, 1.8, [0, 0, 0], 10); } budget--; }
+  }
+}
+// one hero landmark per map plus a skyline ring outside the bounds
+function buildBackdrop(k, level, theme, M) {
+  const { x0, x1, z0, z1 } = level.bounds, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, rnd = (() => { let a = 777; return () => { a = (a * 1103515245 + 12345) & 0x7fffffff; return a / 0x7fffffff; }; })();
+  const fog = shade(theme.mats.cliff[0], 1.05), farM = new E.Material({ name: 'Far', color: fog, roughness: 1 }), farM2 = new E.Material({ name: 'Far2', color: shade(theme.mats.cliff[0], 1.25), roughness: 1 });
+  const ring = (fn) => { const W = x1 - x0, D = z1 - z0; for (let i = 0; i < 44; i++) { const a = i / 44 * Math.PI * 2, rx = W / 2 + 40 + rnd() * 70, rz = D / 2 + 40 + rnd() * 70; fn(cx + Math.cos(a) * rx, cz + Math.sin(a) * rz, i); } };
+  const id = level.id;
+  if (theme.neon || theme.particles === 'embers') ring((x, z, i) => { const h = 25 + rnd() * 95, w = 10 + rnd() * 16; k.box(i % 3 ? farM : farM2, [x, h / 2, z], [w, h, w * (0.7 + rnd() * 0.6)]); if (theme.neon && i % 2) k.box(M.neonA, [x, h * 0.7, z], [w + 0.2, 0.4, w * 0.8]); });
+  else if (theme.particles === 'dust') ring((x, z, i) => { const h = 18 + rnd() * 30, w = 30 + rnd() * 30; for (let s = 0; s < 3; s++) k.box(s % 2 ? farM : farM2, [x, h * (s + 0.5) / 3, z], [w * (1 - s * 0.22), h / 3, w * (0.8 - s * 0.18)]); });
+  else ring((x, z, i) => { const h = 30 + rnd() * 50; k.cyl(i % 2 ? farM : farM2, [x, h / 2, z], 14 + rnd() * 10, h, [0, 0, 0], 6); k.cyl(new E.Material({ name: 'SnowPeak', color: '#f2f6fb', roughness: 0.9 }), [x, h + 2, z], 6, 4, [0, 0, 0], 6); });
+  // hero landmarks
+  const stone = M.stone, trim = M.trim, warm = new E.Material({ name: 'ClockFace', color: '#ffe7b0', emissive: '#ffd27a', emissiveStrength: 1.6, roughness: 0.4 });
+  if (id === 'frostgate') { const z = z1 + 18; k.box(stone, [0, 20, z], [7, 40, 7]); k.box(trim, [0, 40.6, z], [8, 1.2, 8]); for (const s of [-1, 1]) { k.cyl(warm, [0, 33, z + s * 3.56], 2.5, 0.1, [90, 0, 0], 24); } k.box(M.roof, [0, 43, z], [5, 4, 5]); k.cyl(trim, [0, 47, z], 0.15, 5, [0, 0, 0], 6); }
+  if (id === 'sunscar') { const z = 52, arch = M.rock; for (let i = 0; i <= 10; i++) { const a = Math.PI * i / 10, x = -Math.cos(a) * 18, y = 14 + Math.sin(a) * 10; k.box(arch, [x, y, z], [6, 4, 5]); } k.box(M.trim, [34, 9, 140], [1, 18, 1]); k.box(M.trim, [40, 9, 140], [1, 18, 1]); k.box(M.trim, [37, 17, 140], [7, 1, 1]); k.cyl(M.roof, [37, 19, 140], 1.4, 1.4, [90, 0, 0], 14); }
+  if (id === 'junction') { const x = x1 + 14, z = 12; for (const [a, b] of [[-2, -2], [2, -2], [-2, 2], [2, 2]]) k.box(trim, [x + a, 8, z + b], [0.4, 16, 0.4]); k.cyl(M.wallB, [x, 19, z], 3.2, 6, [0, 0, 0], 16); k.cyl(M.roof, [x, 22.6, z], 3.4, 1.2, [0, 0, 0], 16); }
+  if (id === 'lumen') { const x = x1 + 30, z = 0; k.cyl(farM2, [x, 45, z], 5, 90, [0, 0, 0], 12); for (const y of [30, 50, 70]) k.cyl(y === 50 ? M.neonB : M.neonA, [x, y, z], 9, 0.6, [0, 0, 0], 24); k.cyl(M.neonA, [x, 92, z], 1, 6, [0, 0, 0], 8); }
+  if (id === 'foundry') { const fire = new E.Material({ name: 'FurnaceMouth', color: '#ff7a1a', emissive: '#ff6a10', emissiveStrength: 4, roughness: 0.5 }); k.cyl(M.wallB, [0, 14.2, 0], 1.7, 7.7, [0, 0, 0], 16); k.cyl(trim, [0, 18.2, 0], 2.0, 0.5, [0, 0, 0], 16); for (const [a, b] of [[0, 4.06], [0, -4.06]]) k.box(fire, [a, 2.9, b], [3, 1.6, 0.08]); for (const [a, b] of [[4.06, 0], [-4.06, 0]]) k.box(fire, [a, 2.9, b], [0.08, 1.6, 3]); for (const [x, z] of [[x0 - 10, z0 - 10], [x1 + 10, z1 + 10]]) { k.cyl(farM2, [x, 22, z], 2.4, 44, [0, 0, 0], 12); } k.box(trim, [0, 14, 0], [x1 - x0 - 6, 0.8, 1.2]); }
+}
 export function buildLevelVisuals(scene, level) {
   const theme = THEMES[level.theme], M = makeMats(theme), kit = new E.Kit(E.archPalette()), root = new E.Node('Level ' + level.id);
   const { x0, x1, z0, z1 } = level.bounds, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
@@ -513,6 +565,7 @@ export function buildLevelVisuals(scene, level) {
     }
     if (theme.particles === 'embers' && b.m === 'trim' && b.y1 - b.y0 > 0.5 && b.y0 === 0) kit.box(M.neonA, [(b.x0 + b.x1) / 2, b.y1 - 0.4, (b.z0 + b.z1) / 2], [b.x1 - b.x0 + 0.06, 0.2, b.z1 - b.z0 + 0.06]);
   }
+  dressBuildings(kit, level, theme, M);
   // banners and lamp posts
   const bannerA = new E.Material({ name: 'Banner A', color: '#3a9bff', roughness: 0.8, doubleSided: true }), bannerD = new E.Material({ name: 'Banner D', color: '#ff4a52', roughness: 0.8, doubleSided: true });
   for (const [x, y, z, w, h, d] of level.bannerA || []) kit.box(bannerA, [x, y, z], [w, h, d]);
@@ -521,6 +574,8 @@ export function buildLevelVisuals(scene, level) {
   const lights = [];
   if (level.lampX?.length && level.decorZones?.length) for (const [a, b, c, d] of level.decorZones) for (let z = b + 6; z <= d - 6; z += 24) for (const x of level.lampX) { kit.cyl(post, [x, 2.2, z], 0.07, 4.4, [0, 0, 0], 8); kit.box(lamp, [x, 4.45, z], [0.4, 0.3, 0.4]); }
   const node = kit.toNode('Geometry'); root.add(node);
+  // landmarks and a skyline beyond the playable area (visual only, no shadows)
+  const far = new E.Kit(E.archPalette()); buildBackdrop(far, level, theme, M); const farNode = far.toNode('Backdrop'); farNode.traverse((n) => { if ('castShadow' in n) n.castShadow = false; }); root.add(farNode);
   const mkLight = (x, y, z, color, intensity, range) => { const l = new E.Light('point', { color, intensity, range }); l.position.set([x, y, z]); root.add(l); lights.push(l); };
   for (const t of [0, 1]) { const sp = level.spawns[t], c = [sp.reduce((a, p) => a + p[0], 0) / sp.length, sp.reduce((a, p) => a + p[2], 0) / sp.length]; for (const x of [-9, 9]) mkLight(c[0] + x, 6.2, c[1], '#ffe8c4', 10, 22); }
   // street lights centred in each decor zone, so mirrored maps stay mirrored

@@ -60,6 +60,7 @@
   </div>
   <div class="hud prompt" id="prompt"></div>
   <div class="hud perks" id="perks"></div>
+  <div class="edgewarn" id="edgeWarn"></div>
   <div class="hud fps" id="fps"></div>
   <div class="hint-keys" id="hintKeys"><span><kbd>C</kbd> COMMS</span><span><kbd>Z</kbd> PING</span><span><kbd>TAB</kbd> SCORE</span><span><kbd>M</kbd> MAP</span></div>
 </div>
@@ -67,11 +68,16 @@
 <!-- communication wheel (hold C) -->
 <div class="wheel" id="wheel" hidden></div>
 
+<!-- match intro and the end-of-match moment -->
+<div class="intro" id="intro" hidden></div>
+<div class="finale" id="finale" hidden><div class="fn-wash"></div><b id="fnTitle">VICTORY</b><span id="fnSub"></span></div>
+
 <!-- kill cam and play of the game -->
 <div class="cam-overlay" id="killcam" hidden>
   <div class="cam-bars"></div>
   <div class="kc-tag"><b>KILL CAM</b><span id="kcName"></span></div>
   <div class="kc-card" id="kcCard"></div>
+  <div class="kc-how" id="kcHow"></div>
   <div class="cam-foot"><div class="cam-bar"><i id="kcBar"></i></div><span><kbd>SPACE</kbd> SKIP</span></div>
 </div>
 <div class="cam-overlay potg" id="potg" hidden>

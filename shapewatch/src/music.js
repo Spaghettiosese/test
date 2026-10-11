@@ -10,14 +10,24 @@ const PROGS = {
   calm: [[0, 'm'], [5, 'm'], [8, 'M'], [7, 'M']],
   triumph: [[0, 'M'], [5, 'M'], [7, 'M'], [0, 'M']],
   somber: [[0, 'm'], [8, 'M'], [5, 'm'], [7, 'm']],
+  phrygian: [[0, 'M'], [1, 'M'], [0, 'M'], [10, 'm']], // desert: phrygian dominant colour
+  dorian: [[0, 'm'], [5, 'M'], [0, 'm'], [10, 'M']], // snow: i IV i VII
+  synth: [[0, 'm'], [8, 'M'], [10, 'M'], [7, 'm']], // city
 };
 const CHORD = { m: [0, 3, 7, 12], M: [0, 4, 7, 12] };
+// every theme has its own feel, not just its own key: progression, groove and bass style differ
 export const STYLES = {
-  snow: { key: 57, bpm: 112, arp: 'triangle', lead: 'triangle', pad: 'sawtooth', bright: 2600, swing: 0 },
-  desert: { key: 50, bpm: 104, arp: 'square', lead: 'sawtooth', pad: 'triangle', bright: 1900, swing: 0.08 },
-  city: { key: 54, bpm: 118, arp: 'sawtooth', lead: 'square', pad: 'sawtooth', bright: 3400, swing: 0 },
-  industrial: { key: 52, bpm: 124, arp: 'square', lead: 'sawtooth', pad: 'sawtooth', bright: 1500, swing: 0 },
-  menu: { key: 57, bpm: 92, arp: 'triangle', lead: 'triangle', pad: 'sawtooth', bright: 2200, swing: 0 },
+  snow: { key: 57, bpm: 108, arp: 'triangle', lead: 'triangle', pad: 'sawtooth', bright: 2600, swing: 0.16, prog: 'dorian', groove: 'waltz', bassMode: 'root' },
+  desert: { key: 50, bpm: 100, arp: 'square', lead: 'sawtooth', pad: 'triangle', bright: 1900, swing: 0.08, prog: 'phrygian', groove: 'tribal', bassMode: 'fifths' },
+  city: { key: 54, bpm: 118, arp: 'sawtooth', lead: 'square', pad: 'sawtooth', bright: 3400, swing: 0, prog: 'synth', groove: 'four', bassMode: 'octaves' },
+  industrial: { key: 52, bpm: 124, arp: 'square', lead: 'sawtooth', pad: 'sawtooth', bright: 1500, swing: 0, prog: 'tense', groove: 'half', bassMode: 'root' },
+  menu: { key: 57, bpm: 92, arp: 'triangle', lead: 'triangle', pad: 'sawtooth', bright: 2200, swing: 0, prog: 'calm', groove: 'four', bassMode: 'root' },
+};
+const GROOVES = {
+  four: { kick: [[1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0], [1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0]], snare: [[0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1]] },
+  half: { kick: [[1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0], [1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0]], snare: [[0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0]] },
+  waltz: { kick: [[1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0], [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]], snare: [[0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1], [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1]] },
+  tribal: { kick: [[1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0], [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0]], snare: [[0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0]] },
 };
 // 16-step patterns per layer (1 = hit). Several variants so loops do not feel static
 const KICK = [[1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0], [1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0]];
@@ -30,13 +40,14 @@ export class Music {
   constructor(sfx) { this.sfx = sfx; this.ctx = null; this.volume = 0.5; this.mood = 'menu'; this.style = STYLES.menu; this.intensity = 0; this.target = 0; this.step = 0; this.bar = 0; this.next = 0; this.timer = null; this.enabled = true; }
   ensure() {
     if (this.ctx || !this.sfx.ctx) return !!this.ctx;
-    const c = this.ctx = this.sfx.ctx; this.out = c.createGain(); this.out.gain.value = this.volume * 0.55;
-    // a little shared reverb (feedback delay network on the cheap) for space
-    const dl = c.createDelay(1), fb = c.createGain(), lp = c.createBiquadFilter(); dl.delayTime.value = 0.27; fb.gain.value = 0.32; lp.type = 'lowpass'; lp.frequency.value = 2400;
-    this.wet = c.createGain(); this.wet.gain.value = 0.3; this.wet.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(this.out);
-    this.out.connect(c.destination);
+    const c = this.ctx = this.sfx.ctx; this.out = c.createGain(); this.out.gain.value = this.volume * 0.55; this.duckG = c.createGain(); this.duckG.gain.value = 1;
+    // an echo timed to three sixteenth notes; kick and bass stay dry so the low end does not smear
+    const dl = c.createDelay(1), fb = c.createGain(), lp = c.createBiquadFilter(); this.delay = dl; dl.delayTime.value = 0.27; fb.gain.value = 0.3; lp.type = 'lowpass'; lp.frequency.value = 2400;
+    this.wet = c.createGain(); this.wet.gain.value = 0.28; this.wet.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(this.out);
+    // music runs through the game's mix bus (compressor, low-health muffle) when there is one
+    this.out.connect(this.duckG); this.duckG.connect(this.sfx.musicIn || c.destination);
     // per-layer busses so intensity can fade them smoothly
-    this.bus = {}; for (const k of ['pad', 'bass', 'arp', 'lead', 'kick', 'snare', 'hat']) { const g = c.createGain(); g.gain.value = 0; g.connect(this.out); g.connect(this.wet); this.bus[k] = g; }
+    this.bus = {}; for (const k of ['pad', 'bass', 'arp', 'lead', 'kick', 'snare', 'hat']) { const g = c.createGain(); g.gain.value = 0; g.connect(this.out); if (k === 'pad' || k === 'arp' || k === 'lead' || k === 'snare') g.connect(this.wet); this.bus[k] = g; }
     this.timer = setInterval(() => this.pump(), 25); this.next = c.currentTime + 0.1;
     return true;
   }
@@ -48,6 +59,16 @@ export class Music {
     const changed = mood !== this.mood; this.mood = mood; if (theme) this.style = STYLES[theme] || STYLES.menu; else if (mood === 'menu') this.style = STYLES.menu;
     if (changed && (mood === 'victory' || mood === 'defeat')) this.stinger(mood === 'victory');
     if (changed) { this.bar = 0; this.step = 0; }
+    if (this.delay) this.delay.delayTime.setTargetAtTime(Math.min(0.9, 3 * 60 / this.style.bpm / 4), this.ctx.currentTime, 0.1);
+  }
+  // duck the music under voice lines and ultimates
+  duck(amount = 0.4, secs = 2) { if (!this.duckG) return; const t = this.ctx.currentTime; this.duckG.gain.cancelScheduledValues(t); this.duckG.gain.setTargetAtTime(amount, t, 0.08); this.duckG.gain.setTargetAtTime(1, t + secs, 0.5); }
+  // short musical cues for big moments
+  cue(kind) {
+    if (!this.ensure()) return; const c = this.ctx, t = c.currentTime + 0.03, key = this.style.key;
+    const seqs = { firstBlood: [[0, 0.12], [7, 0.12], [12, 0.3]], checkpoint: [[0, 0.15], [4, 0.15], [7, 0.15], [12, 0.45]], capture: [[7, 0.12], [12, 0.12], [16, 0.4]], wipe: [[0, 0.1], [3, 0.1], [7, 0.1], [12, 0.1], [15, 0.5]], lost: [[12, 0.2], [8, 0.2], [7, 0.5]] };
+    let at = t; for (const [n, d] of seqs[kind] || []) { this.osc('sawtooth', NOTE(key + 12 + n), at, d + 0.2, 0.08, 'lead', { attack: 0.01, release: 0.18, filter: 3200 }); this.osc('triangle', NOTE(key + n), at, d + 0.25, 0.1, 'bass', { attack: 0.01, release: 0.2 }); at += d; }
+    for (const k of ['lead', 'bass']) this.bus[k].gain.setTargetAtTime(Math.max(0.5, this.bus[k].gain.value), t, 0.02);
   }
   setIntensity(v) { this.target = Math.max(0, Math.min(1, v)); }
   levels() {
@@ -58,8 +79,8 @@ export class Music {
     if (m === 'victory') return { pad: 0.6, bass: 0.45, arp: 0.35, lead: 0.4, kick: 0.35, snare: 0.2, hat: 0.2 };
     if (m === 'defeat') return { pad: 0.55, bass: 0.35, arp: 0.12, lead: 0.2, kick: 0, snare: 0, hat: 0 };
     if (m === 'overtime') return { pad: 0.45, bass: 0.6, arp: 0.5, lead: 0.3, kick: 0.75, snare: 0.6, hat: 0.4 };
-    // in a match, layers fade in with intensity
-    return { pad: 0.42, bass: 0.25 + i * 0.3, arp: Math.max(0, i - 0.2) * 0.55, lead: Math.max(0, i - 0.65) * 0.9, kick: Math.max(0, i - 0.3) * 0.85, snare: Math.max(0, i - 0.5) * 0.9, hat: Math.min(1, i * 1.6) * 0.32 };
+    // in a match: near silence while nothing is happening (footsteps matter), layers arrive with the fight
+    return { pad: 0.08 + i * 0.25, bass: Math.max(0, i - 0.15) * 0.55, arp: Math.max(0, i - 0.4) * 0.6, lead: Math.max(0, i - 0.72) * 1.0, kick: Math.max(0, i - 0.3) * 0.85, snare: Math.max(0, i - 0.5) * 0.9, hat: Math.max(0, i - 0.35) * 0.45 };
   }
   pump() {
     const c = this.ctx; if (!c || c.state !== 'running') return;
@@ -68,15 +89,19 @@ export class Music {
     const st = this.style, bpm = st.bpm * (this.mood === 'overtime' ? 1.12 : this.mood === 'defeat' ? 0.8 : 1), dur = 60 / bpm / 4;
     while (this.next < c.currentTime + 0.15) { this.tick(this.next, dur); const sw = this.step % 2 ? -st.swing : st.swing; this.next += dur * (1 + sw); this.step = (this.step + 1) % 16; if (this.step === 0) this.bar++; }
   }
-  prog() { return PROGS[this.mood === 'overtime' ? 'tense' : this.mood === 'victory' ? 'triumph' : this.mood === 'defeat' ? 'somber' : this.mood === 'menu' ? 'calm' : 'heroic']; }
+  prog() { return PROGS[this.mood === 'overtime' ? 'tense' : this.mood === 'victory' ? 'triumph' : this.mood === 'defeat' ? 'somber' : this.mood === 'menu' ? 'calm' : this.style.prog || 'heroic']; }
   tick(t, dur) {
     const st = this.style, prog = this.prog(), [root, q] = prog[Math.floor(this.bar / 2) % prog.length], chord = CHORD[q], key = st.key, s = this.step, v = this.bar % 4;
     const base = key + root - 12;
     if (s === 0 && this.bar % 2 === 0) for (const iv of chord.slice(0, 3)) this.pad(t, NOTE(base + 12 + iv), dur * 32, st);
-    if (s % 4 === 0 || (s === 14 && v % 2)) this.bass(t, NOTE(base - 12 + (s === 8 && v === 3 ? 7 : 0)), dur * (s === 14 ? 2 : 3.5));
+    if (st.bassMode === 'octaves') { if (s % 2 === 0) this.bass(t, NOTE(base - 12 + (s % 4 === 2 ? 12 : 0)), dur * 1.6); }
+    else if (s % 4 === 0 || (s === 14 && v % 2)) this.bass(t, NOTE(base - 12 + (st.bassMode === 'fifths' && s % 8 === 4 ? 7 : s === 8 && v === 3 ? 7 : 0)), dur * (s === 14 ? 2 : 3.5));
     const ap = ARP[(this.bar >> 1) % ARP.length]; this.pluck(t, NOTE(base + 24 + chord[ap[s]]), dur * 1.6, st.arp, st.bright, 'arp');
-    const ld = LEAD[(this.bar >> 2) % LEAD.length][s]; if (ld >= 0 && this.bar % 4 >= 2) this.pluck(t, NOTE(key + 12 + ld), dur * 3.2, st.lead, st.bright * 1.2, 'lead');
-    if (KICK[v % 2][s]) this.kick(t); if (SNARE[(v >> 1) % 2][s]) this.snare(t); if (HAT[v % 2][s]) this.hat(t, s % 4 === 2 ? 0.7 : 0.4);
+    // the lead lands on chord tones on the strong steps, so it never clashes with the harmony
+    let ld = LEAD[(this.bar >> 2) % LEAD.length][s];
+    if (ld >= 0 && this.bar % 4 >= 2) { if (s % 4 === 0) { const rel = ((ld - root) % 12 + 12) % 12, tones = [...chord, 12 + chord[1]]; const best = tones.reduce((a, b) => (Math.abs(b - rel) < Math.abs(a - rel) ? b : a)); ld = root + best + (ld >= 12 ? 12 : 0) - (root + best > 14 ? 12 : 0); } this.pluck(t, NOTE(key + 12 + ld), dur * 3.2, st.lead, st.bright * 1.2, 'lead'); }
+    const G = GROOVES[st.groove] || GROOVES.four;
+    if (G.kick[v % 2][s]) this.kick(t); if (G.snare[(v >> 1) % 2][s]) this.snare(t); if (HAT[v % 2][s]) this.hat(t, s % 4 === 2 ? 0.7 : 0.4);
   }
   osc(type, f, t, d, gain, bus, { attack = 0.01, release = 0.12, filter = 0, detune = 0 } = {}) {
     const c = this.ctx, o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.value = f; o.detune.value = detune;

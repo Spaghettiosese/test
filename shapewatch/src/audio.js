@@ -7,7 +7,13 @@ export class Sfx {
       try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return; }
       this.master = this.ctx.createGain(); this.master.gain.value = this.volume;
       // a low-pass on the whole mix muffles the world when the player is nearly dead
-      this.lp = this.ctx.createBiquadFilter(); this.lp.type = 'lowpass'; this.lp.frequency.value = 20000; this.master.connect(this.lp); this.lp.connect(this.ctx.destination);
+      this.lp = this.ctx.createBiquadFilter(); this.lp.type = 'lowpass'; this.lp.frequency.value = 20000; this.master.connect(this.lp);
+      // the mix bus: a gentle compressor glues everything, a limiter stops stacked shots from clipping
+      const c = this.ctx, comp = c.createDynamicsCompressor(), lim = c.createDynamicsCompressor();
+      comp.threshold.value = -14; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.15; comp.knee.value = 6;
+      lim.threshold.value = -1; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.08; lim.knee.value = 0;
+      this.lp.connect(comp); comp.connect(lim); lim.connect(c.destination);
+      this.musicIn = c.createGain(); this.musicIn.connect(this.lp);
       const len = this.ctx.sampleRate * 2; this.noise = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
       const d = this.noise.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
       this.startWind();
@@ -27,12 +33,13 @@ export class Sfx {
     const L = this.listener, dx = pos[0] - L.pos[0], dz = pos[2] - L.pos[2], dy = (pos[1] || 0) - L.pos[1];
     const d = Math.hypot(dx, dy, dz), gain = base * Math.min(1, ref / Math.max(ref * 0.6, d)) ** 1.4 * (d > 90 ? 0 : 1);
     const right = [-Math.cos(L.yaw), Math.sin(L.yaw)], pan = d < 0.5 ? 0 : Math.max(-1, Math.min(1, (dx * right[0] + dz * right[1]) / d));
-    return { gain, pan };
+    // distance takes the top end off: far gunfire sounds far
+    return { gain, pan, lp: 18000 * Math.exp(-d / 35) };
   }
   _noise(t0, { dur = 0.3, gain = 1, type = 'lowpass', freq = 1200, q = 0.7, attack = 0.002, decay = 0.2, pan = 0, freqEnd = null, o = null }) {
     if (o && o.gain < 0.01) return;
     const c = this.ctx, src = c.createBufferSource(); src.buffer = this.noise; src.playbackRate.value = 0.8 + Math.random() * 0.4;
-    const f = c.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(freq, t0); if (freqEnd) f.frequency.exponentialRampToValueAtTime(freqEnd, t0 + dur); f.Q.value = q;
+    const f = c.createBiquadFilter(), cap = o?.lp && type !== 'highpass' ? o.lp : 1e5; f.type = type; f.frequency.setValueAtTime(Math.min(freq, cap), t0); if (freqEnd) f.frequency.exponentialRampToValueAtTime(Math.max(20, Math.min(freqEnd, cap)), t0 + dur); f.Q.value = q;
     const g = c.createGain(), og = o ? o.gain : 1; g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain * og), t0 + attack); g.gain.exponentialRampToValueAtTime(0.0001, t0 + attack + decay);
     const p = c.createStereoPanner ? c.createStereoPanner() : null;
     src.connect(f); f.connect(g);
@@ -105,7 +112,7 @@ export class Sfx {
   heal(pos) { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 880, dur: 0.1, gain: 0.07, decay: 0.2, type: 'sine' }); }
   reload() { if (!this.ctx) return; const t = this.ctx.currentTime; this._noise(t, { dur: 0.05, gain: 0.4, freq: 2400, decay: 0.05 }); this._noise(t + 0.45, { dur: 0.05, gain: 0.5, freq: 1800, decay: 0.06 }); }
   empty() { if (!this.ctx) return; this._noise(this.ctx.currentTime, { dur: 0.04, gain: 0.3, freq: 3000, decay: 0.04 }); }
-  step(pos) { if (!this.ctx) return; const o = this._out(pos, 0.35, 8); this._noise(this.ctx.currentTime, { dur: 0.08, gain: 0.3, freq: 420, freqEnd: 200, decay: 0.08, o }); }
+  step(pos, enemy = false) { if (!this.ctx) return; const o = this._out(pos, enemy ? 0.55 : 0.3, enemy ? 11 : 8); this._noise(this.ctx.currentTime, { dur: 0.08, gain: 0.3, freq: 420, freqEnd: 200, decay: 0.08, o }); }
   jump(pos) { if (!this.ctx) return; const o = this._out(pos, 0.5, 10); this._noise(this.ctx.currentTime, { dur: 0.12, gain: 0.25, freq: 600, decay: 0.12, o }); }
   land(pos) { if (!this.ctx) return; const o = this._out(pos, 0.7, 12); this._noise(this.ctx.currentTime, { dur: 0.15, gain: 0.5, freq: 300, freqEnd: 90, decay: 0.15, o }); }
   pack(pos) { if (!this.ctx) return; const t = this.ctx.currentTime, o = this._out(pos, 0.8, 16); this._tone(t, { freq: 660, dur: 0.1, gain: 0.25, decay: 0.15, o }); this._tone(t + 0.08, { freq: 990, dur: 0.14, gain: 0.25, decay: 0.3, o }); }

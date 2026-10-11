@@ -25,6 +25,7 @@ let view;
 try { view = new View($('stage')); } catch (e) { $('fatal').hidden = false; $('fatal').textContent = 'ShapeWatch needs WebGL2. ' + e.message; throw e; }
 const sfx = new Sfx(); view.sound = sfx;
 const voice = new Voice();
+{ const say = voice.say.bind(voice); voice.say = (...a) => { const r = say(...a); if (r !== false) music.duck(0.55, 2.4); return r; }; }
 const music = new Music(sfx);
 const comms = new Comms(voice);
 let heat = 0; // recent combat around the player, drives the music
@@ -118,12 +119,28 @@ const BRIEF = {
 };
 function enterPlay() {
   select.close(); mode = 'play'; view.mode = 'fps'; show('hud'); hud.reset(sim); lockMouse(); sfx.announce('start'); voice.announce('start');
-  const [t, s, c] = BRIEF[sim.modeId](sim.playerTeam === 0); hud.banner(t, s, c);
+  const [t, s, c] = BRIEF[sim.modeId](sim.playerTeam === 0); if (sim.modeId === 'training' || sim.modeId === 'ffa') hud.banner(t, s, c); else showIntro();
   view.fovCur = settings.fov; applySettings();
   // your nemesis is in this lobby?
   const nem = career.nemesis(), nu = nem && sim.units.find((u) => u.name === nem.name && !u.isPlayer);
   if (nu) setTimeout(() => { hud.popup(nu.team === sim.playerTeam ? 'YOUR NEMESIS IS ON YOUR TEAM' : 'YOUR NEMESIS IS HERE', 'kill', `${nu.name.toUpperCase()} · ${nu.def.name} · ${nem.d}–${nem.k} AGAINST YOU`); if (nu.team !== sim.playerTeam) comms.say(nu, ['Back for more?', 'I remember you.', 'Same as last time, then.'][Math.floor(Math.random() * 3)], { pri: 3, ally: false }); }, 3200);
   const mates = sim.units.filter((u) => u.team === sim.playerTeam && !u.isPlayer && !u.deploy && sim.modeId !== 'ffa'); if (mates.length) setTimeout(() => { const m = mates[Math.floor(Math.random() * mates.length)]; voice.hero(m.hero, 'hello', { name: m.name.toUpperCase(), force: true }); }, 1400);
+}
+// the big end-of-match moment: a full-screen VICTORY or DEFEAT before the Play of the Game
+function showFinale(won, why) {
+  const f = $('finale'); if (!f || sim.modeId === 'training') return;
+  f.className = 'finale ' + (won ? 'win' : 'lose'); $('fnTitle').textContent = won ? 'VICTORY' : 'DEFEAT';
+  const sc = sim.modeId === 'tdm' ? `${sim.score[sim.playerTeam]} — ${sim.score[1 - sim.playerTeam]}` : sim.wins && (sim.modeId === 'control' || sim.modeId === 'elim') ? `${sim.wins[sim.playerTeam]} — ${sim.wins[1 - sim.playerTeam]}` : '';
+  $('fnSub').textContent = (sc ? sc + ' · ' : '') + (why || '').toUpperCase(); f.hidden = false; show('hud', false); setTimeout(() => { f.hidden = true; }, 3300);
+}
+// a short card with both line-ups when the match goes live
+function showIntro() {
+  const box = $('intro'); if (!box || sim.modeId === 'training' || sim.modeId === 'ffa') return;
+  const team = (t) => sim.units.filter((u) => u.team === t && !u.deploy).map((u) => `<div class="in-p">${'<canvas data-h="' + u.hero + '"></canvas>'}<b>${u.isPlayer ? 'YOU' : u.name.toUpperCase()}</b><small>${u.def.name}</small></div>`).join('');
+  const [t, sub] = BRIEF[sim.modeId](sim.playerTeam === 0);
+  box.innerHTML = `<div class="in-top"><b>${sim.level.name}</b><span>${MODES[sim.modeId].name}${t !== MODES[sim.modeId].name && !MODES[sim.modeId].name.includes(t) ? ' · ' + t : ''}</span></div><div class="in-teams"><div class="in-side a">${team(sim.playerTeam)}</div><div class="in-vs">VS</div><div class="in-side d">${team(1 - sim.playerTeam)}</div></div><div class="in-sub">${sub}</div>`;
+  box.querySelectorAll('canvas[data-h]').forEach((c) => c.replaceWith(portraits.canvas(c.dataset.h, 56)));
+  box.hidden = false; box.classList.remove('out'); setTimeout(() => box.classList.add('out'), 2600); setTimeout(() => { box.hidden = true; }, 3200);
 }
 function pauseGame(on) {
   if (mode !== 'play' && mode !== 'paused') return;
@@ -151,7 +168,12 @@ function toMenu() { hideAll(); select.close(); paused = false; unlockMouse(); vo
 function startReplay(clip, kind) {
   replay = new ReplayPlayer(sim, clip); replayKind = kind;
   view.attach(replay.sim, { replay: true }); view.me = replay.sim.player; view.mode = kind === 'killcam' ? 'fps' : 'chase'; view.fovCur = settings.fov;
-  if (kind === 'killcam') { show('hud', false); show('killcam'); $('kcName').textContent = (clip.name || '').toUpperCase() + ' · ' + HERO[clip.hero].name; const c = $('kcCard'); c.innerHTML = ''; c.append(portraits.canvas(clip.hero, 64)); c.insertAdjacentHTML('beforeend', `<div><b>${clip.name}</b><span>${HERO[clip.hero].name} · ${HERO[clip.hero].sub.toUpperCase()}</span></div>`); sfx.stinger('killcam'); mode = 'killcam'; }
+  if (kind === 'killcam') { show('hud', false); show('killcam'); $('kcName').textContent = (clip.name || '').toUpperCase() + ' · ' + HERO[clip.hero].name; const c = $('kcCard'); c.innerHTML = ''; c.append(portraits.canvas(clip.hero, 64)); c.insertAdjacentHTML('beforeend', `<div><b>${clip.name}</b><span>${HERO[clip.hero].name} · ${HERO[clip.hero].sub.toUpperCase()}</span></div>`);
+    // how it happened: what they used and how much they did to you
+    const p = sim.player, lh = p?.lastHit, kd = HERO[clip.hero], w1Kinds = ['bullet', 'proj', 'melee', 'dot', 'bank', 'chain', 'drain', 'splash'];
+    const what = lh?.ult ? kd.ult.name : w1Kinds.includes(lh?.kind) ? kd.w1.name : 'an ability', dealt = (hud.recap || []).filter((r) => r.src?.hero === clip.hero).reduce((a, r) => a + r.amt, 0);
+    $('kcHow').innerHTML = `ELIMINATED YOU WITH <b>${what.toUpperCase()}</b>${dealt ? ` · <b>${Math.round(dealt)}</b> DAMAGE` : ''}${lh?.head ? ' · <em>HEADSHOT</em>' : ''}`;
+    sfx.stinger('killcam'); mode = 'killcam'; }
   else { show('potg'); $('potgTitle').textContent = clip.title; const w = $('potgWho'); w.innerHTML = ''; w.append(portraits.canvas(clip.hero, 80)); w.insertAdjacentHTML('beforeend', `<div><b>${clip.name === 'You' ? 'YOU' : clip.name}</b><span>${HERO[clip.hero].name}${clip.hl?.kills > 1 ? ' · ' + clip.hl.kills + ' ELIMINATIONS' : ''}</span></div>`); $('potgHint').innerHTML = clipQueue.length ? '<kbd>SPACE</kbd> NEXT' : '<kbd>SPACE</kbd> CONTINUE'; sfx.stinger('potg'); mode = 'potg'; }
 }
 function stopReplay(silent = false) {
@@ -187,11 +209,15 @@ function showReport() {
 // ------------------------------------------------------------------ events from the simulation
 view.onHit = (e) => { heat = Math.min(1, heat + 0.05); if (e.tgt && !e.tgt.alive) return; if (e.kind === 'dot') { hud.hitmark('dot'); return; } hud.hitmark(e.crit ? (e.head ? 'crit head' : 'crit') : e.head ? 'head' : e.layer === 'armor' ? 'armor' : ''); };
 view.onBarrier = () => hud.hitmark('barrier');
+view.onEnemyUlt = () => hud.edgePulse();
 view.onHurt = (e) => { heat = Math.min(1, heat + 0.08); if (e.src) hud.damageDir(e.src); hud.noteDamage(e); const p = me(); if (p && p.alive && (p.hp + p.armor) / (p.maxHp + p.maxArmor) < 0.3 && sim.time - lastLowHp > 14) { lastLowHp = sim.time; voice.hero(p.hero, 'hurt', { name: 'YOU', force: false }); } };
 view.onHeal = (e) => { hud.heal(e); comms.onEvent(e); };
 view.onKill = (e) => {
   if (mode === 'menu') return;
   comms.onEvent(e);
+  // music cues: first blood and team wipes
+  if (!sim.firstBlood && sim.modeId !== 'training') { sim.firstBlood = true; music.cue('firstBlood'); }
+  if (sim.modeId !== 'ffa' && sim.modeId !== 'training' && e.victim && !e.victim.deploy) { const t = e.victim.team; if (!sim.units.some((u) => u.team === t && !u.deploy && u.alive)) music.cue(t === sim.playerTeam ? 'lost' : 'wipe'); }
   hud.feedRow(e); const p = me();
   if (e.killer === p) {
     hud.hitmark('kill'); sfx.kill(); hud.popup('ELIMINATED', 'kill', e.victim.name.toUpperCase());
@@ -206,7 +232,7 @@ view.onKill = (e) => {
   }
 };
 view.onUlt = (e) => {
-  heat = Math.min(1, heat + 0.3);
+  heat = Math.min(1, heat + 0.3); music.duck(0.5, 1.8);
   const u = e.unit, mine = u.team === sim.playerTeam && sim.modeId !== 'ffa';
   if (mode !== 'menu') hud.popup(`${u.isPlayer ? 'YOUR' : mine ? 'ALLY' : 'ENEMY'} ULTIMATE · ${u.def.ult.name.toUpperCase()}`, mine ? 'save' : 'kill', u.isPlayer ? '' : u.name.toUpperCase());
 };
@@ -220,9 +246,9 @@ view.onEvent = (e) => {
     case 'perkReady': if (e.unit === me()) { hud.popup(e.tier === 'minor' ? 'MINOR PERK READY' : 'MAJOR PERK READY', 'streak', 'PRESS 1 OR 2'); sfx.ultReady(); } break;
     case 'perk': if (e.unit === me()) hud.popup('PERK · ' + PERKS[e.id].name, 'save'); break;
     case 'round': { const won = e.winner === sim.playerTeam; hud.banner(won ? 'ROUND WON' : 'ROUND LOST', `${e.wins[sim.playerTeam]} — ${e.wins[1 - sim.playerTeam]}`, won ? '#5ab0ff' : '#ff6a72'); sfx.announce('round'); voice.announce(won ? 'roundWin' : 'roundLoss'); break; }
-    case 'checkpoint': hud.banner('CHECKPOINT REACHED', `+${e.bonus} SECONDS ADDED · ${sim.playerTeam === 0 ? 'FORWARD SPAWN ONLINE' : 'ATTACKERS HAVE A FORWARD SPAWN'}`, '#ffd36b'); sfx.announce('checkpoint'); voice.announce('checkpoint'); break;
-    case 'captured': hud.banner('POINT CAPTURED', sim.playerTeam === 0 ? 'NOW ESCORT THE PAYLOAD' : 'THE PAYLOAD IS ROLLING', '#ffd36b'); voice.announce('capture'); break;
-    case 'capture': { const mineC = e.team === sim.playerTeam; hud.banner(mineC ? 'POINT CAPTURED' : 'POINT LOST', mineC ? 'HOLD IT TO FILL YOUR METER' : 'RETAKE THE POINT', mineC ? '#5ab0ff' : '#ff6a72'); voice.announce('capture'); break; }
+    case 'checkpoint': music.cue('checkpoint'); hud.banner('CHECKPOINT REACHED', `+${e.bonus} SECONDS ADDED · ${sim.playerTeam === 0 ? 'FORWARD SPAWN ONLINE' : 'ATTACKERS HAVE A FORWARD SPAWN'}`, '#ffd36b'); sfx.announce('checkpoint'); voice.announce('checkpoint'); break;
+    case 'captured': music.cue('capture'); hud.banner('POINT CAPTURED', sim.playerTeam === 0 ? 'NOW ESCORT THE PAYLOAD' : 'THE PAYLOAD IS ROLLING', '#ffd36b'); voice.announce('capture'); break;
+    case 'capture': { const mineC = e.team === sim.playerTeam; music.cue(mineC ? 'capture' : 'lost'); hud.banner(mineC ? 'POINT CAPTURED' : 'POINT LOST', mineC ? 'HOLD IT TO FILL YOUR METER' : 'RETAKE THE POINT', mineC ? '#5ab0ff' : '#ff6a72'); voice.announce('capture'); break; }
     case 'overtime': hud.banner('OVERTIME', 'THE OBJECTIVE IS STILL IN PLAY', '#ffd36b'); sfx.announce('overtime'); voice.announce('overtime'); break;
     case 'mutator': hud.banner('RIFT SURGE', MUTATORS[e.id].name + ' · ' + MUTATORS[e.id].desc.toUpperCase(), '#c79bff'); sfx.announce('surge'); voice.announce('surge'); break;
     case 'mutatorEnd': hud.popup('THE SURGE FADES', 'save'); break;
@@ -238,7 +264,7 @@ view.onEvent = (e) => {
     case 'core': if (e.unit === me()) hud.popup('ECHO CORE', 'streak', '+12% ULT'); break;
     case 'revive': if (e.unit === me()) hud.popup('REVIVED', 'save'); break;
     case 'pack': break;
-    case 'over': { const p = me(), won = e.winner === sim.playerTeam || (sim.modeId === 'ffa' && sim.winnerUnit === p); hud.banner(won ? 'VICTORY' : 'DEFEAT', e.why.toUpperCase(), won ? '#5ab0ff' : '#ff6a72'); sfx.announce(won ? 'win' : 'lose'); voice.announce(won ? 'victory' : 'defeat'); overT = 0;
+    case 'over': { const p = me(), won = e.winner === sim.playerTeam || (sim.modeId === 'ffa' && sim.winnerUnit === p); showFinale(won, e.why); sfx.announce(won ? 'win' : 'lose'); voice.announce(won ? 'victory' : 'defeat'); overT = 0;
       const mates = sim.units.filter((u) => !u.deploy && !u.isPlayer && (u.team === sim.playerTeam)); const m = mates[Math.floor(Math.random() * mates.length)] || p; setTimeout(() => voice.hero(m.hero, won ? 'win' : 'lose', { name: m.name.toUpperCase(), force: true }), 900); break; }
     case 'spawn': if (e.unit === me() && mode === 'play') view.mode = 'fps'; break;
   }

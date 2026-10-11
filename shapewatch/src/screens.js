@@ -260,7 +260,7 @@ export function renderScoreboard(sim, portraits, target = $('scCard')) {
 // ------------------------------------------------------------------ mastery bar, coaching, endorsements
 function masteryHtml(m) {
   const t = Object.entries(MASTERY_TITLES).filter(([lv]) => m.level >= +lv).pop();
-  return `<div class="mastery"><b>MASTERY ${m.level}</b>${t ? `<em>${t[1].toUpperCase()}</em>` : ''}<div class="mbar"><i style="width:${m.pct * 100}%"></i></div><small>${m.level >= 20 ? 'MAX' : Math.round(m.into) + ' / ' + m.need}</small></div>`;
+  return `<div class="mastery"><b>MASTERY ${m.level}${t ? ` <em>${t[1].toUpperCase()}</em>` : ''}</b><div class="mbar"><i style="width:${m.pct * 100}%"></i></div><small>${m.level >= 20 ? 'MAX' : Math.round(m.into) + ' / ' + m.need}</small></div>`;
 }
 function endExtras(report, me) {
   const out = [], M = report.mastery;

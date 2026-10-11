@@ -322,8 +322,8 @@ body.touch .kit { bottom: auto; top: 1rem; right: .8rem; } body.touch .vitals { 
 
 .tr-meters { justify-content: center; gap: 1.2rem; font: 700 .7rem var(--body); letter-spacing: .16em; color: #dfe8f8; text-shadow: 0 0 3px #000; margin-top: .2rem; } .tr-meters b { color: #fff; font: italic 700 .95rem var(--display); margin-left: .25rem; }
 
-/* control: the CONTESTED / SETUP label sits above the bar so it never hides under the point ring */
-.ob-row.ctl .ob-time i { bottom: auto; top: -1.05rem; }
+/* control: the CONTESTED / SETUP label sits inside the clock box so it never hides under the point ring */
+.ob-row.ctl .ob-time i { position: static; display: block; line-height: 1.1; padding-bottom: .1rem; }
 .sel-hero select, select { background: #17233b; color: #fff; border: 1px solid var(--line); border-radius: 4px; }
 /* the play of the game title gets a plate */
 .pg-title { background: linear-gradient(90deg, transparent, rgba(0, 0, 0, .62) 20%, rgba(0, 0, 0, .62) 80%, transparent); color: var(--gold); padding: .2rem 3rem; }
@@ -334,8 +334,8 @@ body.touch .kit { bottom: auto; top: 1rem; right: .8rem; } body.touch .vitals { 
 .ob-status.bad { color: #ff8a8f; } .ob-status.good { color: #8fc8ff; }
 
 /* hero mastery */
-.mastery { display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: .45rem; font: 700 .7rem var(--body); letter-spacing: .12em; color: #cfe0ff; }
-.mastery b { font: italic 700 .95rem var(--display); color: var(--gold); letter-spacing: .04em; } .mastery em { font-style: normal; color: #fff; background: rgba(255, 211, 107, .18); padding: 0 .4rem; border-radius: .2rem; }
+.mastery { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .45rem; font: 700 .7rem var(--body); letter-spacing: .12em; color: #cfe0ff; }
+.mastery b { font: italic 700 .95rem var(--display); color: var(--gold); letter-spacing: .04em; } .mastery b em { font: 700 .62rem var(--body); letter-spacing: .12em; vertical-align: middle; font-style: normal; color: #fff; background: rgba(255, 211, 107, .18); padding: 0 .4rem; border-radius: .2rem; }
 .mbar { height: .32rem; background: rgba(255, 255, 255, .14); border-radius: 1rem; overflow: hidden; } .mbar i { display: block; height: 100%; background: linear-gradient(90deg, #ffb02e, #ffd36b); }
 .mastery small { color: var(--dim); font-size: .62rem; }
 #selMastery { margin: .3rem 0; }
@@ -357,3 +357,30 @@ body.touch .kit { bottom: auto; top: 1rem; right: .8rem; } body.touch .vitals { 
 .mlv { font: 700 .6rem var(--body); color: var(--gold); letter-spacing: .1em; }
 
 .hud.kit, .hud.vitals, .hud.team, .hud.objbar, .hud.feed, .hud.minimap, .hud.perks, .hud.subs, .hud.popups { zoom: var(--hud-scale, 1); }
+
+.edgewarn { position: fixed; inset: 0; pointer-events: none; z-index: 4; opacity: 0; box-shadow: inset 0 0 90px 30px rgba(255, 40, 50, .55); }
+.edgewarn.on { animation: edgePulse .9s ease-out; }
+@keyframes edgePulse { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
+.ob-row.ctl .ob-time span { white-space: nowrap; font-size: 1.5rem; }
+/* match intro: both line-ups */
+.intro { position: fixed; left: 50%; top: 16%; transform: translateX(-50%); z-index: 6; pointer-events: none; display: grid; justify-items: center; gap: .5rem; animation: inIn .35s ease-out; transition: opacity .5s, transform .5s; }
+.intro.out { opacity: 0; transform: translateX(-50%) translateY(-1rem); }
+.in-top { text-align: center; } .in-top b { display: block; font: italic 800 2.6rem/1 var(--display); letter-spacing: .03em; text-shadow: 0 2px 12px rgba(0,0,0,.6); } .in-top span { font: 700 .8rem var(--body); letter-spacing: .24em; color: var(--gold); }
+.in-teams { display: flex; align-items: center; gap: 1rem; background: rgba(6, 10, 22, .72); padding: .6rem .9rem; border-radius: .4rem; border: 1px solid var(--line); }
+.in-side { display: flex; gap: .45rem; } .in-p { display: grid; justify-items: center; width: 4.4rem; } .in-p canvas { width: 3.4rem; height: 3.4rem; border-radius: .3rem; border: 2px solid var(--blue); background: #16233b; }
+.in-side.d .in-p canvas { border-color: var(--red); } .in-p b { font: italic 700 .8rem var(--display); margin-top: .15rem; white-space: nowrap; } .in-p small { font: 700 .58rem var(--body); letter-spacing: .1em; color: var(--dim); }
+.in-vs { font: italic 800 1.6rem var(--display); color: var(--gold); } .in-sub { font: 700 .75rem var(--body); letter-spacing: .2em; color: #dfe8f8; text-shadow: 0 0 6px #000; }
+@keyframes inIn { from { opacity: 0; transform: translateX(-50%) translateY(1rem); } to { opacity: 1; transform: translateX(-50%); } }
+/* end of match */
+.finale { position: fixed; inset: 0; z-index: 30; display: grid; place-content: center; justify-items: center; pointer-events: none; animation: fnIn .5s ease-out; }
+.fn-wash { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(58, 155, 255, .45), rgba(6, 10, 22, .85) 70%); }
+.finale.lose .fn-wash { background: radial-gradient(ellipse at center, rgba(255, 74, 82, .4), rgba(6, 10, 22, .88) 70%); }
+.finale b { position: relative; font: italic 900 9rem/1 var(--display); letter-spacing: .04em; color: #fff; text-shadow: 0 0 40px rgba(58, 155, 255, .8), 0 6px 0 rgba(0,0,0,.35); animation: fnTitle .7s cubic-bezier(.2, 1.4, .4, 1); }
+.finale.lose b { text-shadow: 0 0 40px rgba(255, 74, 82, .8), 0 6px 0 rgba(0,0,0,.35); }
+.finale span { position: relative; font: 700 1rem var(--body); letter-spacing: .3em; color: var(--gold); margin-top: .6rem; }
+@keyframes fnIn { from { opacity: 0; } to { opacity: 1; } } @keyframes fnTitle { from { transform: scale(1.6); opacity: 0; } to { transform: none; opacity: 1; } }
+/* kill cam: what happened */
+.kc-how { position: absolute; left: 50%; bottom: 4.4rem; transform: translateX(-50%); font: 700 .85rem var(--body); letter-spacing: .16em; color: #dfe8f8; background: rgba(6, 10, 22, .7); padding: .35rem .9rem; border-left: 3px solid var(--red); white-space: nowrap; }
+.kc-how b { color: #fff; font: italic 700 1.05rem var(--display); letter-spacing: .04em; } .kc-how em { color: var(--gold); font-style: normal; }
+/* low health: red, pulsing numbers */
+.vitals.low #vHp { color: #ff5a62; animation: pulse .8s infinite; }

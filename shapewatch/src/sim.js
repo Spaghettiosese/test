@@ -407,7 +407,7 @@ export class Sim {
       // the damage role passive: hits cut the target's incoming healing for a moment
       if (src.def.role === 'damage' && !src.deploy && kind !== 'burn' && !tgt.deploy) this.addStatus(tgt, 'wounded', 1.5);
       if (crit) { src.stats.crits++; if (head) src.stats.headshots++; }
-      tgt.hurt[src.id] = this.time; tgt.lastHit = { src, t: this.time, head, crit };
+      tgt.hurt[src.id] = this.time; tgt.lastHit = { src, t: this.time, head, crit, kind, ult: !!(src.s?.ulting || src.st?.overdrive || (src.s?.ultUntil || 0) > this.time) };
       if (src.st.cloak && kind !== 'burn') delete src.st.cloak;
       if (src.s.drain != null) src.s.drain = 0;
     }

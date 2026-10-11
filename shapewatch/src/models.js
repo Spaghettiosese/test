@@ -367,10 +367,14 @@ export function buildHero(heroId, skinId = 'default') {
   const spine = at(new E.Node('Spine'), 0, 0.02, 0); hips.add(spine);
   const legCp = L.torsoSkin ? skin : cs;
   // ---- legs (pivot at the hip, mesh hangs down)
+  // legs: thigh pivots at the hip, the shin at the knee so strides can bend
   const legNode = (side) => {
-    const piv = at(new E.Node('Leg'), side * tw * 0.27, -0.02, 0);
-    piv.add(group('LegMesh', (k) => { k.box(legCp === skin ? cp : cs, [0, -0.38, 0], [limb * 1.15, 0.72, limb * 1.25], [0, 0, 0], 0.03); k.box(dark, [0, -0.78, 0.04], [limb * 1.3, 0.16, limb * 1.9], [0, 0, 0], 0.03); L.leg?.(k, m, side); }));
-    return piv;
+    const piv = at(new E.Node('Leg'), side * tw * 0.27, -0.02, 0), lm = legCp === skin ? cp : cs;
+    piv.add(group('ThighMesh', (k) => k.box(lm, [0, -0.2, 0], [limb * 1.15, 0.42, limb * 1.25], [0, 0, 0], 0.03)));
+    const shin = at(new E.Node('Shin'), 0, -0.38, 0); piv.add(shin);
+    shin.add(group('ShinMesh', (k) => { k.box(lm, [0, -0.17, 0], [limb * 1.1, 0.38, limb * 1.2], [0, 0, 0], 0.03); k.box(dark, [0, -0.4, 0.04], [limb * 1.3, 0.16, limb * 1.9], [0, 0, 0], 0.03); }));
+    if (L.leg) { const extra = group('LegExtra', (k) => L.leg(k, m, side)); extra.position.set([0, 0.38, 0]); shin.add(extra); }
+    piv.shin = shin; return piv;
   };
   const legL = legNode(1), legR = legNode(-1); hips.add(legL, legR);
   // ---- torso
@@ -407,9 +411,9 @@ export function buildHero(heroId, skinId = 'default') {
   const add = (name, build, x, y, z, rot) => { const n = group(name, build); n.position.set([x, y, z]); if (rot) n.setEuler(...rot); spine.add(n); return n; };
   L.back?.(add, m);
     // team ring on the floor
-  const ring = new E.Mesh(E.cylinder({ radiusTop: 0.6, radiusBottom: 0.6, height: 0.02, radialSegments: 28, capTop: true, capBottom: false }), glow('#3a9bff', 1.6), 'TeamRing');
+  const ring = new E.Mesh(E.torus({ radius: 0.6, tube: 0.035, radialSegments: 4, tubularSegments: 32, arc: 360, tubeScaleY: 0.4 }), glow('#3a9bff', 1.6), 'TeamRing');
   ring.position.set([0, 0.03, 0]); ring.castShadow = false; ring.receiveShadow = false; root.add(ring);
-  root.userData = { body, hips, spine, head, armL, armR, legL, legR, ring, weapon: wpn.node, muzzle: wpn.muzzle, weaponSpin: wpn.spin, scaleK: s, d, anim: m.anim, flames: m.flames, hero: heroId };
+  root.userData = { body, hips, spine, head, armL, armR, legL, legR, shinL: legL.shin, shinR: legR.shin, ring, weapon: wpn.node, muzzle: wpn.muzzle, weaponSpin: wpn.spin, scaleK: s, d, anim: m.anim, flames: m.flames, hero: heroId };
   root.traverse((n) => { if (n.isMesh || n.geometry) n.pickable = false; });
   return root;
 }
