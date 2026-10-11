@@ -3,6 +3,7 @@
 // Game overlays, and the communication wheel. Screens (menus, select, scoreboard...) are in screens.js.
 import { HERO, ROLES, SUBCLASSES } from './heroes.js';
 import { MUTATORS } from './sim.js';
+import { PERKS, PERK_XP } from './perks.js';
 import { drawIcon, roleSvg, subSvg, ROLE_COLORS } from './icons.js';
 import { pingColor } from './view.js';
 import { fmtTime, clamp, v3, wrapAngle, yawTo } from './util.js';
@@ -42,7 +43,7 @@ export class Minimap {
     const team = me?.team, vt = sim.playerTeam, marks = (x, z, col, r = 4, shape = 'dot', rot = 0) => { const [X, Z] = m(x, z); if (Math.hypot(X - cx, Z - cy) > cx - 3) return; g.fillStyle = col; g.strokeStyle = '#000'; g.lineWidth = 1; g.beginPath(); if (shape === 'tri') { const a = rot - yaw; g.moveTo(X + Math.sin(a) * (r + 2), Z - Math.cos(a) * (r + 2)); g.lineTo(X + Math.sin(a + 2.5) * r, Z - Math.cos(a + 2.5) * r); g.lineTo(X + Math.sin(a - 2.5) * r, Z - Math.cos(a - 2.5) * r); g.closePath(); } else if (shape === 'dia') { g.moveTo(X, Z - r); g.lineTo(X + r, Z); g.lineTo(X, Z + r); g.lineTo(X - r, Z); g.closePath(); } else g.arc(X, Z, r, 0, 7); g.fill(); g.stroke(); };
     // objectives
     const P = sim.payload; if (P && P.active !== false) marks(P.pos[0], P.pos[2], P.contested ? '#ffd36b' : '#fff', 6, 'dia');
-    for (const p of sim.level.points || []) if (sim.control || sim.cap) { const own = sim.control ? sim.control.owner : (sim.cap.done ? 0 : -1); marks(p.pos[0], p.pos[2], own < 0 ? '#e8eef9' : own === vt ? '#3a9bff' : '#ff4a52', 6, 'dia'); }
+    for (const p of sim.level.points || []) if ((sim.control && sim.control.point === p) || (sim.cap && p === sim.level.points[0]) || (sim.elim?.open && sim.elim.point === p)) { const own = sim.control ? sim.control.owner : sim.cap ? (sim.cap.done ? 0 : -1) : -1; marks(p.pos[0], p.pos[2], own < 0 ? '#e8eef9' : own === vt ? '#3a9bff' : '#ff4a52', 6, 'dia'); }
     for (const p of sim.packs) if (p.ready) marks(p.pos[0], p.pos[2], '#7dff9a', 2.5);
     // units
     for (const u of sim.units) {
@@ -115,7 +116,14 @@ export class Hud {
   // ---------------------------------------------------------------- announcements and feedback
   banner(text, sub = '', color = '#fff') { const b = $('banner'); b.innerHTML = `<span style="color:${color}">${text}</span>${sub ? `<small>${sub}</small>` : ''}`; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }
   popup(text, cls = '', sub = '') { const d = el('div', 'pop ' + cls, text + (sub ? `<small>${sub}</small>` : '')); $('popups').append(d); setTimeout(() => d.remove(), 2600); while ($('popups').children.length > 4) $('popups').firstChild.remove(); }
-  hitmark(kind) { const h = $('hitmark'); h.className = 'hud hitmark ' + (kind || ''); h.style.transition = 'none'; h.style.opacity = 1; requestAnimationFrame(() => { h.style.transition = 'opacity .3s'; h.style.opacity = 0; }); }
+  hitmark(kind) {
+    // weak markers (damage over time, barrier hits) never stomp a fresh hit or kill marker
+    const h = $('hitmark'), now = performance.now(), weak = kind === 'dot' || kind === 'barrier';
+    if (weak && now - (this.hmT || 0) < 260 && this.hmKind !== 'dot' && this.hmKind !== 'barrier') return;
+    this.hmT = now; this.hmKind = kind;
+    const dur = kind === 'kill' ? 0.45 : kind === 'dot' ? 0.15 : 0.3;
+    h.className = 'hud hitmark ' + (kind || ''); h.style.transition = 'none'; h.style.opacity = 1; requestAnimationFrame(() => { h.style.transition = `opacity ${dur}s`; h.style.opacity = 0; });
+  }
   feedRow(e) {
     const me = this.sim.player, k = e.killer, v = e.victim, row = el('div', 'f-row' + (v.team !== this.sim.playerTeam || this.sim.modeId === 'ffa' && v !== me ? '' : ' enemy') + (k === me ? ' me' : '') + (v === me ? ' died' : ''));
     const owner = e.deployKill?.deploy?.owner, kn = k ? k.name : (owner ? owner.name + "'s " + e.deployKill.deploy.kind : 'THE STORM'), vn = v.name;
@@ -143,15 +151,15 @@ export class Hud {
       bar.innerHTML = `<div class="ob-row"><div class="ob-dist atk"><b id="obPushed">0.0</b><small>M</small></div><div class="ob-time" id="obTime"><span>5:00</span><i id="obOT"></i></div><div class="ob-dist def"><b id="obLeft">188</b><small>M</small></div></div>
         <div class="ob-cap" id="obCap" hidden><div class="ob-cap-ring"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="42"/><circle class="fg" id="obCapRing" cx="50" cy="50" r="42" pathLength="100"/></svg><b id="obCapPct">0%</b></div></div>
         <div class="ob-track" id="obTrack"><div class="ob-fill" id="obFill"></div>${cps}<div class="ob-pay" id="obPay"><span id="obPushers">0</span></div></div><div class="ob-status" id="obStatus"></div>`;
-    } else if (m === 'control') {
-      bar.innerHTML = `<div class="ob-row ctl"><div class="ctl-side a"><div class="ctl-pips" id="cpA">${pips(2)}</div><b id="ctlA">0%</b></div><div class="ctl-mid"><div class="ob-time" id="obTime"><span>ROUND 1</span><i id="obOT"></i></div><div class="ctl-point" id="ctlPoint"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="42"/><circle class="fg" id="ctlRing" cx="50" cy="50" r="42" pathLength="100"/></svg><b id="ctlOwner">·</b></div></div><div class="ctl-side d"><b id="ctlD">0%</b><div class="ctl-pips" id="cpD">${pips(2)}</div></div></div>
+    } else if (m === 'control' || m === 'elim') {
+      bar.innerHTML = `<div class="ob-row ctl"><div class="ctl-side a"><div class="ctl-pips" id="cpA">${pips(m === 'elim' ? 3 : 2)}</div><b id="ctlA">0%</b></div><div class="ctl-mid"><div class="ob-time" id="obTime"><span>ROUND 1</span><i id="obOT"></i></div><div class="ctl-point" id="ctlPoint"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="42"/><circle class="fg" id="ctlRing" cx="50" cy="50" r="42" pathLength="100"/></svg><b id="ctlOwner">·</b></div></div><div class="ctl-side d"><b id="ctlD">0%</b><div class="ctl-pips" id="cpD">${pips(m === 'elim' ? 3 : 2)}</div></div></div>
         <div class="ob-track ctl-track"><div class="ob-fill a" id="ctlFillA"></div><div class="ob-fill d" id="ctlFillD"></div></div><div class="ob-status" id="obStatus"></div>`;
     } else if (m === 'tdm') {
       bar.innerHTML = `<div class="ob-row"><div class="ob-dist atk big"><b id="tdA">0</b></div><div class="ob-time" id="obTime"><span>8:00</span><i id="obOT">FIRST TO ${sim.scoreTarget}</i></div><div class="ob-dist def big"><b id="tdD">0</b></div></div><div class="ob-track"><div class="ob-fill a" id="tdFillA"></div><div class="ob-fill d" id="tdFillD"></div></div><div class="ob-status" id="obStatus"></div>`;
     } else if (m === 'ffa') {
       bar.innerHTML = `<div class="ob-row"><div class="ob-dist atk big"><b id="ffaMe">0</b><small id="ffaRank">1ST</small></div><div class="ob-time" id="obTime"><span>6:00</span><i id="obOT">FIRST TO ${sim.scoreTarget}</i></div></div><div class="ffa-board" id="ffaBoard"></div><div class="ob-status" id="obStatus"></div>`;
     } else {
-      bar.innerHTML = `<div class="ob-row"><div class="ob-dist atk"><b id="trKills">0</b><small>TARGETS</small></div><div class="ob-time" id="obTime"><span>RANGE</span><i id="obOT"></i></div><div class="ob-dist def"><b id="trAcc">0</b><small>% ACC</small></div></div><div class="ob-status" id="obStatus">TRAINING RANGE · INFINITE ULTIMATE</div>`;
+      bar.innerHTML = `<div class="ob-row"><div class="ob-dist atk"><b id="trKills">0</b><small>TARGETS</small></div><div class="ob-time" id="obTime"><span>RANGE</span><i id="obOT"></i></div><div class="ob-dist def"><b id="trAcc">0</b><small>% ACC</small></div></div><div class="ob-row tr-meters"><span>DPS <b id="trDps">0</b></span><span>HPS <b id="trHps">0</b></span><span>PEAK <b id="trPeak">0</b></span></div><div class="ob-status" id="obStatus">RANGE · [T] RESET · [V] MELEE</div>`;
     }
   }
   updateObjective() {
@@ -166,7 +174,9 @@ export class Hud {
       document.querySelectorAll('.ob-cp').forEach((c, i) => c.classList.toggle('done', P.cp > i));
       $('obCap').hidden = !capPhase; if (capPhase) { const c = sim.cap; $('obCapRing').style.strokeDasharray = `${c.prog * 100} 100`; set('obCapPct', Math.floor(c.prog * 100) + '%'); $('obCap').classList.toggle('contested', !!c.contested); }
       const atk = vt === 0;
-      $('obStatus').textContent = sim.state === 'setup' ? (atk ? (capPhase ? 'ATTACK: CAPTURE THE POINT' : 'ATTACK: ESCORT THE PAYLOAD') : 'DEFEND: STOP THEM') : capPhase ? (sim.cap.contested ? 'POINT CONTESTED' : sim.cap.present ? (atk ? 'CAPTURING' : 'ENEMY CAPTURING') : atk ? 'CAPTURE THE POINT' : 'DEFEND THE POINT') : P.contested ? 'PAYLOAD CONTESTED' : P.pushers ? 'PAYLOAD MOVING' : P.defenders && !atk ? 'HOLDING' : '';
+      const stx = sim.state === 'setup' ? (atk ? (capPhase ? 'ATTACK: CAPTURE THE POINT' : 'ATTACK: ESCORT THE PAYLOAD') : 'DEFEND: STOP THEM') : capPhase ? (sim.cap.contested ? 'POINT CONTESTED' : sim.cap.present ? (atk ? 'CAPTURING' : 'ENEMY CAPTURING') : atk ? 'CAPTURE THE POINT' : 'DEFEND THE POINT') : P.contested ? 'PAYLOAD CONTESTED' : P.pushers ? (atk ? 'PAYLOAD MOVING' : 'ENEMY PUSHING THE PAYLOAD') : P.defenders && !atk ? 'HOLDING' : !atk ? 'PAYLOAD STOPPED' : 'GET ON THE PAYLOAD';
+      $('obStatus').textContent = stx; $('obStatus').className = 'ob-status' + (sim.state === 'setup' ? '' : (!atk && (P.pushers || sim.cap?.present)) || (atk && P.defenders && !P.pushers) ? ' bad' : (atk && P.pushers) || (!atk && P.defenders) ? ' good' : '');
+      $('objbar').classList.toggle('ob-def-view', !atk);
       $('obTrack').classList.toggle('flip', false);
     } else if (m === 'control') {
       const c = sim.control, mine = (i) => (vt === 0 ? i : 1 - i);
@@ -176,6 +186,15 @@ export class Hud {
       set('ctlOwner', c.owner < 0 ? '·' : c.owner === vt ? '▲' : '▼'); $('ctlPoint').classList.toggle('contested', !!c.contested);
       $('cpA').children[0].classList.toggle('on', sim.wins[vt] >= 1); $('cpA').children[1].classList.toggle('on', sim.wins[vt] >= 2); $('cpD').children[0].classList.toggle('on', sim.wins[1 - vt] >= 1); $('cpD').children[1].classList.toggle('on', sim.wins[1 - vt] >= 2);
       $('obStatus').textContent = sim.state === 'setup' ? 'TAKE AND HOLD THE POINT' : c.owner < 0 ? 'POINT IS NEUTRAL: CAPTURE IT' : c.owner === vt ? 'YOUR TEAM CONTROLS THE POINT' : 'ENEMY CONTROLS THE POINT';
+    } else if (m === 'elim') {
+      const E = sim.elim, alive = (tm) => sim.units.filter((u) => u.team === tm && !u.deploy && u.alive).length, a = alive(vt), dd = alive(1 - vt);
+      timeEl.textContent = 'ROUND ' + sim.round; $('obTime').classList.toggle('ot', !!E.open);
+      set('obOT', sim.state === 'setup' ? 'SETUP ' + Math.ceil(sim.setupT) : sim.state === 'roundbreak' ? 'ROUND OVER' : E.open ? 'POINT OPEN' : 'POINT IN ' + Math.ceil(sim.timer));
+      set('ctlA', a + ' ALIVE'); set('ctlD', dd + ' ALIVE'); $('ctlFillA').style.width = a * 10 + '%'; $('ctlFillD').style.width = dd * 10 + '%';
+      const hold = Math.max(E.hold[0], E.hold[1]) / 6, ht = E.hold[0] >= E.hold[1] ? 0 : 1;
+      $('ctlRing').style.strokeDasharray = `${E.open ? hold * 100 : 0} 100`; $('ctlRing').style.stroke = ht === vt ? '#3a9bff' : '#ff4a52'; set('ctlOwner', E.open ? '◆' : '·');
+      for (let i = 0; i < 3; i++) { $('cpA').children[i]?.classList.toggle('on', sim.wins[vt] > i); $('cpD').children[i]?.classList.toggle('on', sim.wins[1 - vt] > i); }
+      $('obStatus').textContent = sim.state === 'setup' ? 'NO RESPAWNS · WIPE THEM OR HOLD THE CENTRE' : !me.alive ? 'YOU ARE OUT · SPECTATING UNTIL THE ROUND ENDS' : a === 1 && dd > 1 ? 'LAST ONE STANDING' : E.open ? 'HOLD THE CENTRE FOR 6 SECONDS' : '';
     } else if (m === 'tdm') {
       timeEl.textContent = sim.state === 'setup' ? String(t) : fmtTime(t); set('tdA', sim.score[vt]); set('tdD', sim.score[1 - vt]); $('tdFillA').style.width = sim.score[vt] / sim.scoreTarget * 50 + '%'; $('tdFillD').style.width = sim.score[1 - vt] / sim.scoreTarget * 50 + '%';
       $('obStatus').textContent = sim.state === 'setup' ? 'FIRST TO ' + sim.scoreTarget + ' ELIMINATIONS' : sim.score[vt] > sim.score[1 - vt] ? 'YOUR TEAM LEADS' : sim.score[vt] < sim.score[1 - vt] ? 'ENEMY TEAM LEADS' : 'TIED';
@@ -188,9 +207,31 @@ export class Hud {
     } else {
       const dummies = sim.units.filter((u) => u.dummy), killed = dummies.filter((u) => !u.alive).length + (me.stats.elims || 0) - dummies.filter((u) => !u.alive).length;
       set('trKills', me.stats.elims); set('trAcc', me.stats.shots ? Math.round(me.stats.hits / me.stats.shots * 100) : 0); void killed;
+      // damage and healing per second over the last three seconds
+      const h = (this.trHist ||= []); h.push([sim.time, me.stats.dmg, me.stats.heal]); while (h.length > 2 && sim.time - h[0][0] > 3) h.shift();
+      const span = Math.max(0.5, sim.time - h[0][0]), dps = (me.stats.dmg - h[0][1]) / span, hps = (me.stats.heal - h[0][2]) / span; this.trPeak = Math.max(this.trPeak || 0, dps);
+      set('trDps', Math.round(dps)); set('trHps', Math.round(hps)); set('trPeak', Math.round(this.trPeak));
     }
     const mu = sim.mutator; $('mutBar').hidden = !mu;
     if (mu) { $('mutName').textContent = 'RIFT SURGE: ' + MUTATORS[mu.id].name; $('mutDesc').textContent = MUTATORS[mu.id].desc; $('mutT').textContent = Math.ceil(mu.t) + 's'; }
+  }
+  // enemies you can actually see get a health bar (line of sight, refreshed a few times a second)
+  canSee(u) {
+    const sim = this.sim, me = sim.player, c = (this.seeC ||= new Map()), r = c.get(u.id);
+    if (r && sim.time - r.t < 0.15) return r.v;
+    const v = me.alive && sim.visibleTo(me, u) && sim.los(sim.eye(me), sim.center(u)); c.set(u.id, { t: sim.time, v }); return v;
+  }
+  // ---------------------------------------------------------------- perks: the offer (press 1 or 2) and what you have picked
+  updatePerks(me) {
+    const box = $('perks'); if (!box) return;
+    const o = me.perkOffer, lvl = me.perks?.major ? 3 : me.perks?.minor ? 2 : 1, need = lvl === 1 ? PERK_XP[1] : PERK_XP[2], prev = lvl === 1 ? 0 : PERK_XP[1];
+    const pct = lvl >= 3 ? 1 : clamp((me.perkXp - prev) / (need - prev), 0, 1);
+    const sig = `${o ? o.tier + o.options.join() : ''}|${me.perks?.minor}|${me.perks?.major}|${Math.floor(pct * 20)}|${me.hero}`;
+    if (sig === this.lastSig.perk) return; this.lastSig.perk = sig;
+    const card = (id, i) => `<div class="pk-card"><kbd>${i + 1}</kbd><b>${PERKS[id].name}</b><span>${PERKS[id].desc}</span></div>`;
+    const chosen = ['minor', 'major'].map((t) => me.perks?.[t]).filter(Boolean).map((id) => `<span class="pk-chip" title="${PERKS[id].desc}">${PERKS[id].name}</span>`).join('');
+    box.innerHTML = (o ? `<div class="pk-offer"><div class="pk-title">${o.tier === 'minor' ? 'MINOR' : 'MAJOR'} PERK UNLOCKED</div><div class="pk-cards">${o.options.map(card).join('')}</div></div>` : '')
+      + `<div class="pk-row">${chosen}${lvl < 3 && !o ? `<span class="pk-next"><i style="width:${pct * 100}%"></i></span><em>PERK ${lvl + 1}</em>` : ''}</div>`;
   }
   // ---------------------------------------------------------------- per-hero resource meter
   resource(me) {
@@ -242,8 +283,9 @@ export class Hud {
       for (let i = 0; i < hpMax; i++) html += `<i class="${i < hpN ? 'hp' : ''}"></i>`; for (let i = 0; i < arMax; i++) html += `<i class="${i < arN ? 'ar' : ''}"></i>`; for (let i = 0; i < shN; i++) html += '<i class="sh"></i>';
       $('vBar').innerHTML = html;
     }
-    $('lowhp').style.opacity = me.alive ? clamp(1 - (me.hp + me.armor) / (maxT * 0.4), 0, 0.9) * 0.9 + view.dmgFlash * 0.25 : 0;
-    $('whiteout').style.opacity = clamp(view.whiteout, 0, 1);
+    const fl = view.flashScale ?? 1;
+    $('lowhp').style.opacity = me.alive ? (clamp(1 - (me.hp + me.armor) / (maxT * 0.4), 0, 0.9) * 0.9 + view.dmgFlash * 0.25) * (0.4 + 0.6 * fl) : 0;
+    $('whiteout').style.opacity = clamp(view.whiteout * fl, 0, 1);
     // heal feedback: green numbers by the crosshair (healing out) and on the vitals (healing in)
     const ho = this.healOut, hi = this.healIn, tNow = sim.time;
     if (ho.amt > 0 && tNow - ho.t > 0.9) ho.amt = 0; if (hi.amt > 0 && tNow - hi.t > 1.2) hi.amt = 0;
@@ -268,6 +310,7 @@ export class Hud {
     if (ready && !this.ultWasReady && me.alive) { this.popup('ULTIMATE READY', 'streak', ''); view.sound?.ultReady(); this.onUltReady?.(); }
     this.ultWasReady = ready && me.alive;
     $('prompt').textContent = ready && me.alive && sim.state === 'live' ? 'PRESS Q — ' + d.ult.name.toUpperCase() : '';
+    this.updatePerks(me);
     // ---- crosshair
     const sp = (w.spread || 1) * (me.moving > 1 ? 1 : 0.65), fov = view.camera.fov, px = Math.max(10, Math.tan(sp * Math.PI / 180 * 1.2) / Math.tan(fov / 2) * innerHeight * 0.5 + 8), xh = this.xhair;
     xh.style.width = xh.style.height = (xh.classList.contains('dot') ? 6 : xh.classList.contains('circle') ? Math.max(26, px * 1.4) : xh.classList.contains('none') ? 0 : px) + 'px';
@@ -277,7 +320,8 @@ export class Hud {
     // ---- respawn panel (kill cam has its own overlay)
     const dead = !me.alive && sim.state !== 'over' && !view.replay; $('respawn').hidden = !dead || !!this.killcamOn;
     if (dead) {
-      const k = me.killedBy; $('rsBy').innerHTML = k ? `${k.name} <small>${k.def.name}</small>` : 'ELIMINATED'; $('rsKillerHp').style.width = k && k.alive ? clamp((k.hp + k.armor) / (k.maxHp + k.maxArmor), 0, 1) * 100 + '%' : '0%'; $('rsT').textContent = me.held ? '—' : Math.max(0, Math.ceil(me.respawnT));
+      const k = me.killedBy; $('rsBy').innerHTML = k ? `${k.name} <small>${k.def.name}</small>` : 'ELIMINATED'; $('rsKillerHp').style.width = k && k.alive ? clamp((k.hp + k.armor) / (k.maxHp + k.maxArmor), 0, 1) * 100 + '%' : '0%';
+      if (sim.modeId === 'elim') { if (!$('rsT').dataset.out) $('rsT').parentNode.innerHTML = 'OUT FOR THE ROUND <b id="rsT" data-out="1">—</b>'; } else $('rsT').textContent = me.held ? '—' : Math.max(0, Math.ceil(me.respawnT));
       const sig2 = this.recap.map((r) => r.src.id + ':' + Math.round(r.amt)).join(); if (sig2 !== this.lastSig.recap) { this.lastSig.recap = sig2; $('rsRecap').innerHTML = this.recap.slice().sort((a, b) => b.amt - a.amt).slice(0, 3).map((r) => `<div><span>${r.src.name} · ${r.src.def.name}</span><b>${Math.round(r.amt)}</b></div>`).join(''); }
       const sp2 = view.spectating; $('rsSpec').textContent = sp2 ? 'SPECTATING ' + sp2.name.toUpperCase() + ' · [←/→] SWITCH' : '';
     }
@@ -304,13 +348,13 @@ export class Hud {
       const d = v3.dist(u.pos, cam), head = [u.pos[0], u.pos[1] + u.def.height + 0.45, u.pos[2]], mate = u.team === me.team && !ffa;
       if (mate) { if (d < 90) mk('u' + u.id, 'ally' + (u.ult >= u.def.ult.cost ? ' ult' : ''), `<span class="r">${roleSvg(u.def.role, 11, ROLE_COLORS[u.def.role])}</span>${u.name.toUpperCase()}<div class="mhp"><i style="width:${pc(u)}%"></i></div>`, head); }
       else if (u.bounty) mk('u' + u.id, 'enemy bounty', `<span class="dia"></span>★ BOUNTY<div class="mhp"><i style="width:${pc(u)}%"></i></div>`, head);
-      else if (u.st.reveal || u.st.marked || (u.hurt[me.id] && sim.time - u.hurt[me.id] < 2)) mk('u' + u.id, 'enemy', `<span class="dia"></span><div class="mhp"><i style="width:${pc(u)}%"></i></div>`, head);
+      else if (u.st.reveal || u.st.marked || (u.hurt[me.id] && sim.time - u.hurt[me.id] < 2) || (d < 45 && this.canSee(u))) mk('u' + u.id, 'enemy', `<span class="dia"></span><div class="mhp"><i style="width:${pc(u)}%"></i></div>`, head);
     }
     const P = sim.payload, atk = me.team === 0;
     if (P && P.active !== false) mk('payload', 'obj', `<span class="dia"></span>${atk ? 'ESCORT' : 'DEFEND'}<small>${Math.round(v3.dist2d(P.pos, me.pos))} M</small>`, [P.pos[0], P.pos[1] + 3.2, P.pos[2]], true);
-    const pt = sim.level.points?.[0]; if (pt && (sim.control || (sim.cap && !sim.cap.done))) { const own = sim.control ? sim.control.owner : -1, label = own < 0 ? 'CAPTURE' : own === vt ? 'HOLD' : 'RETAKE'; mk('point', 'obj', `<span class="dia"></span>${sim.modeId === 'hybrid' ? (atk ? 'CAPTURE' : 'DEFEND') : label}<small>${Math.round(v3.dist2d(pt.pos, me.pos))} M</small>`, [pt.pos[0], 4.2, pt.pos[2]], true); }
+    const pt = sim.control?.point || (sim.elim?.open ? sim.elim.point : null) || (sim.cap ? sim.level.points?.[0] : null); if (pt && (sim.control || sim.elim?.open || (sim.cap && !sim.cap.done))) { const own = sim.control ? sim.control.owner : -1, label = own < 0 ? 'CAPTURE' : own === vt ? 'HOLD' : 'RETAKE'; mk('point', 'obj', `<span class="dia"></span>${sim.modeId === 'hybrid' ? (atk ? 'CAPTURE' : 'DEFEND') : label}<small>${Math.round(v3.dist2d(pt.pos, me.pos))} M</small>`, [pt.pos[0], 4.2, pt.pos[2]], true); }
     sim.packs.forEach((p, i) => { if (p.ready && v3.dist2d(p.pos, me.pos) < 30 && me.hp < me.maxHp) mk('p' + i, 'pack', '', [p.pos[0], 1.5, p.pos[2]]); });
-    for (const p of sim.pings || []) if (p.team === me.team) { const label = { enemy: 'ENEMY', go: 'GO HERE', objective: 'OBJECTIVE', health: 'HEALTH', help: 'NEEDS HELP', ally: 'ALLY', defend: 'DEFEND' }[p.kind] || 'PING'; mk('ping' + p.id, 'ping ' + p.kind, `<span class="pi" style="--c:${pingColor(p.kind)}"></span>${label}<small>${p.owner.isPlayer ? 'YOU' : p.owner.name.toUpperCase()} · ${Math.round(v3.dist2d(p.pos, me.pos))} M</small>`, [p.pos[0], p.pos[1] + 1.4, p.pos[2]], true); }
+    for (const p of sim.pings || []) if (p.team === me.team) { const label = { enemy: 'ENEMY', go: 'GO HERE', objective: 'OBJECTIVE', health: 'HEALTH', help: 'NEEDS HELP', ally: 'ALLY', defend: 'DEFEND' }[p.kind] || 'PING'; mk('ping' + p.id, 'ping ' + p.kind, `<span class="pi" style="--c:${pingColor(p.kind)}"></span>${label}<small>${p.owner.isPlayer ? 'YOUR PING' : 'PINGED BY ' + p.owner.name.toUpperCase()} · ${Math.round(v3.dist2d(p.pos, me.pos))} M</small>`, [p.pos[0], p.pos[1] + 1.4, p.pos[2]], true); }
     for (const [k, e] of this.markEls) if (!live.has(k)) { e.remove(); this.markEls.delete(k); }
   }
 }

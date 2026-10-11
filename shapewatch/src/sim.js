@@ -8,8 +8,11 @@ import { createMode, PAYLOAD_RADIUS } from './modes.js';
 import { v3, clamp, forward, rng, TAU } from './util.js';
 import { Brain, Dummy } from './ai.js';
 import { TeamBrain } from './teamai.js';
+import { PERK_XP, PERKS, perkOptions, has } from './perks.js';
+import { ROSTER } from './roster.js';
 
-const STEP = 0.6, GRAV = -20, JUMP = 7.4;
+const STEP = 0.6, GRAV = -20, JUMP = 7.4, BUF = 0.15, COYOTE = 0.1;
+export const CC_CRIT = 1.25;
 const SETUP_TIME = 22;
 export { PAYLOAD_RADIUS };
 
@@ -24,11 +27,13 @@ const NAMES = ['Aria', 'Bram', 'Cade', 'Dara', 'Eli', 'Fynn', 'Gus', 'Hana', 'Iv
 
 let NEXT_ID = 1;
 export class Sim {
-  constructor({ seed = 7, mode = 'escort', map = 'frostgate', playerTeam = 0, playerHero = 'sabre', difficulty = 1, mutators = true, headless = false, autoPlayer = false, setupTime = SETUP_TIME } = {}) {
-    this.rand = rng(seed); this.difficulty = difficulty; this.useMutators = mutators; this.headless = headless; this.seed = seed;
+  constructor({ seed = 7, mode = 'escort', map = 'frostgate', playerTeam = 0, playerHero = 'sabre', difficulty = 1, allyDifficulty = null, mutators = true, headless = false, autoPlayer = false, setupTime = SETUP_TIME, variant = null, roster = false } = {}) {
+    this.useRoster = roster;
+    this.rand = rng(seed); this.difficulty = difficulty; this.allyDifficulty = allyDifficulty; this.variant = variant; if (variant === 'surge') mutators = true; this.useMutators = mutators; this.headless = headless; this.seed = seed;
     this.modeId = mode; this.level = makeLevel(map, mode); this.nav = buildNav(this.level); this.buildGrid();
     const snap = (p) => snapNav(this.nav, p);
     this.level.fwd = (this.level.fwd || []).map((l) => l.map(snap)); this.level.dmSpawns = this.level.dmSpawns.map(snap);
+    this.level.spawns = this.level.spawns.map((l) => l.map(snap)); this.level.dspawns = (this.level.dspawns || []).map((l) => l.map(snap));
     const f0 = floodNav(this.nav, this.level.spawns[0][2]);
     this.packs = this.level.packs.map((p) => { const pos = snap(p.pos), n = nodeAt(this.nav, pos); return { ...p, pos, ready: true, t: 0, ok: [n >= 0 && f0[n], n >= 0 && f0[n]] }; });
     this.units = []; this.projs = []; this.zones = []; this.cores = []; this.corpses = []; this.pings = []; this.events = [];
@@ -63,17 +68,25 @@ export class Sim {
       add(playerHero, 0, true);
       const ids = ['bulwark', 'sabre', 'flicker', 'halo', 'mauler', 'vesper'];
       ids.forEach((id) => add(id, 1, false, true));
+      // friendly dummies that bleed down to 40% so supports have someone to heal
+      ['wrecker', 'ranger', 'cantor'].forEach((id) => { const d = add(id, 0, false, true); d.allyDummy = true; d.name = 'Patient'; });
       return;
     }
+    const usedP = new Set();
     for (let t = 0; t < 2; t++) {
       const need = { tank: 1, damage: 2, support: 2 }, picked = [];
       if (t === playerTeam) { const h = HERO[playerHero]; need[h.role]--; picked.push({ hero: h.id, player: true }); }
       for (const role of ['tank', 'damage', 'support']) for (let i = 0; i < need[role]; i++) {
-        const pool = HEROES.filter((h) => h.role === role && !picked.some((p) => p.hero === h.id));
+        const free = (id) => HERO[id].role === role && !picked.some((p) => p.hero === id);
+        // named regulars play one of their mains when they can
+        if (this.useRoster) { const c = ROSTER.filter((p) => !usedP.has(p.name) && p.mains.some(free)); if (c.length) { const per = this.rand.pick(c); usedP.add(per.name); picked.push({ hero: this.rand.pick(per.mains.filter(free)), per }); continue; } }
+        const pool = HEROES.filter((h) => free(h.id));
         picked.push({ hero: this.rand.pick(pool).id });
       }
-      for (const p of picked) add(p.hero, t, !!p.player);
+      for (const p of picked) { const u = add(p.hero, t, !!p.player); if (p.per) { u.name = p.per.name; u.persona = p.per; } }
     }
+    this.rivalLog = {};
+    for (const u of this.units) if (u.persona) this.rivalLog[u.name] = { k: 0, d: 0, hero: u.hero, ally: u.team === playerTeam };
     this.units.sort((a, b) => a.team - b.team || (a.isPlayer ? -1 : b.isPlayer ? 1 : 0));
   }
   makeUnit(heroId, team, name) {
@@ -85,7 +98,7 @@ export class Sim {
       ult: 0, cd: { a1: 0, a2: 0, w2: 0 }, charges: d.a1.charges || 0, chargeT: 0,
       ammo: d.w1.ammo || 0, reloadT: 0, fireT: 0, st: {}, respawnT: 0, invuln: 0, dash: null, hist: [], dmgT: -99,
       in: { move: [0, 0], fire1: false, fire2: false, a1: false, a2: false, ult: false, reload: false, jump: false },
-      prev: { fire1: false, fire2: false }, s: {}, kt: [],
+      prev: { fire1: false, fire2: false }, s: {}, kt: [], perks: { minor: null, major: null }, perkXp: 0, perkOffer: null,
       stats: { elims: 0, assists: 0, deaths: 0, dmg: 0, heal: 0, ults: 0, shots: 0, hits: 0, crits: 0, obj: 0, bestStreak: 0, ultElims: 0, headshots: 0, time: 0, pings: 0 },
       hurt: {}, lastHit: null, killedBy: null, pendingHero: null, streak: 0, moving: 0, hmsg: 0,
     };
@@ -105,32 +118,67 @@ export class Sim {
     }
   }
   swapHero(u, heroId) {
-    const frac = u.def ? Math.min(1, u.ult / u.def.ult.cost) : 0, d = HERO[heroId]; u.def = d; u.hero = heroId; u.maxHp = u.dummy ? 400 : d.hp; u.maxArmor = d.armor; u.s = {}; u.cd = { a1: 0, a2: 0, w2: 0 };
+    const frac = u.def ? Math.min(1, u.ult / u.def.ult.cost) : 0, d = HERO[heroId]; u.def = d; u.hero = heroId; u.s = {}; u.cd = { a1: 0, a2: 0, w2: 0 };
+    // a new hero starts its perks over (half the progress carries)
+    if (u.perks) { u.perks = { minor: null, major: null }; u.perkOffer = null; u.perkXp = (u.perkXp || 0) * 0.5; }
+    this.applyMaxes(u);
     u.charges = d.a1.charges || 0; u.ammo = d.w1.ammo || 0; u.ult = this.state === 'setup' ? 0 : frac * 0.3 * d.ult.cost; u.st = {};
     if (u.alive) { u.hp = u.maxHp; u.armor = u.maxArmor; }
     this.emit({ type: 'swap', unit: u });
   }
 
+  applyMaxes(u) { const m = this.variant === 'mayhem' ? 2 : 1; u.maxHp = (u.dummy ? 400 : u.def.hp * m) + (has(u, 'vigor') ? 30 : 0); u.maxArmor = u.def.armor * m; }
+  // ---------------------------------------------------------------- perks
+  perkCheck(u) {
+    if (u.deploy || u.dummy || !u.perks || u.perkOffer || this.modeId === 'training' && !u.isPlayer) return;
+    const tier = !u.perks.minor && u.perkXp >= PERK_XP[1] ? 'minor' : u.perks.minor && !u.perks.major && u.perkXp >= PERK_XP[2] ? 'major' : null;
+    if (!tier) return;
+    u.perkOffer = { tier, options: perkOptions(u.hero, tier), t: this.time }; this.emit({ type: 'perkReady', unit: u, tier });
+  }
+  choosePerk(u, i) {
+    const o = u.perkOffer; if (!o) return false;
+    const id = o.options[clamp(i, 0, 1)]; u.perks[o.tier] = id; u.perkOffer = null;
+    if (id === 'vigor') { this.applyMaxes(u); if (u.alive) u.hp = Math.min(u.maxHp, u.hp + 30); }
+    this.emit({ type: 'perk', unit: u, id, tier: o.tier }); this.perkCheck(u); return true;
+  }
+  addPerkXp(u, x) { if (!u || u.deploy || !u.perks || u.dummy) return; u.perkXp += x; if (!u.perkOffer) this.perkCheck(u); }
   // ---------------------------------------------------------------- spawning
   pickSpawn(u, first) {
-    const list = this.mode.spawnList(u), team = this.units.filter((o) => o.team === u.team && !o.deploy), i = Math.max(0, team.indexOf(u));
-    if (first || list.length <= 1) return list[(this.modeId === 'ffa' || this.modeId === 'training' ? this.units.indexOf(u) : i) % list.length];
-    // away from enemies: score each candidate by its nearest living enemy
-    const foes = this.units.filter((o) => o.alive && !o.deploy && o.team !== u.team), scored = list.map((p) => [p, foes.length ? Math.min(...foes.map((f) => Math.hypot(f.pos[0] - p[0], f.pos[2] - p[2]))) : 99]).sort((a, b) => b[1] - a[1]);
+    const list = this.mode.spawnList(u, first), team = this.units.filter((o) => o.team === u.team && !o.deploy), i = Math.max(0, team.indexOf(u));
+    if (first || list.length <= 1 || this.modeId === 'escort' || this.modeId === 'hybrid' || this.modeId === 'control') return list[(this.modeId === 'ffa' || this.modeId === 'training' ? this.units.indexOf(u) : i) % list.length];
+    // away from enemies and out of their sight: score each candidate by its nearest living enemy
+    const foes = this.units.filter((o) => o.alive && !o.deploy && o.team !== u.team);
+    const scored = list.map((p) => {
+      let near = 99, seen = false;
+      for (const f of foes) { const d = Math.hypot(f.pos[0] - p[0], f.pos[2] - p[2]); near = Math.min(near, d); if (!seen && d < 45 && this.los(this.eye(f), [p[0], (p[1] || 0) + 1.5, p[2]])) seen = true; }
+      return [p, Math.min(near, 40) - (seen ? 30 : 0) - (near < 25 ? 15 : 0)];
+    }).sort((a, b) => b[1] - a[1]);
     return scored[Math.floor(this.rand() * Math.min(3, scored.length))][0];
   }
   spawn(u, first = false) {
     if (u.pendingHero && u.pendingHero !== u.hero) this.swapHero(u, u.pendingHero);
     u.pendingHero = null;
-    if (!first && u.bot?.counterPick) { const h = u.bot.counterPick(); if (h && h !== u.hero) this.swapHero(u, h); }
+    if (this.variant === 'mystery' && !u.dummy && this.modeId !== 'training') {
+      // Mystery Heroes: a random hero every life
+      const used = new Set(this.units.filter((o) => o.team === u.team && o !== u && !o.deploy).map((o) => o.hero)), pool = HEROES.filter((h) => !used.has(h.id) && h.id !== u.hero);
+      this.swapHero(u, this.rand.pick(pool).id);
+    } else if (!first && u.bot?.counterPick) { const h = u.bot.counterPick(); if (h && h !== u.hero) this.swapHero(u, h); }
+    this.applyMaxes(u);
     const p = this.pickSpawn(u, first), spreadX = (this.rand() - 0.5) * 1.2, spreadZ = (this.rand() - 0.5) * 1.2;
-    u.pos = [p[0] + spreadX, p[1] || 0, p[2] + spreadZ]; u.vx = u.vz = u.vy = 0; u.dash = null; u.grounded = true;
+    u.pos = [p[0] + spreadX, p[1] || 0, p[2] + spreadZ]; u.vx = u.vz = u.vy = 0; u.dash = null; u.grounded = true; u.slide = null; u.crouch = false;
+    // never spawn inside geometry or on top of a teammate: spiral out to the nearest free spot
+    if (this.blockedAt(u.pos[0], u.pos[2], u.pos[1], u.def.radius + 0.05, u.def.height)) {
+      search: for (let r = 0.5; r <= 3.5; r += 0.5) for (let a = 0; a < 12; a++) {
+        const x = p[0] + Math.cos(a * 0.5236) * r, z = p[2] + Math.sin(a * 0.5236) * r;
+        if (!this.blockedAt(x, z, u.pos[1], u.def.radius + 0.05, u.def.height)) { u.pos[0] = x; u.pos[2] = z; break search; }
+      }
+    }
     // face the middle of the map (or the objective for team modes)
     const L = this.level, cx = (L.bounds.x0 + L.bounds.x1) / 2, cz = (L.bounds.z0 + L.bounds.z1) / 2;
-    u.yaw = this.modeId === 'escort' || this.modeId === 'hybrid' || this.modeId === 'control' ? (u.team ? Math.PI : 0) : Math.atan2(cx - u.pos[0], cz - u.pos[2]); u.pitch = 0;
+    u.yaw = this.modeId === 'escort' || this.modeId === 'hybrid' || this.modeId === 'control' || this.modeId === 'elim' ? (u.team ? Math.PI : 0) : Math.atan2(cx - u.pos[0], cz - u.pos[2]); u.pitch = 0;
     u.alive = true; u.hp = u.maxHp; u.armor = u.maxArmor; u.shield = 0; u.st = {}; u.s = {};
     u.ammo = u.def.w1.ammo || 0; u.reloadT = 0; u.fireT = 0; u.cd = { a1: 0, a2: 0, w2: 0 }; u.charges = u.def.a1.charges || 0; u.hist = [];
-    u.invuln = first ? 0 : 2.5; u.hurt = {}; u.lastHit = null; u.killedBy = null; u.dmgT = -99;
+    u.invuln = first ? 0 : 2.5; u.spawnedAt = this.time; u.hurt = {}; u.lastHit = null; u.killedBy = null; u.dmgT = -99;
     this.emit({ type: 'spawn', unit: u });
   }
   resetUnits() { for (const u of [...this.units]) { if (u.deploy) { this.units.splice(this.units.indexOf(u), 1); continue; } u.held = false; this.spawn(u, true); } this.projs = []; this.zones = []; this.cores = []; this.corpses = []; this.pings = []; for (const p of this.packs) { p.ready = true; } }
@@ -174,7 +222,8 @@ export class Sim {
     }
     return c;
   }
-  eyeHeight(u) { return u.def.height * 0.92; }
+  eyeHeight(u) { return u.def.height * 0.92 - (u.crouch ? 0.45 : 0); }
+  bodyHeight(u) { return u.def.height * (u.crouch ? 0.7 : 1); }
   eye(u) { return [u.pos[0], u.pos[1] + this.eyeHeight(u), u.pos[2]]; }
   aimDir(u) { return forward(u.yaw, u.pitch); }
   right(u) { return [-Math.cos(u.yaw), 0, Math.sin(u.yaw)]; }
@@ -218,7 +267,7 @@ export class Sim {
     return this.rayWorld(a, dir, l).t >= l - 0.05;
   }
   rayUnit(o, d, maxT, u) {
-    const r = u.def.radius, h = u.def.height, cx = u.pos[0], cz = u.pos[2], y0 = u.pos[1];
+    const r = u.def.radius, h = u.crouch ? u.def.height * 0.7 : u.def.height, cx = u.pos[0], cz = u.pos[2], y0 = u.pos[1];
     const hc = [cx, y0 + h - 0.26, cz], hr = u.deploy ? 0 : 0.29;
     let head = Infinity;
     if (hr) { const oc = v3.sub(o, hc), b = v3.dot(oc, d), c = v3.dot(oc, oc) - hr * hr, disc = b * b - c; if (disc >= 0) { const t = -b - Math.sqrt(disc); if (t >= 0 && t <= maxT) head = t; } }
@@ -280,7 +329,7 @@ export class Sim {
   }
   // enemies a unit can currently see: cloaked heroes are invisible beyond a few metres
   visibleTo(viewer, e) { return !e.st.cloak || v3.dist(viewer.pos, e.pos) < 4.5 || this.time - (e.hurt[viewer.id] ?? -99) < 1.5 || !!e.st.reveal; }
-  enemies(u) { return this.units.filter((o) => o.alive && o.team !== u.team && !o.invuln && !o.st.frozen && this.visibleTo(u, o)); }
+  enemies(u) { return this.units.filter((o) => o.alive && o.team !== u.team && !o.invuln && this.visibleTo(u, o)); }
   allies(u, selfToo = false) { return this.units.filter((o) => o.alive && o.team === u.team && !o.deploy && (selfToo || o !== u)); }
 
   // ---------------------------------------------------------------- damage, healing, statuses
@@ -289,21 +338,24 @@ export class Sim {
     if (e.type === 'shot' && e.unit && !e.unit.deploy) for (const b of this.units) if (b.bot?.hear && b.alive && b.team !== e.unit.team) b.bot.hear(e.unit);
   }
   addStatus(u, name, dur, data = {}) {
-    if ((name === 'stun' || name === 'sleep' || name === 'root') && (u.st.fortify || u.st.ulting || u.s.ulting)) return null;
+    if ((name === 'stun' || name === 'sleep' || name === 'root' || name === 'knocked') && (u.st.fortify || u.st.ulting || u.s.ulting || u.st.ccImmune)) return null;
+    if (name === 'slow' && u.st.ccImmune) return null;
     const cur = u.st[name];
     if (cur && cur.t > dur && !data.force) { Object.assign(cur, { ...data, t: cur.t }); return cur; }
     return (u.st[name] = { ...data, t: dur });
   }
-  stun(u, t) { if (u.def.role === 'tank') t *= 0.7; return this.addStatus(u, 'stun', t); }
+  stun(u, t) { if (u.def.role === 'tank') t *= 0.7; if (has(u, 'juggernaut')) t *= 0.6; return this.addStatus(u, 'stun', t); }
   multOut(src) {
     let m = 1;
-    if (src) { if (src.st.dmgBoost) m *= 1 + src.st.dmgBoost.f; if (src.st.overdrive) m *= 1.25; if (src.s.bunker) m *= 1.25; if (src.st.nano) m *= 1.5; }
-    if (this.mutator?.id === 'glass') m *= 1.4;
+    // damage amplifiers add together instead of multiplying, so stacked buffs stay readable
+    if (src) { if (src.st.dmgBoost) m += src.st.dmgBoost.f; if (src.st.overdrive) m += 0.25; if (src.st.nano) m += 0.5; if (src.hero === 'skyhawk' && !src.grounded && !src.deploy) m += 0.1; }
+    if (this.mutator?.id === 'glass') m += 0.4;
+    if (src?.st.dazzled) m *= 1 - src.st.dazzled.f;
     return m;
   }
   multIn(u, src) {
-    let m = 1; if (u.st.resist) m *= 1 - u.st.resist.f; if (u.st.nano) m *= 0.5; if (u.s.bunker) m *= 0.7;
-    if (u.st.marked) m *= 1 + u.st.marked.f; if (u.st.discord) m *= 1 + u.st.discord.f;
+    let m = 1; if (u.st.resist) m *= 1 - u.st.resist.f; if (u.st.nano) m *= 0.5; if (u.s.bunker) m *= 0.85;
+    let amp = 0; if (u.st.marked) amp += u.st.marked.f; if (u.st.discord) amp += u.st.discord.f; m *= 1 + Math.min(0.5, amp);
     for (const z of this.zones) if (z.kind === 'dome' && z.team === u.team && v3.dist2d(z.pos, u.pos) < z.r) m *= 0.4;
     if (u.def.sub === 'Stalwart' && (u.s.barrier?.up || u.s.bunker || u.s.wall)) m *= 0.85;
     if (u.s.block && src) { // Wrecker's Power Block only turns damage from the front
@@ -312,38 +364,60 @@ export class Sim {
     }
     return m;
   }
-  critRoll(src, head, w) {
+  // crits are earned, not rolled: headshots, and body hits on a target that is crowd controlled
+  // (stunned, rooted, asleep, frozen, slowed or knocked about). Crit Storm and crit buffs add luck.
+  critRoll(src, head, w, tgt = null) {
     if (!src || src.deploy) return { mul: 1, crit: false };
-    const c = src.def.crit || { head: 1.5, chance: 0.05 };
+    const c = src.def.crit || { head: 1.5 };
     if (head && (w?.head ?? c.head) > 1) return { mul: w?.head ?? c.head, crit: true, head: true };
-    const chance = (c.chance || 0) + (this.mutator?.id === 'crit' ? 0.25 : 0) + (src.st.critBuff ? 0.25 : 0);
+    if (tgt && !tgt.deploy && tgt.team !== src.team && this.vulnerable(tgt, src)) return { mul: CC_CRIT, crit: true, head: false, cc: true };
+    const chance = (this.mutator?.id === 'crit' ? 0.25 : 0) + (src.st.critBuff ? 0.25 : 0);
     if (chance > 0 && this.rand() < chance) return { mul: 1.5, crit: true, head: false };
     return { mul: 1, crit: false };
   }
+  vulnerable(t, src) { const s = t.st; return !!(s.stun || s.root || s.sleep || s.frozen || s.slow || s.knocked || (src && src.hero === 'cinder' && s.burn)); }
   damage(tgt, amt, src, { head = false, crit = false, point = null, kind = 'bullet', noBoost = false, silent = false } = {}) {
     if (!tgt.alive || amt <= 0) return 0;
     if (src && src.team === tgt.team && src !== tgt) return 0;
-    if (tgt.invuln > 0 && !tgt.deploy) return 0;
-    if (tgt.st.phased || tgt.st.frozen) return 0;
+    if ((tgt.invuln > 0 && !tgt.deploy) || tgt.st.phased || this.state === 'setup') {
+      if (src?.isPlayer && this.time - (tgt._immT || -9) > 0.6) { tgt._immT = this.time; this.emit({ type: 'immune', tgt, src, point: point || this.center(tgt) }); }
+      return 0;
+    }
     let d = amt * (noBoost ? 1 : this.multOut(src)) * this.multIn(tgt, src);
+    if (src && src.perks && src !== tgt) {
+      if (has(src, 'brawler') && v3.dist2d(src.pos, tgt.pos) < 8) d *= 1.15;
+      if (has(src, 'executioner') && tgt.hp < tgt.maxHp * 0.4) d *= 1.2;
+      if (has(src, 'deadeye') && crit) d *= 1.15;
+    }
+    if (src && src.hero === 'shade' && src.st.cloak && kind !== 'burn') d *= 1.3; // ambush from cloak
     if (src && !src.deploy && src.def.sub === 'Bruiser' && v3.dist2d(src.pos, tgt.pos) < 6) d *= 1.12;
     if (src && !src.deploy && src.def.sub === 'Recon' && src.team !== tgt.team && !tgt.deploy) this.addStatus(tgt, 'reveal', 2);
     const before = amt * (noBoost ? 1 : this.multOut(src));
     if (tgt.s.block?.pending) { tgt.s.block.pending = false; tgt.s.block.stored = Math.min(120, (tgt.s.block.stored || 0) + (before - d) * 0.8); }
     const dealt = d;
     if (tgt.st.sleep) delete tgt.st.sleep;
-    if (tgt.shield > 0) { const a = Math.min(tgt.shield, d); tgt.shield -= a; d -= a; }
-    if (d > 0 && tgt.armor > 0) { const red = Math.min(5, d * 0.3); d -= red; const a = Math.min(tgt.armor, d); tgt.armor -= a; d -= a; }
+    let layer = 'hp';
+    if (tgt.shield > 0) { const a = Math.min(tgt.shield, d); tgt.shield -= a; d -= a; layer = 'shield'; }
+    if (d > 0 && tgt.armor > 0) { const red = Math.min(5, d * 0.3); d -= red; const a = Math.min(tgt.armor, d); tgt.armor -= a; d -= a; if (layer === 'hp') layer = 'armor'; }
     if (d > 0) tgt.hp -= d;
     tgt.dmgT = this.time;
     if (src && src !== tgt) {
-      src.stats.dmg += dealt; this.chargeUlt(src, dealt * 0.55 * (src.def.role === 'tank' ? 0.8 : 1));
+      src.stats.dmg += dealt; this.chargeUlt(src, dealt * 0.55); this.addPerkXp(src, dealt);
+      if (has(src, 'battlemedic')) { const a = this.allies(src, true).filter((o) => o.hp < o.maxHp && v3.dist2d(o.pos, src.pos) < 15).sort((x, y) => x.hp / x.maxHp - y.hp / y.maxHp)[0]; if (a) this.heal(a, dealt * 0.3, src, { quiet: true }); }
+      // the damage role passive: hits cut the target's incoming healing for a moment
+      if (src.def.role === 'damage' && !src.deploy && kind !== 'burn' && !tgt.deploy) this.addStatus(tgt, 'wounded', 1.5);
       if (crit) { src.stats.crits++; if (head) src.stats.headshots++; }
       tgt.hurt[src.id] = this.time; tgt.lastHit = { src, t: this.time, head, crit };
       if (src.st.cloak && kind !== 'burn') delete src.st.cloak;
       if (src.s.drain != null) src.s.drain = 0;
     }
-    if (!silent) this.emit({ type: 'dmg', tgt, src, amt: dealt, head, crit, point: point || this.center(tgt), kind });
+    if (!silent) this.emit({ type: 'dmg', tgt, src, amt: dealt, head, crit, point: point || this.center(tgt), kind, layer });
+    else if (src && src !== tgt && !tgt.deploy) {
+      // damage over time and zones: batch the ticks so both sides still see and hear them
+      const acc = (tgt._dot ||= {}), a = (acc[src.id] ||= { amt: 0, t: this.time });
+      a.amt += dealt;
+      if (this.time - a.t >= 0.25 || tgt.hp <= 0) { if (a.amt >= 1) this.emit({ type: 'dmg', tgt, src, amt: a.amt, point: this.center(tgt), kind: 'dot', dot: kind }); a.amt = 0; a.t = this.time; }
+    }
     if (tgt.hp <= 0) this.kill(tgt, src, head);
     return dealt;
   }
@@ -351,20 +425,33 @@ export class Sim {
     if (!tgt.alive || tgt.deploy) return 0;
     if (tgt.st.nohealing) return 0;
     if (tgt.st.healAmp) amt *= 1 + tgt.st.healAmp.f;
+    if (tgt.st.wounded) amt *= 0.8;
+    if (src && has(src, 'triage') && tgt.hp < tgt.maxHp * 0.35) amt *= 1.25;
+    if (src && src !== tgt && has(src, 'guardian') && this.time - ((tgt._guard ||= {})[src.id] ?? -99) > 8) { tgt._guard[src.id] = this.time; tgt.shield = Math.max(tgt.shield, 40); tgt.shieldDecay = Math.max(tgt.shieldDecay || 0, 4); }
     if (src && !src.deploy && src.def.sub === 'Medic' && tgt.hp < tgt.maxHp * 0.5) amt *= 1.15;
-    const a = Math.min(amt, tgt.maxHp - tgt.hp);
+    // health first, then whatever is left repairs armor
+    let a = Math.min(amt, tgt.maxHp - tgt.hp);
+    if (a > 0) tgt.hp += a; else a = 0;
+    if (amt > a && tgt.armor < tgt.maxArmor) { const b = Math.min(amt - a, tgt.maxArmor - tgt.armor); tgt.armor += b; a += b; }
+    if (amt > a && has(tgt, 'overflow') && tgt.shield < 120) { const b = Math.min(amt - a, 120 - tgt.shield); tgt.shield += b; tgt.shieldDecay = Math.max(tgt.shieldDecay || 0, 5); a += b; }
     if (a <= 0) return 0;
-    tgt.hp += a;
-    if (src && src !== tgt) { src.stats.heal += a; this.chargeUlt(src, a * 0.3); }
+    if (src && src !== tgt) { src.stats.heal += a; this.chargeUlt(src, a * 0.45); this.addPerkXp(src, a); }
     const acc = (tgt._ha ||= { amt: 0, t: -9 }); acc.amt += a;
     if (!quiet && this.time - acc.t > 0.3 && acc.amt >= 1) { this.emit({ type: 'heal', tgt, src, amt: acc.amt }); acc.amt = 0; acc.t = this.time; }
     return a;
   }
-  chargeUlt(u, pts) { if (u.deploy || !u.alive || u.dummy) return; if (u.def.sub === 'Tactician') pts *= 1.12; u.ult = Math.min(u.def.ult.cost, u.ult + pts); }
+  chargeUlt(u, pts) { if (u.deploy || !u.alive || u.dummy) return; if (u.def.sub === 'Tactician') pts *= 1.12; if (has(u, 'focus')) pts *= 1.15; u.ult = Math.min(u.def.ult.cost, u.ult + pts); }
   kill(tgt, src, head) {
     tgt.alive = false; tgt.hp = 0; tgt.shield = 0; tgt.streakLost = tgt.streak; tgt.streak = 0;
     if (tgt.deploy) { this.emit({ type: 'destroy', unit: tgt }); this.units.splice(this.units.indexOf(tgt), 1); return; }
-    tgt.respawnT = this.mode.respawn(tgt); tgt.stats.deaths++; tgt.killedBy = src && src !== tgt ? src : null; tgt.deadAt = [...tgt.pos]; tgt.diedAt = this.time;
+    tgt.respawnT = this.mode.respawn(tgt); tgt.stats.deaths++;
+    {
+      // what the coach and the career need to know about this death
+      const kr = src && !src.deploy ? src : src?.deploy?.owner || null;
+      if (tgt.isPlayer) (this.deathLog ||= []).push({ hero: kr && kr !== tgt ? kr.hero : null, t: this.time, alone: !this.units.some((o) => o.team === tgt.team && o !== tgt && o.alive && !o.deploy && v3.dist2d(o.pos, tgt.pos) < 15) });
+      if (kr?.isPlayer && tgt.persona && this.rivalLog?.[tgt.name]) this.rivalLog[tgt.name].k++;
+      if (tgt.isPlayer && kr?.persona && this.rivalLog?.[kr.name]) this.rivalLog[kr.name].d++;
+    } tgt.killedBy = src && src !== tgt ? src : null; tgt.deadAt = [...tgt.pos]; tgt.diedAt = this.time;
     const assists = this.units.filter((o) => o !== src && o.team !== tgt.team && !o.deploy && this.time - (tgt.hurt[o.id] ?? -99) < 8);
     const killer = src && !src.deploy ? src : src?.deploy?.owner || null;
     if (killer && killer !== tgt) {
@@ -372,14 +459,21 @@ export class Sim {
       if (killer.s.ulting || killer.st.overdrive || killer.s.ultUntil > this.time) killer.stats.ultElims++;
       killer.kt.push(this.time); killer.kt = killer.kt.filter((t) => this.time - t < 9);
       this.noteHighlight(killer, tgt, head);
+      if (head && killer.hero === 'vesper') killer.cd.a1 = 0; // a headshot kill refunds the grapple
+      this.addPerkXp(killer, 150);
+      if (has(killer, 'leech')) this.heal(killer, 60, killer, { quiet: true });
+      if (has(killer, 'momentum')) { killer.cd.a1 = killer.cd.a2 = 0; if (killer.def.a1.charges) killer.charges = killer.def.a1.charges; }
+      if (has(killer, 'adrenaline')) { this.addStatus(killer, 'speed', 3, { f: 0.3 }); this.heal(killer, 50, killer, { quiet: true }); }
     }
-    for (const a of assists) { a.stats.assists++; this.chargeUlt(a, 40); }
+    for (const a of assists) { a.stats.assists++; this.chargeUlt(a, 40); this.addPerkXp(a, 75); if (has(a, 'leech')) this.heal(a, 60, a, { quiet: true }); }
     // bounty: a four-elimination streak paints a target on the killer; claiming it pays out ultimate charge
+    const wasBounty = !!tgt.bounty;
     if (tgt.bounty && killer && killer !== tgt && killer.team !== tgt.team) { this.chargeUlt(killer, killer.def.ult.cost * 0.3); killer.stats.bounties = (killer.stats.bounties || 0) + 1; this.emit({ type: 'bountyClaimed', killer, victim: tgt }); }
     tgt.bounty = false;
     if (killer && killer !== tgt && killer.streak >= 4 && !killer.bounty && this.modeId !== 'training') { killer.bounty = true; this.emit({ type: 'bounty', unit: killer }); }
     this.corpses.push({ unit: tgt, pos: [...tgt.pos], team: tgt.team, hero: tgt.hero, t: 12 });
-    if (killer && killer !== tgt && this.modeId !== 'ffa' && this.modeId !== 'training') this.cores.push({ pos: [tgt.pos[0], tgt.pos[1] + 0.6, tgt.pos[2]], team: killer.team, t: 14, y0: tgt.pos[1] + 0.6 });
+    // echo cores only drop from big kills: multi-kills, bounties and ended streaks
+    if (killer && killer !== tgt && this.modeId !== 'ffa' && this.modeId !== 'training' && this.modeId !== 'elim' && (killer.kt.length >= 2 || wasBounty || (tgt.streakLost || 0) >= 3)) this.cores.push({ pos: [tgt.pos[0], tgt.pos[1] + 0.6, tgt.pos[2]], team: killer.team, t: 14, y0: tgt.pos[1] + 0.6 });
     this.emit({ type: 'kill', killer: src && !src.deploy ? src : null, victim: tgt, assists, head, deployKill: src?.deploy ? src : null });
     tgt.in.fire1 = tgt.in.fire2 = false;
     const k = KITS[tgt.hero]; if (k?.onDeath) k.onDeath(this, tgt);
@@ -403,10 +497,22 @@ export class Sim {
   }
   bestHighlights(n = 3) { return [...this.hl].sort((a, b) => b.score - a.score).slice(0, n); }
   revive(u, pos) { revive(this, u, pos); }
+  // knockback: the victim loses traction for a moment so the push actually carries
   knock(u, v) {
-    if (u.st.fortify || u.st.ulting || u.s.ulting || u.st.frozen) return;
-    const k = u.def.role === 'tank' ? 0.5 : 1;
+    if (u.st.fortify || u.st.ulting || u.s.ulting || u.st.frozen || u.deploy || u.st.ccImmune) return;
+    const k = (u.def.role === 'tank' ? 0.6 : 1) * (has(u, 'juggernaut') ? 0.6 : 1);
     u.vx += v[0] * k; u.vz += v[2] * k; u.vy = Math.max(u.vy, v[1] * k); if (v[1] > 0.1) u.grounded = false;
+    if (Math.hypot(v[0], v[2]) > 2.5) { this.addStatus(u, 'knocked', u.def.role === 'tank' ? 0.35 : 0.5); u.dash = null; u.slide = null; }
+  }
+  // drag a unit to a spot (hooks, pulls): a short forced dash that ignores the victim's input
+  pull(u, to, speed = 30) {
+    if (u.st.fortify || u.st.ulting || u.s.ulting || u.st.frozen || u.deploy || u.st.ccImmune) return false;
+    const d = [to[0] - u.pos[0], 0, to[2] - u.pos[2]], l = Math.hypot(d[0], d[2]); if (l < 0.5) return false;
+    const sp = u.def.role === 'tank' ? speed * 0.75 : speed;
+    u.dash = { t: l / sp, vx: d[0] / l * sp, vz: d[2] / l * sp, forced: true, end: (s, me) => { me.vx *= 0.2; me.vz *= 0.2; } };
+    u.vy = Math.max(u.vy, 2.5); u.grounded = false; u.slide = null;
+    this.addStatus(u, 'knocked', l / sp + 0.15);
+    return true;
   }
 
   // ---------------------------------------------------------------- pings and callouts
@@ -445,6 +551,7 @@ export class Sim {
     if (this.time - (u.s.lastCall || -99) < 1.1 && id !== 'ultUsed') return false;
     u.s.lastCall = this.time;
     const T = (this.teamState[u.team] ||= {}); T.call = { id, unit: u, t: this.time, pos: extra.pos, target: extra.target };
+    if (u.isPlayer) (T.playerCalls ||= []).push(T.call); // the human's orders queue up for the team brain instead of being overwritten
     this.emit({ type: 'callout', unit: u, id, ...extra });
     return true;
   }
@@ -462,7 +569,7 @@ export class Sim {
     if (hit.kind !== 'unit' && s.radius > 0.1) {
       const mid = v3.madd(p.pos, dir, Math.min(hit.t, maxT) * 0.5);
       for (const u of this.units) {
-        if (!u.alive || (u.team === p.team && !s.allies) || u === p.owner || u.st.frozen) continue;
+        if (!u.alive || (u.team === p.team && !s.allies) || u === p.owner) continue;
         const c = this.center(u);
         if (v3.dist(c, mid) < Math.min(hit.t, maxT) * 0.5 + u.def.radius + s.radius * 0.8 + u.def.height * 0.25 && v3.dist(c, v3.madd(p.pos, dir, Math.max(0, Math.min(maxT, v3.dot(v3.sub(c, p.pos), dir))))) < u.def.radius + s.radius + 0.1) { hit = { t: Math.max(0, v3.dot(v3.sub(c, p.pos), dir)), kind: 'unit', unit: u, head: false }; break; }
       }
@@ -477,8 +584,8 @@ export class Sim {
     if (hit.kind === 'barrier' && !s.onHit) this.hitBarrier(hit.unit, (s.dmg || 0) + (s.splashDmg || 0) * 0.5, p.owner, p.pos);
     if (s.onHit) { s.onHit(this, p, hit); return; }
     if (hit.kind === 'unit') {
-      const w = p.owner.def.w1, r = this.critRoll(p.owner, false, w), enemy = hit.unit.team !== p.team;
-      if (enemy) { p.owner.stats.hits++; this.damage(hit.unit, s.dmg * r.mul, p.owner, { point: p.pos, kind: 'proj', crit: r.crit }); }
+      const w = p.owner.def.w1, r = this.critRoll(p.owner, !!hit.head && !s.splash, w, hit.unit), enemy = hit.unit.team !== p.team;
+      if (enemy) { p.owner.stats.hits++; this.damage(hit.unit, s.dmg * r.mul, p.owner, { point: p.pos, kind: 'proj', crit: r.crit, head: !!r.head }); }
       if (s.slow) this.addStatus(hit.unit, 'slow', s.slow[1], { f: s.slow[0] });
       if (s.burn && enemy) this.addStatus(hit.unit, 'burn', s.burn[1], { dps: s.burn[0], src: p.owner });
       if (s.heal && !enemy) this.heal(hit.unit, s.heal, p.owner);
@@ -486,7 +593,7 @@ export class Sim {
     if (s.splash > 0) {
       this.area(p.pos, s.splash, (u, d) => {
         if (u.team === p.team && !s.hurtSelf) return;
-        if (hit.kind === 'unit' && u === hit.unit) return;
+        if (hit.kind === 'unit' && u === hit.unit && !s.directSplash) return;
         const f = 1 - clamp((d - u.def.radius) / s.splash, 0, 1) * 0.5;
         this.damage(u, (s.splashDmg ?? s.dmg) * f, p.owner, { point: p.pos, kind: 'splash' });
         if (s.slow) this.addStatus(u, 'slow', s.slow[1], { f: s.slow[0] });
@@ -507,6 +614,9 @@ export class Sim {
 
   // ---------------------------------------------------------------- unit update
   canAct(u) { return u.alive && !u.st.stun && !u.st.sleep && !u.st.frozen && this.state !== 'setup' && this.state !== 'roundbreak'; }
+  // defenders may walk out and set up during the setup phase of escort and hybrid
+  canMove(u) { return u.alive && !u.st.stun && !u.st.sleep && !u.st.frozen && (this.state === 'live' || (this.state === 'setup' && this.setupMove(u)) || this.modeId === 'training'); }
+  setupMove(u) { return u.team === 1 && (this.modeId === 'escort' || this.modeId === 'hybrid'); }
   speedOf(u) {
     let s = u.def.speed;
     if (u.def.role === 'damage') s *= 1.08;
@@ -520,6 +630,8 @@ export class Sim {
     if (u.s.spun > 0.1 && u.in.fire1) s *= 0.55;
     if (u.s.hacking) s *= 0.6;
     if (u.st.deadeye) s *= 0.5;
+    if (u.crouch) s *= 0.6;
+    if (has(u, 'stride')) s *= 1.07;
     return s;
   }
   stepUnit(u, dt) {
@@ -540,8 +652,14 @@ export class Sim {
     if (this.state === 'live' && u.hp < u.maxHp && !u.dummy) {
       const wait = u.def.role === 'support' ? 1.6 : 4.5; if (this.time - u.dmgT > wait) u.hp = Math.min(u.maxHp, u.hp + (u.def.sub === 'Survivor' ? 24 : u.def.role === 'support' ? 16 : 8) * dt);
     }
-    const tick = dt * (this.mutator?.id === 'overclock' ? 2 : 1);
-    for (const k of ['a1', 'a2', 'w2']) u.cd[k] = Math.max(0, u.cd[k] - tick);
+    // passive regen and overflow heals also patch armor back up
+    if (this.state === 'live' && u.armor < u.maxArmor && !u.dummy) { const iron = has(u, 'ironhide'); if ((iron && this.time - u.dmgT > 3) || (u.hp >= u.maxHp && this.time - u.dmgT > 4.5)) u.armor = Math.min(u.maxArmor, u.armor + (iron ? 25 : 10) * dt); }
+    // objective time feeds perk progress
+    if (u.stats.obj > (u._objSeen || 0)) { this.addPerkXp(u, (u.stats.obj - (u._objSeen || 0)) * 12); u._objSeen = u.stats.obj; }
+    if (u.in.perk) { this.choosePerk(u, u.in.perk - 1); u.in.perk = 0; }
+    const lifeline = has(u, 'lifeline') && this.allies(u).some((a) => a.hp < a.maxHp * 0.5 && v3.dist2d(a.pos, u.pos) < 20);
+    const tick = dt * (this.mutator?.id === 'overclock' ? 2 : 1) * (this.variant === 'mayhem' ? 4 : 1) * (lifeline ? 1.25 : 1);
+    for (const k of ['a1', 'a2', 'w2']) { const was = u.cd[k]; u.cd[k] = Math.max(0, u.cd[k] - tick); if (u.isPlayer && was > 0.3 && u.cd[k] <= 0 && k !== 'w2') this.emit({ type: 'cdReady', unit: u, k }); }
     if (u.def.a1.charges && u.charges < u.def.a1.charges) { u.chargeT += tick; if (u.chargeT >= u.def.a1.cd) { u.charges++; u.chargeT = 0; } }
     if (this.state === 'live' && !u.dummy) this.chargeUlt(u, 9 * dt);
     const kit = KITS[u.hero], inp = u.in, can = this.canAct(u);
@@ -550,20 +668,47 @@ export class Sim {
     if (this.state === 'live') { u.hist.push({ t: this.time, pos: [...u.pos], hp: u.hp, armor: u.armor }); while (u.hist.length && this.time - u.hist[0].t > 3.2) u.hist.shift(); }
     // ---- movement
     let wx = 0, wz = 0;
-    const frozen = !can || this.state === 'setup' || this.state === 'roundbreak', rooted = u.st.root || u.s.bunker || u.s.channel || u.st.hoverLock;
+    const frozen = !this.canMove(u) || this.state === 'roundbreak', rooted = u.st.root || u.s.bunker || u.s.channel || u.st.hoverLock;
+    // jump buffering and coyote time: a jump pressed just before landing, or just after running off a ledge, still counts
+    if (inp.jump && !u.prevJump) u.jumpBuf = this.time;
+    u.prevJump = !!inp.jump;
+    if (u.grounded) u.airT = 0; else u.airT = (u.airT || 0) + dt;
+    // crouch, and the damage role's slide out of a sprint
+    const wantCrouch = !!inp.crouch && !frozen && !u.def.fly;
+    if (wantCrouch && !u.crouch && u.grounded && !u.slide && u.def.role === 'damage' && Math.hypot(u.vx, u.vz) > 4.8 && this.time > (u.slideCd || 0)) {
+      const l = Math.hypot(u.vx, u.vz); u.slide = { t: 0.6, dir: [u.vx / l, u.vz / l] }; u.slideCd = this.time + 4; this.emit({ type: 'slide', unit: u });
+    }
+    u.crouch = wantCrouch && (u.grounded || u.crouch);
+    if (u.slide && (!u.grounded || frozen || u.dash)) { if (!u.grounded && !frozen) { u.vx = u.slide.dir[0] * 7.5; u.vz = u.slide.dir[1] * 7.5; } u.slide = null; }
     if (!frozen && !u.dash) {
       const mv = inp.move, f = [Math.sin(u.yaw), Math.cos(u.yaw)], r = [-Math.cos(u.yaw), Math.sin(u.yaw)];
       wx = f[0] * mv[1] + r[0] * mv[0]; wz = f[1] * mv[1] + r[1] * mv[0];
       const l = Math.hypot(wx, wz); if (l > 1) { wx /= l; wz /= l; }
       const sp = rooted ? 0 : this.speedOf(u); wx *= sp; wz *= sp;
-      if (inp.jump && u.grounded && !rooted) { u.vy = JUMP; u.grounded = false; this.emit({ type: 'jump', unit: u }); }
+      if (u.slide) { u.slide.t -= dt; const k = Math.max(0, u.slide.t / 0.6), sp2 = 4.5 + 4 * k; wx = u.slide.dir[0] * sp2 + wx * 0.15; wz = u.slide.dir[1] * sp2 + wz * 0.15; if (u.slide.t <= 0) u.slide = null; }
+      const jumpWanted = inp.jump || this.time - (u.jumpBuf ?? -9) < BUF;
+      if (jumpWanted && (u.grounded || (u.airT < COYOTE && u.vy <= 0.1)) && !rooted && !u.st.knocked) {
+        u.vy = JUMP; u.grounded = false; u.airT = 1; u.jumpBuf = -9; u.crouch = false; this.emit({ type: 'jump', unit: u });
+        if (u.slide) { u.vx = u.slide.dir[0] * 8; u.vz = u.slide.dir[1] * 8; u.slide = null; }
+      }
+      // mantle: airborne, pushing into a ledge a little above our feet with room on top
+      if (!u.grounded && !u.mantled && inp.jump && l > 0.5 && u.vy < 3 && !rooted) {
+        const fx = wx / (Math.hypot(wx, wz) || 1), fz = wz / (Math.hypot(wx, wz) || 1), px = u.pos[0] + fx * (u.def.radius + 0.35), pz = u.pos[2] + fz * (u.def.radius + 0.35);
+        if (this.blockedAt(px, pz, u.pos[1], u.def.radius * 0.6, 1)) {
+          const top = this.groundAt(px, pz, u.pos[1] + 1.6, u.def.radius * 0.6), dh = top - u.pos[1];
+          if (dh > 0.3 && dh <= 1.55 && !this.blockedAt(px, pz, top + 0.02, u.def.radius * 0.8, u.def.height) && this.ceilingAt(u.pos[0], u.pos[2], u.pos[1], u.def.radius, u.def.height) > top + u.def.height) {
+            u.vy = Math.sqrt(2 * -GRAV * (dh + 0.3)); u.mantled = true; u.vx = fx * 3.5; u.vz = fz * 3.5; this.emit({ type: 'mantle', unit: u });
+          }
+        }
+      }
     }
     if (u.dash) {
       u.dash.t -= dt; u.vx = u.dash.vx; u.vz = u.dash.vz;
       if (u.dash && u.dash.hit) u.dash.hit(this, u, dt);
-      if (u.dash && u.dash.t <= 0) { const d = u.dash; u.dash = null; if (d.end) d.end(this, u); }
+      // momentum: a dash hands its speed back gradually instead of snapping to a stop
+      if (u.dash && u.dash.t <= 0) { const d = u.dash; u.dash = null; if (!d.forced) this.addStatus(u, 'momentum', 0.22); if (d.end) d.end(this, u); }
     } else {
-      const acc = u.grounded ? 48 : (u.def.fly ? 14 : 7), k = Math.min(1, acc * dt);
+      const acc = u.st.knocked ? 1.6 : u.st.momentum ? (u.grounded ? 10 : 5) : u.slide ? 14 : u.grounded ? 48 : (u.def.fly ? 14 : 7), k = Math.min(1, acc * dt);
       u.vx += (wx - u.vx) * k; u.vz += (wz - u.vz) * k;
     }
     const lg = this.mutator?.id === 'lowgrav' ? 0.42 : 1, glide = u.st.glide ? 0.18 : 1;
@@ -579,15 +724,30 @@ export class Sim {
       if (d < min && d > 1e-4 && Math.abs(u.pos[1] - o.pos[1]) < 1.6) { const push = (min - d) * 0.5 * (o.def.radius / (u.def.radius + o.def.radius) * 2); const nx = u.pos[0] + (dx / d) * push, nz = u.pos[2] + (dz / d) * push; if (!this.blockedAt(nx, nz, u.pos[1], u.def.radius, u.def.height)) { u.pos[0] = nx; u.pos[2] = nz; } }
     }
     if (u.pos[1] < -10) this.damage(u, 9999, null, { silent: true });
-    if (!can) { u.prev.fire1 = u.prev.fire2 = false; inp.a1 = inp.a2 = inp.ult = inp.reload = false; if (kit?.secondary) kit.secondary(this, u, dt, false, false); return; }
+    // ability presses are buffered for a moment so one made just before a cooldown ends still goes out
+    const buf = (u.buf ||= {});
+    for (const k of ['a1', 'a2', 'ult']) if (inp[k]) { buf[k] = this.time; inp[k] = false; }
+    if (!can) { u.prev.fire1 = u.prev.fire2 = false; inp.reload = false; u.fireBuf = -9; if (kit?.secondary) kit.secondary(this, u, dt, false, false); return; }
     this.stepWeapon(u, dt, kit);
-    const silenced = !!u.st.silenced;
-    if (silenced) { inp.a1 = inp.a2 = inp.ult = false; }
-    if (inp.a1) { inp.a1 = false; if (this.abilityReady(u, 'a1') && kit?.a1) { if (kit.a1(this, u) !== false) { this.spendAbility(u, 'a1'); if (u.st.cloak && u.hero !== 'shade') delete u.st.cloak; } } }
-    if (inp.a2) { inp.a2 = false; if (this.abilityReady(u, 'a2') && kit?.a2) { if (kit.a2(this, u) !== false) { this.spendAbility(u, 'a2'); if (u.st.cloak) delete u.st.cloak; } } }
-    if (inp.ult) { inp.ult = false; if (u.ult >= u.def.ult.cost - 1e-6 && !u.s.ulting && kit?.ult) { if (kit.ult(this, u) !== false) { u.ult = 0; u.stats.ults++; u.s.ultUntil = this.time + 8; this.emit({ type: 'ult', unit: u }); this.callout(u, 'ultUsed', {}); } } }
+    const silenced = !!u.st.silenced, want = (k) => !silenced && this.time - (buf[k] ?? -9) < BUF;
+    const fail = (k) => { buf[k] = -9; if (u.isPlayer) this.emit({ type: 'abilityFail', unit: u, k }); };
+    if (want('a1') && this.abilityReady(u, 'a1') && kit?.a1) { buf.a1 = -9; if (kit.a1(this, u) !== false) { this.spendAbility(u, 'a1'); if (u.st.cloak && u.hero !== 'shade') delete u.st.cloak; } else fail('a1'); }
+    if (want('a2') && this.abilityReady(u, 'a2') && kit?.a2) { buf.a2 = -9; if (kit.a2(this, u) !== false) { this.spendAbility(u, 'a2'); if (u.st.cloak) delete u.st.cloak; } else fail('a2'); }
+    // quick melee: a fast swipe that cancels a reload
+    if (inp.melee) { inp.melee = false; if (this.time >= (u.meleeT || 0) && !u.s.ulting) this.quickMelee(u); }
+    if (want('ult') && u.ult >= u.def.ult.cost - 1e-6 && !u.s.ulting && kit?.ult) { buf.ult = -9; if (kit.ult(this, u) !== false) { u.ult = 0; u.stats.ults++; u.s.ultUntil = this.time + 8; this.emit({ type: 'ult', unit: u }); this.callout(u, 'ultUsed', {}); } else fail('ult'); }
     if (kit?.secondary) kit.secondary(this, u, dt, silenced ? false : inp.fire2, silenced ? false : inp.fire2 && !u.prev.fire2);
     u.prev.fire1 = inp.fire1; u.prev.fire2 = inp.fire2;
+  }
+  quickMelee(u) {
+    u.meleeT = this.time + 0.8; u.reloadT = 0; u.fireT = Math.max(u.fireT, 0.35);
+    const o = this.eye(u), f = this.aimDir(u), dmg = u.def.role === 'tank' ? 40 : 30; let hit = false;
+    for (const e of this.enemies(u)) {
+      const c = this.center(e), d = v3.sub(c, o), l = v3.len(d); if (l - e.def.radius > 2.6 || v3.dot(v3.norm(d), f) < 0.6 || !this.los(o, c)) continue;
+      const r = this.critRoll(u, false, null, e); this.damage(e, dmg * r.mul, u, { kind: 'melee', crit: r.crit, point: c }); hit = true;
+      const ff = [d[0] / (l || 1), 0, d[2] / (l || 1)]; this.knock(e, [ff[0] * 3, 1, ff[2] * 3]);
+    }
+    this.emit({ type: 'melee', unit: u, hit }); this.emit({ type: 'shot', unit: u, sound: 'punch' });
   }
   abilityReady(u, k) {
     if (k === 'a1' && u.def.a1.charges) return u.charges > 0;
@@ -595,7 +755,7 @@ export class Sim {
   }
   spendAbility(u, k) {
     if (k === 'a1' && u.def.a1.charges) { u.charges--; if (u.charges === u.def.a1.charges - 1) u.chargeT = 0; u.cd.a1 = 0.25; return; }
-    u.cd[k] = u.def[k].cd * (u.def.sub === 'Specialist' ? 0.9 : 1);
+    u.cd[k] = u.def[k].cd * (u.def.sub === 'Specialist' ? 0.9 : 1) * (has(u, 'tempo') ? 0.88 : 1);
     if (u.def.sub === 'Initiator') this.addStatus(u, 'speed', 2, { f: 0.15 });
   }
   moveUnit(u, dt) {
@@ -608,7 +768,7 @@ export class Sim {
     const g = this.groundAt(u.pos[0], u.pos[2], u.pos[1], r);
     const ny = u.pos[1] + u.vy * dt;
     if (u.vy <= 0 && ny <= g + 1e-4) {
-      if (!u.grounded && u.vy < -9) this.emit({ type: 'land', unit: u, speed: -u.vy });
+      if (!u.grounded && u.vy < -7) this.emit({ type: 'land', unit: u, speed: -u.vy });
       u.pos[1] = g; u.vy = 0; u.grounded = true;
     } else if (u.grounded && u.vy <= 0 && u.pos[1] - g < 0.55) { u.pos[1] = g; u.vy = 0; }
     else {
@@ -616,6 +776,7 @@ export class Sim {
       const c = this.ceilingAt(u.pos[0], u.pos[2], u.pos[1], r, h);
       if (u.vy > 0 && u.pos[1] + h > c) { u.pos[1] = c - h; u.vy = 0; }
     }
+    if (u.grounded) u.mantled = false;
     if (u.grounded && u.s.onLand) { const f = u.s.onLand; u.s.onLand = null; f(this, u); }
   }
 
@@ -624,19 +785,22 @@ export class Sim {
     const w = u.def.w1, inp = u.in;
     u.fireT -= dt;
     if (u.reloadT > 0) { u.reloadT -= dt; if (u.reloadT <= 0) { u.ammo = w.ammo; this.emit({ type: 'reloaded', unit: u }); } return; }
-    if (w.ammo && (inp.reload || u.ammo <= 0) && u.ammo < w.ammo && !(kit?.noReload?.(this, u))) { u.reloadT = w.reload; u.in.reload = false; this.emit({ type: 'reload', unit: u }); return; }
+    if (w.ammo && (inp.reload || u.ammo <= 0) && u.ammo < w.ammo && !(kit?.noReload?.(this, u))) { u.reloadT = w.reload * (has(u, 'quickhands') ? 0.7 : 1); u.in.reload = false; this.emit({ type: 'reload', unit: u }); return; }
     inp.reload = false;
-    if (!inp.fire1 || u.fireT > 0) return;
-    if (!w.auto && u.prev.fire1) return;
+    // a click made while the gun is still cycling is remembered briefly; holding a semi-auto fires at its cap
+    if (inp.fire1 && !u.prev.fire1) u.fireBuf = this.time;
+    const wantFire = inp.fire1 || this.time - (u.fireBuf ?? -9) < BUF;
+    if (!wantFire || u.fireT > 0) return;
     if (kit?.canFire1 && !kit.canFire1(this, u)) return;
-    if (w.ammo && u.ammo <= 0) return;
+    if (w.ammo && u.ammo <= 0) { if (u.isPlayer && !u.prev.fire1 && inp.fire1) this.emit({ type: 'empty', unit: u }); return; }
+    u.fireBuf = -9;
     u._hitShot = false;
     if (kit?.fire1) { if (kit.fire1(this, u) === false) return; } else this.shootDefault(u, w);
     if (w.kind !== 'beam' && w.kind !== 'melee') { u.stats.shots++; if (u._hitShot) u.stats.hits++; }
     if (u.st.cloak && w.kind !== 'beam') delete u.st.cloak;
-    if (w.ammo && !u.st.overdrive) u.ammo -= w.kind === 'beam' ? 0.9 : 1;
-    u.fireT = 1 / w.rate;
-    if (u.invuln > 0 && u.isPlayer) u.invuln = Math.min(u.invuln, 0.3);
+    if (w.ammo && !u.st.overdrive && !u.st.rapid?.inf) u.ammo -= w.kind === 'beam' ? 0.9 : 1;
+    u.fireT = 1 / (w.rate * (u.st.rapid ? 1 + u.st.rapid.f : 1));
+    if (u.invuln > 0) u.invuln = Math.min(u.invuln, 0.3);
   }
   spread(dir, deg, rand = this.rand) {
     if (deg <= 0) return dir;
@@ -658,8 +822,9 @@ export class Sim {
   }
   bulletHit(u, w, hit, origin, dmgOverride = null) {
     if (hit.kind === 'unit') {
-      const d = v3.dist(origin, hit.point), r = this.critRoll(u, hit.head, w);
+      const d = v3.dist(origin, hit.point), r = this.critRoll(u, hit.head, w, hit.unit);
       if (r.crit && u.def.sub === 'Sharpshooter' && d > 25) r.mul *= 1.1;
+      if (r.head && u.hero === 'ranger' && u.def.w1.ammo) u.ammo = Math.min(u.def.w1.ammo, u.ammo + 1); // a headshot loads a round back in
       const dmg = (dmgOverride ?? w.dmg) * this.falloff(w, d) * r.mul;
       u._hitShot = true; this.damage(hit.unit, dmg, u, { head: hit.head, crit: r.crit, point: hit.point });
     } else if (hit.kind === 'barrier') this.hitBarrier(hit.unit, (dmgOverride ?? w.dmg) * (w.pellets ? 0.6 : 1), u, hit.point);
@@ -669,7 +834,7 @@ export class Sim {
     const b = owner.s.barrier || owner.s.wall; if (!b) return;
     b.hp -= amt * this.multOut(src); b.regenT = 2.5;
     if (src) { src.stats.dmg += amt; this.chargeUlt(src, amt * 0.2); }
-    this.emit({ type: 'barrierHit', unit: owner, point });
+    this.emit({ type: 'barrierHit', unit: owner, point, src });
     if (b.hp <= 0) { if (owner.s.wall) { owner.s.wall = null; } else { b.up = false; b.broken = 6; b.hp = 0; } this.emit({ type: 'barrierBreak', unit: owner }); }
   }
   assist(u, dir) {
@@ -723,14 +888,14 @@ export class Sim {
     for (const c of this.cores) {
       c.t -= dt;
       for (const u of this.units) if (u.alive && !u.deploy && u.team === c.team && Math.abs(u.pos[1] - c.y0 + 0.6) < 2 && v3.dist2d(u.pos, c.pos) < 1.5 && c.t > 0) {
-        c.t = 0; this.chargeUlt(u, u.def.ult.cost * 0.12); this.heal(u, 40, null); this.emit({ type: 'core', unit: u, pos: c.pos }); break;
+        c.t = 0; this.chargeUlt(u, u.def.ult.cost * 0.05); this.heal(u, 40, null); this.emit({ type: 'core', unit: u, pos: c.pos }); break;
       }
     }
     this.cores = this.cores.filter((c) => c.t > 0);
     this.corpses = this.corpses.filter((c) => (c.t -= dt) > 0 && !c.unit.alive);
     for (const p of this.packs) {
       if (!p.ready) { p.t -= dt; if (p.t <= 0) p.ready = true; continue; }
-      for (const u of this.units) if (u.alive && !u.deploy && !u.dummy && u.hp < u.maxHp && v3.dist2d(u.pos, p.pos) < 1.4 && Math.abs(u.pos[1] - p.pos[1]) < 1.5) {
+      for (const u of this.units) if (u.alive && !u.deploy && !u.dummy && (u.hp < u.maxHp || u.armor < u.maxArmor) && v3.dist2d(u.pos, p.pos) < 1.4 && Math.abs(u.pos[1] - p.pos[1]) < 1.5) {
         this.heal(u, (p.big ? 250 : 75) * (u.def.sub === 'Flanker' ? 1.25 : 1), null); p.ready = false; p.t = p.big ? 14 : 9; this.emit({ type: 'pack', unit: u, pos: p.pos }); break;
       }
     }

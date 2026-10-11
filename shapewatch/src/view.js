@@ -28,12 +28,14 @@ export class View {
     this.fx = new Fx(this);
     this.recs = new Map(); this.deploys = new Map(); this.packNodes = []; this.coreNodes = [];
     this.shake = 0; this.kick = 0; this.bob = 0; this.sway = [0, 0]; this.mode = 'orbit'; this.orbitT = 0; this.fovH = 90; this.sens = 1; this.hitT = 0; this.dmgFlash = 0; this.whiteout = 0; this.punchT = 0;
+    this.recoilP = 0; this.recoilY = 0; this.recoilRate = 10; this.fovKick = 0; this.landDip = 0; this.crouchS = 0; this.shakeScale = 1;
     this.sound = null; this.levelRef = null; this.replay = false; this.previewTurn = 0; this.chasePos = null; this.specId = null; this.showNumbers = true;
     this.sphereGeo = this.fx.sphereGeo; this.cylGeo = this.fx.cylGeo; this.ringGeo = this.fx.ringGeo; this.coneGeo = this.fx.coneGeo;
     this.theme = null;
   }
   viewTeam() { return this.sim?.playerTeam ?? 0; }
-  teamHex(team) { return team === this.viewTeam() ? ALLY : ENEMY; }
+  teamHex(team) { return team === this.viewTeam() ? ALLY : (this.enemyHex || ENEMY); }
+  setEnemyColor(name) { this.enemyHex = { red: ENEMY, magenta: '#ff3df2', yellow: '#ffd21f', orange: '#ff8a1f' }[name] || ENEMY; document.documentElement.style.setProperty('--red', this.enemyHex); }
   isEnemy(u) { return u.team !== this.viewTeam(); }
   // hooks the HUD can set
   onHit = null; onHurt = null; onKill = null; onEvent = null; onHeal = null; onUlt = null;
@@ -48,7 +50,7 @@ export class View {
   }
   attach(sim, { skin = 'default', replay = false, keepWorld = false } = {}) {
     this.sim = sim; this.mySkin = skin; this.replay = replay;
-    for (const r of this.recs.values()) this.scene.remove(r.model);
+    for (const r of this.recs.values()) { this.scene.remove(r.model); if (r.flash) this.scene.remove(r.flash); }
     for (const n of this.deploys.values()) this.scene.remove(n);
     this.recs.clear(); this.deploys.clear(); this.fx.reset();
     if (this.vmNode) { this.scene.remove(this.vmNode); this.vmNode = null; this.vmHero = null; }
@@ -93,7 +95,8 @@ export class View {
     this.pointMat = new E.Material({ name: 'PointFill', color: '#cfd8e6', emissive: '#cfd8e6', emissiveStrength: 0.8, opacity: 0.22, doubleSided: true });
     this.pointBeamMat = new E.Material({ name: 'PointBeam', color: '#cfd8e6', emissive: '#cfd8e6', emissiveStrength: 1.4, opacity: 0.12, doubleSided: true });
     const fill = new E.Mesh(this.ringGeo, this.pointMat, 'PointFill'); fill.scale.set([p.r - 0.5, 1, p.r - 0.5]); fill.position.set([0, 0.09, 0]); fill.castShadow = false; fill.receiveShadow = false;
-    const beam = new E.Mesh(this.cylGeo, this.pointBeamMat, 'PointBeam'); beam.scale.set([p.r * 0.5, 40, p.r * 0.5]); beam.position.set([0, 20, 0]); beam.castShadow = false; beam.receiveShadow = false;
+    // a thin marker column high above the point: it must never fog the view of the people fighting on it
+    const beam = new E.Mesh(this.cylGeo, this.pointBeamMat, 'PointBeam'); beam.scale.set([0.4, 34, 0.4]); beam.position.set([0, 24, 0]); beam.castShadow = false; beam.receiveShadow = false;
     const edge = new E.Mesh(E.torus({ radius: 1, tube: 0.04, radialSegments: 6, tubularSegments: 64, arc: 360, tubeScaleY: 1 }), this.pointMat, 'PointEdge'); edge.scale.set([p.r, 1, p.r]); edge.position.set([0, 0.1, 0]); edge.castShadow = false;
     this.pointLight = new E.Light('point', { color: '#cfd8e6', intensity: 10, range: 18 }); this.pointLight.position.set([0, 4, 0]);
     root.add(fill, beam, edge, this.pointLight); this.pointVis = { root, fill, beam, edge, r: p.r }; this.scene.add(root);
@@ -132,7 +135,7 @@ export class View {
     const skin = u.isPlayer ? this.mySkin : (u.skin ??= (u.id % 5 === 0 ? SKINS[1 + (u.id % 5)].id : 'default'));
     const key = u.hero + skin;
     if (r && r.key === key) return r;
-    if (r) this.scene.remove(r.model);
+    if (r) { this.scene.remove(r.model); if (r.flash) this.scene.remove(r.flash); }
     const model = buildHero(u.hero, skin);
     model.userData.ring.material = glow(this.teamHex(u.team), 1.6);
     this.scene.add(model);
@@ -158,12 +161,31 @@ export class View {
       const fpsSelf = isMe && this.mode === 'fps' && u.alive;
       const hideSelf = fpsSelf || (isMe && (this.mode === 'select' || this.mode === 'gallery') && this.previewHero);
       let hidden = hideSelf || (!u.alive && r.deadT > 4.5) || (u.st.phased && (Math.floor(t * 18) & 1) && u.hero === 'siphon');
-      if (u.st.cloak && me && u.team !== vt && !sim.visibleTo(me, u)) hidden = true;
+      if (u.st.cloak && me && u.team !== vt && !sim.visibleTo(me, u)) {
+        hidden = true;
+        // a cloaked enemy close by gives itself away with a faint shimmer
+        if (u.alive && v3.dist(me.pos, u.pos) < 10 && R() < 0.45) this.sparks.emit([u.pos[0] + (R() - 0.5) * 0.6, u.pos[1] + 0.3 + R() * u.def.height * 0.8, u.pos[2] + (R() - 0.5) * 0.6], { count: 1, spread: 0.1, up: 0.2, size: 0.05, color: [1.4, 1.6, 2, 0.35], colorEnd: [1, 1, 1, 0], life: 0.35, jitter: 0.05 });
+      }
       m.visible = !hidden;
       m.position.set(u.pos); m.setEuler(0, u.yaw / DEG, 0);
+      // hit flash shell
+      if (r.flashT > 0 && !hidden && u.alive) {
+        if (!r.flash) { r.flash = new E.Mesh(this.cylGeo, new E.Material({ name: 'HitFlash', color: '#ffffff', emissive: '#ffffff', emissiveStrength: 3, opacity: 0.32, doubleSided: true }), 'HitFlash'); r.flash.castShadow = false; r.flash.receiveShadow = false; this.scene.add(r.flash); }
+        const h = sim.bodyHeight ? sim.bodyHeight(u) : u.def.height; r.flash.visible = true; r.flash.position.set([u.pos[0], u.pos[1] + h / 2, u.pos[2]]); r.flash.scale.set([u.def.radius * 1.2, h * 1.02, u.def.radius * 1.2]);
+        r.flash.material.color = r.flash.material.emissive = r.flashCrit ? '#ffc23a' : '#ffffff'; r.flashT -= dt;
+      } else if (r.flash) r.flash.visible = false;
+      r.flinch = Math.max(0, (r.flinch || 0) - dt * 6);
       if (!u.alive) {
-        r.deadT += dt; const f = clamp(r.deadT / 0.5, 0, 1), e = f * f * (3 - 2 * f);
-        m.setEuler(-86 * e, (u.yaw / DEG) + 30 * e, 0); d.ring.visible = false; this.hideBeams(r); if (r.barrier) r.barrier.visible = false; continue;
+        // fall away from the killing blow, sliding a little with the impact
+        if (r.deadT === 0) {
+          const k = u.killedBy, dx = k ? u.pos[0] - k.pos[0] : -Math.sin(u.yaw), dz = k ? u.pos[2] - k.pos[2] : -Math.cos(u.yaw), l = Math.hypot(dx, dz) || 1;
+          r.dDir = [dx / l, 0, dz / l]; r.dPow = (u.lastHit?.head ? 1.5 : 1.0) * (u.def.role === 'tank' ? 0.6 : 1); r.dRoll = (R() - 0.5) * 50;
+        }
+        r.deadT += dt; const f = clamp(r.deadT / 0.55, 0, 1), e = f * f * (3 - 2 * f), sl = (1 - Math.exp(-r.deadT * 5)) * r.dPow;
+        let px = u.pos[0] + r.dDir[0] * sl, pz = u.pos[2] + r.dDir[2] * sl; if (sim.blockedAt?.(px, pz, u.pos[1], 0.3, 1)) { px = u.pos[0]; pz = u.pos[2]; }
+        m.position.set([px, u.pos[1], pz]); m.setEuler(-88 * e, Math.atan2(-r.dDir[0], -r.dDir[2]) / DEG, r.dRoll * e);
+        d.armL.setEuler(-160 * e, 0, 30 * e); d.armR.setEuler(-150 * e, 0, -30 * e); d.legL.setEuler(-18 * e, 0, 0); d.legR.setEuler(24 * e, 0, 0); d.head.setEuler(-25 * e, 0, 0);
+        d.ring.visible = false; this.hideBeams(r); if (r.barrier) r.barrier.visible = false; continue;
       }
       r.deadT = 0; d.ring.visible = true;
       const sp = Math.hypot(u.vx, u.vz) * (u.grounded ? 1 : 0.3); r.speed += (sp - r.speed) * Math.min(1, dt * 10);
@@ -171,7 +193,8 @@ export class View {
       const skate = u.hero === 'zephyr', amp = Math.min(1, r.speed / 5) * (skate ? 14 : 42) * DEG, sw = Math.sin(r.phase) * amp;
       d.legL.setEuler(sw / DEG, 0, 0); d.legR.setEuler(-sw / DEG, 0, 0);
       d.hips.position.set([0, 0.86 + (skate ? 0 : Math.abs(Math.cos(r.phase)) * 0.03 * Math.min(1, r.speed / 4)), 0]);
-      const p = u.pitch / DEG; d.head.setEuler(-p * 0.8, 0, 0); d.spine.setEuler(-p * 0.25 + (skate ? Math.min(1, r.speed / 5) * 12 : 0), 0, 0);
+      const p = u.pitch / DEG; d.head.setEuler(-p * 0.8, 0, 0); d.spine.setEuler(-p * 0.25 + (skate ? Math.min(1, r.speed / 5) * 12 : 0) - r.flinch * 12 + (u.crouch ? 22 : 0), 0, 0);
+      if (u.crouch) d.hips.position.set([0, 0.62, 0]);
       const fire = u.in.fire1; if (fire && !r.lastFire) r.punch = 1; r.lastFire = fire; r.punch = Math.max(0, r.punch - dt * 4);
       if (this.mode === 'select') { d.armR.setEuler(-28, 0, -8); d.armL.setEuler(-12, 0, 14); }
       else if (u.hero === 'wrecker') { const a = fire ? Math.sin(t * 16) * 38 : 0; d.armR.setEuler(-(70 + p) + a, 0, -6); d.armL.setEuler(-(70 + p) - a, 0, 14); }
@@ -254,9 +277,14 @@ export class View {
     this.fwdPads.forEach((m, i) => { m.visible = (sim.milestone || 0) > i; });
     // capture point colours
     if (this.pointVis) {
-      const pv = this.pointVis; let col = '#cfd8e6', op = 0.2, bo = 0.1;
-      if (sim.control) { const c = sim.control; if (c.owner >= 0) { col = this.teamHex(c.owner); op = 0.34; bo = 0.18; } if (c.capTeam >= 0 && c.capProg > 0) col = mix(col, this.teamHex(c.capTeam), c.capProg); if (c.contested) { col = '#ffd36b'; op = 0.3 + Math.sin(t * 8) * 0.08; } }
+      const pv = this.pointVis; let col = '#cfd8e6', op = 0.2, bo = 0.5;
+      // follow the active point (control moves between points each round; elimination opens one late)
+      const cp = sim.control?.point || sim.elim?.point || sim.level.points[0];
+      if (pv.cur !== cp) { pv.cur = cp; pv.root.position.set([cp.pos[0], cp.pos[1] || 0, cp.pos[2]]); pv.fill.scale.set([cp.r - 0.5, 1, cp.r - 0.5]); pv.edge.scale.set([cp.r, 1, cp.r]); }
+      pv.root.visible = !sim.elim || sim.elim.open;
+      if (sim.control) { const c = sim.control; if (c.owner >= 0) { col = this.teamHex(c.owner); op = 0.34; bo = 0.6; } if (c.capTeam >= 0 && c.capProg > 0) col = mix(col, this.teamHex(c.capTeam), c.capProg); if (c.contested) { col = '#ffd36b'; op = 0.3 + Math.sin(t * 8) * 0.08; } }
       else if (sim.cap) { const c = sim.cap; col = mix('#cfd8e6', this.teamHex(0), clamp(c.prog, 0, 1)); if (c.contested) { col = '#ffd36b'; op = 0.3 + Math.sin(t * 8) * 0.08; } if (c.done) { col = this.teamHex(0); bo = 0.05; } }
+      const camD = v3.dist2d(this.camera.position, pv.cur.pos); bo *= clamp((camD - 15) / 25, 0, 1);
       this.pointMat.color = this.pointMat.emissive = col; this.pointMat.opacity = op; this.pointBeamMat.color = this.pointBeamMat.emissive = col; this.pointBeamMat.opacity = bo; this.pointLight.color = col;
       pv.beam.visible = !(sim.cap?.done);
     }
@@ -325,18 +353,21 @@ export class View {
     const vfov = (h) => 2 * Math.atan(Math.tan(h * DEG / 2) / aspect);
     let mode = this.mode; this.orbitT += dt * 0.18;
     this.shake *= Math.exp(-dt * 6); this.kick *= Math.exp(-dt * 12); this.dmgFlash *= Math.exp(-dt * 4); this.punchT = Math.max(0, this.punchT - dt * 5); this.whiteout *= Math.exp(-dt * 1.6);
+    this.recoilP *= Math.exp(-dt * this.recoilRate); this.recoilY *= Math.exp(-dt * this.recoilRate); this.fovKick *= Math.exp(-dt * 6); this.landDip *= Math.exp(-dt * 9);
     this.spectating = false;
     if (mode === 'fps' && me && !me.alive && !this.replay) mode = this.deathCam && this.deathCam.t < 2.0 && this.deathCam.killer?.alive ? 'death' : 'spectate';
     if (mode === 'fps' && me) {
-      const e = sim.eye(me), sh = this.shake, rnd = () => (R() - 0.5);
-      const { f, up } = this.basis(me.yaw, me.pitch);
+      const e = sim.eye(me), sh = this.shake * this.shakeScale, rnd = () => (R() - 0.5);
+      const { f, up } = this.basis(me.yaw - this.recoilY * DEG, me.pitch + this.recoilP * DEG);
       const bobAmt = clamp(Math.hypot(me.vx, me.vz) / 5, 0, 1) * (me.grounded ? 1 : 0.2); this.bob += dt * Math.hypot(me.vx, me.vz) * 1.9;
-      const ey = e[1] + Math.sin(this.bob * 2) * 0.012 * bobAmt;
+      // crouching eases the eye down instead of snapping; landings dip the view briefly
+      this.crouchS += ((me.crouch ? 1 : 0) - this.crouchS) * Math.min(1, dt * 14);
+      const ey = e[1] + (me.crouch ? 0.45 : 0) - 0.45 * this.crouchS - this.landDip + Math.sin(this.bob * 2) * 0.012 * bobAmt;
       cam.position.set([e[0] + rnd() * 0.04 * sh, ey + rnd() * 0.04 * sh, e[2] + rnd() * 0.04 * sh]);
       cam.target.set([cam.position[0] + f[0] + rnd() * 0.02 * sh, cam.position[1] + f[1] + rnd() * 0.02 * sh, cam.position[2] + f[2]]); cam.up.set(up);
       const scoped = !!me.s.scoped && me.alive;
       const hf = scoped ? 30 : this.fovH; this.fovCur = (this.fovCur ?? this.fovH); this.fovCur += (hf - this.fovCur) * Math.min(1, dt * (scoped ? 14 : 10));
-      cam.fov = vfov(this.fovCur + (sim.mutator?.id === 'lowgrav' ? 4 : 0)); cam.near = 0.04;
+      cam.fov = vfov(this.fovCur + (sim.mutator?.id === 'lowgrav' ? 4 : 0) + (scoped ? 0 : this.fovKick + (me.slide ? 3 : 0))); cam.near = 0.04;
       this.scoped = scoped && this.fovCur < 36;
     }
     if (mode === 'death') {

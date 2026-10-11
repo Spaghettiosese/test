@@ -9,13 +9,13 @@ const DEG = E.DEG;
 export const rgb = (hex, k = 1) => { const c = E.hexToRGB(hex); return [c[0] * k, c[1] * k, c[2] * k]; };
 const R = Math.random;
 export const PING_COLORS = { enemy: '#ff4a52', go: '#ffe14d', objective: '#ffffff', health: '#59f0a8', help: '#ffb02e', ally: '#3a9bff', defend: '#7fc4ff' };
-const NOTIFY = new Set(['checkpoint', 'overtime', 'mutator', 'mutatorEnd', 'live', 'over', 'swap', 'kill', 'ult', 'core', 'revive', 'spawn', 'round', 'roundStart', 'callout', 'ping', 'capture', 'captured', 'pack', 'bounty', 'bountyClaimed']);
+const NOTIFY = new Set(['checkpoint', 'overtime', 'mutator', 'mutatorEnd', 'live', 'over', 'swap', 'kill', 'ult', 'core', 'revive', 'spawn', 'round', 'roundStart', 'callout', 'ping', 'capture', 'captured', 'pack', 'bounty', 'bountyClaimed', 'perkReady', 'perk', 'elimPoint']);
 const glass = (color, opacity = 0.22, em = 1) => new E.Material({ name: 'Fx', color, emissive: color, emissiveStrength: em, opacity, doubleSided: true });
 
 export class Fx {
   constructor(view) {
     this.v = view; const v = view;
-    this.tracers = []; this.beams = []; this.rings = []; this.nums = []; this.projs = new Map(); this.zoneFx = new Map(); this.shells = []; this.flashT = 0;
+    this.tracers = []; this.beams = []; this.rings = []; this.nums = []; this.projs = new Map(); this.zoneFx = new Map(); this.shells = []; this.flashT = 0; this.hitSnd = new Map();
     this.sphereGeo = E.sphere({ radius: 1, widthSegments: 14, heightSegments: 10 }); this.cylGeo = E.cylinder({ radiusTop: 1, radiusBottom: 1, height: 1, radialSegments: 8 });
     this.ringGeo = E.cylinder({ radiusTop: 1, radiusBottom: 1, height: 0.04, radialSegments: 40, capTop: true, capBottom: false });
     this.ribbonGeo = E.torus({ radius: 1, tube: 0.03, radialSegments: 5, tubularSegments: 56, arc: 360, tubeScaleY: 0.6 });
@@ -43,7 +43,13 @@ export class Fx {
           const u = e.unit; if (!u) break;
           const mine = u === me;
           v.sound?.shot(e.sound, u.pos, mine);
-          if (mine) { v.kick = Math.min(1.4, v.kick + 0.5); if (e.sound === 'punch') v.punchT = 1; }
+          if (mine) {
+            // per-weapon view punch: big single shots snap the view up, rapid fire barely nudges it
+            const w = u.def.w1, rc = w.recoil || (w.kind === 'melee' ? [0.7, 0.3, 10] : w.kind === 'beam' ? [0, 0, 12] : w.auto ? [0.3, 0.14, 14] : [1.3, 0.3, 9]);
+            const ability = e.sound !== w.sound && e.sound !== 'punch', k = ability ? 0.6 : 1;
+            v.recoilP = Math.min(7, (v.recoilP || 0) + rc[0] * k); v.recoilY = clamp((v.recoilY || 0) + (R() - 0.5) * 2 * rc[1] * k, -3, 3); v.recoilRate = rc[2];
+            v.kick = Math.min(1.4, v.kick + 0.12 + rc[0] * 0.28); if (e.sound === 'punch') v.punchT = 1;
+          }
           if (u.st?.cloak && !mine && u.team !== v.viewTeam()) break;
           const mz = mine && v.mode === 'fps' ? v.muzzleFP() : sim.muzzle(u);
           this.flash.position.set(mz); this.flash.intensity = mine ? 14 : 8; this.flashT = 0.05; this.flash.color = '#ffd9a0';
@@ -56,7 +62,11 @@ export class Fx {
           if (w > 1.4 || e.hit === 'lance' || e.hit === 'grapple') {
             const mesh = new E.Mesh(this.cylGeo, new E.Material({ name: 'Rail', color: e.color, emissive: e.color, emissiveStrength: 5, opacity: 0.85, doubleSided: true }), 'Rail'); mesh.castShadow = false; v.scene.add(mesh);
             v.placeBeam(mesh, from, e.to, 0.03 * w); const t0 = e.hit === 'grapple' ? 0.35 : 0.22; this.beams.push({ mesh, t: t0, t0, w });
-          } else this.tracers.push({ a: from, b: e.to, c: rgb(e.color || '#ffd27a', 3), age: 0, len: v3.dist(from, e.to) });
+          } else {
+            // enemy fire leans toward the enemy colour so incoming shots read at a glance
+            let c = rgb(e.color || '#ffd27a', 3); if (e.unit && v.isEnemy?.(e.unit)) { const r2 = rgb(v.teamHex(e.unit.team), 3); c = [c[0] * 0.5 + r2[0] * 0.5, c[1] * 0.5 + r2[1] * 0.5, c[2] * 0.5 + r2[2] * 0.5]; }
+            this.tracers.push({ a: from, b: e.to, c, age: 0, len: v3.dist(from, e.to) });
+          }
           break;
         }
         case 'impact': {
@@ -66,12 +76,16 @@ export class Fx {
           break;
         }
         case 'dmg': {
-          const crit = !!e.crit;
+          const crit = !!e.crit, dot = e.kind === 'dot', rec = !e.tgt.deploy && v.recs?.get(e.tgt.id);
+          // the target reacts: a quick flash (gold on crits) and a flinch away from the hit
+          if (rec && e.amt > 1) { if (e.src === me || crit) { rec.flashT = 0.07; rec.flashCrit = crit; } if (!dot) rec.flinch = Math.min(1, (rec.flinch || 0) + e.amt / 70); }
           if (e.src === me && e.tgt !== me && e.amt > 0.5) {
-            v.hitT = 0.28; if (!rp) v.onHit?.(e); v.sound?.hit(e.head, crit);
-            if (e.kind !== 'burn' && !rp && v.showNumbers !== false) this.damageNumber(e);
+            v.hitT = 0.28; if (!rp) v.onHit?.(e);
+            const tnow = sim.time, last = this.hitSnd.get(e.tgt.id) ?? -9;
+            if (tnow - last > 0.035) { this.hitSnd.set(e.tgt.id, tnow); v.sound?.hit(e.head, crit, e.amt, e.layer, dot); }
+            if (!rp && v.showNumbers !== false) this.damageNumber(e);
           }
-          if (e.tgt === me) { v.shake = Math.min(1, v.shake + Math.min(0.5, e.amt / 120)); v.dmgFlash = 1; v.sound?.hurt(); if (!rp) v.onHurt?.(e); }
+          if (e.tgt === me) { v.shake = Math.min(1, v.shake + Math.min(dot ? 0.15 : 0.5, e.amt / 120)); v.dmgFlash = Math.max(v.dmgFlash, dot ? 0.5 : 1); if (!dot) v.sound?.hurt(); if (!rp) v.onHurt?.(e); }
           if (crit && e.point) v.sparks.emit(e.point, { count: 10, spread: 1.4, up: 1.0, size: 0.05, color: [5, 3.8, 0.8, 1], colorEnd: [2, 0.8, 0.1, 0.2], life: 0.35, jitter: 0.04 });
           if (e.tgt.deploy || e.kind === 'bullet') v.sparks.emit(e.point, { count: 2, spread: 0.6, up: 0.4, size: 0.04, color: v.isEnemy(e.tgt) ? [4, 1.2, 1, 1] : [1.5, 2.5, 4, 1], life: 0.2, jitter: 0.05 });
           break;
@@ -82,7 +96,13 @@ export class Fx {
           if ((e.src === me || t === me) && !rp) v.onHeal?.(e);
           break;
         }
-        case 'kill': this.deathFx(e); if (!rp) v.onKill?.(e); break;
+        case 'kill': this.deathFx(e); if (e.killer === me && me) { v.sound?.killConfirm(e.head); v.fovKick = (v.fovKick || 0) - 1.5; } if (!rp) v.onKill?.(e); break;
+        case 'immune': if (e.src === me && !rp) this.damageNumber({ ...e, amt: 0, text: 'IMMUNE' }); break;
+        case 'empty': if (e.unit === me) v.sound?.empty(); break;
+        case 'cdReady': if (e.unit === me && !rp) v.sound?.chime(); break;
+        case 'abilityFail': if (e.unit === me && !rp) v.sound?.buzz(); break;
+        case 'slide': if (e.unit === me) v.fovKick = (v.fovKick || 0) + 4; v.sound?.slide(e.unit.pos); break;
+        case 'mantle': v.sound?.mantle(e.unit.pos); break;
         case 'boom': {
           const big = e.kind === 'big' || e.kind === 'slam' || e.r > 4, c = rgb(e.color || '#ffb061', 3);
           v.sparks.emit(e.pos, { count: big ? 60 : 20, spread: big ? 6 : 3, up: big ? 5 : 3, size: big ? 0.2 : 0.12, color: [...c, 1], colorEnd: [c[0] * 0.3, c[1] * 0.2, 0, 0.1], life: big ? 0.9 : 0.5, jitter: 0.2, grow: 0.4 });
@@ -98,13 +118,13 @@ export class Fx {
           for (const p of [e.from, e.to]) v.sparks.emit([p[0], p[1] + 1, p[2]], { count: 18, spread: 1.4, up: 1.4, size: 0.07, color: [...c, 1], colorEnd: [c[0] * 0.2, c[1] * 0.2, c[2] * 0.2, 0.1], life: 0.5, jitter: 0.25 });
           v.sound?.blink(e.to); break;
         }
-        case 'dash': v.sound?.whoosh(e.unit.pos, 200, 900); break;
+        case 'dash': v.sound?.whoosh(e.unit.pos, 200, 900); if (e.unit === me) v.fovKick = (v.fovKick || 0) + 6; break;
         case 'jump': if (e.unit === me) v.sound?.jump(e.unit.pos); break;
-        case 'land': if (e.unit === me || v3.dist(e.unit.pos, v.camera.position) < 20) { v.sound?.land(e.unit.pos); v.particles.emit(e.unit.pos, { count: 6, spread: 1.2, up: 0.4, size: 0.2, color: [0.95, 0.97, 1, 0.5], colorEnd: [1, 1, 1, 0], life: 0.9, grow: 3 }); } break;
+        case 'land': if (e.unit === me) v.landDip = Math.min(0.28, (e.speed || 8) * 0.018); if (e.unit === me || v3.dist(e.unit.pos, v.camera.position) < 20) { v.sound?.land(e.unit.pos); v.particles.emit(e.unit.pos, { count: 6, spread: 1.2, up: 0.4, size: 0.2, color: [0.95, 0.97, 1, 0.5], colorEnd: [1, 1, 1, 0], life: 0.9, grow: 3 }); } break;
         case 'reload': if (e.unit === me) v.sound?.reload(); break;
         case 'sonar': this.addRing(e.pos, 12, e.color, 0.9); v.sound?.whoosh(e.pos, 1500, 300); break;
         case 'fizzle': v.sparks.emit(e.pos, { count: 8, spread: 1, up: 0.5, size: 0.05, color: [1.5, 2.5, 4, 1], life: 0.3 }); break;
-        case 'barrierHit': v.sparks.emit(e.point, { count: 6, spread: 1, up: 0.4, size: 0.05, color: [1.5, 3, 5, 1], life: 0.25 }); break;
+        case 'barrierHit': v.sparks.emit(e.point, { count: 6, spread: 1, up: 0.4, size: 0.05, color: [1.5, 3, 5, 1], life: 0.25 }); if (e.src === me && me && !rp && sim.time - (this.tinkT || -9) > 0.06) { this.tinkT = sim.time; v.sound?.tink(); v.onBarrier?.(e); } break;
         case 'barrierBreak': this.addRing(e.unit.pos, 3, '#5bbcff', 0.5); v.sound?.boom(e.unit.pos, false); break;
         case 'pack': v.sound?.pack(e.pos); break;
         case 'core': v.sound?.core(e.pos); this.addRing(e.pos, 2, '#ffd36b', 0.5); break;
@@ -145,12 +165,13 @@ export class Fx {
     this.shells.push({ mesh, warn, p: [...p], t: 0.9, t0: 0.9 }); v.sound?.whoosh(p, 1800, 300);
   }
   damageNumber(e) {
-    const ex = this.nums.find((n) => n.tgt === e.tgt && n.t > 0.55 && !!n.crit === !!e.crit);
+    const dot = e.kind === 'dot', cls = e.text ? 'immune' : dot ? 'dot' : e.layer === 'armor' ? 'armor' : e.layer === 'shield' ? 'shield' : '';
+    const ex = !e.text && this.nums.find((n) => n.tgt === e.tgt && n.t > 0.55 && !!n.crit === !!e.crit && n.cls === cls);
     if (ex) { ex.amt += e.amt; ex.el.textContent = Math.round(ex.amt); ex.t = 0.9; ex.p = [e.point[0], e.point[1] + 0.3, e.point[2]]; return; }
-    const el = document.createElement('div'); el.className = 'dn' + (e.head ? ' head' : '') + (e.crit ? ' crit' : ''); el.textContent = Math.round(e.amt);
+    const el = document.createElement('div'); el.className = 'dn' + (e.head ? ' head' : '') + (e.crit ? ' crit' : '') + (cls ? ' ' + cls : ''); el.textContent = e.text || Math.round(e.amt);
     if (e.crit) el.dataset.tag = e.head ? 'HEADSHOT' : 'CRIT';
     document.getElementById('hud')?.append(el);
-    this.nums.push({ el, p: [e.point[0] + (R() - 0.5) * 0.4, e.point[1] + 0.3, e.point[2] + (R() - 0.5) * 0.4], t: 0.9, tgt: e.tgt, amt: e.amt, crit: e.crit });
+    this.nums.push({ el, p: [e.point[0] + (R() - 0.5) * 0.4, e.point[1] + 0.3, e.point[2] + (R() - 0.5) * 0.4], t: 0.9, tgt: e.tgt, amt: e.amt, crit: e.crit, cls });
     if (this.nums.length > 14) this.nums.shift().el.remove();
   }
   updateNumbers(dt) {
@@ -191,6 +212,7 @@ export class Fx {
       case 'fire': f.main = add(new E.Mesh(this.ringGeo, glass('#ff6a1a', 0.25, 1), 'Fire')); f.main.scale.set([z.r, 1, z.r]); break;
       case 'trap': f.main = add(new E.Mesh(this.ringGeo, glass(col, 0.4, 1.6), 'Trap')); f.main.scale.set([z.r * 0.55, 1, z.r * 0.55]); for (let i = 0; i < 8; i++) { const a = i * TAU / 8, t = add(new E.Mesh(this.coneGeo, glow('#c9ced6', 0.6), 'Tooth')); t.scale.set([0.07, 0.22, 0.07]); t.position.set([z.pos[0] + Math.cos(a) * z.r * 0.55, z.pos[1] + 0.12, z.pos[2] + Math.sin(a) * z.r * 0.55]); } break;
       case 'caltrops': f.main = add(new E.Mesh(this.ringGeo, glass(col, 0.12, 0.8), 'CaltropField')); f.main.scale.set([z.r, 1, z.r]); for (let i = 0; i < 16; i++) { const a = R() * TAU, r = Math.sqrt(R()) * z.r, t = add(new E.Mesh(this.coneGeo, glow('#c9ced6', 0.4), 'Spike')); t.scale.set([0.05, 0.16, 0.05]); t.position.set([z.pos[0] + Math.cos(a) * r, z.pos[1] + 0.08, z.pos[2] + Math.sin(a) * r]); t.setEuler((R() - 0.5) * 40, 0, (R() - 0.5) * 40); } break;
+      case 'briar': f.main = add(new E.Mesh(this.ringGeo, glass('#2f9a4a', 0.18, 1.0), 'BriarField')); f.main.scale.set([z.r, 1, z.r]); for (let i = 0; i < 18; i++) { const a = R() * TAU, r = Math.sqrt(R()) * z.r, t = add(new E.Mesh(this.coneGeo, glow(i % 3 ? '#3fae4f' : '#ff5fa2', 0.5), 'Thorn')); t.scale.set([0.06, 0.32 + R() * 0.2, 0.06]); t.position.set([z.pos[0] + Math.cos(a) * r, z.pos[1] + 0.12, z.pos[2] + Math.sin(a) * r]); t.setEuler((R() - 0.5) * 50, 0, (R() - 0.5) * 50); } break;
       case 'pit': f.main = add(new E.Mesh(this.ringGeo, new E.Material({ name: 'Pit', color: '#120808', emissive: '#ff3a2a', emissiveStrength: 0.5, opacity: 0.8, doubleSided: true }), 'Pit')); f.main.scale.set([z.r, 1, z.r]); for (let i = 0; i < 18; i++) { const a = R() * TAU, r = Math.sqrt(R()) * z.r * 0.95, t = add(new E.Mesh(this.coneGeo, glow('#b9b1a6', 0.4), 'Fang')); t.scale.set([0.16, 0.6 + R() * 0.5, 0.16]); t.position.set([z.pos[0] + Math.cos(a) * r, z.pos[1] + 0.3, z.pos[2] + Math.sin(a) * r]); } break;
       case 'stasis': f.main = add(new E.Mesh(this.sphereGeo, glass('#c06bff', 0.14, 1.2), 'Stasis')); f.main.scale.set([z.r, z.r, z.r]); f.disc = add(new E.Mesh(this.ringGeo, glass('#c06bff', 0.25, 1.6), 'StasisFloor')); f.disc.scale.set([z.r, 1, z.r]); break;
       case 'barrage': f.main = add(new E.Mesh(this.ringGeo, glass('#ff5a3a', 0.2, 1.4), 'BarrageField')); f.main.scale.set([z.r, 1, z.r]); break;
@@ -220,6 +242,7 @@ export class Fx {
         case 'wall': { const cs = Math.cos(z.yaw), sn = Math.sin(z.yaw); for (let i = 0; i < 5; i++) { const lx = (R() - 0.5) * z.len; v.sparks.emit([pos[0] + cs * lx, pos[1] + 0.1, pos[2] - sn * lx], { count: 1, spread: 0.15, up: 3, size: 0.3, color: [4, 1.6, 0.3, 1], colorEnd: [1.2, 0.1, 0, 0.1], life: 0.8, jitter: 0.05, grow: 0.3, buoyancy: 2.5 }); } break; }
         case 'trap': m.position.set([pos[0], pos[1] + 0.06, pos[2]]); m.material.opacity = 0.25 + Math.sin(t * 4) * 0.08; break;
         case 'caltrops': m.position.set([pos[0], pos[1] + 0.05, pos[2]]); break;
+        case 'briar': m.position.set([pos[0], pos[1] + 0.05, pos[2]]); if (R() < 0.35) { const a = R() * TAU, r = Math.sqrt(R()) * z.r; v.sparks.emit([pos[0] + Math.cos(a) * r, pos[1] + 0.15, pos[2] + Math.sin(a) * r], { count: 1, spread: 0.1, up: 1.2, size: 0.08, color: [0.6, 3, 1, 1], colorEnd: [0.2, 1.2, 0.4, 0.1], life: 0.8, jitter: 0, buoyancy: 1 }); } break;
         case 'pit': m.position.set([pos[0], pos[1] + 0.06, pos[2]]); if (R() < 0.4) v.sparks.emit([pos[0] + (R() - 0.5) * z.r, pos[1] + 0.2, pos[2] + (R() - 0.5) * z.r], { count: 1, spread: 0.2, up: 2, size: 0.1, color: [3, 0.8, 0.4, 1], life: 0.6 }); break;
         case 'stasis': m.position.set(pos); f.disc.position.set([pos[0], pos[1] + 0.07, pos[2]]); m.material.opacity = 0.1 + Math.sin(age * 5) * 0.04; if (R() < 0.7) { const a = R() * TAU, r = Math.sqrt(R()) * z.r; v.sparks.emit([pos[0] + Math.cos(a) * r, pos[1] + 0.3 + R() * 3, pos[2] + Math.sin(a) * r], { count: 1, spread: 0.1, up: 0.2, size: 0.07, color: [2.4, 1.2, 4, 1], life: 1.0, jitter: 0 }); } break;
         case 'barrage': m.position.set([pos[0], pos[1] + 0.06, pos[2]]); m.material.opacity = 0.14 + Math.sin(age * 6) * 0.06; break;

@@ -59,6 +59,7 @@
     <button class="btn ghost" id="rsHero" type="button">CHANGE HERO <kbd>H</kbd></button>
   </div>
   <div class="hud prompt" id="prompt"></div>
+  <div class="hud perks" id="perks"></div>
   <div class="hud fps" id="fps"></div>
   <div class="hint-keys" id="hintKeys"><span><kbd>C</kbd> COMMS</span><span><kbd>Z</kbd> PING</span><span><kbd>TAB</kbd> SCORE</span><span><kbd>M</kbd> MAP</span></div>
 </div>
@@ -100,7 +101,7 @@
 <div class="screen" id="select" hidden>
   <div class="sel-lat" id="selLat">LATENCY: 0 MS</div>
   <div class="sel-mode"><small id="selModeName">ESCORT</small><b id="selSide">ATTACK</b><span><i></i><u id="selMap">FROSTGATE</u></span></div>
-  <div class="sel-hero"><div class="sel-name"><i id="selRole" class="ricon"></i><b id="selName">SABRE</b></div><div class="sel-sub" id="selSub"></div><small>SELECT SKIN</small><select id="selSkin"></select><button class="btn ghost small" id="selVoice" type="button">▶ HEAR VOICE</button></div>
+  <div class="sel-hero"><div class="sel-name"><i id="selRole" class="ricon"></i><b id="selName">SABRE</b></div><div class="sel-sub" id="selSub"></div><div id="selMastery"></div><small>SELECT SKIN</small><select id="selSkin"></select><button class="btn ghost small" id="selVoice" type="button">▶ HEAR VOICE</button></div>
   <div class="sel-assemble"><span>ASSEMBLE YOUR TEAM</span><b id="selT">22</b></div>
   <div class="sel-comp" id="selComp"></div>
   <div class="sel-team" id="selTeam"></div>
@@ -124,7 +125,8 @@
     <p>Two teams of five (or eight heroes in a free-for-all) fight over an objective. Pick a hero, learn their kit, and use the systems below: roles, subclasses, crits, pings and the comm wheel, echo cores and rift surges.</p>
     <div class="h-cols">
       <div><h3>CONTROLS</h3><div class="keys">
-        <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>Move</span></div><div><kbd>SPACE</kbd><span>Jump</span></div>
+        <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>Move</span></div><div><kbd>SPACE</kbd><span>Jump (hold into a ledge to mantle)</span></div>
+        <div><kbd>X</kbd><span>Crouch · damage heroes slide out of a sprint</span></div><div><kbd>CRITS</kbd><span>Headshots, and ×1.25 on stunned, rooted, slowed or knocked targets</span></div>
         <div><kbd>LMB</kbd><span>Primary fire</span></div><div><kbd>RMB</kbd><span>Secondary</span></div>
         <div><kbd>SHIFT</kbd><span>Ability 1</span></div><div><kbd>E</kbd><span>Ability 2</span></div>
         <div><kbd>Q</kbd><span>Ultimate</span></div><div><kbd>R</kbd><span>Reload</span></div>

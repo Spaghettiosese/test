@@ -1,5 +1,6 @@
 // Headless checks for every hero: weapons deal damage, abilities take effect, healers really heal
 // (the player included, with passive regeneration switched off), crits fire, nothing goes NaN.
+import { v3 } from '../src/util.js';
 import { Sim } from '../src/sim.js';
 import { HEROES } from '../src/heroes.js';
 
@@ -107,6 +108,42 @@ for (const id of ['halo', 'pylon', 'zephyr', 'serene', 'cantor', 'siphon']) {
   ok(me.stats.crits > 3 && me.stats.headshots > 3, 'crit stats recorded');
   const body = evs.filter((e) => e.type === 'dmg' && !e.head);
   ok(!crits.length || crits[0].amt > 1.5 * (body[0]?.amt ?? 5), 'a crit hits harder than a body shot');
+}
+// ---- earned crits: body hits on a crowd-controlled target crit, on a free target they do not
+{
+  const { sim, me, enemies } = arena('sabre'), tgt = enemies[0]; tgt.pos = [0, 0, 40];
+  for (const e of enemies.slice(1)) e.pos = [30, 0, 70];
+  const body = [0, tgt.pos[1] + tgt.def.height * 0.5, 40]; me.yaw = 0; me.pitch = Math.atan2(body[1] - sim.eye(me)[1], 10);
+  let evs = []; for (let i = 0; i < 30; i++) { me.in.fire1 = true; run(sim, 1 / 60, evs); }
+  ok(!evs.some((e) => e.type === 'dmg' && e.tgt === tgt && e.crit), 'no random body crits');
+  evs = []; for (let i = 0; i < 30; i++) { sim.addStatus(tgt, 'slow', 1, { f: 0.3 }); me.in.fire1 = true; run(sim, 1 / 60, evs); }
+  ok(evs.some((e) => e.type === 'dmg' && e.tgt === tgt && e.crit && !e.head), 'body hits on a slowed target crit');
+}
+// ---- semi-autos: a click during the cooldown is buffered, holding the trigger keeps firing at the cap
+{
+  const { sim, me, enemies } = arena('ranger'); for (const e of enemies) e.pos = [30, 0, 70];
+  let shots = 0; const count = (evs) => { shots += evs.filter((e) => e.type === 'shot' && e.unit === me).length; };
+  // clicks every 400 ms, a hair faster than the 417 ms cycle: the buffer catches nearly every one
+  for (let i = 0; i < 288; i++) { me.in.fire1 = i % 24 < 2; const evs = []; run(sim, 1 / 60, evs); count(evs); if (me.ammo <= 1) me.ammo = 6; }
+  ok(shots >= 10, `clicking every 400 ms fires nearly every click (${shots} of 12)`);
+  shots = 0; for (let i = 0; i < 240; i++) { me.in.fire1 = true; const evs = []; run(sim, 1 / 60, evs); count(evs); if (me.ammo <= 0) me.ammo = 6; }
+  ok(shots >= 8, `holding a semi-auto keeps firing (${shots} in 4 s)`);
+}
+// ---- pulls actually move people: Chain Hook drags its victim most of the way back
+{
+  const { sim, me, enemies } = arena('mauler'), tgt = enemies[0]; tgt.pos = [0, 0, 44]; tgt.hp = tgt.maxHp = 200;
+  for (const e of enemies.slice(1)) e.pos = [30, 0, 70];
+  me.yaw = 0; me.pitch = Math.atan2(tgt.pos[1] + 1 - sim.eye(me)[1], 14);
+  me.in.fire2 = true; run(sim, 1 / 60, []); me.in.fire2 = false; run(sim, 1.2, []);
+  ok(v3.dist2d(tgt.pos, me.pos) < 6, `hooked target pulled from 14 m to ${v3.dist2d(tgt.pos, me.pos).toFixed(1)} m`);
+}
+// ---- healing past full health repairs armor; damage over time shows up as batched events
+{
+  const { sim, me, enemies } = arena('halo'), tank = sim.units.find((u) => u.team === 0 && u !== me);
+  sim.swapHero(tank, 'bulwark'); tank.hp = tank.maxHp; tank.armor = 50; sim.heal(tank, 100, me);
+  ok(tank.armor > 140, `overflow healing repaired armor to ${Math.round(tank.armor)}`);
+  const tgt = enemies[0], evs = []; sim.addStatus(tgt, 'burn', 2, { dps: 40, src: me });
+  run(sim, 1.5, evs); ok(evs.filter((e) => e.type === 'dmg' && e.tgt === tgt && e.kind === 'dot').length >= 3, 'burn ticks are reported to the attacker');
 }
 // ---- a Bulwark barrier absorbs bullets
 {

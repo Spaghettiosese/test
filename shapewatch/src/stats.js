@@ -2,9 +2,10 @@
 // at the end of a match, rotating daily challenges and a short match history. The sim itself never
 // touches this; the end-of-match flow hands the finished sim to Career.commit().
 import { HERO, HEROES, SUBCLASSES } from './heroes.js';
+import { MATCHUP } from './ai.js';
 
 const KEY = 'shapewatch.career.v2';
-const blankHero = () => ({ time: 0, matches: 0, wins: 0, elims: 0, assists: 0, deaths: 0, dmg: 0, heal: 0, ults: 0, shots: 0, hits: 0, crits: 0, headshots: 0, bestStreak: 0, obj: 0 });
+const blankHero = () => ({ time: 0, matches: 0, wins: 0, elims: 0, assists: 0, deaths: 0, dmg: 0, heal: 0, ults: 0, shots: 0, hits: 0, crits: 0, headshots: 0, bestStreak: 0, obj: 0, mxp: 0 });
 
 // ------------------------------------------------------------------ medals (bronze / silver / gold thresholds per match)
 export const MEDALS = [
@@ -35,6 +36,19 @@ export function levelInfo(xp) {
   return { level: lvl, into: rest, need: xpForLevel(lvl), pct: rest / xpForLevel(lvl) };
 }
 export const TITLES = ['Rookie', 'Cadet', 'Operative', 'Veteran', 'Specialist', 'Captain', 'Commander', 'Paragon', 'Legend', 'Mythic'];
+
+// ------------------------------------------------------------------ hero mastery: 20 levels per hero, skins unlock along the way
+export const MASTERY_MAX = 20;
+export const masteryNeed = (lvl) => 300 + lvl * 60;
+export function masteryInfo(xp = 0) {
+  let lvl = 1, rest = xp; while (lvl < MASTERY_MAX && rest >= masteryNeed(lvl)) { rest -= masteryNeed(lvl); lvl++; }
+  return { level: lvl, into: rest, need: masteryNeed(lvl), pct: lvl >= MASTERY_MAX ? 1 : rest / masteryNeed(lvl) };
+}
+export const SKIN_UNLOCK = { default: 1, frosted: 2, noir: 4, gilded: 10, neon: 15, crimson: 20 };
+export const MASTERY_TITLES = { 5: 'Adept', 10: 'Expert', 15: 'Master', 20: 'Grandmaster' };
+// endorsement levels from lifetime endorsements
+export const endorseLevel = (n = 0) => (n >= 60 ? 5 : n >= 30 ? 4 : n >= 14 ? 3 : n >= 5 ? 2 : 1);
+const ENDORSE_KINDS = [['SHOTCALLER', (s) => s.pings >= 3 || s.obj > 40], ['GOOD TEAMMATE', (s) => s.assists >= 6 || s.heal > 2500], ['SPORTSMANSHIP', () => true]];
 export const titleFor = (lvl) => TITLES[Math.min(TITLES.length - 1, Math.floor((lvl - 1) / 5))];
 
 // ------------------------------------------------------------------ daily challenges
@@ -78,9 +92,38 @@ export class Career {
   hero(id) { return (this.data.heroes[id] ||= blankHero()); }
   get level() { return levelInfo(this.data.xp); }
   // fold a finished match into the career. returns what the end screen should show
+  mastery(id) { return masteryInfo(this.data.heroes[id]?.mxp || 0); }
+  skinUnlocked(id, skin) { return this.mastery(id).level >= (SKIN_UNLOCK[skin] ?? 1); }
+  // coaching notes for the end screen: how this match compares with your usual, and what killed you
+  coach(sim, me) {
+    const s = me.stats, h = this.data.heroes[me.hero], mins = Math.max(0.5, s.time / 60), tips = [], vs = [];
+    if (h && h.matches >= 2 && h.time > 120) {
+      const per = (k) => h[k] / (h.time / 60);
+      for (const [k, label] of [['dmg', 'DAMAGE / MIN'], ['heal', 'HEALING / MIN'], ['elims', 'ELIMS / MIN'], ['deaths', 'DEATHS / MIN']]) {
+        const avg = per(k), cur = s[k] / mins; if (avg < 0.05 && cur < 0.05) continue;
+        const d = avg > 0 ? (cur - avg) / avg : 1; vs.push({ label, cur, avg, d, bad: k === 'deaths' ? d > 0.15 : d < -0.15, good: k === 'deaths' ? d < -0.15 : d > 0.15 });
+      }
+    }
+    const log = sim.deathLog || [], byHero = {};
+    for (const d of log) if (d.hero) byHero[d.hero] = (byHero[d.hero] || 0) + 1;
+    const top = Object.entries(byHero).sort((a, b) => b[1] - a[1])[0];
+    if (top && top[1] >= 3) {
+      const killer = HERO[top[0]], counters = Object.entries(MATCHUP).filter(([sub, m]) => (m[killer.sub] || 0) >= 1).map(([sub]) => sub);
+      const pick = HEROES.find((x) => counters.includes(x.sub) && x.role === me.def.role && x.id !== me.hero) || HEROES.find((x) => counters.includes(x.sub));
+      tips.push(`Died ${top[1]}× to ${killer.name}.${pick ? ` ${pick.sub} heroes such as ${pick.name} handle them well.` : ''}`);
+    }
+    const alone = log.filter((d) => d.alone).length;
+    if (log.length >= 4 && alone / log.length >= 0.5) tips.push(`${alone} of your ${log.length} deaths came with no teammate nearby. Group up before taking a fight.`);
+    if (s.shots > 40 && me.def.w1.kind === 'hitscan' && s.hits / s.shots < 0.25) tips.push(`Accuracy was ${Math.round(100 * s.hits / s.shots)}%. Track the body and fire in shorter bursts.`);
+    if (s.ults === 0 && s.time > 150) tips.push('You never used your ultimate. Ultimates come back quickly now: spend them.');
+    else if (s.ults > 0) tips.push(`${(s.ultElims / s.ults).toFixed(1)} eliminations per ultimate${s.ultElims / s.ults >= 1.5 ? ' — great value.' : '. Pair yours with a teammate\'s to land more.'}`);
+    if (me.def.role === 'support' && s.heal / mins < 250 && s.time > 120) tips.push('Healing was light. Keep the tank in view and heal through fights, not after them.');
+    if ((sim.modeId === 'escort' || sim.modeId === 'hybrid' || sim.modeId === 'control') && s.obj < 15 && s.time > 150) tips.push('Little time on the objective. The point or payload is where matches are won.');
+    return { tips: tips.slice(0, 3), vs };
+  }
   commit(sim, me, won) {
     const s = me.stats, role = me.def.role, sub = me.def.sub, before = levelInfo(this.data.xp), medals = earnedMedals(s);
-    const h = this.hero(me.hero);
+    const h = this.hero(me.hero), coach = this.coach(sim, me);
     h.time += s.time; h.matches++; if (won) h.wins++; for (const k of ['elims', 'assists', 'deaths', 'dmg', 'heal', 'ults', 'shots', 'hits', 'crits', 'headshots', 'obj']) h[k] += s[k] || 0; h.bestStreak = Math.max(h.bestStreak, s.bestStreak);
     this.data.matches++; this.data.time += s.time; if (won) this.data.wins++; else this.data.losses++;
     for (const m of medals) this.data.medals[m.id] = (this.data.medals[m.id] || 0) + 1;
@@ -98,13 +141,29 @@ export class Career {
       if (c.progress >= c.goal) { c.done = true; c.progress = c.goal; done.push(c); parts.push(['Challenge: ' + c.text, c.xp]); }
     }
     if (streakBonus > 0) parts.push([`Win streak ×${this.data.winStreak} (+${Math.round(streakBonus * 100)}%)`, Math.round(parts.reduce((a, p) => a + p[1], 0) * streakBonus)]);
+    // rivals and the nemesis: lifetime records against named bots
+    const riv = (this.data.rivals ||= {}), newNemesis = [];
+    for (const [name, r] of Object.entries(sim.rivalLog || {})) {
+      const R = (riv[name] ||= { k: 0, d: 0, with: 0, vs: 0, hero: r.hero }); const wasNem = R.d >= 4 && R.d > R.k;
+      R.k += r.k; R.d += r.d; R.hero = r.hero; if (r.ally) R.with++; else R.vs++;
+      if (!wasNem && R.d >= 4 && R.d > R.k) newNemesis.push(name);
+      if (wasNem && r.k > 0) parts.push(['Revenge on your nemesis ' + name, 50]);
+    }
+    // endorsements: teammates endorse a good performance
+    const score = matchScore(s), mates = sim.units.filter((u) => u.team === me.team && u !== me && !u.deploy && !u.dummy && sim.modeId !== 'ffa'), endorsed = [];
+    for (const m of mates) if (Math.random() < Math.min(0.85, 0.15 + score / 6000 + (won ? 0.15 : 0))) { const kind = ENDORSE_KINDS.find(([, f]) => f(s))[0]; endorsed.push({ name: m.name, hero: m.hero, kind }); }
+    const endBefore = endorseLevel(this.data.endorse || 0); this.data.endorse = (this.data.endorse || 0) + endorsed.length; if (endorsed.length) parts.push(['Endorsements ×' + endorsed.length, endorsed.length * 15]);
+    // hero mastery
+    const mBefore = masteryInfo(h.mxp); h.mxp += Math.max(40, Math.round(score / 10)) + (won ? 150 : 0); const mAfter = masteryInfo(h.mxp);
+    const unlocked = Object.entries(SKIN_UNLOCK).filter(([, lv]) => lv > mBefore.level && lv <= mAfter.level).map(([k]) => k);
     const gain = parts.reduce((a, p) => a + p[1], 0); this.data.xp += gain; const after = levelInfo(this.data.xp);
     const entry = { t: Date.now(), hero: me.hero, map: sim.level.name, mode: sim.modeId, won, k: s.elims, a: s.assists, d: s.deaths, xp: gain };
     this.data.history.unshift(entry); this.data.history.length = Math.min(this.data.history.length, 14);
     this.save();
-    return { gain, parts, medals, before, after, leveled: after.level > before.level, challenges: done, score: matchScore(s) };
+    return { gain, parts, medals, before, after, leveled: after.level > before.level, challenges: done, score: matchScore(s), coach, endorsed, endorseUp: endorseLevel(this.data.endorse) > endBefore, mastery: { before: mBefore, after: mAfter, unlocked, hero: me.hero }, newNemesis };
   }
   reset() { this.data = { xp: 0, matches: 0, wins: 0, losses: 0, time: 0, heroes: {}, medals: {}, history: [], challenges: null, settings: {} }; this.refreshChallenges(); this.save(); }
+  nemesis() { const r = Object.entries(this.data.rivals || {}).filter(([, v]) => v.d >= 4 && v.d > v.k).sort((a, b) => (b[1].d - b[1].k) - (a[1].d - a[1].k))[0]; return r ? { name: r[0], ...r[1] } : null; }
   topHeroes(n = 3) { return Object.entries(this.data.heroes).sort((a, b) => b[1].time - a[1].time).slice(0, n).filter(([id]) => HERO[id]); }
   totals() {
     const t = blankHero(); for (const h of Object.values(this.data.heroes)) for (const k of Object.keys(t)) if (k === 'bestStreak') t[k] = Math.max(t[k], h[k]); else t[k] += h[k] || 0;

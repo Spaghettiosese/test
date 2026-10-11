@@ -5,7 +5,9 @@ export class Sfx {
   unlock() {
     if (!this.ctx) {
       try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return; }
-      this.master = this.ctx.createGain(); this.master.gain.value = this.volume; this.master.connect(this.ctx.destination);
+      this.master = this.ctx.createGain(); this.master.gain.value = this.volume;
+      // a low-pass on the whole mix muffles the world when the player is nearly dead
+      this.lp = this.ctx.createBiquadFilter(); this.lp.type = 'lowpass'; this.lp.frequency.value = 20000; this.master.connect(this.lp); this.lp.connect(this.ctx.destination);
       const len = this.ctx.sampleRate * 2; this.noise = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
       const d = this.noise.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
       this.startWind();
@@ -77,7 +79,24 @@ export class Sfx {
   }
   whoosh(pos, f0 = 300, f1 = 1500) { if (!this.ctx) return; const t = this.ctx.currentTime, o = this._out(pos, 0.7, 18); this._noise(t, { dur: 0.35, gain: 0.45, type: 'bandpass', freq: f0, freqEnd: f1, decay: 0.32, q: 1.2, attack: 0.06, o }); }
   crit() { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 2600, dur: 0.05, gain: 0.3, decay: 0.12, type: 'square' }); this._tone(t + 0.04, { freq: 3300, dur: 0.08, gain: 0.25, decay: 0.2, type: 'triangle' }); this._noise(t, { dur: 0.1, gain: 0.25, type: 'highpass', freq: 5000, decay: 0.1 }); }
-  hit(head, crit = false) { if (!this.ctx) return; if (crit) this.crit(); const t = this.ctx.currentTime; this._tone(t, { freq: head ? 1700 : 1150, dur: 0.06, gain: head ? 0.34 : 0.25, decay: 0.09, type: 'triangle' }); if (head) this._tone(t, { freq: 2300, dur: 0.06, gain: 0.18, decay: 0.1, type: 'sine' }); }
+  // hit confirm: louder for bigger hits, metallic on armor, glassy on shields, soft for damage over time
+  hit(head, crit = false, amt = 20, layer = 'hp', dot = false) {
+    if (!this.ctx) return; const t = this.ctx.currentTime, g = Math.min(1.4, Math.max(0.45, Math.sqrt(amt / 25)));
+    if (dot) { this._tone(t, { freq: 760, dur: 0.04, gain: 0.07, decay: 0.06, type: 'sine' }); return; }
+    if (crit) this.crit();
+    if (layer === 'armor') { this._tone(t, { freq: 2100, dur: 0.05, gain: 0.16 * g, decay: 0.12, type: 'square' }); this._noise(t, { dur: 0.05, gain: 0.18 * g, type: 'bandpass', freq: 4200, q: 6, decay: 0.06 }); }
+    else if (layer === 'shield') { this._tone(t, { freq: 2600, freqEnd: 3400, dur: 0.06, gain: 0.14 * g, decay: 0.1, type: 'sine' }); }
+    this._tone(t, { freq: head ? 1700 : 1150, dur: 0.06, gain: (head ? 0.34 : 0.25) * g, decay: 0.09, type: 'triangle' }); if (head) this._tone(t, { freq: 2300, dur: 0.06, gain: 0.18, decay: 0.1, type: 'sine' });
+  }
+  tink() { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 3200, dur: 0.04, gain: 0.12, decay: 0.08, type: 'sine' }); this._noise(t, { dur: 0.03, gain: 0.1, type: 'highpass', freq: 6000, decay: 0.03 }); }
+  // the elimination confirm: a low thunk, plus a sharp crack on a headshot kill
+  killConfirm(head) { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 110, freqEnd: 45, dur: 0.16, gain: 0.7, decay: 0.2 }); this._noise(t, { dur: 0.1, gain: 0.35, freq: 900, freqEnd: 200, decay: 0.1 }); if (head) { this._noise(t + 0.01, { dur: 0.06, gain: 0.55, type: 'highpass', freq: 3500, decay: 0.07 }); this._tone(t + 0.01, { freq: 3000, freqEnd: 1800, dur: 0.08, gain: 0.25, decay: 0.12, type: 'square' }); } }
+  chime() { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 1180, dur: 0.06, gain: 0.08, decay: 0.16, type: 'sine' }); this._tone(t + 0.05, { freq: 1570, dur: 0.08, gain: 0.07, decay: 0.22, type: 'sine' }); }
+  buzz() { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 160, dur: 0.12, gain: 0.18, decay: 0.14, type: 'square' }); this._tone(t, { freq: 168, dur: 0.12, gain: 0.12, decay: 0.14, type: 'sawtooth' }); }
+  heartbeat() { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 62, freqEnd: 40, dur: 0.12, gain: 0.55, decay: 0.14 }); this._tone(t + 0.22, { freq: 55, freqEnd: 36, dur: 0.12, gain: 0.4, decay: 0.14 }); }
+  slide(pos) { if (!this.ctx) return; const o = this._out(pos, 0.6, 10); this._noise(this.ctx.currentTime, { dur: 0.5, gain: 0.3, type: 'bandpass', freq: 700, freqEnd: 300, decay: 0.45, q: 0.8, attack: 0.02, o }); }
+  mantle(pos) { if (!this.ctx) return; const o = this._out(pos, 0.6, 10); this._noise(this.ctx.currentTime, { dur: 0.15, gain: 0.35, freq: 500, freqEnd: 180, decay: 0.15, o }); }
+  setLowHp(f) { if (!this.lp) return; const target = f > 0 ? 20000 - 18800 * f : 20000; this.lp.frequency.setTargetAtTime(target, this.ctx.currentTime, 0.15); }
   kill() { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 620, dur: 0.12, gain: 0.35, decay: 0.16, type: 'square' }); this._tone(t + 0.07, { freq: 930, dur: 0.18, gain: 0.35, decay: 0.28, type: 'square' }); this._noise(t, { dur: 0.2, gain: 0.3, freq: 800, decay: 0.2 }); }
   hurt() { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 140, freqEnd: 70, dur: 0.15, gain: 0.35, decay: 0.18, type: 'sawtooth' }); }
   ping() { if (!this.ctx) return; const t = this.ctx.currentTime; this._tone(t, { freq: 1320, dur: 0.08, gain: 0.2, decay: 0.14, type: 'sine' }); this._tone(t + 0.07, { freq: 1760, dur: 0.12, gain: 0.2, decay: 0.3, type: 'sine' }); }

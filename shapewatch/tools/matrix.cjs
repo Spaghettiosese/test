@@ -1,8 +1,8 @@
 // node tools/matrix.cjs outdir [hero] — plays every mode/map combo headlessly in Chromium, steps the sim and screenshots the HUD
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
-const COMBOS = [['escort', 'frostgate'], ['escort', 'sunscar'], ['hybrid', 'junction'], ['control', 'lumen'], ['control', 'foundry'], ['tdm', 'frostgate'], ['tdm', 'lumen'], ['tdm', 'foundry'], ['ffa', 'lumen'], ['ffa', 'foundry'], ['training', 'foundry']];
+const COMBOS = [['escort', 'frostgate'], ['escort', 'sunscar'], ['hybrid', 'junction'], ['control', 'lumen'], ['control', 'foundry'], ['tdm', 'frostgate'], ['tdm', 'lumen'], ['tdm', 'foundry'], ['ffa', 'lumen'], ['ffa', 'foundry'], ['training', 'foundry'], ['elim', 'lumen'], ['elim', 'foundry']];
 (async () => {
-  const [out, hero = 'sabre', only = ''] = process.argv.slice(2);
+  const [out, hero = 'sabre', only = '', variant = ''] = process.argv.slice(2);
   const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } }); const logs = [];
   page.on('console', (m) => { if (m.type() === 'error' && !/ERR_CERT/.test(m.text())) logs.push(m.type() + ': ' + m.text()); }); page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message + (e.stack ? '\n' + e.stack.split('\n').slice(0, 4).join('\n') : '')));
@@ -11,7 +11,7 @@ const COMBOS = [['escort', 'frostgate'], ['escort', 'sunscar'], ['hybrid', 'junc
   for (const [mode, map] of COMBOS) {
     if (only && !only.split(',').includes(mode + ':' + map)) continue;
     const before = logs.length;
-    await page.evaluate(([m, mp, h]) => { const s = __sw; s.settings.mode = m; s.settings.map = mp; s.settings.hero = h; s.startMatch(); }, [mode, map, hero]);
+    await page.evaluate(([m, mp, h, v]) => { const s = __sw; s.settings.mode = m; s.settings.map = mp; s.settings.hero = h; s.settings.variant = v; s.startMatch(); }, [mode, map, hero, variant]);
     await page.waitForTimeout(600);
     await page.evaluate(() => { __sw.sim.readyUp = true; __sw.step(10); });
     await page.waitForTimeout(500);

@@ -15,6 +15,7 @@ import { MenuScreen, PlayScreen, SelectScreen, Gallery, CareerScreen, SettingsPa
 import { Career, matchScore } from './stats.js';
 import { Recorder, ReplayPlayer } from './replay.js';
 import { HERO, HEROES } from './heroes.js';
+import { PERKS } from './perks.js';
 import { MAPS, MODES } from './maps.js';
 import { MUTATORS } from './sim.js';
 import { clamp, forward } from './util.js';
@@ -29,7 +30,7 @@ const comms = new Comms(voice);
 let heat = 0; // recent combat around the player, drives the music
 
 // ------------------------------------------------------------------ settings
-const settings = { sens: 1, fov: 90, vol: 0.6, music: 0.5, voice: true, voiceVol: 0.9, subs: true, invert: false, minimap: true, rotateMap: true, numbers: true, xhair: 'auto', xcolor: '#ffffff', showFps: false, chatter: 'all', side: 0, diff: 1, mut: 1, mode: 'escort', map: 'frostgate', hero: 'sabre', skin: 'default' };
+const settings = { sens: 1, fov: 90, vol: 0.6, music: 0.5, voice: true, voiceVol: 0.9, subs: true, invert: false, minimap: true, rotateMap: true, numbers: true, xhair: 'auto', xcolor: '#ffffff', showFps: false, chatter: 'all', side: 0, diff: 1, mut: 0, variant: '', mode: 'escort', map: 'frostgate', hero: 'sabre', skin: 'default', shake: 1, flash: 1, hudScale: 1, enemyColor: 'red' };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('shapewatch2') || '{}')); } catch { /* storage blocked */ }
 const save = () => { try { localStorage.setItem('shapewatch2', JSON.stringify(settings)); } catch { /* ignore */ } };
 if (!HERO[settings.hero]) settings.hero = 'sabre'; if (!MODES[settings.mode]) settings.mode = 'escort'; if (!MAPS[settings.map]?.modes.includes(settings.mode)) settings.map = Object.values(MAPS).find((m) => m.modes.includes(settings.mode)).id;
@@ -48,6 +49,7 @@ const SCREENS = ['menu', 'hud', 'select', 'gallery', 'help', 'pause', 'end', 'sc
 const hideAll = () => { for (const id of SCREENS) show(id, false); };
 
 function applySettings(k) {
+  view.shakeScale = settings.shake ?? 1; view.flashScale = settings.flash ?? 1; view.setEnemyColor?.(settings.enemyColor || 'red'); document.documentElement.style.setProperty('--hud-scale', settings.hudScale ?? 1);
   sfx.setVolume(settings.vol); music.setVolume(settings.music); comms.level = settings.chatter; view.fovH = settings.fov; voice.enabled = settings.voice; voice.volume = settings.voiceVol; voice.subs = settings.subs;
   if (hud) { hud.settings.minimap = settings.minimap; hud.settings.xhair = settings.xhair; hud.settings.xcolor = settings.xcolor; hud.minimap.rotate = settings.rotateMap; $('mmWrap').hidden = !settings.minimap; hud.hero = null; }
   view.showNumbers = settings.numbers; $('fps').style.display = settings.showFps ? '' : 'none';
@@ -74,22 +76,28 @@ function startQuick() {
 }
 function startMatch(quick = false) {
   sfx.unlock(); voice.unlock(); stopReplay(true); save(); quickMatch = quick === true; nextT = 0;
-  const M = MODES[settings.mode], team = M.teams ? (settings.mode === 'control' || settings.mode === 'tdm' ? (Math.random() < 0.5 ? 0 : 1) : settings.side) : 0;
-  sim = new Sim({ playerTeam: SIDE_MODES.has(settings.mode) || settings.mode === 'control' ? team : (M.teams ? settings.side : 0), playerHero: settings.hero, difficulty: settings.diff, mutators: !!settings.mut && settings.mode !== 'training', seed: (Math.random() * 1e6) | 0, mode: settings.mode, map: settings.map });
+  const M = MODES[settings.mode], sym = settings.mode === 'control' || settings.mode === 'tdm' || settings.mode === 'elim', team = M.teams ? (sym ? (Math.random() < 0.5 ? 0 : 1) : settings.side) : 0;
+  const variant = quickMatch || settings.mode === 'training' ? null : settings.variant || null;
+  sim = new Sim({ playerTeam: M.teams ? team : 0, playerHero: settings.hero, difficulty: settings.diff, mutators: false, variant, seed: (Math.random() * 1e6) | 0, mode: settings.mode, map: settings.map, roster: true });
   if (settings.mode === 'training') sim.setupT = 9999;
   recorder = new Recorder(sim); comms.reset(sim);
-  view.attach(sim, { skin: settings.skin }); hud.reset(sim); view.fovH = settings.fov; paused = false; endShown = false; overT = 0; report = null; clipQueue = []; pendingKillcam = null; lastLowHp = -99;
+  view.attach(sim, { skin: effSkin(settings.hero) }); hud.reset(sim); view.fovH = settings.fov; paused = false; endShown = false; overT = 0; report = null; clipQueue = []; pendingKillcam = null; lastLowHp = -99;
   view.mode = 'select'; mode = 'select'; positionPreview(); voice.stop();
-  hideAll(); openSelect(false);
+  hideAll();
+  // Mystery Heroes deals you a hero every life: no hero select
+  if (variant === 'mystery') { settings.hero = sim.player.hero; enterPlay(); hud.popup('MYSTERY HEROES', 'streak', 'YOU ARE ' + sim.player.def.name); return; }
+  openSelect(false);
 }
 const SIDE_MODES = new Set(['escort', 'hybrid']);
-function positionPreview() { const u = sim.player; view.previewAnchor = { pos: [...u.pos], facing: forward(u.yaw, 0) }; view.previewHero = u.hero; view.previewTurn = 0; view.mySkin = settings.skin; }
+function positionPreview() { const u = sim.player; view.previewAnchor = { pos: [...u.pos], facing: forward(u.yaw, 0) }; view.previewHero = u.hero; view.previewTurn = 0; view.mySkin = effSkin(u.hero); }
+// skins are earned through hero mastery: a locked choice falls back to the default look
+const effSkin = (hero) => (career.skinUnlocked(hero, settings.skin) ? settings.skin : 'default');
 function openSelect(mid) {
   const u = sim.player;
   select.open(sim, {
     mid, skin: settings.skin,
-    onPick: (id) => { settings.hero = id; save(); view.previewHero = id; if (!mid && sim.state === 'setup') { sim.swapHero(u, id); sim.recompose(u.team); } },
-    onSkin: (s) => { settings.skin = s; save(); view.mySkin = s; },
+    onPick: (id) => { settings.hero = id; save(); view.previewHero = id; view.mySkin = effSkin(id); if (!mid && sim.state === 'setup') { sim.swapHero(u, id); sim.recompose(u.team); } },
+    onSkin: (s) => { settings.skin = s; save(); view.mySkin = effSkin(select.sel); },
     onReady: () => { if (!mid) { sim.readyUp = true; return; } closeMid(); },
   });
 }
@@ -102,7 +110,8 @@ function closeMid() {
 const BRIEF = {
   escort: (a) => [a ? 'ATTACK' : 'DEFEND', a ? 'ESCORT THE PAYLOAD TO THE END OF THE MAP' : 'HOLD BACK THE PAYLOAD', a ? '#5ab0ff' : '#ff6a72'],
   hybrid: (a) => [a ? 'ATTACK' : 'DEFEND', a ? 'CAPTURE THE POINT, THEN ESCORT THE PAYLOAD' : 'DEFEND THE POINT, THEN THE PAYLOAD', a ? '#5ab0ff' : '#ff6a72'],
-  control: () => ['CONTROL', 'CAPTURE AND HOLD THE POINT · BEST OF THREE', '#ffd36b'],
+  control: () => ['CONTROL', 'CAPTURE AND HOLD ' + (sim.control?.point?.name || 'THE POINT') + ' · BEST OF THREE', '#ffd36b'],
+  elim: () => ['ELIMINATION', 'NO RESPAWNS · FIRST TO THREE ROUNDS', '#ff9a4a'],
   tdm: () => ['TEAM DEATHMATCH', 'FIRST TO ' + sim.scoreTarget + ' ELIMINATIONS', '#ff9a4a'],
   ffa: () => ['FREE FOR ALL', 'FIRST TO ' + sim.scoreTarget + ' ELIMINATIONS', '#c79bff'],
   training: () => ['TRAINING RANGE', 'TRY EVERY ABILITY · INFINITE ULTIMATE', '#7dffb0'],
@@ -111,6 +120,9 @@ function enterPlay() {
   select.close(); mode = 'play'; view.mode = 'fps'; show('hud'); hud.reset(sim); lockMouse(); sfx.announce('start'); voice.announce('start');
   const [t, s, c] = BRIEF[sim.modeId](sim.playerTeam === 0); hud.banner(t, s, c);
   view.fovCur = settings.fov; applySettings();
+  // your nemesis is in this lobby?
+  const nem = career.nemesis(), nu = nem && sim.units.find((u) => u.name === nem.name && !u.isPlayer);
+  if (nu) setTimeout(() => { hud.popup(nu.team === sim.playerTeam ? 'YOUR NEMESIS IS ON YOUR TEAM' : 'YOUR NEMESIS IS HERE', 'kill', `${nu.name.toUpperCase()} · ${nu.def.name} · ${nem.d}–${nem.k} AGAINST YOU`); if (nu.team !== sim.playerTeam) comms.say(nu, ['Back for more?', 'I remember you.', 'Same as last time, then.'][Math.floor(Math.random() * 3)], { pri: 3, ally: false }); }, 3200);
   const mates = sim.units.filter((u) => u.team === sim.playerTeam && !u.isPlayer && !u.deploy && sim.modeId !== 'ffa'); if (mates.length) setTimeout(() => { const m = mates[Math.floor(Math.random() * mates.length)]; voice.hero(m.hero, 'hello', { name: m.name.toUpperCase(), force: true }); }, 1400);
 }
 function pauseGame(on) {
@@ -126,6 +138,13 @@ function openHeroChange() {
   view.mode = 'select'; view.previewAnchor = { pos: [...(u.alive ? u.pos : (u.deadAt || u.pos))], facing: forward(u.yaw, 0) }; view.previewHero = u.hero; view.previewTurn = 0;
   openSelect(true);
 }
+// practice range: T puts everything back (cooldowns, ultimate, dummies, the meters)
+function resetRange() {
+  const p = me(); if (!p) return;
+  p.cd = { a1: 0, a2: 0, w2: 0 }; p.charges = p.def.a1.charges || 0; p.ult = p.def.ult.cost; p.ammo = p.def.w1.ammo || 0; p.reloadT = 0; if (p.alive) { p.hp = p.maxHp; p.armor = p.maxArmor; }
+  for (const u of sim.units) if (u.dummy) { if (!u.alive) sim.spawn(u); u.hp = u.maxHp; u.st = {}; if (u.bot?.home) u.pos = [...u.bot.home]; }
+  p.stats.dmg = p.stats.heal = p.stats.shots = p.stats.hits = 0; hud.trHist = []; hud.popup('RANGE RESET', 'save');
+}
 function toMenu() { hideAll(); select.close(); paused = false; unlockMouse(); voice.stop(); startAttract(); }
 
 // ------------------------------------------------------------------ replays: kill cam and Play of the Game
@@ -137,7 +156,7 @@ function startReplay(clip, kind) {
 }
 function stopReplay(silent = false) {
   if (!replay) return; replay = null; show('killcam', false); show('potg', false);
-  if (!silent && sim) { view.attach(sim, { skin: settings.skin }); }
+  if (!silent && sim) { view.attach(sim, { skin: effSkin(settings.hero) }); }
 }
 function endKillcam() {
   stopReplay(); pendingKillcam = null;
@@ -147,7 +166,7 @@ function endKillcam() {
 function endClip() {
   stopReplay(true);
   if (clipQueue.length) { startReplay(clipQueue.shift(), 'potg'); return; }
-  view.attach(sim, { skin: settings.skin }); view.mode = 'orbit'; showReport();
+  view.attach(sim, { skin: effSkin(settings.hero) }); view.mode = 'orbit'; showReport();
 }
 function beginPotg(list) { clipQueue = list.slice(1); hideAll(); unlockMouse(); startReplay(list[0], 'potg'); }
 
@@ -166,7 +185,8 @@ function showReport() {
 }
 
 // ------------------------------------------------------------------ events from the simulation
-view.onHit = (e) => { heat = Math.min(1, heat + 0.05); if (e.tgt && !e.tgt.alive) return; hud.hitmark(e.crit ? (e.head ? 'crit head' : 'crit') : e.head ? 'head' : ''); if (e.crit && !e.head && Math.random() < 0.5) hud.popup('CRITICAL HIT', 'crit'); };
+view.onHit = (e) => { heat = Math.min(1, heat + 0.05); if (e.tgt && !e.tgt.alive) return; if (e.kind === 'dot') { hud.hitmark('dot'); return; } hud.hitmark(e.crit ? (e.head ? 'crit head' : 'crit') : e.head ? 'head' : e.layer === 'armor' ? 'armor' : ''); };
+view.onBarrier = () => hud.hitmark('barrier');
 view.onHurt = (e) => { heat = Math.min(1, heat + 0.08); if (e.src) hud.damageDir(e.src); hud.noteDamage(e); const p = me(); if (p && p.alive && (p.hp + p.armor) / (p.maxHp + p.maxArmor) < 0.3 && sim.time - lastLowHp > 14) { lastLowHp = sim.time; voice.hero(p.hero, 'hurt', { name: 'YOU', force: false }); } };
 view.onHeal = (e) => { hud.heal(e); comms.onEvent(e); };
 view.onKill = (e) => {
@@ -194,8 +214,11 @@ const CALL_TEXT = new Set(['hello', 'thanks', 'group', 'help', 'push', 'fallback
 view.onEvent = (e) => {
   if (mode === 'menu') return;
   switch (e.type) {
-    case 'live': if (mode === 'select') enterPlay(); else if (mode === 'play' && sim.modeId === 'control') { hud.banner('GO!', 'ROUND ' + sim.round, '#ffd36b'); sfx.announce('round'); } break;
-    case 'roundStart': hud.banner('ROUND ' + e.round, 'TAKE AND HOLD THE POINT', '#ffd36b'); voice.announce('start'); if (mode === 'play') { view.mode = 'fps'; } break;
+    case 'live': if (mode === 'select') enterPlay(); else if (mode === 'play' && (sim.modeId === 'control' || sim.modeId === 'elim')) { hud.banner('GO!', 'ROUND ' + sim.round, '#ffd36b'); sfx.announce('round'); } break;
+    case 'roundStart': hud.banner('ROUND ' + e.round, sim.modeId === 'elim' ? 'NO RESPAWNS' : 'NEXT POINT · ' + (sim.control?.point?.name || ''), '#ffd36b'); voice.announce('start'); if (mode === 'play') { view.mode = 'fps'; } break;
+    case 'elimPoint': hud.banner('POINT OPEN', 'HOLD THE CENTRE FOR 6 SECONDS TO WIN THE ROUND', '#ffd36b'); sfx.announce('overtime'); break;
+    case 'perkReady': if (e.unit === me()) { hud.popup(e.tier === 'minor' ? 'MINOR PERK READY' : 'MAJOR PERK READY', 'streak', 'PRESS 1 OR 2'); sfx.ultReady(); } break;
+    case 'perk': if (e.unit === me()) hud.popup('PERK · ' + PERKS[e.id].name, 'save'); break;
     case 'round': { const won = e.winner === sim.playerTeam; hud.banner(won ? 'ROUND WON' : 'ROUND LOST', `${e.wins[sim.playerTeam]} — ${e.wins[1 - sim.playerTeam]}`, won ? '#5ab0ff' : '#ff6a72'); sfx.announce('round'); voice.announce(won ? 'roundWin' : 'roundLoss'); break; }
     case 'checkpoint': hud.banner('CHECKPOINT REACHED', `+${e.bonus} SECONDS ADDED · ${sim.playerTeam === 0 ? 'FORWARD SPAWN ONLINE' : 'ATTACKERS HAVE A FORWARD SPAWN'}`, '#ffd36b'); sfx.announce('checkpoint'); voice.announce('checkpoint'); break;
     case 'captured': hud.banner('POINT CAPTURED', sim.playerTeam === 0 ? 'NOW ESCORT THE PAYLOAD' : 'THE PAYLOAD IS ROLLING', '#ffd36b'); voice.announce('capture'); break;
@@ -268,6 +291,8 @@ addEventListener('keydown', (e) => {
   const u = me(); if (!u) return;
   if (!u.alive && (k === 'arrowleft' || k === 'arrowright' || k === ' ')) { view.cycleSpectate(k === 'arrowleft' ? -1 : 1); return; }
   if (k === 'shift') u.in.a1 = true; if (k === 'e') u.in.a2 = true; if (k === 'q') u.in.ult = true; if (k === 'r') u.in.reload = true; if (k === 'h') openHeroChange();
+  if (k === 'v') u.in.melee = true; if ((k === '1' || k === '2') && u.perkOffer) u.in.perk = +k;
+  if (k === 't' && sim.modeId === 'training') resetRange();
   if (k === 'z') doPing(); if (k === 'c' && u.alive && sim.modeId !== 'ffa' && sim.modeId !== 'training') wheel.show();
   if (k === 'm') { settings.minimap = !settings.minimap; applySettings(true); }
 });
@@ -313,6 +338,14 @@ function drivePlayer() {
   const k = keys, st = touch.stick; let mx = (k.has('d') ? 1 : 0) - (k.has('a') ? 1 : 0), mz = (k.has('w') ? 1 : 0) - (k.has('s') ? 1 : 0);
   if (!mx && !mz && Math.hypot(st.x, st.y) > 0.12) { mx = st.x; mz = -st.y; }
   u.in.move = [mx, mz]; u.in.jump = k.has(' '); const blocked = wheel.open; u.in.fire1 = mouse.l && !blocked; u.in.fire2 = mouse.r && !blocked;
+  u.in.crouch = k.has('x') || touch.crouch;
+}
+// low health: a heartbeat and a muffled mix
+let beatT = 0;
+function driveLowHp(dt) {
+  const p = me(), live = mode === 'play' && p && p.alive && !replay, f = live ? (p.hp + p.armor + p.shield) / (p.maxHp + p.maxArmor) : 1;
+  const low = live && f < 0.25 ? 1 - f / 0.25 : 0; sfx.setLowHp(low * 0.85);
+  if (low > 0) { beatT -= dt; if (beatT <= 0) { beatT = 0.95 - low * 0.35; sfx.heartbeat(); } } else beatT = 0;
 }
 
 // ------------------------------------------------------------------ music
@@ -358,7 +391,7 @@ function frame(now) {
     view.syncPreview(dt); view.syncUnits(dt); view.fx.syncProjs(dt); view.fx.syncZones(dt); view.syncWorld(dt);
     view.updateCamera(dt); view.updateViewmodel(dt); view.updateOverlays(dt); view.tick(dt); view.render(dt);
     if (nextT > 0 && mode === 'end') { nextT -= dt; const n = $('eNextT'); if (n) n.textContent = Math.ceil(nextT); if (nextT <= 0) startQuick(); }
-    driveMusic(dt); if (mode === 'play' || mode === 'select' || mode === 'killcam') comms.tick(dt);
+    driveMusic(dt); driveLowHp(dt); if (mode === 'play' || mode === 'select' || mode === 'killcam') comms.tick(dt);
     if (mode === 'select' || mode === 'select-mid') select.update(dt);
     if (mode === 'play' || mode === 'over' || mode === 'paused') {
       hud.killcamOn = false; hud.update(dt, fpsS);
@@ -377,7 +410,7 @@ async function boot() {
   career = new Career(); portraits = new Portraits(); msg.textContent = 'Forging heroes…';
   await portraits.generate((p) => { bar.style.width = Math.round(p * 100) + '%'; });
   msg.textContent = 'Building the maps…';
-  hud = new Hud(view, portraits); wheel = new CommWheel($('wheel'), doCall); select = new SelectScreen(view, portraits, sfx, voice); gallery = new Gallery(view, portraits, career, voice, sfx); endScreen = new EndScreen(portraits, sfx);
+  hud = new Hud(view, portraits); wheel = new CommWheel($('wheel'), doCall); select = new SelectScreen(view, portraits, sfx, voice); select.career = career; gallery = new Gallery(view, portraits, career, voice, sfx); endScreen = new EndScreen(portraits, sfx);
   settingsPanel = new SettingsPanel(settings, sfx, applySettings);
   playScreen = new PlayScreen({ settings, sfx, onStart: () => { playScreen.close(); startMatch(); }, onBack: backToMenu });
   careerScreen = new CareerScreen(portraits, career, sfx); careerScreen.onBack = backToMenu; gallery.onBack = backToMenu;

@@ -16,7 +16,7 @@ function snapUnit(u) {
   const s = u.s || {}, st = {};
   if (u.st) for (const k of STATUS_SHOWN) if (u.st[k]) st[k] = true;
   const o = {
-    id: u.id, hero: u.hero, team: u.team, name: u.name, x: u.pos[0], y: u.pos[1], z: u.pos[2], yaw: u.yaw, pitch: u.pitch, vx: u.vx || 0, vz: u.vz || 0, hp: u.hp, ar: u.armor || 0, sh: u.shield || 0, alive: u.alive, gr: u.grounded,
+    id: u.id, hero: u.hero, team: u.team, name: u.name, x: u.pos[0], y: u.pos[1], z: u.pos[2], yaw: u.yaw, pitch: u.pitch, vx: u.vx || 0, vz: u.vz || 0, hp: u.hp, ar: u.armor || 0, sh: u.shield || 0, alive: u.alive, gr: u.grounded, cr: !!u.crouch,
     f1: !!u.in?.fire1, f2: !!u.in?.fire2, dash: !!u.dash, rl: u.reloadT || 0, ult: u.ult || 0, st,
   };
   if (s.barrier) o.bar = [s.barrier.up ? 1 : 0, s.barrier.hp, s.barrier.max];
@@ -74,7 +74,8 @@ export class Recorder {
       projs: s.projs.map((p) => ({ id: p.id, pos: [...p.pos], color: p.spec.color, size: p.spec.size })),
       zones: s.zones.map(snapZone), cores: s.cores.map((c) => ({ pos: [...c.pos], team: c.team })), packs: s.packs.map((p) => p.ready),
       payload: P ? { pos: [...P.pos], yaw: P.yaw, pushers: P.pushers, contested: P.contested, dist: P.dist, active: P.active, cp: P.cp, defenders: P.defenders } : null,
-      control: s.control ? { owner: s.control.owner, capTeam: s.control.capTeam, capProg: s.control.capProg, contested: s.control.contested, ctl: [...s.control.ctl] } : null,
+      control: s.control ? { point: s.control.point, owner: s.control.owner, capTeam: s.control.capTeam, capProg: s.control.capProg, contested: s.control.contested, ctl: [...s.control.ctl], present: [...s.control.present] } : null,
+      elim: s.elim ? { point: s.elim.point, open: s.elim.open, hold: [...s.elim.hold], present: [...s.elim.present], roundT: s.elim.roundT } : null,
       cap: s.cap ? { prog: s.cap.prog, contested: s.cap.contested, done: s.cap.done } : null, mutator: s.mutator ? { id: s.mutator.id } : null, milestone: s.milestone || 0,
       events: this.pending,
     };
@@ -141,7 +142,7 @@ export class ReplayPlayer {
     for (const ua of a.units) {
       const ub = bm.get(ua.id) || ua, p = this.proxy(ua.id, ua), L = (x, y) => x + (y - x) * k;
       p.pos = [L(ua.x, ub.x), L(ua.y, ub.y), L(ua.z, ub.z)]; let dy = ub.yaw - ua.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); p.yaw = ua.yaw + dy * k; p.pitch = L(ua.pitch, ub.pitch);
-      p.vx = ua.vx; p.vz = ua.vz; p.hp = ua.hp; p.armor = ua.ar; p.shield = ua.sh; p.alive = ua.alive; p.grounded = ua.gr; p.in.fire1 = ua.f1; p.in.fire2 = ua.f2; p.dash = ua.dash ? {} : null; p.reloadT = ua.rl; p.ult = ua.ult; p.st = {}; for (const key of Object.keys(ua.st)) p.st[key] = { t: 1 };
+      p.vx = ua.vx; p.vz = ua.vz; p.hp = ua.hp; p.armor = ua.ar; p.shield = ua.sh; p.alive = ua.alive; p.grounded = ua.gr; p.crouch = ua.cr; p.in.fire1 = ua.f1; p.in.fire2 = ua.f2; p.dash = ua.dash ? {} : null; p.reloadT = ua.rl; p.ult = ua.ult; p.st = {}; for (const key of Object.keys(ua.st)) p.st[key] = { t: 1 };
       const s = (p.s = {});
       if (ua.bar) s.barrier = { up: !!ua.bar[0], hp: ua.bar[1], max: ua.bar[2] };
       if (ua.wall) s.wall = { ...ua.wall };
@@ -154,7 +155,7 @@ export class ReplayPlayer {
     r.units = units; r.time = first ? a.t : a.t + (b.t - a.t) * k;
     r.projs = a.projs.map((p) => ({ id: p.id, pos: p.pos, spec: { color: p.color, size: p.size } }));
     r.zones = a.zones.map((z) => ({ ...z })); r.cores = a.cores; r.packs.forEach((p, i) => { p.ready = a.packs[i] ?? true; });
-    r.payload = a.payload; r.control = a.control; r.cap = a.cap; r.mutator = a.mutator; r.milestone = a.milestone;
+    r.payload = a.payload; r.control = a.control; r.elim = a.elim; r.cap = a.cap; r.mutator = a.mutator; r.milestone = a.milestone;
     r.player = units.find((u) => u.id === this.focus) || null;
   }
   resolve(o) {

@@ -174,7 +174,7 @@ function frostgate() {
   B(-6, 144, 1.4, 1.4, 7, 'trim'); B(6, 144, 1.4, 1.4, 7, 'trim'); R(-6.7, 143.3, 6.7, 144.7, 1, 'trim', 6.8);
   return {
     id: 'frostgate', boxes, bounds: { x0: -34, x1: 34, z0: -84, z1: 172 }, spawns: [row(0, -80, 5, 4, 2.5), row(0, 168, 5, 4, 2.5)],
-    fwd: [row(0, -4), row(0, 69)], path: [[0, -50], [0, 138]], checkpoints: [74, 148],
+    fwd: [row(0, -4), row(0, 69)], dspawns: [row(0, 72), row(0, 120)], path: [[0, -50], [0, 138]], checkpoints: [74, 148],
     packs: [{ pos: [-30, 0, -37], big: false }, { pos: [23.5, 0, -0.5], big: false }, { pos: [-30, 0, 46], big: true }, { pos: [30, 0, 28], big: false }, { pos: [-20.5, 0, 119], big: false }, { pos: [30, 0, 112], big: false }, { pos: [-5, 0, 70], big: true }, { pos: [5, 0, 106], big: false }],
     attackTime: 300, lamps: [[-56, 140, 24]], lampX: [-15.5, 15.5], bannerA: [[0, 7, 9.9, 5, 3.6, 0.08], [-17.9, 5, -30, 0.08, 4, 3]], bannerD: [[0, 7, 22.1, 5, 3.6, 0.08], [17.9, 5, 130, 0.08, 4, 3]],
     decorZones: [[-17, -56, 17, 140]],
@@ -205,8 +205,8 @@ function sunscar() {
   const packs = [...pk1.filter((_, i) => i % 2 === 0), ...pk2.filter((_, i) => i % 2 === 1)].map((p, i) => ({ pos: [p.x, 0, p.z], big: i % 4 === 2 }));
   packs.push({ pos: [-26 + 8, 0, 120], big: true }, { pos: [60, 0, 150], big: false });
   return {
-    id: 'sunscar', boxes, bounds: { x0: -26, x1: 73, z0: -150, z1: 350 }, spawns: [row(0, -144, 5, 4, 3), row(34, 344, 5, 4, 2.5)], fwd: [row(0, 10), row(34, 150)],
-    path: [[0, -80], [0, 135], [34, 135], [34, 300]], checkpoints: [140, 300], packs, attackTime: 420,
+    id: 'sunscar', boxes, bounds: { x0: -26, x1: 73, z0: -150, z1: 350 }, spawns: [row(0, -144, 5, 4, 3), row(34, 344, 5, 4, 2.5)], fwd: [row(0, 10), row(34, 150)], dspawns: [row(0, 85), row(34, 225)],
+    path: [[0, -80], [0, 135], [34, 135], [34, 300]], checkpoints: [140, 300], packs, attackTime: 450,
     lampX: [-10.5, 10.5], decorZones: [[-12, -108, 12, 108]],
   };
 }
@@ -238,8 +238,8 @@ function junction() {
   const packs = [...pk1.filter((_, i) => i % 2 === 0), ...pk2.filter((_, i) => i % 2 === 1), ...pk3.filter((_, i) => i % 2 === 0)].map((p, i) => ({ pos: [p.x, 0, p.z], big: i % 3 === 1 }));
   packs.push({ pos: [-34, 0, 3], big: true }, { pos: [34, 0, 26], big: false });
   return {
-    id: 'junction', boxes, bounds: { x0: -52, x1: 42, z0: -130, z1: 292 }, spawns: [row(0, -124, 5, 4, 3), row(-26, 283, 5, 4, 2.5)], fwd: [row(0, -34), row(-26, 150)],
-    points: [{ pos: [0, 0, 12], r: 9, name: 'THE JUNCTION' }], path: [[0, 12], [0, 116], [-26, 116], [-26, 250]], checkpoints: [150], packs, attackTime: 240,
+    id: 'junction', boxes, bounds: { x0: -52, x1: 42, z0: -130, z1: 292 }, spawns: [row(0, -124, 5, 4, 3), row(-26, 283, 5, 4, 2.5)], fwd: [row(0, -34), row(-26, 150)], dspawns: [row(0, 98), row(-26, 200)],
+    points: [{ pos: [0, 0, 12], r: 9, name: 'THE JUNCTION' }], path: [[0, 12], [0, 116], [-26, 116], [-26, 250]], checkpoints: [130], packs, attackTime: 210,
     lampX: [-10, 10], decorZones: [[-11, -94, 11, 108]],
   };
 }
@@ -264,10 +264,13 @@ function lumen() {
     }
   }
   // two sky bridges over the avenue
-  for (const z of [-24, 24]) R(-14, z - 2, 14, z + 2, 0.4, 'neonB', 4.6);
+  // sky bridges: solid deck with thin neon edge strips (a fully emissive slab glared over the whole street)
+  for (const z of [-24, 24]) { R(-14, z - 2, 14, z + 2, 0.4, 'roof', 4.6); R(-14, z - 2, 14, z - 1.86, 0.1, 'neonB', 5.0); R(-14, z + 1.86, 14, z + 2, 0.1, 'neonB', 5.0); }
   // the plaza: low walls ringing the point, a beacon pylon, planters
   for (const [x, z, w, d] of [[-7, -7, 4, 0.9], [7, -7, 4, 0.9], [-7, 7, 4, 0.9], [7, 7, 4, 0.9], [-9.5, 0, 0.9, 4], [9.5, 0, 0.9, 4]]) B(x, z, w, d, 1.2, 'barrier');
-  B(0, 0, 2, 2, 5.5, 'neonA');
+  // the plaza beacon: an open frame of four neon posts and a cap, not a solid glowing block
+  for (const [x, z] of [[-0.85, -0.85], [0.85, -0.85], [-0.85, 0.85], [0.85, 0.85]]) B(x, z, 0.3, 0.3, 5.5, 'neonA');
+  R(-1, -1, 1, 1, 0.3, 'trim', 5.5);
   const keep = [lane(-6, -6, 6, 6)];
   // props are scattered on the south half and mirrored through the centre so both teams get the same map
   const n0 = boxes.length;
@@ -278,8 +281,8 @@ function lumen() {
   for (const bx of boxes.slice(n0)) boxes.push({ ...bx, x0: -bx.x1, x1: -bx.x0, z0: -bx.z1, z1: -bx.z0 });
   const dm = [[-32, 0, -30], [32, 0, -30], [-32, 0, 30], [32, 0, 30], [0, 0, -34], [0, 0, 34], [-32, 0, 0], [32, 0, 0], [-8, 0, -40], [8, 0, 40]];
   return {
-    id: 'lumen', boxes, bounds: { x0: -64, x1: 64, z0: -64, z1: 64 }, spawns: [row(0, -60, 5, 4, 3), row(0, 60, 5, 4, -3)], dmSpawns: dm,
-    points: [{ pos: [0, 0, 0], r: 9, name: 'CENTRAL PLAZA' }], packs: [{ pos: [-32, 0, -20], big: false }, { pos: [32, 0, 20], big: false }, { pos: [-32, 0, 22], big: false }, { pos: [32, 0, -22], big: false }, { pos: [0, 0, -34], big: true }, { pos: [0, 0, 34], big: true }, { pos: [-20, 0, 0], big: false }, { pos: [20, 0, 0], big: false }],
+    id: 'lumen', boxes, bounds: { x0: -64, x1: 64, z0: -64, z1: 64 }, spawns: [row(0, -60, 5, 4, -3), row(0, 60, 5, 4, 3)], dmSpawns: dm,
+    points: [{ pos: [0, 0, 0], r: 9, name: 'CENTRAL PLAZA' }, { pos: [-30, 0, 0], r: 8, name: 'NEON ARCADE' }, { pos: [30, 0, 0], r: 8, name: 'SKY GARDEN' }], packs: [{ pos: [-32, 0, -20], big: false }, { pos: [32, 0, 20], big: false }, { pos: [-32, 0, 22], big: false }, { pos: [32, 0, -22], big: false }, { pos: [0, 0, -34], big: true }, { pos: [0, 0, 34], big: true }, { pos: [-20, 0, 0], big: false }, { pos: [20, 0, 0], big: false }],
     attackTime: 600, lampX: [-14, 14], decorZones: [[-36, -42, 36, 42]],
   };
 }
@@ -310,7 +313,7 @@ function foundry() {
   b.scatter(rand, [-46, -46, -34, 46], 6, KINDS.industrial, keepYard); b.scatter(rand, [34, -46, 46, 46], 6, KINDS.industrial, keepYard);
   return {
     id: 'foundry', boxes, bounds: { x0: -50, x1: 50, z0: -50, z1: 50 }, spawns: [row(-20, -44, 5, 4, 2), row(20, 44, 5, 4, -2)], dmSpawns: ring,
-    points: [{ pos: [0, 0, 0], r: 12.5, name: 'THE FURNACE' }], packs: fpacks,
+    points: [{ pos: [0, 0, 0], r: 12.5, name: 'THE FURNACE' }, { pos: [-34, 0, 15], r: 8.5, name: 'THE SMELTER' }, { pos: [34, 0, -15], r: 8.5, name: 'LOADING BAY' }], packs: fpacks,
     attackTime: 480, decorZones: [], lampX: [], arena: true,
   };
 }
@@ -318,20 +321,20 @@ function foundry() {
 // ------------------------------------------------------------------ the catalogue
 export const THEMES = {
   snow: {
-    time: 15.2, ground: '#dfe8f3', pave: '#586170', rail: '#2f343d', particles: 'snow', fog: 0.0042, lamp: '#ffe6b0', exposure: 0.88, ambient: 0.5, sky: [0.42, 0.62, 0.95], fogColor: [0.66, 0.77, 0.92], zenith: [0.2, 0.42, 0.85], horizon: [0.78, 0.86, 0.96],
-    mats: { wallA: ['#8ea6c4', 0.85], wallB: ['#cfa77a', 0.85], trim: ['#6f4524'], stone: ['#7e8794'], roof: ['#f2f6fb'], cliff: ['#4d5663'], crate: ['#a67a43'], barrier: ['#c4c9d2'], planter: ['#4f6b8f'], fountain: ['#a7b0bd'], statue: ['#7d8ea3'], pillar: ['#b6bfcf'], stall: ['#c9533f'], counter: ['#7a5330'], rock: ['#7e8794'], grate: ['#4a4d52'], container: ['#2f6f9f'], containerB: ['#a0402a'], neonA: ['#3a9bff', 0.4, '#3a9bff', 2], neonB: ['#ff4a52', 0.4, '#ff4a52', 2] },
+    time: 16.5, ground: '#dfe8f3', pave: '#586170', rail: '#2f343d', particles: 'snow', fog: 0.0042, lamp: '#ffe6b0', exposure: 0.88, ambient: 0.5, sky: [0.42, 0.62, 0.95], fogColor: [0.66, 0.77, 0.92], zenith: [0.2, 0.42, 0.85], horizon: [0.78, 0.86, 0.96],
+    mats: { wallA: ['#e8dcc8', 0.85], wallB: ['#9c3b2e', 0.85], trim: ['#6f4524'], stone: ['#7e8794'], roof: ['#f2f6fb'], cliff: ['#4d5663'], crate: ['#a67a43'], barrier: ['#c4c9d2'], planter: ['#2b8a8a'], fountain: ['#a7b0bd'], statue: ['#7d8ea3'], pillar: ['#b6bfcf'], stall: ['#e0a628'], counter: ['#7a5330'], rock: ['#7e8794'], grate: ['#4a4d52'], container: ['#2f6f9f'], containerB: ['#a0402a'], neonA: ['#3a9bff', 0.4, '#3a9bff', 2], neonB: ['#ff4a52', 0.4, '#ff4a52', 2] },
   },
   desert: {
     time: 12.4, ground: '#d8bf8f', pave: '#b39766', rail: '#6b4f2e', particles: 'dust', fog: 0.0036, lamp: '#ffd9a0', exposure: 0.98, ambient: 0.62, sky: [0.5, 0.68, 0.95], fogColor: [0.88, 0.8, 0.66], zenith: [0.25, 0.5, 0.88], horizon: [0.97, 0.86, 0.68],
-    mats: { wallA: ['#d9b48a', 0.9], wallB: ['#c98f66', 0.9], trim: ['#6b4a2e'], stone: ['#a08868'], roof: ['#e8d3b0'], cliff: ['#9a5c38'], crate: ['#9c7646'], barrier: ['#cbb08a'], planter: ['#8c6a4a'], fountain: ['#b9a583'], statue: ['#a08868'], pillar: ['#d8c29c'], stall: ['#b84a3a'], counter: ['#7a5330'], rock: ['#9a6a45'], grate: ['#5b5448'], container: ['#2f6f9f'], containerB: ['#a0402a'], neonA: ['#3a9bff', 0.4, '#3a9bff', 2], neonB: ['#ff4a52', 0.4, '#ff4a52', 2] },
+    mats: { wallA: ['#e0c08a', 0.9], wallB: ['#c0643a', 0.9], trim: ['#6b4a2e'], stone: ['#a08868'], roof: ['#e8d3b0'], cliff: ['#9a5c38'], crate: ['#9c7646'], barrier: ['#cbb08a'], planter: ['#4f8a3a'], fountain: ['#b9a583'], statue: ['#a08868'], pillar: ['#d8c29c'], stall: ['#2e5fb8'], counter: ['#7a5330'], rock: ['#9a6a45'], grate: ['#5b5448'], container: ['#2fb5b0'], containerB: ['#a0402a'], neonA: ['#3a9bff', 0.4, '#3a9bff', 2], neonB: ['#ff4a52', 0.4, '#ff4a52', 2] },
   },
   city: {
-    time: 22.6, ground: '#141a26', pave: '#222a3a', rail: '#0c1018', particles: 'rain', fog: 0.007, lamp: '#7fe6ff', exposure: 1.35, ambient: 0.75, sky: [0.1, 0.12, 0.3], fogColor: [0.1, 0.12, 0.22], zenith: [0.04, 0.06, 0.22], horizon: [0.3, 0.2, 0.45], neon: true,
-    mats: { wallA: ['#2b3447', 0.7], wallB: ['#3a2f4a', 0.7], trim: ['#101520'], stone: ['#3b4358'], roof: ['#1c2230'], cliff: ['#141a26'], crate: ['#554a3a'], barrier: ['#59627a'], planter: ['#2a4a3f'], fountain: ['#3b4358'], statue: ['#59627a'], pillar: ['#47506a'], stall: ['#5a2a4a'], counter: ['#3a2a2a'], rock: ['#3b4358'], grate: ['#2a3040'], container: ['#2f6f9f'], containerB: ['#a0402a'], neonA: ['#2af0ff', 0.4, '#2af0ff', 3.2], neonB: ['#ff3df2', 0.4, '#ff3df2', 3.2] },
+    time: 22.6, ground: '#141a26', pave: '#222a3a', rail: '#0c1018', particles: 'rain', fog: 0.007, lamp: '#7fe6ff', exposure: 1.35, ambient: 1.1, sky: [0.1, 0.12, 0.3], fogColor: [0.1, 0.12, 0.22], zenith: [0.04, 0.06, 0.22], horizon: [0.3, 0.2, 0.45], neon: true,
+    mats: { wallA: ['#3a4766', 0.7], wallB: ['#4b3c6a', 0.7], trim: ['#101520'], stone: ['#3b4358'], roof: ['#1c2230'], cliff: ['#141a26'], crate: ['#554a3a'], barrier: ['#59627a'], planter: ['#2a4a3f'], fountain: ['#3b4358'], statue: ['#59627a'], pillar: ['#47506a'], stall: ['#5a2a4a'], counter: ['#3a2a2a'], rock: ['#3b4358'], grate: ['#2a3040'], container: ['#2f6f9f'], containerB: ['#a0402a'], neonA: ['#2af0ff', 0.4, '#2af0ff', 3.2], neonB: ['#ff3df2', 0.4, '#ff3df2', 3.2] },
   },
   industrial: {
-    time: 17.6, ground: '#4a4d52', pave: '#35383d', rail: '#222428', particles: 'embers', fog: 0.0055, lamp: '#ffb866', exposure: 1.05, ambient: 0.6, sky: [0.5, 0.5, 0.55], fogColor: [0.62, 0.5, 0.42], zenith: [0.32, 0.34, 0.45], horizon: [0.95, 0.62, 0.35],
-    mats: { wallA: ['#5b5f66', 0.6, 0.35], wallB: ['#7a4a2e', 0.75], trim: ['#e0a020'], stone: ['#6a6e75'], roof: ['#3a3d42'], cliff: ['#2a2c30'], crate: ['#8a5a30'], barrier: ['#9a9ea4'], planter: ['#4a4d52'], fountain: ['#6a6e75'], statue: ['#8a8e95'], pillar: ['#6a6e75'], stall: ['#7a4a2e'], counter: ['#4a4d52'], rock: ['#5a5d62'], grate: ['#3f4348', 0.5, 0.6], container: ['#2f6f9f', 0.6, 0.2], containerB: ['#a0402a', 0.6, 0.2], neonA: ['#ff9a3a', 0.4, '#ff7a1a', 3], neonB: ['#ff4a2a', 0.4, '#ff2a1a', 3] },
+    time: 15.5, ground: '#4a4d52', pave: '#35383d', rail: '#222428', particles: 'embers', fog: 0.003, lamp: '#ffb866', exposure: 1.05, ambient: 0.95, sky: [0.5, 0.5, 0.55], fogColor: [0.62, 0.5, 0.42], zenith: [0.32, 0.34, 0.45], horizon: [0.95, 0.62, 0.35],
+    mats: { wallA: ['#5b5f66', 0.6, 0.08], wallB: ['#7a4a2e', 0.75], trim: ['#e0a020'], stone: ['#6a6e75'], roof: ['#3a3d42'], cliff: ['#2a2c30'], crate: ['#8a5a30'], barrier: ['#9a9ea4'], planter: ['#2b7a7a'], fountain: ['#6a6e75'], statue: ['#8a8e95'], pillar: ['#6a6e75'], stall: ['#7a4a2e'], counter: ['#4a4d52'], rock: ['#5a5d62'], grate: ['#4f545b', 0.5, 0.1], container: ['#2f8a8a', 0.6, 0.08], containerB: ['#a0402a', 0.6, 0.08], neonA: ['#ff9a3a', 0.4, '#ff7a1a', 3], neonB: ['#ff4a2a', 0.4, '#ff2a1a', 3] },
   },
 };
 
@@ -339,13 +342,14 @@ export const MAPS = {
   frostgate: { id: 'frostgate', name: 'FROSTGATE', tagline: 'A snowbound station street with a grand arch.', modes: ['escort', 'tdm'], theme: 'snow', build: frostgate, size: 'MEDIUM' },
   sunscar: { id: 'sunscar', name: 'SUNSCAR CANYON', tagline: 'A long haul through a red-rock canyon town.', modes: ['escort'], theme: 'desert', build: sunscar, size: 'HUGE' },
   junction: { id: 'junction', name: 'DUSTLINE JUNCTION', tagline: 'Take the crossroads, then drive the payload out of town.', modes: ['hybrid'], theme: 'desert', build: junction, size: 'LARGE' },
-  lumen: { id: 'lumen', name: 'LUMEN HEIGHTS', tagline: 'Neon rooftops, sky bridges, one plaza worth owning.', modes: ['control', 'tdm', 'ffa'], theme: 'city', build: lumen, size: 'MEDIUM' },
-  foundry: { id: 'foundry', name: 'THE FOUNDRY', tagline: 'Catwalks, containers and a furnace in the middle.', modes: ['tdm', 'ffa', 'training', 'control'], theme: 'industrial', build: foundry, size: 'SMALL' },
+  lumen: { id: 'lumen', name: 'LUMEN HEIGHTS', tagline: 'Neon rooftops, sky bridges, one plaza worth owning.', modes: ['control', 'tdm', 'ffa', 'elim'], theme: 'city', build: lumen, size: 'MEDIUM' },
+  foundry: { id: 'foundry', name: 'THE FOUNDRY', tagline: 'Catwalks, containers and a furnace in the middle.', modes: ['tdm', 'ffa', 'training', 'control', 'elim'], theme: 'industrial', build: foundry, size: 'SMALL' },
 };
 export const MODES = {
   escort: { id: 'escort', name: 'ESCORT', blurb: 'Push the payload to the end of the map before time runs out, or stop it.', teams: true, objective: true },
   hybrid: { id: 'hybrid', name: 'HYBRID', blurb: 'Capture the point, then escort the payload to the goal.', teams: true, objective: true },
   control: { id: 'control', name: 'CONTROL', blurb: 'Hold the point to fill your meter. Best of three rounds.', teams: true, objective: true },
+  elim: { id: 'elim', name: 'ELIMINATION', blurb: 'No respawns. Wipe the other team, or hold the centre once it opens. First to three rounds.', teams: true, objective: true },
   tdm: { id: 'tdm', name: 'TEAM DEATHMATCH', blurb: 'First team to thirty eliminations. Respawn fast, hit hard.', teams: true, objective: false },
   ffa: { id: 'ffa', name: 'FREE FOR ALL', blurb: 'Every hero for themselves. First to twenty eliminations.', teams: false, objective: false },
   training: { id: 'training', name: 'TRAINING RANGE', blurb: 'Try any hero against target dummies. No pressure, infinite ultimates.', teams: false, objective: false },
@@ -519,7 +523,8 @@ export function buildLevelVisuals(scene, level) {
   const node = kit.toNode('Geometry'); root.add(node);
   const mkLight = (x, y, z, color, intensity, range) => { const l = new E.Light('point', { color, intensity, range }); l.position.set([x, y, z]); root.add(l); lights.push(l); };
   for (const t of [0, 1]) { const sp = level.spawns[t], c = [sp.reduce((a, p) => a + p[0], 0) / sp.length, sp.reduce((a, p) => a + p[2], 0) / sp.length]; for (const x of [-9, 9]) mkLight(c[0] + x, 6.2, c[1], '#ffe8c4', 10, 22); }
-  for (const [a, b, c, d] of level.decorZones || []) for (let z = b + 24; z <= d - 8; z += 48) mkLight((a + c) / 2, 4.4, z, theme.lamp, theme.neon ? 9 : 5, theme.neon ? 20 : 16);
+  // street lights centred in each decor zone, so mirrored maps stay mirrored
+  for (const [a, b, c, d] of level.decorZones || []) { const n = Math.floor((d - b - 16) / 48) + 1, z0 = (b + d) / 2 - (n - 1) * 24; for (let i = 0; i < n; i++) mkLight((a + c) / 2, 4.4, z0 + i * 48, theme.lamp, theme.neon ? 9 : 5, theme.neon ? 20 : 16); }
   for (const p of level.points) mkLight(p.pos[0], 7, p.pos[2], '#9fc4ff', 14, 24);
   if (level.arena) { for (const [x, z] of [[-30, -30], [30, -30], [-30, 30], [30, 30], [0, 0]]) mkLight(x, 8, z, '#ffb866', 12, 24); }
   scene.add(root);

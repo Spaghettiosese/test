@@ -1,5 +1,6 @@
 // Every map: spawns reach each other, the objective, every health pack, and most roofs.
 import { MAPS, makeLevel, buildNav, floodNav, nodeAt, snapNav } from '../src/maps.js';
+import { Sim } from '../src/sim.js';
 let failed = 0;
 const bad = (m) => { failed++; console.log('  FAIL', m); };
 for (const id of Object.keys(MAPS)) {
@@ -12,6 +13,10 @@ for (const id of Object.keys(MAPS)) {
   if (level.path) { for (const [x, z] of level.path) if (!reach([x, 0, z])) bad(`path node ${x},${z} unreachable`); for (let d = 0; d < level.pathLen; d += 5) { const s = level.pathInfo.seg.find((q) => d <= q.s + q.l) || level.pathInfo.seg.at(-1), tt = (d - s.s) / s.l; const x = s.a[0] + (s.b[0] - s.a[0]) * tt, z = s.a[1] + (s.b[1] - s.a[1]) * tt; if (!reach([x, 0, z])) { bad(`payload lane blocked at ${x.toFixed(0)},${z.toFixed(0)}`); break; } } }
   for (const f of level.fwd || []) for (const p of f) if (!reach(p)) bad(`forward spawn ${p} not connected`);
   for (const p of level.dmSpawns) if (!reach(p)) bad(`dm spawn ${p} not connected`);
+  for (const f of level.dspawns || []) for (const p of f) if (!reach(p)) bad(`defender forward spawn ${p} not connected`);
+  // every spawn slot (after snapping, as the sim does) must leave room for a hero to stand
+  { const sim = new Sim({ headless: true, map: id, mode: MAPS[id].modes[0], mutators: false });
+    for (const list of [...sim.level.spawns, ...(sim.level.dspawns || []), ...(sim.level.fwd || [])]) for (const p of list) if (sim.blockedAt(p[0], p[2], p[1] || 0, 0.7, 2)) bad(`spawn slot ${p.map((v) => v.toFixed(1))} is inside geometry`); }
   // roofs: layers above 3 m that the flood reaches vs. total
   let roof = 0, roofOk = 0;
   for (let n = 0; n < nav.surf.length; n++) if (nav.surf[n] > 3.9 && nav.surf[n] < 6.5) { roof++; if (seen[n]) roofOk++; }
