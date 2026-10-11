@@ -12,7 +12,7 @@ import { Voice, LINES } from './voice.js';
 import { Portraits } from './portraits.js';
 import { Hud, CommWheel, $, el } from './ui.js';
 import { MenuScreen, PlayScreen, SelectScreen, Gallery, CareerScreen, SettingsPanel, EndScreen, renderScoreboard, DIFFS } from './screens.js';
-import { Career, matchScore } from './stats.js';
+import { Career, matchScore, srDifficulty, rankFor } from './stats.js';
 import { Recorder, ReplayPlayer } from './replay.js';
 import { HERO, HEROES } from './heroes.js';
 import { PERKS } from './perks.js';
@@ -69,17 +69,25 @@ function startAttract() {
 }
 // Quick Play: a random mode, map and side, so the next match is never the same as the last
 const QUICK = ['escort', 'escort', 'hybrid', 'control', 'control', 'push', 'tdm'];
-let quickMatch = false, nextT = 0;
+let quickMatch = false, nextT = 0, rankedMatch = false;
+// Competitive: a random objective mode, bots at the skill of your rank for the role you play
+const RANKED = ['escort', 'hybrid', 'control', 'control', 'push'];
+function startRanked() {
+  settings.mode = RANKED[Math.floor(Math.random() * RANKED.length)];
+  const maps = Object.values(MAPS).filter((m) => m.modes.includes(settings.mode)); settings.map = maps[Math.floor(Math.random() * maps.length)].id;
+  settings.side = Math.random() < 0.5 ? 0 : 1; startMatch(true, { ranked: true });
+}
 function startQuick() {
   settings.mode = QUICK[Math.floor(Math.random() * QUICK.length)];
   const maps = Object.values(MAPS).filter((m) => m.modes.includes(settings.mode)); settings.map = maps[Math.floor(Math.random() * maps.length)].id;
   settings.side = Math.random() < 0.5 ? 0 : 1; startMatch(true);
 }
-function startMatch(quick = false) {
-  sfx.unlock(); voice.unlock(); stopReplay(true); save(); quickMatch = quick === true; nextT = 0;
+function startMatch(quick = false, opts = {}) {
+  sfx.unlock(); voice.unlock(); stopReplay(true); save(); quickMatch = quick === true; rankedMatch = !!opts.ranked; nextT = 0;
+  const diff = rankedMatch ? srDifficulty(career.ranked(HERO[settings.hero].role).sr) : settings.diff;
   const M = MODES[settings.mode], sym = settings.mode === 'control' || settings.mode === 'tdm' || settings.mode === 'elim' || settings.mode === 'push', team = M.teams ? (sym ? (Math.random() < 0.5 ? 0 : 1) : settings.side) : 0;
   const variant = quickMatch || settings.mode === 'training' ? null : settings.variant || null;
-  sim = new Sim({ playerTeam: M.teams ? team : 0, playerHero: settings.hero, difficulty: settings.diff, mutators: false, variant, seed: (Math.random() * 1e6) | 0, mode: settings.mode, map: settings.map, roster: true });
+  sim = new Sim({ playerTeam: M.teams ? team : 0, playerHero: settings.hero, difficulty: diff, mutators: false, variant, seed: (Math.random() * 1e6) | 0, mode: settings.mode, map: settings.map, roster: true });
   if (settings.mode === 'training') sim.setupT = 9999;
   recorder = new Recorder(sim); comms.reset(sim);
   view.attach(sim, { skin: effSkin(settings.hero) }); hud.reset(sim); view.fovH = settings.fov; paused = false; endShown = false; overT = 0; report = null; clipQueue = []; pendingKillcam = null; lastLowHp = -99;
@@ -198,11 +206,12 @@ function endMatch() {
   recorder?.finish(); const clips = recorder ? recorder.best(1) : [];
   const p = me(), won = sim.winner === sim.playerTeam || (sim.modeId === 'ffa' && sim.winnerUnit === p);
   report = sim.modeId === 'training' ? { gain: 0, parts: [], medals: [], before: career.level, after: career.level, leveled: false, challenges: [], score: matchScore(p.stats) } : career.commit(sim, p, won);
+  if (rankedMatch && report && sim.modeId !== 'training') report.ranked = career.commitRanked(p.def.role, won, report.score);
   if (clips.length && sim.modeId !== 'training') beginPotg(clips); else showReport();
 }
 function showReport() {
   mode = 'end'; hideAll(); const clips = recorder ? recorder.best(3) : [];
-  endScreen.render(sim, report, { clips, onAgain: () => { sfx.ui('select'); nextT = 0; if (quickMatch) startQuick(); else startMatch(); }, onMenu: () => { sfx.ui(); nextT = 0; toMenu(); }, onHighlights: () => { sfx.ui('select'); nextT = 0; clipQueue = []; beginPotg(recorder.best(3)); } });
+  endScreen.render(sim, report, { clips, onAgain: () => { sfx.ui('select'); nextT = 0; if (rankedMatch) startRanked(); else if (quickMatch) startQuick(); else startMatch(); }, onMenu: () => { sfx.ui(); nextT = 0; toMenu(); }, onHighlights: () => { sfx.ui('select'); nextT = 0; clipQueue = []; beginPotg(recorder.best(3)); } });
   if (quickMatch) { nextT = 20; const d = el('div', 'e-next', 'NEXT QUICK PLAY IN <b id="eNextT">20</b> <button class="btn ghost small" id="eNextX" type="button">STAY HERE</button>'); document.querySelector('#end .e-btns')?.before(d); $('eNextX').onclick = () => { nextT = 0; d.remove(); }; }
   menuScreen.refresh(settings);
 }
@@ -441,10 +450,18 @@ async function boot() {
   settingsPanel = new SettingsPanel(settings, sfx, applySettings);
   playScreen = new PlayScreen({ settings, sfx, onStart: () => { playScreen.close(); startMatch(); }, onBack: backToMenu });
   careerScreen = new CareerScreen(portraits, career, sfx); careerScreen.onBack = backToMenu; gallery.onBack = backToMenu;
-  menuScreen = new MenuScreen({ portraits, career, sfx, onPlay: openPlay, onQuick: () => startQuick(), onHeroes: openGallery, onCareer: openCareer, onSettings: () => settingsPanel.open(), onHelp: () => show('help') });
+  menuScreen = new MenuScreen({ portraits, career, sfx, onPlay: openPlay, onQuick: () => startQuick(), onRanked: () => startRanked(), onHeroes: openGallery, onCareer: openCareer, onSettings: () => settingsPanel.open(), onHelp: () => show('help') });
   hud.onUltReady = () => { const p = me(); if (p) voice.hero(p.hero, 'ready', { name: 'YOU', minGap: 25 }); };
   voice.unlock(); applySettings();
   startAttract(); hud.reset(sim); view.fovH = settings.fov;
+  // first launch: point new players at Basic Training
+  if (!settings.welcomed && !career.data.matches && !navigator.webdriver) {
+    const w = el('div', 'welcome panel', `<h2>WELCOME TO SHAPEWATCH</h2><p>A 5v5 hero shooter with 26 heroes. New here? Basic Training walks you through moving, shooting, abilities and your ultimate in a couple of minutes.</p><div class="w-btns"><button class="btn" id="wTrain" type="button">BASIC TRAINING</button><button class="btn ghost" id="wQuick" type="button">QUICK PLAY · EASY BOTS</button><button class="btn ghost small" id="wSkip" type="button">MAYBE LATER</button></div>`);
+    document.body.append(w); const done = () => { settings.welcomed = true; save(); w.remove(); };
+    $('wTrain').onclick = () => { done(); sfx.unlock(); settings.mode = 'training'; settings.map = 'foundry'; settings.variant = ''; startMatch(); };
+    $('wQuick').onclick = () => { done(); sfx.unlock(); settings.diff = 0; startQuick(); };
+    $('wSkip').onclick = () => { done(); sfx.ui(); };
+  }
   $('loading').hidden = true; mode = 'menu';
   window.__sw = { E, get sim() { return sim; }, view, hud, select, gallery, settings, career, voice, sfx, get recorder() { return recorder; }, get replay() { return replay; }, startMatch, startAttract, pauseGame, openHeroChange, openPlay, openGallery, openCareer, startReplay, endMatch, endKillcam, endClip, doPing, doCall, wheel, portraits, autoplay(on = true) { const u = sim.player; u.bot = on ? new Brain(sim, u, 1) : null; }, get mode() { return mode; }, set mode(m) { mode = m; }, keys, mouse, enterPlay, step: (n = 1) => { for (let i = 0; i < n; i++) { drivePlayer(); sim.step(HZ); if (replay) liteEvents(sim.events); else view.handle(sim.events); } } };
 }

@@ -103,6 +103,7 @@ export class Hud {
   }
   reset(sim) {
     this.sim = sim; this.hero = null; this.mode = sim.modeId; $('feed').innerHTML = ''; $('popups').innerHTML = ''; $('teamList').innerHTML = ''; this.teamEls.clear(); this.subEl.innerHTML = '';
+    $('trGoals')?.remove(); this.tg = null; this.lastSig.tg = null;
     for (const e of this.markEls.values()) e.remove(); this.markEls.clear(); this.dir.forEach((d) => d.el.remove()); this.dir = []; this.ultWasReady = false; this.recap = []; this.objKey = null;
     const mates = sim.units.filter((u) => u.team === sim.playerTeam && !u.deploy);
     if (sim.modeId !== 'ffa') for (const u of mates) {
@@ -224,6 +225,7 @@ export class Hud {
       const h = (this.trHist ||= []); h.push([sim.time, me.stats.dmg, me.stats.heal]); while (h.length > 2 && sim.time - h[0][0] > 3) h.shift();
       const span = Math.max(0.5, sim.time - h[0][0]), dps = (me.stats.dmg - h[0][1]) / span, hps = (me.stats.heal - h[0][2]) / span; this.trPeak = Math.max(this.trPeak || 0, dps);
       set('trDps', Math.round(dps)); set('trHps', Math.round(hps)); set('trPeak', Math.round(this.trPeak));
+      this.trainingGoals(me);
     }
     const mu = sim.mutator; $('mutBar').hidden = !mu;
     if (mu) { $('mutName').textContent = 'RIFT SURGE: ' + MUTATORS[mu.id].name; $('mutDesc').textContent = MUTATORS[mu.id].desc; $('mutT').textContent = Math.ceil(mu.t) + 's'; }
@@ -233,6 +235,19 @@ export class Hud {
     const sim = this.sim, me = sim.player, c = (this.seeC ||= new Map()), r = c.get(u.id);
     if (r && sim.time - r.t < 0.15) return r.v;
     const v = me.alive && sim.visibleTo(me, u) && sim.los(sim.eye(me), sim.center(u)); c.set(u.id, { t: sim.time, v }); return v;
+  }
+  // ---------------------------------------------------------------- training goals: a short checklist that teaches the basics
+  trainingGoals(me) {
+    const g = (this.tg ||= { moved: 0, last: [...me.pos], a1: false, a2: false, melee: false, done: false });
+    g.moved += Math.hypot(me.pos[0] - g.last[0], me.pos[2] - g.last[2]); g.last = [...me.pos];
+    if (me.cd.a1 > 0.3 || (me.def.a1.charges && me.charges < me.def.a1.charges)) g.a1 = true; if (me.cd.a2 > 0.3) g.a2 = true; if ((me.meleeT || 0) > 0) g.melee = true;
+    const list = [['Move around · WASD, SPACE to jump', g.moved > 15], ['Eliminate 3 targets', me.stats.elims >= 3], [`Use ${me.def.a1.name} · SHIFT`, g.a1], [`Use ${me.def.a2.name} · E`, g.a2],
+      ['Land 5 critical hits · aim for heads', me.stats.crits >= 5], ['Quick melee · V', g.melee], [`Fire ${me.def.ult.name} · Q`, me.stats.ults >= 1]];
+    if (me.def.role === 'support') list.push(['Heal the patients behind you', me.stats.heal >= 300]);
+    const sig = list.map((x) => +x[1]).join('') + me.hero; if (sig === this.lastSig.tg) return; this.lastSig.tg = sig;
+    let box = $('trGoals'); if (!box) { box = el('div', 'hud trgoals'); box.id = 'trGoals'; $('hud').append(box); }
+    const n = list.filter((x) => x[1]).length; box.innerHTML = `<h4>BASIC TRAINING · ${n} / ${list.length}</h4>` + list.map(([t, ok]) => `<div class="${ok ? 'ok' : ''}"><i>${ok ? '✔' : ''}</i>${t}</div>`).join('');
+    if (n === list.length && !g.done) { g.done = true; this.popup('TRAINING COMPLETE', 'streak', 'YOU ARE READY · TRY QUICK PLAY'); }
   }
   // ---------------------------------------------------------------- perks: the offer (press 1 or 2) and what you have picked
   updatePerks(me) {

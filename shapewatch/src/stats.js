@@ -46,6 +46,15 @@ export function masteryInfo(xp = 0) {
 }
 export const SKIN_UNLOCK = { default: 1, frosted: 2, noir: 4, gilded: 10, neon: 15, crimson: 20 };
 export const MASTERY_TITLES = { 5: 'Adept', 10: 'Expert', 15: 'Master', 20: 'Grandmaster' };
+// ------------------------------------------------------------------ competitive: a skill rating per role, five placements, bots that match your rank
+export const RANKS = [['BRONZE', 0, '#b07a4a'], ['SILVER', 1500, '#c3ccd8'], ['GOLD', 2000, '#ffcf5a'], ['PLATINUM', 2500, '#7fe0d0'], ['DIAMOND', 3000, '#8fb8ff'], ['MASTER', 3500, '#ffa64d'], ['GRANDMASTER', 4000, '#ff6ad0']];
+export function rankFor(sr) {
+  let i = 0; while (i < RANKS.length - 1 && sr >= RANKS[i + 1][1]) i++;
+  const [name, lo, color] = RANKS[i], hi = RANKS[i + 1]?.[1] ?? lo + 500, div = 5 - Math.min(4, Math.floor((sr - lo) / ((hi - lo) / 5)));
+  return { name, div, color, label: name + ' ' + div, tier: i };
+}
+// bot skill for a rating: Bronze bots are easy, Grandmaster bots play at the top level
+export const srDifficulty = (sr) => Math.max(0, Math.min(3, (sr - 1000) / 1000));
 // endorsement levels from lifetime endorsements
 export const endorseLevel = (n = 0) => (n >= 60 ? 5 : n >= 30 ? 4 : n >= 14 ? 3 : n >= 5 ? 2 : 1);
 const ENDORSE_KINDS = [['SHOTCALLER', (s) => s.pings >= 3 || s.obj > 40], ['GOOD TEAMMATE', (s) => s.assists >= 6 || s.heal > 2500], ['SPORTSMANSHIP', () => true]];
@@ -93,6 +102,13 @@ export class Career {
   get level() { return levelInfo(this.data.xp); }
   // fold a finished match into the career. returns what the end screen should show
   mastery(id) { return masteryInfo(this.data.heroes[id]?.mxp || 0); }
+  ranked(role) { const r = (this.data.ranked ||= {}); return (r[role] ||= { sr: 2000, games: 0, wins: 0 }); }
+  // fold a competitive result into that role's rating
+  commitRanked(role, won, score) {
+    const R = this.ranked(role), before = R.sr, placing = R.games < 5, perf = Math.max(-6, Math.min(6, (score - 1600) / 250));
+    const delta = Math.round((won ? 24 : -21) * (placing ? 2.2 : 1) + perf); R.sr = Math.max(500, Math.min(4800, R.sr + delta)); R.games++; if (won) R.wins++;
+    this.save(); return { role, before, after: R.sr, delta: R.sr - before, placing, placed: R.games === 5, games: R.games, rank: rankFor(R.sr), was: rankFor(before) };
+  }
   skinUnlocked(id, skin) { return this.mastery(id).level >= (SKIN_UNLOCK[skin] ?? 1); }
   // coaching notes for the end screen: how this match compares with your usual, and what killed you
   coach(sim, me) {

@@ -342,7 +342,7 @@ body.touch .kit { bottom: auto; top: 1rem; right: .8rem; } body.touch .vitals { 
 .h-tile[data-lv]:not([data-lv=""])::before { content: attr(data-lv); position: absolute; right: 1px; top: 1px; z-index: 1; font: 700 .55rem/1 var(--body); color: #1a1005; background: var(--gold); padding: 1px 3px; border-radius: 2px; }
 .chip-b.locked { opacity: .45; cursor: not-allowed; }
 /* end screen extras */
-.e-extras { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: .8rem; margin: .8rem 0; }
+.e-extras { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: .8rem; margin: .8rem 0; }
 .e-extras > .panel { padding: .7rem .9rem; } .e-extras h4 { margin: 0 0 .4rem; font: italic 700 1rem var(--display); letter-spacing: .06em; color: var(--gold); }
 .e-mh { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .4rem; } .e-mh b { font: italic 700 1rem var(--display); } .e-mh em { color: var(--gold); font: 700 .75rem var(--body); letter-spacing: .14em; font-style: normal; }
 .e-unlock { margin-top: .45rem; font: 700 .7rem var(--body); letter-spacing: .12em; color: #6dff9c; }
@@ -386,3 +386,12 @@ body.touch .kit { bottom: auto; top: 1rem; right: .8rem; } body.touch .vitals { 
 .vitals.low #vHp { color: #ff5a62; animation: pulse .8s infinite; }
 
 .push-track { position: relative; } .push-track .ob-fill.a { left: 50%; right: auto; } .push-track .ob-fill.d { right: 50%; left: auto; } .pu-mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: #fff; opacity: .7; }
+
+.e-rank .rk { display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: .5rem; } .e-rank .rk i { width: 1.1rem; height: 1.1rem; transform: rotate(45deg); box-shadow: 0 0 8px currentColor; }
+.e-rank .rk b { font: italic 800 1.3rem var(--display); } .e-rank .rk span { color: var(--dim); font: 700 .72rem var(--body); letter-spacing: .12em; } .e-rank .rk em { font: italic 800 1.1rem var(--display); font-style: normal; } .e-rank .rk em.up { color: #6dff9c; } .e-rank .rk em.down { color: #ff8a8f; }
+.rv-ranks { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; margin-bottom: .8rem; } .rv-ranks div { display: grid; background: rgba(255,255,255,.05); padding: .35rem .5rem; border-radius: .3rem; } .rv-ranks span { font: 700 .62rem var(--body); letter-spacing: .14em; color: var(--dim); } .rv-ranks b { font: italic 800 1rem var(--display); } .rv-ranks small { font-size: .62rem; color: var(--dim); }
+.trgoals { right: 1.6rem; top: 12rem; width: 17rem; background: rgba(6, 10, 22, .72); border: 1px solid var(--line); border-radius: .4rem; padding: .5rem .7rem; zoom: var(--hud-scale, 1); }
+.trgoals h4 { margin: 0 0 .35rem; font: italic 700 .95rem var(--display); letter-spacing: .05em; color: var(--gold); } .trgoals div { display: flex; gap: .45rem; align-items: center; font: 600 .72rem var(--body); color: #cfe0ff; padding: .1rem 0; }
+.trgoals i { width: .95rem; height: .95rem; border: 1px solid var(--line); border-radius: 2px; display: grid; place-items: center; font-style: normal; font-size: .65rem; color: #1a1005; } .trgoals .ok { color: #8f9bb0; text-decoration: line-through; } .trgoals .ok i { background: var(--gold); border-color: var(--gold); }
+.welcome { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 40; width: min(36rem, calc(100vw - 2rem)); padding: 1.4rem 1.6rem; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+.welcome h2 { margin: 0 0 .5rem; font: italic 800 2rem var(--display); color: var(--orange); } .welcome p { margin: 0 0 1rem; color: #cfe0ff; font-size: .9rem; } .w-btns { display: flex; gap: .7rem; justify-content: center; flex-wrap: wrap; }
