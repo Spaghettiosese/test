@@ -499,6 +499,12 @@ features('Home', [
   'Take a warm bath once a day for energy and cozy',
   'A kotatsu appears in the entry hall in winter: sit in it to warm up',
   'The cat tower, Mochi\'s bed and toy basket have a home in the sunny entry hall',
+  'Each room of the house has its own look: tiled kitchen, sky-blue bath, rose bedroom, plank living room and sunroom',
+  'The attic: Grandma\'s old trunk, the mystery corkboard, stacked boxes, a dress form and a round window',
+  'Indoors, rain and snow appear only through the windows, never inside',
+  'Lamps, banker lamps, cafe pendant lights, the drinks fridge and the arcade cabinet glow after dark',
+  'The clock tower is dim and lantern-lit, with a wall clock that keeps the town\'s time',
+  'Sit at Cafe Kumo\'s window seat to people-watch for a little cozy',
 ]);
 features('Town', [
   'Cafe Kumo interior: pastry case, espresso machine, four tables, a window seat and a karaoke corner',

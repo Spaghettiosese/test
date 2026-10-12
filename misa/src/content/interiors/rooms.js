@@ -122,7 +122,7 @@ function wallKey(world, game) {
 }
 const isWall = (m, x, y) => { const t = x < 0 || y < 0 || x >= m.w || y >= m.h ? null : m.tiles[y][x]; return !!(t && t.wall); };
 const isFloor = (m, x, y) => { const t = x < 0 || y < 0 || x >= m.w || y >= m.h ? null : m.tiles[y][x]; return !!(t && !t.solid && !t.wall); };
-export function faceAt(m, tx, ty) { return isWall(m, tx, ty) && isFloor(m, tx, ty + 1); }
+export function faceAt(m, tx, ty) { return isWall(m, tx, ty) && isFloor(m, tx, ty + 1) && (isWall(m, tx - 1, ty) || isWall(m, tx + 1, ty)); }
 
 function buildWalls(world) {
   const m = world.map, def = m.def, W = m.w * T2, H = m.h * T2;

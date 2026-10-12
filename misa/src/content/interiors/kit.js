@@ -9,9 +9,24 @@ export const C = RAMPS;
 export { hash };
 
 // Define an hd prop sprite with a selective outline (skips names that already exist, so variants can share code).
+// Drawing is clipped to the sprite box so the outline always has room.
+function clipR(R0, W, H, ox = 0, oy = 0) {
+  const R = (x, y, w, h, c) => { x += ox; y += oy; const x0 = Math.max(0, Math.round(x)), y0 = Math.max(0, Math.round(y)), x1 = Math.min(W, Math.round(x + w)), y1 = Math.min(H, Math.round(y + h)); if (x1 > x0 && y1 > y0) R0(x0, y0, x1 - x0, y1 - y0, c); };
+  R.e = (cx, cy, rx, ry, c) => { for (let y = -ry; y <= ry; y++) { const w = Math.floor(rx * Math.sqrt(Math.max(0, 1 - (y * y) / (ry * ry || 1))) + 0.5); R(cx - w, cy + y, w * 2 + 1, 1, c); } };
+  R.t = (a, b, cc, c) => {
+    const pts = [a, b, cc], ys = pts.map((p) => p[1]);
+    for (let y = Math.min(...ys); y <= Math.max(...ys); y++) {
+      let lo = Infinity, hi = -Infinity;
+      for (let i = 0; i < 3; i++) { const [x1, y1] = pts[i], [x2, y2] = pts[(i + 1) % 3]; if (y1 === y2) { if (y1 === y) { lo = Math.min(lo, x1, x2); hi = Math.max(hi, x1, x2); } continue; } if ((y - y1) * (y - y2) <= 0) { const x = x1 + ((y - y1) * (x2 - x1)) / (y2 - y1); lo = Math.min(lo, x); hi = Math.max(hi, x); } }
+      if (lo <= hi) R(Math.round(lo), y, Math.round(hi) - Math.round(lo) + 1, 1, c);
+    }
+  };
+  R.at = (dx, dy) => clipR(R0, W, H, ox + dx, oy + dy);
+  return R;
+}
 export function S(name, w, h, draw, opts = {}) {
   if (SPRITES[name]) return name;
-  defineSprite(name, w, h, draw, { hd: true, outline: 'selective', ...opts });
+  defineSprite(name, w, h, (R0, ctx) => draw(clipR(R0, w, h), ctx), { hd: true, outline: 'selective', ...opts });
   return name;
 }
 // Flat decal (rugs, floor marks): no outline.

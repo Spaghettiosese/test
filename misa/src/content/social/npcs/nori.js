@@ -1,0 +1,57 @@
+import { npc, sc, ch, backdrop, fade, time, giveOr, mood, sfx } from '../util.js';
+
+const call = [sfx('phone'), '@An incoming video call! The screen is mostly a pink sweater.', backdrop('soc_call_nori')];
+const hang = [backdrop(null)];
+
+npc('nori', {
+  name: 'Aunt Nori', role: 'Illustrator in the city, Mum\'s younger sister', color: '#7a4ac8', hidden: true,
+  bio: 'Nori Kanda: long purple-dyed hair, big round glasses, an oversized pink sweater and a beret. Whimsical, chaotic, spoils Misa rotten and sends parcels "for a cozier home".',
+  look: { hair: '#7a4ac8', top: '#e8a8b8', bottom: '#4a3a5a', skin: '#f6d6c0', eyes: '#3a2a4a', accent: '#2a2a2a' },
+  birthday: { season: 'summer', day: 1 },
+  hint: 'in the city, drawing. Phone and parcels; she visits for Hanami, the Summer Matsuri and Starry Eve.',
+  schedule: [],
+  gifts: { love: ['gift_fancy_ink', 'gift_mochi_paw_print'], like: ['gift_cute_stationery', 'drink_green_tea'], dislike: ['crop_spinach', 'misc_mud'], hate: [], likeTags: ['sweet', 'sea_glass'], dislikeTags: ['bug'] },
+  lines: {
+    default: ['happy|MISA! My favourite niece! My only niece! Still counts!', 'I drew you a picture of Mochi as a dragon. She\'s breathing fish. It\'s my best work.'],
+    textReply: ['happy|(Text) MISAAA! I spilled ink on my cat. He\'s blue now. He loves it.', '(Text) Drawing a picture book about a sleepy whale. Thinking of you!', 'happy|(Text) Parcel coming!! Don\'t peek!! (Peek a little.)'],
+  },
+  texts: {
+    any: ['Hi sweetie! Just finished a commission. Celebrating with three cakes. One for you, in spirit.', 'Is the house cozy enough? I can send more cushions. I have so many cushions.', 'Saw a cat that looked like Mochi on the train. Waved. It did not wave back.', 'New Star Catalogue items up! Use your stickers, sweetie!', 'Drew a lighthouse today. I don\'t know why. It just came out of my pen.'],
+  },
+  events: [
+    { id: 'nori_h2', hearts: 2, map: 'home', when: 'time>=17:00&time<22:00',
+      script: () => sc('nori', ...call, 'happy|Sweetie! I sent you a parcel! Guess what\'s in it! Three guesses!',
+        ch('Guess one!',
+          ['A cushion', 'happy|WARM! Very warm! But no!', 10],
+          ['Something for Mochi', 'happy|Ooh, close! It\'s for you, but Mochi will steal it!', 15]),
+        ch('Final guess!',
+          ['A blanket!', 'happy|YES! A star blanket! For the sofa! I embroidered every star myself! Some are crooked!', 25],
+          ['A whole sofa', 'happy|Ha! Next year. This year, a blanket!', 20]),
+        ...hang, giveOr('furn_star_blanket', 50), mood(10)) },
+    { id: 'nori_h4', hearts: 4, map: 'home', when: 'time>=7:00&time<10:00',
+      script: () => sc('nori', '@Misa wakes up to find the living room... different. Very different.',
+        '@Fairy lights. A new rug. Three new cushions. A small painting of Mochi wearing a crown. Aunt Nori is asleep on the sofa under a pile of fabric.',
+        'sleepy|Mm? Oh! Surprise! I took the night train! I couldn\'t help myself!', 'happy|Do you like it? Be honest. Be nice. Be honestly nice.',
+        ch('What do you think?',
+          ['I love it!', 'happy|YAY! Mochi, she loves it! ...Mochi is judging the crown painting.', 30],
+          ['It\'s a lot', 'happy|It IS a lot! That\'s my whole style! You can take some back. Not the crown painting.', 25],
+          ['Where did you get a rug at 2 AM?', 'happy|I have my ways. Don\'t tell your mum.', 30]),
+        mood(15)) },
+    { id: 'nori_h6', hearts: 6, map: 'town', when: 'weekend&time>=10:00&time<17:00',
+      script: () => sc('nori', '@Aunt Nori pops out from behind the fountain, sketchbook in hand.', 'happy|Sweetie! I\'m here for the day! Walk me around town! I want to draw everything!',
+        fade(1, 0.6), '@An afternoon of sketching: the fountain, the clock tower, Mika waving from the cafe, Captain Jun pretending not to pose.', fade(0, 0.6),
+        ch('Which sketch is your favourite?',
+          ['The harbour at sunset', 'happy|Mine too! I\'m making it a postcard!', 25],
+          ['The one of you and me', 'happy|...That one\'s for your wall. And mine.', 35]),
+        'I\'m going to turn these into postcards! You\'ll get one in the mail from every spot!', mood(15), time(180)) },
+    { id: 'nori_h8', hearts: 8, map: 'home', when: 'time>=18:00&time<22:00',
+      script: () => sc('nori', ...call, 'Misa. I have a confession. A good confession. Look what I found in my studio.',
+        '@A faded poster: "STARLIGHT FESTIVAL" over a painted lighthouse throwing a star-shaped beam across the bay. Tiny signature in the corner: N. Kanda, age 16.',
+        'happy|I painted the poster for the last Starlight Festival. My first real commission! They paid me in takoyaki.',
+        'It\'s been rolled up in a tube for twenty years. It belongs in that house. With you. I\'m posting it tomorrow.',
+        ch('What do you say?',
+          ['It\'s beautiful, Aunt Nori', '*>heart', 'happy|Stop, you\'ll make me cry on my good sweater!', 40],
+          ['You\'ve been an artist since you were 16?', 'happy|Since I was six! Sixteen is when someone finally paid me. In takoyaki.', 35]),
+        ...hang, giveOr('furn_festival_poster', 100), mood(15)) },
+  ],
+});

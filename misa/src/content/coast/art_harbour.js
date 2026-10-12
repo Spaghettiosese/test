@@ -82,8 +82,7 @@ def('coast_rope', 20, 12, (R) => {
 }, sel);
 def('coast_lifering', 20, 40, (R) => {
   R(8, 12, 4, 28, WD[2]); R(8, 12, 1, 28, WD[3]);
-  R.e(10, 10, 9, 9, C.leafAutumn[2]); R.e(10, 10, 4, 4, 'rgba(0,0,0,0)');
-  for (let y = -4; y <= 4; y++) { const w = Math.floor(4 * Math.sqrt(1 - (y * y) / 17)); R(10 - w, 10 + y, w * 2 + 1, 1, '#00000000'); }
+  for (let y = -9; y <= 9; y++) for (let x = -9; x <= 9; x++) { const d = x * x + y * y; if (d <= 85 && d > 20) px(R, 10 + x, 10 + y, d < 40 ? C.leafAutumn[1] : C.leafAutumn[2]); }
   R(1, 8, 4, 4, P[4]); R(15, 8, 4, 4, P[4]); R(8, 1, 4, 3, P[4]); R(8, 16, 4, 3, P[4]);
   R(3, 4, 3, 2, C.leafAutumn[3]); R(13, 15, 3, 2, C.leafAutumn[1]);
 }, sel);
