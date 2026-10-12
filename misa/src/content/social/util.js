@@ -202,3 +202,5 @@ register('command', 'soc_step', {
   },
 });
 export const stepBy = (who, dx, dy) => ({ t: 'soc_step', who, dx, dy });
+// Remember a heart-event choice with today's day number (friends bring it up on a later day).
+export const mark = (k) => ({ t: 'call', fn: (g) => g.setFlag(k, g.day) });

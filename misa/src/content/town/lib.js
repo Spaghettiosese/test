@@ -12,8 +12,26 @@ const SUMMER = materials('summer');
 // opts.seasonal makes M the season-swapped materials; otherwise M is the summer set.
 export function spr(name, w, h, draw, opts = {}) {
   const { seasonal = false, outline = 'selective', flip = false } = opts;
-  defineSprite(name, w, h, (R, ctx) => draw(R, seasonal && ctx && ctx.M ? ctx.M : SUMMER, (ctx && ctx.season) || 'summer'), { hd: true, outline: outline || false, seasonal, flip });
+  defineSprite(name, w, h, (R0, ctx) => draw(clipR(R0, w, h), seasonal && ctx && ctx.M ? ctx.M : SUMMER, (ctx && ctx.season) || 'summer'), { hd: true, outline: outline || false, seasonal, flip });
   return name;
+}
+// Drawing API clipped to the content box, so outlines always have room.
+function clipR(R0, W, H) {
+  const R = (x, y, w, h, c) => { const x0 = Math.max(0, x), y0 = Math.max(0, y), x1 = Math.min(W, x + w), y1 = Math.min(H, y + h); if (x1 > x0 && y1 > y0) R0(x0, y0, x1 - x0, y1 - y0, c); };
+  R.e = (cx, cy, rx, ry, c) => { for (let y = -ry; y <= ry; y++) { const w = Math.floor(rx * Math.sqrt(Math.max(0, 1 - (y * y) / (ry * ry || 1))) + 0.5); R(cx - w, cy + y, w * 2 + 1, 1, c); } };
+  R.t = (a, b, cc, c) => {
+    const pts = [a, b, cc], ys = pts.map((p) => p[1]);
+    for (let y = Math.min(...ys); y <= Math.max(...ys); y++) {
+      let lo = Infinity, hi = -Infinity;
+      for (let i = 0; i < 3; i++) {
+        const [x1, y1] = pts[i], [x2, y2] = pts[(i + 1) % 3];
+        if (y1 === y2) { if (y1 === y) { lo = Math.min(lo, x1, x2); hi = Math.max(hi, x1, x2); } continue; }
+        if ((y - y1) * (y - y2) <= 0) { const x = x1 + ((y - y1) * (x2 - x1)) / (y2 - y1); lo = Math.min(lo, x); hi = Math.max(hi, x); }
+      }
+      if (lo <= hi) R(Math.round(lo), y, Math.round(hi) - Math.round(lo) + 1, 1, c);
+    }
+  };
+  return R;
 }
 export const sprW = (name) => { const d = SPRITES[name]; return d ? d.w - 2 * (d.pad || 0) : 0; };
 export const sprH = (name) => { const d = SPRITES[name]; return d ? d.h - 2 * (d.pad || 0) : 0; };

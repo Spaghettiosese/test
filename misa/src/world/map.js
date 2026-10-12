@@ -40,7 +40,11 @@ export function buildMap(id) {
     const out = { solid: true, w: 1, h: 1, ...o, key: `${id}#${i}` };
     if (o.use) { // shared interactions registered by systems: register('interaction', id, { label, run, when?, sprFn?, overlay? })
       const it = get('interaction', o.use);
-      if (!it) throw new Error(`map ${id}: interaction "${o.use}" is not registered`);
+      if (!it) { // the validator reports this; at runtime keep the game playable
+        console.warn(`map ${id}: interaction "${o.use}" is not registered`);
+        out.interact = { label: 'Look', run: (g) => g.toast && g.toast('Nothing to do here yet.') };
+        return out;
+      }
       out.interact = it; if (it.sprFn) out.sprFn = it.sprFn; if (it.overlay) out.overlay = it.overlay;
     }
     return out;
