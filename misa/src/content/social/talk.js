@@ -110,15 +110,7 @@ export function reactionSteps(game, id, r) {
 
 register('system', 'socialTalk', {
   init(game) {
-    for (const id of SOCIAL_NPCS) {
-      const def = get('npc', id);
-      if (!def || def.hidden) continue;
-      register('talkHook', 'soc_react_' + id, {
-        npc: id, priority: -10,
-        when: (g) => !!pendingReaction(g, id),
-        steps: (g) => reactionSteps(g, id, pendingReaction(g, id)),
-      });
-    }
+    registerReactionHooks();
     // gift extras: a cheerful mood adds 10%, a grumpy one takes 10% off; repeating a bad gift upsets them
     game.bus.on('gift', ({ npc, item, reaction }) => {
       const f = game.friend(npc), m = npcMood(game, npc), base = { love: 80, like: 45, neutral: 20 }[reaction];
