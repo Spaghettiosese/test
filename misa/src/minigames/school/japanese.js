@@ -109,7 +109,7 @@ export class KanjiGame extends CardGame {
       // arrow head at the end and a moving guide
       const end = pts[pts.length - 1], pre = pointAt(pts, this.len - 8);
       const ang = Math.atan2(end[1] - pre[1], end[0] - pre[0]);
-      for (let k = 0; k < 6; k++) { const a1 = ang + 2.5, a2 = ang - 2.5; line(g, R[1], end[0], end[1], end[0] + Math.cos(a1) * 7, end[1] + Math.sin(a1) * 7, 2); line(g, R[1], end[0], end[1], end[0] + Math.cos(a2) * 7, end[1] + Math.sin(a2) * 7, 2); }
+      { const a1 = ang + 2.5, a2 = ang - 2.5; line(g, R[1], end[0], end[1], end[0] + Math.cos(a1) * 7, end[1] + Math.sin(a1) * 7, 2); line(g, R[1], end[0], end[1], end[0] + Math.cos(a2) * 7, end[1] + Math.sin(a2) * 7, 2); }
       if (!this.started) { const gp = pointAt(pts, ((this.t * 50) % (this.len + 20))); disc(g, R[3], gp[0], gp[1], 2); }
       disc(g, INK, pts[0][0], pts[0][1], 6); disc(g, R[2], pts[0][0], pts[0][1], 5);
       txtC(g, String(this.si + 1), pts[0][0] + 1, pts[0][1] - 2, K.paper[4]);

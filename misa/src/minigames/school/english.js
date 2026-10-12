@@ -25,7 +25,7 @@ export class ScrambleGame extends CardGame {
     const maxL = Math.round(5 + this.diff * 5), pool = WORDS.filter(([w]) => w.length <= maxL && w.length >= (this.diff > 0.6 ? 5 : 3));
     this.list = [];
     while (this.list.length < this.need && pool.length) this.list.push(pool.splice(Math.floor(this.rng() * pool.length), 1)[0]);
-    Object.assign(this, { wi: 0, solved: 0, hints: 0, misses: 0, wait: 0, sel: 0 });
+    Object.assign(this, { wi: 0, solved: 0, hints: 0, hintsTotal: 0, misses: 0, wait: 0, sel: 0 });
     this.load();
   }
   load() {
