@@ -11,8 +11,8 @@ npc('goro', {
     { stops: [{ at: '06:30', map: 'lane', spot: 'crossroad' }, { at: '07:15', map: 'park', spot: 'pond_edge' }, { at: '08:00', map: 'lane', spot: 'goro_garden' }, { at: '12:00', map: 'goro_house', spot: 'kitchen' }, { at: '14:00', map: 'mart', spot: 'aisle_1' }, { at: '15:00', map: 'park', spot: 'bench' }, { at: '16:00', map: 'lane', spot: 'goro_garden' }, { at: '18:30', map: 'lane', spot: 'crossroad' }, { at: '19:30', map: null }] },
   ],
   gifts: {
-    love: ['crop_giant_pumpkin', 'dish_umeboshi', 'mat_premium_fertiliser'],
-    like: ['drink_green_tea', 'dish_onigiri'],
+    love: ['crop_giant_pumpkin', 'ing_umeboshi', 'mat_premium_fertiliser'],
+    like: ['bev_green_tea', 'snack_onigiri_salmon'],
     dislike: ['misc_weeds', 'dish_canned_corn', 'bug_frog'],
     hate: [],
     likeTags: ['vegetable', 'crop'],
@@ -83,7 +83,7 @@ npc('goro', {
   },
   perks: {
     4: { item: 'seed_giant_pumpkin', coins: 80, text: 'Some of my pumpkin seeds. Not the famous ones. Those are a secret. These are second best. Still better than yours.' },
-    6: { items: ['crop_tomato', 'crop_cucumber', 'dish_umeboshi'], coins: 30 },
+    6: { items: ['crop_tomato', 'crop_cucumber', 'ing_umeboshi'], coins: 30 },
     8: { text: 'Goro will leave vegetables from his garden at your gate every Saturday.', weekday: 5, weekly: { text: 'Left some vegetables at your gate. Too many again. Eat them.', items: ['crop_tomato', 'crop_cucumber', 'crop_pumpkin', 'crop_eggplant'], coins: 40 } },
   },
   events: [

@@ -10,7 +10,7 @@ npc('nori', {
   birthday: { season: 'summer', day: 1 },
   hint: 'in the city, drawing. Phone and parcels; she visits for Hanami, the Summer Matsuri and Starry Eve.',
   schedule: [],
-  gifts: { love: ['gift_fancy_ink', 'gift_mochi_paw_print'], like: ['gift_cute_stationery', 'drink_green_tea'], dislike: ['crop_spinach', 'misc_mud'], hate: [], likeTags: ['sweet', 'sea_glass'], dislikeTags: ['bug'] },
+  gifts: { love: ['mat_ink', 'gift_mochi_paw_print'], like: ['gift_cute_stationery', 'bev_green_tea'], dislike: ['ing_spinach', 'misc_mud'], hate: [], likeTags: ['sweet', 'sea_glass'], dislikeTags: ['bug'] },
   lines: {
     default: ['happy|MISA! My favourite niece! My only niece! Still counts!', 'I drew you a picture of Mochi as a dragon. She\'s breathing fish. It\'s my best work.'],
     textReply: ['happy|(Text) MISAAA! I spilled ink on my cat. He\'s blue now. He loves it.', '(Text) Drawing a picture book about a sleepy whale. Thinking of you!', 'happy|(Text) Parcel coming!! Don\'t peek!! (Peek a little.)'],

@@ -11,9 +11,9 @@ npc('rina', {
     { stops: [{ at: '10:00', map: 'sunny_pines', spot: 'lounge' }, { at: '12:15', map: null }, { at: '14:00', map: 'cafe', spot: 'table_3' }, { at: '17:00', map: null }] },
   ],
   gifts: {
-    love: ['dish_strawberry_shortcake', 'gift_violin_rosin', 'gift_gold_stationery'],
-    like: ['drink_black_tea', 'dish_macarons', 'drink_green_tea'],
-    dislike: ['dish_mysterious_lump', 'gift_cheap_candy', 'crop_seaweed'],
+    love: ['snack_strawberry_shortcake', 'gift_violin_rosin', 'gift_gold_stationery'],
+    like: ['gift_tea_tin', 'snack_macarons', 'bev_green_tea'],
+    dislike: ['dish_mysterious_lump', 'snack_candy', 'crop_seaweed'],
     hate: [],
     likeTags: ['flower'],
   },
@@ -85,7 +85,7 @@ npc('rina', {
   },
   perks: {
     4: { item: 'gift_gold_stationery', coins: 80, text: 'Here are my spare gold star stickers. Use them on your best homework only. That\'s the rule.' },
-    6: { items: ['drink_black_tea', 'dish_macarons', 'gift_gold_stationery'], coins: 30 },
+    6: { items: ['gift_tea_tin', 'snack_macarons', 'gift_gold_stationery'], coins: 30 },
     8: { text: 'Rina tutored you all evening. Your study skill improves!', apply: (g) => g.addXP('study', 120) },
   },
   followups: [

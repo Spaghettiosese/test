@@ -5,6 +5,7 @@ import { blankInput } from './input.js';
 import { loadOverrides } from './artcache.js';
 import { loadImage } from './gfx/chars.js';
 import * as audio from './audio.js';
+import { installTouchControls } from './touch.js';
 import { all } from './core/registry.js';
 import './content/index.js';
 
@@ -14,9 +15,14 @@ const g = cv.getContext('2d');
 g.imageSmoothingEnabled = false;
 
 function fit() {
-  const aw = Math.min(innerWidth - 16, 1600), ah = innerHeight - (document.getElementById('hint') ? 40 : 8);
-  const fs = Math.min(aw / VW, ah / VH), s = fs >= 1 ? Math.floor(fs) : fs;
+  // With touch controls in portrait, keep the lower part of the screen free for the thumbs.
+  const touch = document.body.classList.contains('touch'), portrait = innerHeight > innerWidth;
+  const aw = Math.min(innerWidth - (touch ? 0 : 16), 1600);
+  const ah = touch ? (portrait ? innerHeight * 0.56 : innerHeight) : innerHeight - (document.getElementById('hint') ? 40 : 8);
+  const fs = Math.min(aw / VW, ah / VH), s = fs >= 1 && !touch ? Math.floor(fs) : fs; // phones: fill the screen
   cv.style.width = VW * s + 'px'; cv.style.height = VH * s + 'px';
+  document.body.style.alignItems = touch && portrait ? 'flex-start' : 'center';
+  if (touch && portrait) cv.style.marginTop = '8px'; else cv.style.marginTop = '';
 }
 addEventListener('resize', fit); fit();
 
@@ -33,6 +39,11 @@ addEventListener('keydown', (e) => {
   audio.unlock();
 });
 addEventListener('keyup', (e) => input.keys.delete(e.key.toLowerCase()));
+installTouchControls({
+  press: (k) => { if (!input.keys.has(k)) pressedNow.add(k); input.keys.add(k); audio.unlock(); },
+  release: (k) => input.keys.delete(k),
+  onLayout: fit,
+});
 addEventListener('blur', () => input.keys.clear());
 function ptr(e) {
   const r = cv.getBoundingClientRect();

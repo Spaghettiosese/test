@@ -13,8 +13,8 @@ npc('kiko', {
     { stops: [{ at: '06:00', map: 'shrine', spot: 'steps' }, { at: '08:00', map: 'shrine', spot: 'fortune_stand' }, { at: '17:00', map: 'mart', spot: 'aisle_1' }, { at: '18:00', map: null }, { at: '19:00', map: 'shrine', spot: 'torii' }, { at: '21:00', map: null }] },
   ],
   gifts: {
-    love: ['dish_limited_pudding', 'toy_retro_cartridge', 'dish_sakura_mochi'],
-    like: ['drink_green_tea', 'flower_plum_blossom'],
+    love: ['snack_limited_pudding', 'gift_retro_cartridge', 'snack_sakura_mochi'],
+    like: ['bev_green_tea', 'flower_plum_blossom'],
     dislike: ['misc_crushed_can', 'crop_garlic', 'gift_fake_charm'],
     hate: [],
     likeTags: ['sweet'],
@@ -83,7 +83,7 @@ npc('kiko', {
   },
   perks: {
     4: { item: 'gift_omamori', coins: 80, text: 'An omamori charm from the shrine. It\'s for good friendship. I made it myself. Don\'t open it.' },
-    6: { items: ['dish_limited_pudding', 'gift_omamori', 'dish_sakura_mochi'], coins: 30 },
+    6: { items: ['snack_limited_pudding', 'gift_omamori', 'snack_sakura_mochi'], coins: 30 },
     8: { text: 'Kiko will tell you a fortune the first time you see her each day.',
       daily: (g) => { const f = FORTUNES[g.day % FORTUNES.length]; g.addMood(f.startsWith('Great') ? 8 : 4); g.toast('Fortune: ' + f.split('.')[0], 'i_star'); },
       dailyLine: ['Your fortune today, Misa. I picked it myself.', '@Kiko unfolds a slip of paper and reads it with great seriousness.'] },

@@ -12,9 +12,9 @@ npc('suzu', {
     { stops: [{ at: '10:00', map: 'library', spot: 'table_2' }, { at: '16:00', map: 'shrine', spot: 'steps' }, { at: '18:00', map: null }] },
   ],
   gifts: {
-    love: ['book_mystery_novel', 'drink_jasmine_tea', 'gift_pressed_bookmark'],
-    like: ['dish_melon_bread', 'gift_fountain_ink', 'drink_green_tea'],
-    dislike: ['drink_energy', 'fish_raw_squid'],
+    love: ['book_mystery', 'bev_jasmine_tea', 'gift_pressed_flower'],
+    like: ['snack_melon_bread', 'mat_ink', 'bev_green_tea'],
+    dislike: ['bev_energy_drink', 'fish_raw_squid'],
     hate: ['bug_cockroach'],
     likeTags: ['book', 'tea'], dislikeTags: ['bug'],
   },
@@ -83,9 +83,9 @@ npc('suzu', {
     },
   },
   perks: {
-    4: { item: 'book_mystery_novel', coins: 80, text: 'I\'m lending you my favourite mystery. Permanently. It\'s a gift. Please don\'t spoil the ending for Kai.' },
-    6: { items: ['drink_jasmine_tea', 'book_mystery_novel', 'gift_pressed_bookmark'], coins: 30 },
-    8: { text: 'Suzu will send you a book she thinks you\'ll like every Monday.', weekday: 0, weekly: { text: 'Book of the week! I think you\'ll like this one. Tell me when you reach chapter five.', items: ['book_mystery_novel', 'book_poetry', 'book_star_atlas'], coins: 40 } },
+    4: { item: 'book_mystery', coins: 80, text: 'I\'m lending you my favourite mystery. Permanently. It\'s a gift. Please don\'t spoil the ending for Kai.' },
+    6: { items: ['bev_jasmine_tea', 'book_mystery', 'gift_pressed_flower'], coins: 30 },
+    8: { text: 'Suzu will send you a book she thinks you\'ll like every Monday.', weekday: 0, weekly: { text: 'Book of the week! I think you\'ll like this one. Tell me when you reach chapter five.', items: ['book_mystery', 'book_poetry', 'book_star_atlas'], coins: 40 } },
   },
   followups: [
     { flag: 'soc_suzu_ms_love', line: ['happy|I wrote two more pages because of what you said. About my manuscript. I just wanted you to know.'] },
@@ -133,7 +133,7 @@ npc('suzu', {
         '>happy|Because it wasn\'t boring. It was wonderful.',
         'happy|...I\'m going to need you in the front row.', time(60), mood(10), leave('suzu')) },
     { id: 'suzu_h8', hearts: 8, map: 'cafe', when: 'time>=17:30&time<19:30',
-      thanks: 'It\'s yours. Every page. The cat on the cover is Mochi, in case that wasn\'t obvious.', thanksItem: 'gift_picture_book',
+      thanks: 'It\'s yours. Every page. The cat on the cover is Mochi, in case that wasn\'t obvious.', thanksItem: 'book_picture_book',
       script: () => sc('suzu', ...open('suzu'),
         'Misa. Sit. I have something for you. Don\'t look. Okay, look.',
         '@A hand-bound picture book: "The Girl and the Lantern Cat". On the cover, a girl with a brown bob and an orange cat look up at a lighthouse.',
@@ -143,7 +143,7 @@ npc('suzu', {
           ['(Hug her)', '*heart', 'surprised|Oh! Okay. Okay, hugging. I am hugging. This is... good.', 35],
           ['Will you sign it?', 'happy|My first autograph. "To my partner. Case closed. Love, Suzu."', 30],
           ['The drawings are beautiful', 'happy|...They are a bit beautiful, aren\'t they? Mochi was hard. She has so many opinions in her face.', 30]),
-        giveOr('gift_picture_book', 150),
+        giveOr('book_picture_book', 150),
         'happy|Thank you for reading me, Misa. Not just the book. Me.', mood(15), time(30), leave('suzu')) },
   ],
 });

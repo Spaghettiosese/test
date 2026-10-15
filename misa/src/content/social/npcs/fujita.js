@@ -15,9 +15,9 @@ npc('fujita', {
     { stops: [{ at: '10:00', map: 'library', spot: 'archive' }, { at: '12:00', map: null }, { at: '20:00', map: 'shrine', spot: 'lookout' }, { at: '22:00', map: null }] },
   ],
   gifts: {
-    love: ['drink_black_coffee', 'min_meteorite', 'gift_star_chart'],
-    like: ['dish_dark_chocolate', 'drink_coffee'],
-    dislike: ['drink_decaf', 'book_horoscope', 'dish_umeboshi'],
+    love: ['bev_black_coffee', 'min_meteorite', 'gift_star_chart'],
+    like: ['snack_choco_bar', 'gift_coffee_gift'],
+    dislike: ['drink_decaf', 'gift_horoscope_mag', 'ing_umeboshi'],
     hate: [],
     likeTags: ['mineral', 'bento'],
   },
@@ -87,7 +87,7 @@ npc('fujita', {
   },
   perks: {
     4: { item: 'gift_star_chart', coins: 80, text: 'A star chart for your bedroom wall. Your grandmother made one like it for me. Pass it on one day.' },
-    6: { items: ['drink_coffee', 'min_meteorite', 'dish_dark_chocolate'], coins: 30 },
+    6: { items: ['gift_coffee_gift', 'min_meteorite', 'snack_choco_bar'], coins: 30 },
     8: { text: 'Ms. Fujita gave you her old study notes. Your study skill improves!', apply: (g) => g.addXP('study', 120) },
   },
   events: [

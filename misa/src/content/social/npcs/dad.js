@@ -10,7 +10,7 @@ npc('dad', {
   birthday: { season: 'winter', day: 25 },
   hint: 'in the galley of the Kujira. Cook-along calls on Monday evenings, recipe texts on Fridays.',
   schedule: [],
-  gifts: { love: ['gift_photo_mochi', 'ing_hot_sauce'], like: ['gift_postcard', 'drink_coffee'], dislike: ['dish_mysterious_lump', 'crop_celery', 'dish_instant_noodles'], hate: [], likeTags: ['dish'] },
+  gifts: { love: ['gift_photo_mochi', 'gift_hot_sauce'], like: ['gift_postcard', 'gift_coffee_gift'], dislike: ['dish_mysterious_lump', 'crop_celery', 'dish_instant_noodles'], hate: [], likeTags: ['dish'] },
   lines: {
     default: ['happy|Misa! My favourite daughter! My only daughter! Still my favourite!', 'I made curry for forty scientists today. Thirty-nine loved it. One is allergic to joy.'],
     textReply: ['happy|(Text) Hi kiddo! Galley is rocking today. So is my soup. Literally.', '(Text) What do you call a fish with no eyes? A fsh. Love you!', 'happy|(Text) Mum says hi. I say hi louder. HI!'],

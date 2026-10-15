@@ -12,8 +12,8 @@ npc('sachiko', {
     { stops: [{ at: '07:00', map: 'mart', spot: 'register' }, { at: '13:00', map: 'cafe', spot: 'table_3' }, { at: '13:50', map: 'mart', spot: 'register' }, { at: '21:00', map: null }] },
   ],
   gifts: {
-    love: ['dish_homemade_jam', 'flower_sunflower', 'gift_lucky_cat'],
-    like: ['dish_cookies', 'crop_peach'],
+    love: ['gift_jam', 'flower_sunflower', 'gift_lucky_cat'],
+    like: ['snack_cookies', 'ing_peach'],
     dislike: ['misc_spoiled_food', 'fish_raw', 'misc_weeds'],
     hate: [],
     likeTags: ['flower', 'fruit'],
@@ -83,13 +83,13 @@ npc('sachiko', {
     },
   },
   perks: {
-    4: { item: 'dish_homemade_jam', coins: 80, text: 'A jar of my famous jam, dear! The secret ingredient is love. And more sugar.' },
-    6: { items: ['dish_cookies', 'crop_peach', 'dish_rice_crackers'], coins: 30 },
+    4: { item: 'gift_jam', coins: 80, text: 'A jar of my famous jam, dear! The secret ingredient is love. And more sugar.' },
+    6: { items: ['snack_cookies', 'ing_peach', 'snack_rice_crackers'], coins: 30 },
     8: { text: 'Sachiko\'s coupon book: every Monday she sends you a coupon worth 50 coins.', weekday: 0, weekly: { text: 'Monday coupon, dear! Spend it on something nice. Or on me. Ha!', items: [], coins: 50 } },
   },
   events: [
     { id: 'sachiko_h2', hearts: 2, map: 'town', when: 'time>=9:00&time<18:00',
-      thanks: 'You caught that crow, dear! Well, you chased it. The melon bun was a loss. Here\'s a fresh one!', thanksItem: 'dish_melon_bread',
+      thanks: 'You caught that crow, dear! Well, you chased it. The melon bun was a loss. Here\'s a fresh one!', thanksItem: 'snack_melon_bread',
       script: () => sc('sachiko', ...open('sachiko'), 'surprised|Misa! That crow! It took my melon bun! Right out of my hand!',
         '@A big black crow hops along the fountain edge with a melon bun in its beak. It looks very pleased with itself.',
         ch('How do you chase it?',

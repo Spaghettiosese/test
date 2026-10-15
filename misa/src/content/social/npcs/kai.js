@@ -13,8 +13,8 @@ npc('kai', {
     { stops: [{ at: '09:00', map: 'park', spot: 'lawn' }, { at: '13:00', map: 'harbour', spot: 'pier_end' }, { at: '18:00', map: 'mart', spot: 'arcade' }, { at: '20:00', map: null }] },
   ],
   gifts: {
-    love: ['dish_curry_bread', 'dish_spicy_ramen', 'gift_soccer_card'],
-    like: ['drink_sports', 'dish_onigiri', 'dish_karaage', 'dish_melon_bread'],
+    love: ['snack_curry_bread', 'food_spicy_ramen', 'gift_soccer_card'],
+    like: ['bev_sports_drink', 'snack_onigiri_salmon', 'food_karaage_bento', 'snack_melon_bread'],
     dislike: ['book_maths_workbook', 'crop_bitter_melon', 'fish_sea_slug'],
     hate: ['dish_mysterious_lump'],
     likeTags: ['fish', 'dish'],
@@ -90,7 +90,7 @@ npc('kai', {
   },
   perks: {
     4: { item: 'gift_soccer_card', coins: 80, text: 'I found a spare soccer card in my collection. It\'s yours now! Don\'t sell it. Okay, you can sell it.' },
-    6: { items: ['dish_onigiri', 'drink_sports', 'dish_melon_bread'], coins: 30 },
+    6: { items: ['snack_onigiri_salmon', 'bev_sports_drink', 'snack_melon_bread'], coins: 30 },
     8: { text: 'Kai showed you his running tricks. You now walk and run faster!', apply: (g) => g.setFlag('speedBoost', true) },
   },
   followups: [
@@ -99,7 +99,7 @@ npc('kai', {
   ],
   events: [
     { id: 'kai_h2', hearts: 2, map: 'school_grounds', when: 'school&time>=15:30&time<18:00',
-      thanks: 'Thanks for the maths help! I got a 64! That\'s a pass! Here\'s a snack as payment.', thanksItem: 'dish_melon_bread', thanksCoins: 40,
+      thanks: 'Thanks for the maths help! I got a 64! That\'s a pass! Here\'s a snack as payment.', thanksItem: 'snack_melon_bread', thanksCoins: 40,
       script: () => sc('kai', ...open('kai'),
         'surprised|Misa! Thank goodness. I need a hero. A maths hero.',
         'sad|Pop quiz tomorrow. If I fail, Coach benches me. If I\'m benched, I\'ll just... wither. Like a sad plant.',

@@ -14,9 +14,9 @@ npc('ogawa', {
     { stops: [{ at: '07:00', map: 'lane', spot: 'bus_stop' }, { at: '09:00', map: null }, { at: '10:00', map: 'mart', spot: 'aisle_1' }, { at: '12:00', map: null }] },
   ],
   gifts: {
-    love: ['crop_giant_tomato', 'dish_salmon_onigiri', 'gift_sports_towel'],
-    like: ['drink_green_tea', 'drink_sports'],
-    dislike: ['dish_potato_chips', 'gift_candy', 'gift_wilted_flower'],
+    love: ['crop_giant_tomato', 'snack_onigiri_salmon', 'gift_sports_towel'],
+    like: ['bev_green_tea', 'bev_sports_drink'],
+    dislike: ['snack_potato_chips', 'snack_candy', 'gift_wilted_flower'],
     hate: [],
     likeTags: ['vegetable', 'crop'],
   },
@@ -85,7 +85,7 @@ npc('ogawa', {
   },
   perks: {
     4: { item: 'crop_giant_tomato', coins: 80, text: 'One of my best tomatoes, Aoki! Eat it fresh with a bit of salt. Life-changing!' },
-    6: { items: ['crop_tomato', 'drink_green_tea', 'dish_salmon_onigiri'], coins: 30 },
+    6: { items: ['crop_tomato', 'bev_green_tea', 'snack_onigiri_salmon'], coins: 30 },
     8: { text: 'Mr. Ogawa\'s training paid off: your maximum energy goes up by 15!', apply: (g) => { g.state.maxEnergy += 15; g.addEnergy(15); } },
   },
   events: [

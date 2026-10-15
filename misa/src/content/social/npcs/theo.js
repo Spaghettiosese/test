@@ -14,9 +14,9 @@ npc('theo', {
     { stops: [{ at: '09:30', map: 'harbour', spot: 'mural' }, { at: '11:30', map: 'beach', spot: 'driftwood' }, { at: '16:00', map: 'cafe', spot: 'table_4' }, { at: '19:00', map: null }] },
   ],
   gifts: {
-    love: ['gift_sea_glass_blue', 'gift_vinyl_record', 'drink_matcha_latte'],
-    like: ['gift_sketchbook', 'gift_paint_set'],
-    dislike: ['dish_natto', 'drink_sports', 'dish_boiled_egg'],
+    love: ['gift_sea_glass_blue', 'gift_vinyl_record', 'bev_matcha_latte'],
+    like: ['gift_sketchbook', 'mat_paint'],
+    dislike: ['dish_natto', 'bev_sports_drink', 'dish_boiled_egg'],
     hate: [],
     likeTags: ['shell', 'flower', 'sea_glass'],
   },
@@ -88,7 +88,7 @@ npc('theo', {
   },
   perks: {
     4: { item: 'gift_sketchbook', coins: 80, text: 'I had a spare sketchbook. First page has a drawing of Mochi on it. You can keep going from there.' },
-    6: { items: ['gift_sea_glass_blue', 'drink_matcha_latte', 'gift_sketchbook'], coins: 30 },
+    6: { items: ['gift_sea_glass_blue', 'bev_matcha_latte', 'gift_sketchbook'], coins: 30 },
     8: { text: 'Theo taught you how to draw a steady line. Your crafting skill improves!', apply: (g) => g.addXP('crafting', 120) },
   },
   followups: [{ flag: 'soc_theo_mural_honest', line: ['You said the mural needed more blue. You were right. I added three blues. Come see.'] }],

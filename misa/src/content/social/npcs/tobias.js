@@ -12,7 +12,7 @@ npc('tobias', {
     { stops: [{ at: '06:00', map: 'harbour', spot: 'dock' }, { at: '07:00', map: null }, { at: '08:00', map: 'clock_shop', spot: 'counter' }, { at: '12:00', map: 'cafe', spot: 'table_1' }, { at: '12:45', map: 'clock_shop', spot: 'counter' }, { at: '18:15', map: 'town', spot: 'clocktower' }, { at: '18:45', map: null }] },
   ],
   gifts: {
-    love: ['mat_brass_gear', 'drink_earl_grey', 'gift_silver_watch_chain'],
+    love: ['mat_brass_gear', 'bev_earl_grey', 'gift_watch_chain'],
     like: ['dish_marmalade_toast', 'mat_clock_parts'],
     dislike: ['toy_plastic', 'gift_loud_whistle', 'dish_instant_noodles'],
     hate: [],
@@ -85,7 +85,7 @@ npc('tobias', {
   },
   perks: {
     4: { item: 'mat_brass_gear', coins: 80, text: 'A brass gear from my workbench. Keep it in your pocket. Everyone needs something that turns true.' },
-    6: { items: ['mat_brass_gear', 'drink_earl_grey', 'mat_clock_parts'], coins: 30 },
+    6: { items: ['mat_brass_gear', 'bev_earl_grey', 'mat_clock_parts'], coins: 30 },
     8: { text: 'Tobias taught you the fine work of the repair bench. Your crafting skill improves!', apply: (g) => g.addXP('crafting', 120) },
   },
   events: [

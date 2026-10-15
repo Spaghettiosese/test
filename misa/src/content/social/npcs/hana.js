@@ -13,9 +13,9 @@ npc('hana', {
     { stops: [{ at: '07:00', map: 'sunny_pines', spot: 'garden_bench' }, { at: '09:00', map: 'sunny_pines', spot: 'hana_chair' }, { at: '12:00', map: 'sunny_pines', spot: 'dining' }, { at: '14:00', map: 'sunny_pines', spot: 'garden_bench' }, { at: '17:00', map: 'sunny_pines', spot: 'dining' }, { at: '20:00', map: null }] },
   ],
   gifts: {
-    love: ['dish_starlight_mochi', 'gift_rainbow_wool', 'gift_pressed_sakura'],
-    like: ['drink_green_tea', 'dish_rice_crackers', 'dish_pickles'],
-    dislike: ['dish_spicy_ramen', 'gift_loud_whistle', 'dish_frozen_pizza'],
+    love: ['dish_starlight_mochi', 'mat_rainbow_wool', 'gift_pressed_flower'],
+    like: ['bev_green_tea', 'snack_rice_crackers', 'dish_pickles'],
+    dislike: ['food_spicy_ramen', 'gift_loud_whistle', 'dish_frozen_pizza'],
     hate: [],
     likeTags: ['flower', 'tea'],
   },
@@ -78,8 +78,8 @@ npc('hana', {
     },
   },
   perks: {
-    4: { item: 'gift_rainbow_wool', coins: 80, text: 'I asked the nurse to post this. Some wool from my basket. Knit something cosy for the house.' },
-    6: { items: ['dish_rice_crackers', 'drink_green_tea', 'dish_pickles'], coins: 30 },
+    4: { item: 'mat_rainbow_wool', coins: 80, text: 'I asked the nurse to post this. Some wool from my basket. Knit something cosy for the house.' },
+    6: { items: ['snack_rice_crackers', 'bev_green_tea', 'dish_pickles'], coins: 30 },
     8: { text: 'Grandma sent her old furoshiki cloth. Your bag holds 4 more things!', apply: (g) => { g.state.bagSize += 4; } },
   },
   followups: [{ flag: 'soc_hana_album', line: ['happy|I dreamed about the photo album. About the lighthouse. And your grandfather\'s terrible hat.'] }],

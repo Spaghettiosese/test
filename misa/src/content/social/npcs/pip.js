@@ -11,8 +11,8 @@ npc('pip', {
     { stops: [{ at: '08:00', map: 'post_office', spot: 'counter' }, { at: '09:00', map: 'lane', spot: 'crossroad' }, { at: '10:00', map: 'harbour', spot: 'market_stall' }, { at: '11:00', map: 'school_grounds', spot: 'gate' }, { at: '12:00', map: 'park', spot: 'bench' }, { at: '13:00', map: 'shrine', spot: 'torii' }, { at: '15:00', map: 'beach', spot: 'bonfire' }, { at: '17:00', map: 'post_office', spot: 'sorting' }, { at: '19:00', map: 'shotengai', spot: 'arcade' }, { at: '21:00', map: null }] },
   ],
   gifts: {
-    love: ['dish_karaage_bento', 'gift_rare_stamp', 'gift_bike_bell'],
-    like: ['drink_sports', 'dish_sandwich', 'gift_postcard'],
+    love: ['food_karaage_bento', 'gift_rare_stamp', 'gift_bike_bell'],
+    like: ['bev_sports_drink', 'snack_sandwich', 'gift_postcard'],
     dislike: ['misc_soggy_newspaper', 'fish_sea_slug', 'min_stone'],
     hate: [],
     likeTags: ['sandwich'],
@@ -83,8 +83,8 @@ npc('pip', {
   },
   perks: {
     4: { item: 'gift_postcard', coins: 80, text: 'A postcard from me! I drew it! It\'s the post office. And you. And me. And Lightning, my bike!' },
-    6: { items: ['dish_sandwich', 'drink_sports', 'gift_postcard'], coins: 30 },
-    8: { text: 'Pip will drop off a surprise parcel every Friday.', weekday: 4, weekly: { text: 'Friday surprise parcel! I picked it myself! It\'s not squished!', items: ['dish_karaage_bento', 'gift_rare_stamp', 'gift_postcard', 'dish_sandwich'], coins: 50 } },
+    6: { items: ['snack_sandwich', 'bev_sports_drink', 'gift_postcard'], coins: 30 },
+    8: { text: 'Pip will drop off a surprise parcel every Friday.', weekday: 4, weekly: { text: 'Friday surprise parcel! I picked it myself! It\'s not squished!', items: ['food_karaage_bento', 'gift_rare_stamp', 'gift_postcard', 'snack_sandwich'], coins: 50 } },
   },
   events: [
     { id: 'pip_h2', hearts: 2, map: 'town', when: 'weekday&time>=9:00&time<15:00',

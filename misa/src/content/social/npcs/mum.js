@@ -10,7 +10,7 @@ npc('mum', {
   birthday: { season: 'autumn', day: 1 },
   hint: 'at sea on the Kujira. Video calls on Wednesday and Sunday evenings; a good-morning text every day.',
   schedule: [],
-  gifts: { love: ['gift_letter', 'gift_pressed_sakura', 'dish_cookies'], like: ['gift_photo', 'drink_green_tea'], dislike: [], hate: [], likeTags: ['shell'], dislikeTags: ['fish', 'bug'] },
+  gifts: { love: ['mat_letter_set', 'gift_pressed_flower', 'snack_cookies'], like: ['gift_photo_frame', 'bev_green_tea'], dislike: [], hate: [], likeTags: ['shell'], dislikeTags: ['fish', 'bug'] },
   lines: {
     default: ['happy|Hi sweetheart! The signal is terrible but your face is perfect.', 'Are you eating vegetables? Real ones? Not just the ones on pizza?'],
     textReply: ['happy|(Text) Hi love! We saw dolphins today! Forty of them! Call Sunday!', '(Text) Morning from the middle of the ocean! Is Mochi behaving? Don\'t answer, I know she isn\'t.', 'happy|(Text) Miss you so much. Proud of you even more. Eat breakfast!'],

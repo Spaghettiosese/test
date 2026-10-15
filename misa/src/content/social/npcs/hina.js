@@ -14,8 +14,8 @@ npc('hina', {
     { stops: [{ at: '06:00', map: 'park', spot: 'sakura_tree' }, { at: '10:00', map: 'beach', spot: 'rocks' }, { at: '15:00', map: 'harbour', spot: 'dock' }, { at: '18:00', map: null }] },
   ],
   gifts: {
-    love: ['bug_rainbow_stag', 'dish_honey_toast', 'gift_firefly_jar'],
-    like: ['drink_lemonade', 'dish_onigiri'],
+    love: ['bug_rainbow_stag', 'snack_honey_toast', 'gift_firefly_jar'],
+    like: ['bev_lemonade', 'snack_onigiri_salmon'],
     dislike: ['gift_bug_spray', 'gift_perfume', 'crop_lettuce'],
     hate: [],
     likeTags: ['bug', 'fish', 'shell'],
@@ -87,7 +87,7 @@ npc('hina', {
   },
   perks: {
     4: { item: 'gift_firefly_jar', coins: 80, text: 'I made you a firefly jar! It\'s empty. Fireflies need to be free. But it\'s the THOUGHT. And it glows if you put a candle in.' },
-    6: { items: ['drink_lemonade', 'dish_honey_toast'], coins: 30 },
+    6: { items: ['bev_lemonade', 'snack_honey_toast'], coins: 30 },
     8: { text: 'Hina will send you something she found every Monday.', weekday: 0, weekly: { text: 'Monday find! I thought you\'d like this one. It\'s from my secret spot!', items: ['shell_spiral', 'shell_scallop', 'min_quartz', 'crop_wild_berry'], coins: 40 } },
   },
   events: [

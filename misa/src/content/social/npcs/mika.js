@@ -14,9 +14,9 @@ npc('mika', {
     { stops: [{ at: '07:00', map: 'cafe', spot: 'kitchen' }, { at: '08:00', map: 'cafe', spot: 'counter' }, { at: '20:30', map: 'harbour', spot: 'pier_end' }, { at: '21:30', map: null }] },
   ],
   gifts: {
-    love: ['crop_strawberry', 'ing_vanilla_bean', 'dish_starlight_mochi'],
-    like: ['ing_milk', 'crop_peach'],
-    dislike: ['drink_instant_coffee', 'misc_fish_bones', 'ing_hot_sauce'],
+    love: ['ing_strawberry', 'ing_vanilla', 'dish_starlight_mochi'],
+    like: ['ing_milk', 'ing_peach'],
+    dislike: ['bev_can_coffee', 'misc_fish_bones', 'gift_hot_sauce'],
     hate: [],
     likeTags: ['fruit', 'flower'],
   },
@@ -85,8 +85,8 @@ npc('mika', {
     },
   },
   perks: {
-    4: { item: 'drink_latte', coins: 80, text: 'A thank-you from the cafe! One drink, on the house. With a star on the foam.' },
-    6: { items: ['drink_latte', 'dish_strawberry_shortcake', 'dish_croissant'], coins: 30 },
+    4: { item: 'bev_latte', coins: 80, text: 'A thank-you from the cafe! One drink, on the house. With a star on the foam.' },
+    6: { items: ['bev_latte', 'snack_strawberry_shortcake', 'snack_cheesecake'], coins: 30 },
     8: { text: 'From now on, Mika will have a free drink ready when you visit her each day.',
       daily: (g) => { if (get('item', 'drink_misa_latte')) g.give('drink_misa_latte'); else { g.addEnergy(20); g.toast('The Misa Latte: +20 energy', 'i_energy'); } },
       dailyLine: ['happy|One Misa Latte, on the house! As always. Drink it while it\'s warm!'] },
