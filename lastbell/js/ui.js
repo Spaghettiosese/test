@@ -99,7 +99,7 @@
     if (isTouch) return;
     mouse = { x: e.clientX, y: e.clientY };
     if (!G.S || G.D || G.S.ending || !started) { hover = null; $('#tooltip').classList.add('hidden'); return; }
-    const h = pickHotspot(e.clientX, e.clientY); hover = h ? h.id : null;
+    const h = pickHotspot(e.clientX, e.clientY); if (h && hover !== h.id) snd('hover'); hover = h ? h.id : null;
     canvas.style.cursor = h ? 'pointer' : 'default';
     const t = $('#tooltip');
     if (h) { t.innerHTML = esc(h.label) + (h.sub ? '<small>' + esc(h.sub) + '</small>' : '') + (h.kind === 'exit' ? '<small>click to go</small>' : ''); t.style.left = Math.min(W - 270, e.clientX + 16) + 'px'; t.style.top = (e.clientY + 14) + 'px'; t.classList.remove('hidden'); }
@@ -133,15 +133,18 @@
   G.on('toast', (t) => {
     const box = $('#toasts'), d = document.createElement('div'); d.className = 'toast ' + (t.kind || ''); d.textContent = t.text; box.appendChild(d);
     setTimeout(() => d.remove(), 5200);
-    if (t.kind === 'good' || t.kind === 'xp') snd('good'); if (t.kind === 'bad' || t.kind === 'warn') snd('bad');
+    const tk = { good: 'good', xp: 'xp', bad: 'bad', warn: 'warn', item: 'pickup', thought: 'thought', task: 'paper', info: 'toast' }[t.kind]; if (tk) snd(tk);
   });
   G.on('sfx', (n) => snd(n));
+  G.on('step', () => window.Sound && Sound.step((G.loc() || {}).floor));
+  document.addEventListener('pointerdown', () => { if (window.Sound) { Sound.init(); } }, { once: false });
+  if (window.Sound) Sound.scene('title');
 
   // ---------- HUD ----------
   function refreshHud() {
     const S = G.S; if (!S) return;
     $('#m-hp').style.width = S.hp * 10 + '%'; $('#m-morale').style.width = S.morale * 10 + '%'; $('#m-surv').style.width = S.surv + '%';
-    $('#clock').textContent = fmtTime(S.time);
+    $('#clock').textContent = fmtTime(S.time); if (window.Sound) Sound.tension(S.surv, S.hp, S.morale);
     const rem = GD.meta.curfew - S.time; $('#curfew').textContent = rem > 0 ? 'Curfew in ' + Math.floor(rem / 60) + 'h ' + String(rem % 60).padStart(2, '0') + 'm' : 'CURFEW';
     $('#locname').textContent = G.loc().name;
     $('#pt-dot').classList.toggle('hidden', S.points <= 0);
@@ -161,9 +164,9 @@
   G.on('dialogueStart', (D) => {
     $('#dialogue').classList.remove('hidden'); $('#dlg-log').innerHTML = ''; $('#dlg-title').textContent = D.title; renderedCount = 0; lastDid = D;
     document.body.classList.toggle('endmode', !!D.isEnding); document.body.classList.add('indlg');
-    $('#hint').style.display = 'none'; $('#tooltip').classList.add('hidden');
+    $('#hint').style.display = 'none'; $('#tooltip').classList.add('hidden'); window.Sound && Sound.duck(true);
   });
-  G.on('dialogueEnd', () => { document.body.classList.remove('indlg'); $('#dialogue').classList.add('hidden'); refreshHud(); });
+  G.on('dialogueEnd', () => { window.Sound && Sound.duck(false); document.body.classList.remove('indlg'); $('#dialogue').classList.add('hidden'); refreshHud(); });
   G.on('dialogue', renderDialogue);
   function lineHtml(b) {
     if (b.kind === 'choice') return '<div class="chosen">' + md(b.text) + '</div>';
@@ -187,8 +190,8 @@
         wrap.innerHTML = rollHtml(b.roll, false); log.appendChild(wrap);
         snd('dice');
         $('#dlg-choices').innerHTML = '';
-        rollTimer = setTimeout(() => { rollTimer = null; b.resolved = true; wrap.innerHTML = rollHtml(b.roll, true); snd(b.roll.success ? 'good' : 'bad'); showRollContinue(); log.scrollTop = log.scrollHeight; }, 1100);
-      } else { wrap.innerHTML = lineHtml(b); log.appendChild(wrap); }
+        rollTimer = setTimeout(() => { rollTimer = null; b.resolved = true; wrap.innerHTML = rollHtml(b.roll, true); snd(b.roll.crit ? 'crit' : b.roll.fumble ? 'fumble' : b.roll.success ? 'good' : 'bad'); showRollContinue(); log.scrollTop = log.scrollHeight; }, 1100);
+      } else { wrap.innerHTML = lineHtml(b); log.appendChild(wrap); if (b.kind === 'line') snd(b.voice ? 'whisper' : 'line'); }
     }
     renderedCount = D.history.length;
     if (!D.roll) renderChoices(D);
@@ -213,7 +216,7 @@
 
   // ---------- panels ----------
   let panelKind = null, selItem = null, selSkill = null;
-  function togglePanel(k) { if (panelKind === k && !$('#panel').classList.contains('hidden')) closePanel(); else { panelKind = k; $('#panel').classList.remove('hidden'); renderPanel(); snd('paper'); } }
+  function togglePanel(k) { if (panelKind === k && !$('#panel').classList.contains('hidden')) closePanel(); else { panelKind = k; $('#panel').classList.remove('hidden'); renderPanel(); snd('open'); } }
   function closePanel() { $('#panel').classList.add('hidden'); panelKind = null; }
   $('#panel-close').onclick = closePanel;
   $('#panel').addEventListener('click', (e) => { if (e.target.id === 'panel') closePanel(); });
@@ -270,9 +273,9 @@
       body.querySelectorAll('[data-think]').forEach((b) => (b.onclick = () => G.startThought(b.dataset.think)));
       body.querySelectorAll('[data-forget]').forEach((b) => (b.onclick = () => G.forgetThought(b.dataset.forget)));
     } else if (panelKind === 'menu') {
-      body.innerHTML = '<h2 class="ptitle">Menu</h2><div class="menu-btns"><button class="pbtn" id="mn-res">Resume</button><button class="pbtn" id="mn-save">Save now</button><button class="pbtn" id="mn-snd">Sound: ' + (Sound.muted ? 'Off' : 'On') + '</button><button class="pbtn" id="mn-help">How to play</button><button class="pbtn" id="mn-title">Quit to title</button></div><p class="psub" style="margin-top:20px">The game autosaves after every conversation and every move between rooms.</p>';
+      body.innerHTML = '<h2 class="ptitle">Menu</h2><div class="menu-btns"><button class="pbtn" id="mn-res">Resume</button><button class="pbtn" id="mn-save">Save now</button><button class="pbtn" id="mn-snd">Sound: ' + (Sound.muted ? 'Off' : 'On') + '</button>' + ['music:Music', 'sfx:Effects', 'amb:Ambience'].map((x) => { const [k, n] = x.split(':'); return '<label style="font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center">' + n + '<input type="range" min="0" max="1" step="0.05" value="' + Sound.vol[k] + '" data-vol="' + k + '" style="flex:1"></label>'; }).join('') + '<button class="pbtn" id="mn-res2" style="display:none"></button><button class="pbtn" id="mn-help">How to play</button><button class="pbtn" id="mn-title">Quit to title</button></div><p class="psub" style="margin-top:20px">The game autosaves after every conversation and every move between rooms.</p>';
       $('#mn-res').onclick = closePanel; $('#mn-save').onclick = () => { G.save(); closePanel(); G.emit('toast', { text: 'Saved.', kind: 'info' }); };
-      $('#mn-snd').onclick = () => { Sound.toggle(); renderPanel(); }; $('#mn-help').onclick = showHelp; $('#mn-title').onclick = () => { G.save(); location.reload(); };
+      $('#mn-snd').onclick = () => { Sound.toggle(); renderPanel(); }; document.querySelectorAll('[data-vol]').forEach((r) => (r.oninput = () => { Sound.set(r.dataset.vol, parseFloat(r.value)); })); $('#mn-help').onclick = showHelp; $('#mn-title').onclick = () => { G.save(); location.reload(); };
     }
   }
   function modText(d) { const m = d.mods || {}; return Object.entries(m).map(([k, v]) => (GD.skills[k] ? GD.skills[k].name : k) + ' ' + (v > 0 ? '+' : '') + v).join(' · '); }
@@ -338,7 +341,7 @@
 
   // ---------- endings ----------
   const ENDNAMES = { end_good_student: 'THE GOOD STUDENT', end_ledger: 'THE LEDGER', end_static: 'STATIC', end_quiet: 'THE QUIET WAY', end_arrested: 'ARRESTED', end_curfew: 'CURFEW' };
-  G.on('ending', () => { $('#ending').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#ending-summary').classList.add('hidden'); window.Sound && Sound.play('bell'); });
+  G.on('ending', (id) => { $('#ending').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#ending-summary').classList.add('hidden'); window.Sound && (Sound.play('bell'), Sound.ending(id)); });
   G.on('endingDone', (id) => showSummary(id));
   G.on('dialogueEnd', (D) => { if (D.isEnding) setTimeout(() => showSummary(G.S.ending), 300); });
   function showSummary(id) {

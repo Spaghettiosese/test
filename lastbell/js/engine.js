@@ -486,7 +486,7 @@
       let step = speed * dt;
       while (step > 0 && S.path.length) {
         const t = S.path[0], dx = t.x - S.px, dy = t.y - S.py, dist = Math.hypot(dx, dy);
-        if (dist <= step) { S.px = t.x; S.py = t.y; S.path.shift(); step -= dist; S.trail.push({ x: t.x, y: t.y }); if (S.trail.length > 12) S.trail.shift(); S.stepAcc = (S.stepAcc || 0) + 1; if (S.stepAcc % 2 === 0) addTime(1); }
+        if (dist <= step) { S.px = t.x; S.py = t.y; S.path.shift(); step -= dist; S.trail.push({ x: t.x, y: t.y }); if (S.trail.length > 12) S.trail.shift(); emit('step'); S.stepAcc = (S.stepAcc || 0) + 1; if (S.stepAcc % 2 === 0) addTime(1); }
         else { S.px += dx / dist * step; S.py += dy / dist * step; S.facing = facingFrom(dx, dy); step = 0; }
       }
       if (!S.path.length) { S.walking = false; const f = S.then; S.then = null; if (f) f(); }
