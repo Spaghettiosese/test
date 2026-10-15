@@ -149,4 +149,5 @@ features('Friendship', [
   'Friendship perks at 8 hearts: each friend gives a lasting bonus (faster running, more energy, a bigger bag, skill lessons, weekly parcels...)',
   'Surprise birthday party: on Summer 3 evening, friends at 4+ hearts wait for Misa at home with gifts',
   'Mum texts good morning every day, Dad sends a recipe every Friday and Aunt Nori checks in now and then',
+  'Weekly 8-heart parcels from Suzu, Hina, Pip, Mr. Hayashi and Sachiko',
 ]);

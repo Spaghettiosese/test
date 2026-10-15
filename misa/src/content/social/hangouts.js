@@ -109,4 +109,5 @@ features('Friendship', [
   'Each friend enjoys different hangout activities and has a favourite place, for bonus friendship',
   'Hangout reminders in the morning and an hour before you meet',
   'Miss a hangout and your friend sends a kind "no worries" message the next day',
+  'Hangout scenes: your friend greets you, talks about the place and reacts to the activity you pick',
 ]);

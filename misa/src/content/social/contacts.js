@@ -151,4 +151,6 @@ features('Phone', [
   'Contacts: heart-event checklist showing which scenes you have seen',
   'Contacts: send a friend or family member a text once a day and read their reply',
   'Contacts: the last message each person sent you',
+  'Contacts: a calendar mark shows who you have plans with, and the app badge counts today\'s hangouts',
+  'Contacts: invite right from the app by picking a place, then a time today or tomorrow',
 ]);

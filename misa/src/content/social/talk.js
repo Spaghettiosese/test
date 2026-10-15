@@ -143,4 +143,5 @@ features('Friendship', [
   'Daily moods: residents can be cheerful, calm, sleepy or grumpy, nudging gift reactions by 10%',
   'Giving the same disliked gift twice upsets a friend; saying sorry makes it right',
   'Friends at 6+ hearts sometimes surprise Misa with a little gift',
+  'Daily 8-heart treats: a free Misa Latte from Mika and a personal fortune from Kiko',
 ]);
