@@ -73,8 +73,8 @@ export function grid(w, h, fill) {
 // Objects that name a shared interaction (`use: 'shop_bait'`) owned by another area fall back to a gentle
 // placeholder until that area registers it, so the map always loads. `soon` is the placeholder text.
 export function coastMap(id, def) {
-  const objs = def.objects || [];
-  delete def.objects;
+  const objs = def.objects || [], warps = def.warps || [];
+  delete def.objects; delete def.warps;
   const m = register('map', id, def);
   Object.defineProperty(m, 'objects', {
     enumerable: true,
@@ -87,6 +87,9 @@ export function coastMap(id, def) {
       });
     },
   });
+  // warps into maps or spawns that don't exist yet stay locked instead of crashing
+  const ok = (w) => { const [mid, sp] = String(w.to).split(':'), d = get('map', mid); return !!d && (!sp || !!(d.spawns && d.spawns[sp])); };
+  Object.defineProperty(m, 'warps', { enumerable: true, get: () => warps.map((w) => (ok(w) ? w : { ...w, locked: () => true, lockedText: 'The way is blocked for now.' })) });
   return m;
 }
 

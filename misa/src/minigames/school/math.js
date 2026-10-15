@@ -58,9 +58,9 @@ export class MathGame extends CardGame {
   scene(g) {
     blit(g, 'school_math_bg', 320, 224, (c) => {
       const S = K.sky;
-      rect(c, S[3], 0, 0, 320, 224);
-      for (let y = 19; y < 224; y += 8) for (let x = (y / 8) % 2 ? 0 : 4; x < 320; x += 8) rect(c, S[4], x, y, 1, 1);
-      rect(c, S[4], 0, 200, 248, 24);
+      rect(c, S[4], 0, 0, 320, 224);
+      for (let y = 19; y < 224; y += 8) for (let x = (y / 8) % 2 ? 0 : 4; x < 320; x += 8) rect(c, S[3], x, y, 1, 1);
+      rect(c, K.wood[3], 0, 204, 248, 20); rect(c, K.wood[4], 0, 204, 248, 1);
       rect(c, K.wood[2], 248, 19, 72, 205); rect(c, K.wood[3], 248, 19, 2, 205); rect(c, K.wood[1], 318, 19, 2, 205);
       chalkboard(c, 256, 40, 56, 52);
     });

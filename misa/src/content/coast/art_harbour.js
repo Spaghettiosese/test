@@ -189,8 +189,8 @@ function stall(R, A, Bk) {
   R(0, 66, 88, 4, W[1]);
   // awning: stripes + scalloped edge
   R(0, 4, 88, 16, A[2]);
-  for (let x = 0; x < 88; x += 16) R(x + 8, 4, 8, 16, Bk[3]);
-  R(0, 4, 88, 2, A[3]); for (let x = 0; x < 88; x += 16) R(x + 8, 4, 8, 2, Bk[4]);
+  for (let x = 0; x < 80; x += 16) R(x + 8, 4, 8, 16, Bk[3]);
+  R(0, 4, 88, 2, A[3]); for (let x = 0; x < 80; x += 16) R(x + 8, 4, 8, 2, Bk[4]);
   for (let x = 0; x < 88; x += 4) { const c = Math.floor(x / 8) % 2 ? Bk[2] : A[1]; R(x, 20, 4, 1, c); R(x + 1, 21, 2, 1, c); }
   R(0, 0, 88, 4, W[2]); R(0, 0, 88, 1, W[3]); R(44, 0, 2, 4, W[1]);
   // hanging sign

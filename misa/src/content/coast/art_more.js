@@ -1,8 +1,8 @@
 // Beach, cliffs, cave, shrine, lighthouse and Sunny Pines props (hd, 32 px per tile, light from the top-left).
 // Uses town's clipped sprite helper spr(name, w, h, (R, M, season) => ..., { seasonal, outline }).
 import { spr, signText, line } from '../town/lib.js';
-import { RAMPS as C, hash } from '../../gfx/palette.js';
-import { bayer } from '../../gfx/noise.js';
+import { RAMPS as C } from '../../gfx/palette.js';
+import { hash, bayer } from '../../gfx/noise.js';
 
 const INK = '#2a1a22', W = C.wood, WD = C.woodDark, S = C.stone, P = C.paper, MT = C.metal, CH = C.charcoal, SA = C.sand, WA = C.water, V = C.vermilion;
 const px = (R, x, y, c) => R(x, y, 1, 1, c);
