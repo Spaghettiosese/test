@@ -40,7 +40,7 @@ export class LabGame extends CardGame {
     for (const i of order) k[i] = 1 + Math.floor(this.rng() * max);
     if (k.filter((x) => x).length === 2 && k[order[0]] === k[order[1]] && this.rng() < 0.5) k[order[0]]++;
     this.want = k; this.targetC = mix(k); this.counts = [0, 0, 0];
-    this.tname = NAMES[Math.floor(this.rng() * NAMES.length)];
+    const [r, y, b] = k; this.tname = r && y && b ? 'Autumn brown' : r && y ? (r > y ? 'Sunset orange' : 'Marigold') : y && b ? (y > b ? 'Leaf green' : 'Sea teal') : r && b ? (r > b ? 'Plum' : 'Grape purple') : 'Pure colour';
   }
   get buttons() { return [[24, 150, 44, 44], [76, 150, 44, 44], [128, 150, 44, 44], [186, 176, 46, 16], [240, 176, 66, 16]]; }
   progress() { return clamp((this.scores.reduce((a, b) => a + b, 0) + 0.2) / this.rounds, 0.2, 1); }
@@ -113,8 +113,8 @@ export class LabGame extends CardGame {
       const [x, y] = this.buttons[i], on = this.sel === i;
       rect(g, INK, x, y, 44, 44); rect(g, on ? K.butter[3] : K.paper[3], x + 1, y + 1, 42, 42);
       rect(g, INK, x + 15, y + 5, 14, 6); rect(g, K.metal[3], x + 16, y + 6, 12, 4);
-      ell(g, INK, x + 22, y + 24, 13, 12); ell(g, r.ramp[2], x + 22, y + 24, 12, 11); ell(g, r.ramp[3], x + 18, y + 20, 4, 3); rect(g, '#ffffff', x + 15, y + 18, 2, 2);
-      txtC(g, `${i + 1} ${r.name}`, x + 22, y + 37, INK);
+      ell(g, INK, x + 22, y + 21, 11, 10); ell(g, r.ramp[2], x + 22, y + 21, 10, 9); ell(g, r.ramp[3], x + 18, y + 17, 3, 2); rect(g, '#ffffff', x + 16, y + 15, 2, 2);
+      txtC(g, `${i + 1} ${r.name}`, x + 22, y + 34, INK);
     });
     btn(g, ...this.buttons[3], 'Rinse', { on: this.sel === 3, color: K.sky });
     btn(g, ...this.buttons[4], 'Test it!', { on: this.sel === 4, color: K.mint });

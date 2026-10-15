@@ -305,10 +305,10 @@ export class PEGame extends CardGame {
       const off = (this.dist * 12) % 64;
       for (let x = -off; x < 320; x += 64) rect(g, K.paper[4], x, 92, 2, 128);
       const fin = 60 + (this.goal - this.dist) * 12; if (fin < 320) { for (let y = 92; y < 220; y += 4) rect(g, (y / 4) % 2 ? INK : K.paper[4], fin, y, 4, 4); }
-      const runner = (x, y, col, name, t) => { const b = Math.round(Math.abs(Math.sin(t)) * 3); ell(g, 'rgba(42,26,64,0.3)', x, y + 14, 8, 2); rect(g, INK, x - 5, y - 14 - b, 10, 22); rect(g, col, x - 4, y - 13 - b, 8, 10); rect(g, K.paper[4], x - 4, y - 3 - b, 8, 8); disc(g, INK, x, y - 19 - b, 6); disc(g, K.skinLight[3], x, y - 19 - b, 5); rect(g, INK, x - 4 + Math.round(Math.sin(t) * 3), y + 5 - b, 3, 8); rect(g, INK, x + 1 - Math.round(Math.sin(t) * 3), y + 5 - b, 3, 8); txtC(g, name, x, y - 34 - b, K.paper[4], K.ink[0]); };
+      const runner = (x, y, col, name, t) => { const b = Math.round(Math.abs(Math.sin(t)) * 3); ell(g, 'rgba(42,26,64,0.3)', x, y + 14, 8, 2); rect(g, INK, x - 5, y - 14 - b, 10, 22); rect(g, col, x - 4, y - 13 - b, 8, 10); rect(g, K.paper[4], x - 4, y - 3 - b, 8, 8); disc(g, INK, x, y - 19 - b, 6); disc(g, hairOf(name), x, y - 20 - b, 5); rect(g, K.skinLight[3], x - 3, y - 19 - b, 7, 4); rect(g, INK, x - 4 + Math.round(Math.sin(t) * 3), y + 5 - b, 3, 8); rect(g, INK, x + 1 - Math.round(Math.sin(t) * 3), y + 5 - b, 3, 8); txtC(g, name, x, y - 34 - b, K.paper[4], K.ink[0]); };
       this.rivals.forEach((r, i) => runner(clamp(60 + (r.d - this.dist) * 12, -20, 340), 112 + i * 24, [K.coral[2], K.butter[2], K.hairGinger[2]][i], r.name, r.d * 2.3));
       runner(60, 184, K.navy[2], 'Misa', this.dist * 2.3);
-      card(g, 220, 24, 94, 22); meter(g, 228, 34, 78, 4, this.dist / this.goal, K.forest[2]); txt(g, 'Goal', 228, 27, K.forest[0]);
+      card(g, 220, 24, 94, 26); meter(g, 228, 40, 78, 4, this.dist / this.goal, K.forest[2]); txt(g, 'Goal', 228, 28, K.forest[0]);
       if (this.stumble > 0) txtC(g, 'Whoops! Left, right, left, right...', 160, 196, K.coral[4], K.ink[0]);
     } else if (m === 'dodge') {
       blit(g, 'school_pe_court', 320, 224, (c) => { rect(c, K.grassAutumn[3], 0, 0, 320, 224); rect(c, K.dirt[3], 10, 24, 300, 196); rect(c, K.paper[4], 10, 110, 300, 2); rect(c, K.paper[4], 10, 24, 2, 196); rect(c, K.paper[4], 308, 24, 2, 196); for (let i = 0; i < 40; i++) rect(c, K.dirt[2], (i * 73) % 300 + 10, (i * 41) % 190 + 26, 3, 1); });
@@ -339,6 +339,7 @@ export class PEGame extends CardGame {
     }
   }
 }
+const hairOf = (n) => ({ Kai: K.hairBlack[2], Rina: K.hairBlonde[2], Hina: K.hairGinger[2], Misa: K.hairBrown[2] }[n] || K.hairBlack[1]);
 const ring = (g, c, x, y, r) => { for (let a = 0; a < 40; a++) rect(g, c, Math.round(x + Math.cos(a / 40 * 6.283) * r), Math.round(y + Math.sin(a / 40 * 6.283) * r * 0.6), 2, 1); };
 export function peBot(m, t, input) {
   if (m.phase === 'intro') { input.pressed.add(' '); return input; }

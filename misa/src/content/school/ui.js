@@ -79,12 +79,12 @@ register('phoneApp', 'school', {
     const k = input.pressed, st = app.state;
     if (k.has('arrowright') || k.has('d')) st.tab = (st.tab + 1) % TABS.length;
     if (k.has('arrowleft') || k.has('a')) st.tab = (st.tab + TABS.length - 1) % TABS.length;
-    if (input.justDown) TABS.forEach((_, i) => { if (inRect(input.mx, input.my, [app.area.x + i * 58, app.area.y, 56, 12])) st.tab = i; });
+    if (input.justDown) TABS.forEach((_, i) => { if (inRect(input.mx, input.my, [app.area.x + i * 58, app.area.y, 56, 14])) st.tab = i; });
   },
   draw(g, game, app) {
     const { x, y, w } = app.area, st = app.state, s = game.state.school;
-    TABS.forEach((t, i) => { const on = i === st.tab; rect(g, INK, x + i * 58, y, 56, 12); rect(g, on ? K.butter[3] : K.paper[2], x + i * 58 + 1, y + 1, 54, on ? 11 : 10); txtC(g, t, x + i * 58 + 28, y + 4, INK); });
-    const top = y + 18;
+    TABS.forEach((t, i) => { const on = i === st.tab; rect(g, INK, x + i * 58, y, 56, 14); rect(g, on ? K.butter[3] : K.paper[2], x + i * 58 + 1, y + 1, 54, on ? 13 : 12); txtC(g, t, x + i * 58 + 28, y + 3, INK); });
+    const top = y + 20;
     if (st.tab === 0) {
       const td = s.today.day === game.day ? s.today : {}, ex = examInfo(game.day), sp = specialDay(game.day), cls = classesFor(game.day);
       if (sp === 'culture') { txt(g, 'Culture Festival today! Class cafe, stage and exhibitions.', x + 4, top, INK); }
