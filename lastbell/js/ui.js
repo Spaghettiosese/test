@@ -145,10 +145,10 @@
   let renderedCount = 0, lastDid = null;
   G.on('dialogueStart', (D) => {
     $('#dialogue').classList.remove('hidden'); $('#dlg-log').innerHTML = ''; $('#dlg-title').textContent = D.title; renderedCount = 0; lastDid = D;
-    document.body.classList.toggle('endmode', !!D.isEnding);
+    document.body.classList.toggle('endmode', !!D.isEnding); document.body.classList.add('indlg');
     $('#hint').style.display = 'none'; $('#tooltip').classList.add('hidden');
   });
-  G.on('dialogueEnd', () => { $('#dialogue').classList.add('hidden'); refreshHud(); });
+  G.on('dialogueEnd', () => { document.body.classList.remove('indlg'); $('#dialogue').classList.add('hidden'); refreshHud(); });
   G.on('dialogue', renderDialogue);
   function lineHtml(b) {
     if (b.kind === 'choice') return '<div class="chosen">' + md(b.text) + '</div>';

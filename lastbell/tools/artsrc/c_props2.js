@@ -157,8 +157,8 @@ PROPS.boiler = function (g, S, p, I) {
   const fg = g.createRadialGradient(fd[0], fd[1] - 2, 2, fd[0], fd[1] - 2, 17); fg.addColorStop(0, 'rgba(255,230,150,1)'); fg.addColorStop(.5, 'rgba(255,130,40,.95)'); fg.addColorStop(1, 'rgba(160,40,10,.9)');
   g.fillStyle = fg; g.beginPath(); g.ellipse(fd[0], fd[1] - 3, 15, 14, 0, 0, 7); g.fill(); g.strokeStyle = css(INK, .9); g.lineWidth = 2; g.stroke();
   g.fillStyle = css([10, 6, 6], .9); for (let k = -2; k <= 2; k++) g.fillRect(fd[0] - 14, fd[1] - 3 + k * 5, 28, 1.6);
-  S.lights.push({ x: fd[0], y: fd[1] - 3 + (S.zoff || 0), r: 170, col: [255, 120, 40], a: .5, fl: .22, ph: r() * 6, kind: 'fire' });
-  S.lights.push({ x: fd[0] + 40, y: fd[1] + 24 + (S.zoff || 0), r: 130, col: [255, 90, 30], a: .25, fl: .2, ph: r() * 6, kind: 'fire' });
+  S.lights.push({ x: fd[0], y: fd[1] - 3 + (S.zoff || 0), r: 300, col: [255, 120, 40], a: .6, fl: .22, ph: r() * 6, kind: 'fire' });
+  S.lights.push({ x: fd[0] + 40, y: fd[1] + 24 + (S.zoff || 0), r: 220, col: [255, 90, 30], a: .3, fl: .2, ph: r() * 6, kind: 'fire' });
   // gauges
   const gq = gp(S, cu + .5, cv + .75, 90);
   g.fillStyle = css([220, 210, 180]); g.beginPath(); g.arc(gq[0], gq[1], 8, 0, 7); g.fill(); g.strokeStyle = css(INK, .9); g.lineWidth = 2; g.stroke(); g.strokeStyle = css([170, 30, 30]); g.lineWidth = 1.4; g.beginPath(); g.moveTo(gq[0], gq[1]); g.lineTo(gq[0] + 4, gq[1] - 5); g.stroke();
@@ -479,27 +479,29 @@ FLAT.stage = function (g, S, p, I) {
 };
 const STAGE_H = 16;
 FLAT.stairs = function (g, S, p, I) {
-  const { r, v, u0, v0, u1, v1 } = I, steps = 6, W = u1 - u0;
-  // stone-framed stairwell opening: treads descend toward -u (far side)
-  g.fillStyle = css([6, 4, 12]); pathPoly(g, [gp(S, u0, v0, 0), gp(S, u1, v0, 0), gp(S, u1, v1, 0), gp(S, u0, v1, 0)]); g.fill();
+  // sunken stairwell: treads descend toward +u, clipped to the opening so they read as a pit
+  const { r, v, u0, v0, u1, v1 } = I, W = u1 - u0, steps = 6, SH_ = 10;
+  const open = [gp(S, u0, v0, 0), gp(S, u1, v0, 0), gp(S, u1, v1, 0), gp(S, u0, v1, 0)];
+  g.save(); pathPoly(g, open); g.clip();
+  const bb = bbox(open); g.fillStyle = css([6, 4, 10]); g.fillRect(bb[0] - 2, bb[1] - 2, bb[2] - bb[0] + 4, bb[3] - bb[1] + 80);
+  paintPoly(g, [gp(S, u0, v0, 0), gp(S, u1, v0, 0), gp(S, u1, v0, -80), gp(S, u0, v0, -80)], [62, 58, 58], r, { n: 40, ang: 0, ink: false, edge: false, jv: .1 });
+  paintPoly(g, [gp(S, u0, v0, 0), gp(S, u0, v1, 0), gp(S, u0, v1, -80), gp(S, u0, v0, -80)], [40, 38, 40], r, { n: 20, ang: 1.57, ink: false, edge: false });
   for (let i = 0; i < steps; i++) {
-    const a = u0 + i * W / steps, b = a + W / steps, z = -i * 7;
-    const top = [gp(S, a, v0, z), gp(S, b, v0, z), gp(S, b, v1, z), gp(S, a, v1, z)];
-    const face = [gp(S, a, v1, z), gp(S, b, v1, z), gp(S, b, v1, z - 7), gp(S, a, v1, z - 7)];
-    const dk = 1 - i * .11;
-    paintPoly(g, top, mul([150, 146, 136], dk), r, { n: 16, ang: .46, ink: true, inkw: 1.3, alt: [200, 190, 160] });
-    paintPoly(g, face, mul([96, 94, 90], dk), r, { n: 6, ang: .46, ink: true, inkw: 1.1 });
+    const a = u0 + i * W / steps, b = a + W / steps, z = -(i + 1) * SH_ + 4, dk = Math.max(.32, 1 - i * .12);
+    paintPoly(g, [gp(S, a, v0, z), gp(S, b, v0, z), gp(S, b, v1, z), gp(S, a, v1, z)], mul([168, 160, 146], dk), r, { n: 14, ang: 2.68, ink: true, inkw: 1.3, alt: [210, 196, 160], ew: 1 });
+    paintPoly(g, [gp(S, b, v0, z), gp(S, b, v1, z), gp(S, b, v1, z - SH_), gp(S, b, v0, z - SH_)], mul([104, 98, 92], dk), r, { n: 8, ang: 2.68, ink: true, inkw: 1.1 });
   }
-  const grad = g.createLinearGradient(...gp(S, u0, (v0 + v1) / 2, 0), ...gp(S, u1, (v0 + v1) / 2, 0)); grad.addColorStop(0, 'rgba(255,150,60,0)'); grad.addColorStop(1, 'rgba(255,150,60,.0)');
-  g.fillStyle = 'rgba(0,0,0,.35)'; pathPoly(g, [gp(S, u1 - W / steps, v0, -35), gp(S, u1, v0, -35), gp(S, u1, v1, -35), gp(S, u1 - W / steps, v1, -35)]); g.fill();
-  // railing along the front (v1) edge, posts + top rail
-  const pa = gp(S, u0 + .08, v1 - .06, 4), pb = gp(S, u1 - .08, v1 - .06, -30);
-  const n = 5;
-  for (let i = 0; i <= n; i++) { const t = i / n, base = [lerp(pa[0], pb[0], t), lerp(pa[1], pb[1], t)]; vbar(g, S, r, lerp(u0 + .08, u1 - .08, t), v1 - .06, -i * 5.2 + 3, -i * 5.2 + 38, 3, [40, 44, 46]); }
-  const ra = gp(S, u0 + .08, v1 - .06, 40), rb = gp(S, u1 - .08, v1 - .06, 8);
-  g.strokeStyle = css([60, 64, 66]); g.lineWidth = 3.6; g.beginPath(); g.moveTo(ra[0], ra[1]); g.lineTo(rb[0], rb[1]); g.stroke(); g.strokeStyle = css([255, 190, 120], .5); g.lineWidth = 1.2; g.beginPath(); g.moveTo(ra[0] + 1, ra[1] - 1.5); g.lineTo(rb[0] + 1, rb[1] - 1.5); g.stroke();
-  const rc = gp(S, u0 + .08, v1 - .06, 20), rd = gp(S, u1 - .08, v1 - .06, -12); g.strokeStyle = css([50, 54, 56], .9); g.lineWidth = 2; g.beginPath(); g.moveTo(rc[0], rc[1]); g.lineTo(rd[0], rd[1]); g.stroke();
-  const wg = gp(S, u1, (v0 + v1) / 2, -30); S.lights.push({ x: wg[0], y: wg[1], r: 90, col: [255, 120, 50], a: .22, fl: .12, ph: r() * 6, kind: 'fire' });
+  const gl = g.createLinearGradient(...gp(S, u0, (v0 + v1) / 2, 0), ...gp(S, u1, (v0 + v1) / 2, -50)); gl.addColorStop(0, 'rgba(255,130,50,0)'); gl.addColorStop(1, 'rgba(255,130,50,.35)'); g.fillStyle = gl; pathPoly(g, open); g.fill();
+  g.restore();
+  // stone coping + railing along the front-left lip (v1) and back lip
+  paintPoly(g, [gp(S, u0 - .04, v1, 0), gp(S, u1, v1, 0), gp(S, u1, v1 + .1, 0), gp(S, u0 - .04, v1 + .1, 0)], [150, 146, 136], r, { n: 8, ang: .46, ink: true, inkw: 1.3 });
+  paintPoly(g, [gp(S, u0 - .1, v0 - .04, 0), gp(S, u0, v0 - .04, 0), gp(S, u0, v1, 0), gp(S, u0 - .1, v1, 0)], [150, 146, 136], r, { n: 8, ang: 2.68, ink: true, inkw: 1.3 });
+  const n = 4;
+  for (let i = 0; i <= n; i++) { const t = i / n; vbar(g, S, r, lerp(u0 + .1, u1 - .1, t), v1 + .05, 0, 36, 3, [40, 44, 46]); }
+  const ra = gp(S, u0 + .1, v1 + .05, 36), rb = gp(S, u1 - .1, v1 + .05, 36);
+  g.strokeStyle = css(INK, .9); g.lineWidth = 4.6; g.beginPath(); g.moveTo(ra[0], ra[1]); g.lineTo(rb[0], rb[1]); g.stroke(); g.strokeStyle = css([96, 100, 100]); g.lineWidth = 3; g.stroke(); g.strokeStyle = css([255, 190, 120], .6); g.lineWidth = 1; g.beginPath(); g.moveTo(ra[0] + 1, ra[1] - 1); g.lineTo(rb[0] + 1, rb[1] - 1); g.stroke();
+  const rc = gp(S, u0 + .1, v1 + .05, 18), rd = gp(S, u1 - .1, v1 + .05, 18); g.strokeStyle = css([60, 64, 66], .9); g.lineWidth = 2; g.beginPath(); g.moveTo(rc[0], rc[1]); g.lineTo(rd[0], rd[1]); g.stroke();
+  const wg = gp(S, u1 - .3, (v0 + v1) / 2, -30); S.lights.push({ x: wg[0], y: wg[1], r: 120, col: [255, 120, 50], a: .3, fl: .12, ph: r() * 6, kind: 'fire' });
 };
 FLAT.door = function (g, S, p, I) {   // cellar door/hatch standing at the foot of the stairs
   const { r, v, u0, v0, u1, v1 } = I, c = gp(S, (u0 + u1) / 2, (v0 + v1) / 2, 0);

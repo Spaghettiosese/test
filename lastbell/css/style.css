@@ -129,3 +129,5 @@ kbd{border:1px solid #666;border-radius:3px;padding:0 4px;font-size:11px}
 #ending-summary h2{font-size:40px;letter-spacing:.14em;margin:0;color:#e9dcae} #ending-summary p{max-width:620px;line-height:1.6;color:#c9c3ae;margin:0}
 body.endmode #dialogue{background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.82) 30px);z-index:17;height:66%}
 @media(max-width:700px){#menubar button{width:54px}#meters{display:none}#topright{width:140px}.line{font-size:15px}}
+
+body.indlg #menubar,body.indlg #meters,body.indlg #tasktrack{opacity:0;pointer-events:none}

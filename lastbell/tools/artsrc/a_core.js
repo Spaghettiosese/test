@@ -11,7 +11,7 @@
 (function () {
 'use strict';
 const TW = 64, TH = 32;
-const WALLH = 150, PAD = 56, TOPX = 70, EDGE = 16;
+const WALLH = 150, PAD = 56, TOPX = 70, EDGE = 16, BS = 1.5;   // BS = bake supersample
 
 /* ------------------------------------------------------------------ utils */
 function hashStr(s) { s = String(s); let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -191,7 +191,7 @@ function glowSprite(col, size) {
 function bokehSprite(col, size) {   // disc with soft rim, like out-of-focus light
   col = C(col); const k = 'bk' + col.map(Math.round).join(',') + ':' + size; let c = _glow.get(k); if (c) return c;
   c = mk(size, size); const g = ctx2(c), gr = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  gr.addColorStop(0, css(col, .55)); gr.addColorStop(.7, css(col, .7)); gr.addColorStop(.88, css(col, .9)); gr.addColorStop(1, css(col, 0));
+  gr.addColorStop(0, css(col, .5)); gr.addColorStop(.7, css(col, .62)); gr.addColorStop(.9, css(col, .78)); gr.addColorStop(1, css(col, 0));
   g.fillStyle = gr; g.fillRect(0, 0, size, size); _glow.set(k, c); return c;
 }
 function stamp(ctx, spr, x, y, s, a) { ctx.globalAlpha = a === undefined ? 1 : a; ctx.drawImage(spr, x - s / 2, y - s / 2, s, s); ctx.globalAlpha = 1; }

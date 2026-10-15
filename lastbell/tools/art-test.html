@@ -1,0 +1,77 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Art test</title>
+<style>body{margin:0;background:#111;color:#ccc;font:12px monospace}canvas{display:block}#g{display:flex;flex-wrap:wrap;gap:8px;padding:8px}</style></head>
+<body>
+<div id="root"></div>
+<script src="../data/world.js"></script>
+<script src="../js/art.js"></script>
+<script>
+const Q = new URLSearchParams(location.search), GD = window.GD;
+const root = document.getElementById('root');
+function mkCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; root.appendChild(c); return c; }
+function locDyn(id, t, o) {
+  o = o || {}; const loc = GD.locations[id];
+  const npcs = Object.values(GD.npcs).filter(n => n.loc === id).map(n => ({ id: n.id, x: n.x, y: n.y, facing: n.facing, look: n.look, pose: n.look.pose, highlight: o.hl === n.id || o.hl === 'all' }));
+  return { t: t, time: o.time === undefined ? 600 : o.time, hoverId: o.hover || null, highlightAll: o.hl === 'all',
+    player: { x: o.px === undefined ? loc.spawn.x : o.px, y: o.py === undefined ? loc.spawn.y : o.py, facing: o.facing || 'se', walking: !!o.walk, look: GD.playerLook },
+    npcs: npcs, objects: (loc.objects || []).map(ob => ({ id: ob.id, x: ob.x, y: ob.y, highlight: o.hl === ob.id || o.hl === 'all' })) };
+}
+function renderLoc(id, o) {
+  o = o || {}; const loc = GD.locations[id], c = mkCanvas(1280, 720), ctx = c.getContext('2d');
+  const R = Art.getRenderer(loc), ctr = Art.project(loc, loc.w / 2 - .5, loc.h / 2 - .5);
+  const view = { camX: ctr.sx + (o.dx || 0), camY: ctr.sy - 20 + (o.dy || 0), zoom: o.zoom || 1, w: 1280, h: 720 };
+  const t0 = performance.now(); R.draw(ctx, view, locDyn(id, o.t === undefined ? 1000 : o.t, o)); const t1 = performance.now();
+  window.__first = t1 - t0; return { c, R, ctx, view, loc, o };
+}
+function bench(id, frames) {
+  const loc = GD.locations[id], c = document.createElement('canvas'); c.width = 1280; c.height = 720; const ctx = c.getContext('2d');
+  const R = Art.getRenderer(loc), ctr = Art.project(loc, loc.w / 2 - .5, loc.h / 2 - .5), view = { camX: ctr.sx, camY: ctr.sy, zoom: 1, w: 1280, h: 720 };
+  const t0 = performance.now(); R.draw(ctx, view, locDyn(id, 0, { walk: true })); const bake = performance.now() - t0;
+  const ts = []; for (let i = 0; i < frames; i++) { const a = performance.now(); R.draw(ctx, view, locDyn(id, i * 16, { walk: true, px: 3 + (i % 100) / 20, py: 5 })); ctx.getImageData(0, 0, 1, 1); ts.push(performance.now() - a); }
+  ts.sort((a, b) => a - b); return { bake: bake, med: ts[ts.length >> 1], p95: ts[Math.floor(ts.length * .95)], max: ts[ts.length - 1] };
+}
+const LOOKS = () => [GD.playerLook].concat(Object.values(GD.npcs).map(n => n.look));
+function portraits() {
+  const g = document.createElement('div'); g.id = 'g'; root.appendChild(g);
+  const names = ['Sel'].concat(Object.keys(GD.npcs)); const looks = LOOKS(), moods = ['neutral', 'angry', 'sad', 'smile', 'shock'];
+  looks.forEach((l, i) => { moods.slice(0, i === 0 ? 5 : 1).forEach(m => { const c = document.createElement('canvas'); c.width = c.height = 160; Art.drawPortrait(c, l, { mood: m }); g.appendChild(c); }); });
+  Object.values(GD.npcs).slice(0, 6).forEach((n, i) => { const c = document.createElement('canvas'); c.width = c.height = 160; Art.drawPortrait(c, n.look, { mood: ['angry', 'sad', 'smile', 'shock', 'angry', 'sad'][i] }); g.appendChild(c); });
+}
+function figures() {
+  const c = mkCanvas(1280, 720), ctx = c.getContext('2d'); ctx.fillStyle = '#6a5a48'; ctx.fillRect(0, 0, 1280, 720);
+  const dirs = ['s', 'se', 'e', 'ne', 'n', 'nw', 'w', 'sw']; const looks = [GD.playerLook].concat(Object.values(GD.npcs).map(n => n.look));
+  const from = +Q.get('from') || 0, sc = +Q.get('sc') || 1, fr = +Q.get('fr') || 0;
+  const sp = +Q.get('sp') || 156, rows = +Q.get('rows') || 3, dd = (Q.get('dirs') || dirs.join(',')).split(',');
+  looks.slice(from, from + rows).forEach((l, j) => { dd.forEach((d, i) => { const s = Art.getFigure(l, d, fr); ctx.drawImage(s.c, 8 + i * sp, 6 + j * 236 * sc, s.w / 2 * sc, s.h / 2 * sc); }); });
+}
+function items() {
+  const c = mkCanvas(1000, 260), ctx = c.getContext('2d'); ctx.fillStyle = '#2a2420'; ctx.fillRect(0, 0, 1000, 260);
+  const ids = ['boiler_key', 'chalk_stub', 'torn_page', 'ration_coupon', 'cigarettes', 'ledger', 'rhea_pin', 'note_yesterday_1', 'note_yesterday_2', 'note_yesterday_3', 'radio_tube', 'bread_note', 'vanguard_armband', 'pocket_mirror', 'warden_badge', 'sweet_roll', 'ration_tea', 'exam_booklet', 'vasha_notebook', 'staged_rope', 'mic_cable', 'school_cap', 'bent_spoon'];
+  ids.forEach((id, i) => Art.drawItemIcon(ctx, 10 + (i % 12) * 82, 10 + Math.floor(i / 12) * 90, 72, id));
+}
+function endings(t) {
+  const ids = ['title', 'end_good_student', 'end_ledger', 'end_static', 'end_quiet', 'end_arrested', 'end_curfew'];
+  const id = Q.get('e'); const list = id ? [id] : ids;
+  list.forEach(e => { const c = mkCanvas(1280, 720), ctx = c.getContext('2d'); if (e === 'title') Art.drawTitle(ctx, 1280, 720, t || 3000); else Art.drawEnding(ctx, 1280, 720, t || 3000, e); });
+}
+const v = Q.get('v') || 'loc';
+window.__ready = false;
+try {
+  if (v === 'loc') { const o = {}; for (const [k, val] of Q) o[k] = isNaN(+val) || k === 'hover' || k === 'hl' || k === 'facing' ? val : +val; o.walk = Q.get('walk') === '1'; renderLoc(Q.get('id') || 'canteen', o); }
+  else if (v === 'portraits') portraits();
+  else if (v === 'figures') figures();
+  else if (v === 'items') items();
+  else if (v === 'endings') endings(+Q.get('t') || 3000);
+  else if (v === 'robust') {
+    const loc = { id: 'rb', floor: 'cobble', wall: 'brick', props: [{ t: 'zzz', x: 2, y: 2 }, { t: 'door' }, { t: 'banner' }, { t: 'portrait', x: 1, y: 0, side: 'r' }, { t: 'window', side: 'l', y: 3 }, { t: 'stage', x: 5, y: 5 }, null].filter(Boolean) };
+    const c = mkCanvas(800, 500), ctx = c.getContext('2d'); const R = Art.getRenderer(loc);
+    R.draw(ctx, { camX: 400, camY: 300, zoom: 1, w: 800, h: 500 }, {});
+    R.draw(ctx, { camX: 400, camY: 300, zoom: 1, w: 800, h: 500 }, { t: 5, player: { x: 3, y: 3 }, npcs: [{ id: 'q', x: 4, y: 4 }, { x: 5, y: 6, facing: 'zz', look: { hairStyle: 'nonsense', outfit: 'zzz', pose: 'weird' } }], objects: [{ id: 'o1', x: 2, y: 2, highlight: true }], hoverId: 'exit:nope' });
+    const c2 = document.createElement('canvas'); Art.drawPortrait(c2, null, {}); Art.drawPortrait(c2, { hairStyle: 'zzz' }, { mood: 'bogus', size: 64 });
+    Art.drawEnding(ctx, 800, 500, 1, 'unknown_ending'); Art.drawItemIcon(ctx, 0, 0, 40, 'nonexistent'); Art.portraitDataURL({}, {}, 64);
+    Art.unproject(loc, Art.project(loc, 3, 4).sx, Art.project(loc, 3, 4).sy); window.__robust = JSON.stringify(Art.unproject(loc, Art.project(loc, 3, 4).sx, Art.project(loc, 3, 4).sy)) + JSON.stringify(Art.worldSize(loc));
+  }
+  else if (v === 'bench') { window.__bench = bench(Q.get('id') || 'canteen', 240); }
+} catch (e) { document.body.insertAdjacentHTML('beforeend', '<pre style="color:#f88">' + e.stack + '</pre>'); window.__err = e.stack; }
+window.__ready = true; window.__first = window.__first;
+</script></body></html>

@@ -1,6 +1,6 @@
 
 /* ============================================================ CHARACTERS */
-const SS = 2, SPW = 90, SPH = 156, SAX = 45, SAY = 132;
+const SS = 2, SC = 1.22, K = SS * SC, SPW = 90, SPH = 156, SAX = 45, SAY = 132;
 const DEF_LOOK = { skin: '#d9a98a', hair: '#2a1d18', hairStyle: 'short', outfit: 'uniform', outfitColor: '#3f4d5c', accent: '#c9892f', build: 'avg', glasses: false, age: 'adult', pose: 'stand', extra: 'none' };
 const FACE = { s: [0, 0], se: [45, 0], e: [90, 0], ne: [135, 0], n: [180, 0], nw: [135, 1], w: [90, 1], sw: [45, 1] };
 const FACE_ALIAS = { south: 's', north: 'n', east: 'e', west: 'w' };
@@ -12,7 +12,7 @@ function lookKey(l) { return [l.skin, l.hair, l.hairStyle, l.outfit, l.outfitCol
 function limb(g, r, x0, y0, x1, y1, w0, w1, col, o) {
   const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
   const pts = [[x0 + nx * w0 / 2, y0 + ny * w0 / 2], [x1 + nx * w1 / 2, y1 + ny * w1 / 2], [x1 - nx * w1 / 2, y1 - ny * w1 / 2], [x0 - nx * w0 / 2, y0 - ny * w0 / 2]];
-  const lit = [mix(col, [255, 190, 120], .3), mix(mul(col, .55), [20, 40, 80], .3), Math.PI, .45, .5];
+  const lit = [mix(col, [255, 190, 120], .3), mix(mul(col, .66), [30, 50, 90], .25), Math.PI, .4, .4];
   paintPoly(g, pts, col, r, Object.assign({ n: 8, sw: 1.7, sl: L * .6, ang: Math.atan2(dy, dx), aj: .12, ink: true, inkw: 1.1, ew: .8, lit, jv: .12 }, o));
   paintEll(g, x1, y1, w1 / 2 + .1, w1 / 2 + .1, col, r, Object.assign({ n: 5, ink: false, edge: false, pn: 10 }, o && o.end));
 }
@@ -29,15 +29,15 @@ function drawFigure(g, r, look, yawDeg, frame, pose, t0) {
   const build = L.build === 'heavy' ? 1.3 : L.build === 'slim' ? .86 : 1;
   const old = L.age === 'old', teen = L.age === 'teen';
   const H = teen ? 68 : old ? 69 : 74;
-  const shW = 9.5 * build + (L.build === 'heavy' ? 1.5 : 0), depth = 6 * build;
+  const shW = 11.6 * build + (L.build === 'heavy' ? 1.5 : 0), depth = 7.4 * build;
   const hw = Math.sqrt((shW * c) * (shW * c) + (depth * s) * (depth * s));
   const hang = pose === 'hang', sit = pose === 'sit' || pose === 'wheelchair', wheel = pose === 'wheelchair';
   const slump = pose === 'slump' || (old && pose === 'stand' && false), lean = pose === 'lean';
   const walk = frame > 0, ph = (frame - 1) * Math.PI / 2, sw = walk ? Math.sin(ph) : 0, bob = walk ? Math.abs(Math.sin(ph)) * 1.4 : 0;
-  const lift = hang ? 24 : 0;
+  const lift = hang ? 36 : 0;
   const fwdX = s, fwdY = c * .5;                 // screen vector of "forward"
   const legLen = H * .47, hipY = sit ? -(wheel ? 25 : 21) : -legLen - lift - bob;
-  const torsoL = H * .30, shY = hipY - torsoL + (slump ? 4 : 0) + (sit ? 1 : 0), neckY = shY - 2.4 - (slump ? 1 : 0), headR = teen ? 6.8 : 7.1;
+  const torsoL = H * .30, shY = hipY - torsoL + (slump ? 4 : 0) + (sit ? 1 : 0), neckY = shY - 2.4 - (slump ? 1 : 0), headR = teen ? 7.9 : 8.5;
   const headCy = neckY - headR - 1.2 + (slump ? 4 : 0) + (old ? 1.2 : 0), headCx = (slump ? fwdX * 4.5 : old ? fwdX * 1.6 : 0) + (lean ? -fwdX * 1 : 0);
   const isLab = L.outfit === 'labcoat', isCoat = L.outfit === 'coat', isApron = L.outfit === 'apron';
   const longTop = isLab || isCoat;
@@ -46,7 +46,7 @@ function drawFigure(g, r, look, yawDeg, frame, pose, t0) {
   const shirtC = ({ uniform: mix(outC, [220, 214, 200], .0), coat: [90, 84, 78], apron: mul(outC, .55), overalls: [168, 150, 120], suit: [214, 208, 192], tracksuit: [210, 210, 204], cardigan: [214, 196, 160], labcoat: [90, 100, 110], shirtsleeves: outC })[L.outfit] || outC;
   const topC = ({ uniform: outC, coat: outC, apron: mix(outC, [90, 70, 60], .4), overalls: [168, 150, 120], suit: outC, tracksuit: outC, cardigan: outC, labcoat: outC, shirtsleeves: outC })[L.outfit] || outC;
   const shoeC = [34, 28, 28];
-  const hipHalf = shW * .52 * Math.max(Math.abs(c), .25);
+  const hipHalf = shW * .5 * Math.max(Math.abs(c), .3);
   const ground = -lift - bob * 0;
   // ---------- legs
   const legs = [];
@@ -68,7 +68,7 @@ function drawFigure(g, r, look, yawDeg, frame, pose, t0) {
     }
   }
   const drawLeg = (lg) => {
-    const w = 5.2 * build + (L.build === 'heavy' ? 1.2 : 0);
+    const w = 6.6 * build + (L.build === 'heavy' ? 1.2 : 0);
     limb(g, r, lg.hx, lg.hy, lg.kx, lg.ky, w, w * .86, pantsC, { sw: 1.8 });
     limb(g, r, lg.kx, lg.ky, lg.fx, lg.fy - 1.8, w * .86, w * .66, pantsC, { sw: 1.7 });
     // shoe
@@ -104,7 +104,7 @@ function drawFigure(g, r, look, yawDeg, frame, pose, t0) {
   }
   if (!wheel || true) { for (const lg of legOrder) drawLeg(lg); }
   // ---------- far arm (L) before torso in profile
-  const armLen = H * .36, aw = 4.6 * build + (L.build === 'heavy' ? 1 : 0);
+  const armLen = H * .36, aw = 5.6 * build + (L.build === 'heavy' ? 1 : 0);
   const extra = L.extra || 'none';
   const sleeveC = L.outfit === 'shirtsleeves' ? shirtC : L.outfit === 'apron' ? shirtC : topC;
   const armRoot = (k) => { const side = k === 0 ? -1 : 1; return [side * shW * c * .98 + (k === 0 ? fwdX * 0 : 0), shY + 2.4]; };
@@ -147,7 +147,7 @@ function drawFigure(g, r, look, yawDeg, frame, pose, t0) {
   const tw = hw * 1.02 + .6, ww = (hw * .88 + bellyBulge * Math.max(.4, s) + .3);
   const tlean = lean ? -fwdX * 2.6 : 0, tslump = slump ? fwdX * 3 : 0;
   const torsoPts = [[-tw + tlean, shY], [-tw * .55 + tlean * .8, shY - 1.6], [tw * .55 + tlean * .8, shY - 1.6], [tw + tlean, shY], [ww + tslump * .2 + tlean * .3, (shY + hipY) / 2], [ww * (longTop ? 1.18 : 1.04) + tslump * .1, hemY], [-ww * (longTop ? 1.18 : 1.04), hemY], [-ww - tslump * .2 + tlean * .3, (shY + hipY) / 2]];
-  const lit = [mix(topC, [255, 190, 120], .35), mix(mul(topC, .5), [20, 40, 80], .35), Math.PI - s * .6, .55, .55];
+  const lit = [mix(topC, [255, 190, 120], .35), mix(mul(topC, .62), [30, 50, 90], .3), Math.PI - s * .6, .42, .42];
   // shirt layer for open garments
   if (L.outfit === 'cardigan' || L.outfit === 'coat' || L.outfit === 'suit' || L.outfit === 'labcoat') {
     paintPoly(g, torsoPts, shirtC, r, { n: 20, ink: false, edge: false });
@@ -231,14 +231,14 @@ function drawFigure(g, r, look, yawDeg, frame, pose, t0) {
   if (s > .25 && s < .98 || s >= .98) { const ex = hx - (back ? 0 : 0) - (c >= 0 ? -1 : -1) * 0; paintEll(g, hx - hRx * (s > .9 ? 0 : 0.95) - (s > .9 ? -1 : 0), hy + 1.4, 1.5, 2.3, mul(skin, .9), r, { n: 4, ink: true, inkw: .8, pn: 8 }); }
   // face
   if (!back) {
-    const fx = hx + s * 4.0 + (c >= 0 ? 0 : 0), eyY = hy + .6, eyDx = 2.7 * Math.max(c, 0) + .0, mood = L._mood;
+    const fx = hx + s * 4.0 + (c >= 0 ? 0 : 0), eyY = hy + .6, eyDx = 3.2 * Math.max(c, 0) + .0, mood = L._mood;
     const hidden = hang;
     if (!hidden) {
       const eye = (ex, vis) => {
         if (!vis) return;
-        g.fillStyle = css([236, 230, 214]); g.beginPath(); g.ellipse(ex, eyY, 1.7, 1.25, 0, 0, 7); g.fill();
-        g.fillStyle = css([28, 22, 24]); g.beginPath(); g.arc(ex + s * .5, eyY, .95, 0, 7); g.fill();
-        g.strokeStyle = css(INK, .8); g.lineWidth = .7; g.beginPath(); g.ellipse(ex, eyY, 1.7, 1.25, 0, 0, 7); g.stroke();
+        g.fillStyle = css([236, 230, 214]); g.beginPath(); g.ellipse(ex, eyY, 1.8, 1.3, 0, 0, 7); g.fill();
+        g.fillStyle = css([28, 22, 24]); g.beginPath(); g.arc(ex + s * .5, eyY, 1.0, 0, 7); g.fill();
+        g.strokeStyle = css(INK, .8); g.lineWidth = .7; g.beginPath(); g.ellipse(ex, eyY, 1.8, 1.3, 0, 0, 7); g.stroke();
       };
       if (c > .35) { eye(fx - eyDx, true); eye(fx + eyDx, true); } else eye(fx + 1.2 * s, true);
       if (c > .35 && s > .2) { /* far eye foreshortened */ }
@@ -257,7 +257,7 @@ function drawFigure(g, r, look, yawDeg, frame, pose, t0) {
       if (old) { g.strokeStyle = css(mul(skin, .55), .55); g.lineWidth = .7; g.beginPath(); g.moveTo(fx - 4 * Math.max(c, .3), hy + 2); g.lineTo(fx - 3 * Math.max(c, .3), hy + 5.4); g.moveTo(fx + 4 * Math.max(c, .3), hy + 2); g.lineTo(fx + 3 * Math.max(c, .3), hy + 5.4); g.moveTo(fx - 3, hy - 4); g.lineTo(fx + 3, hy - 4); g.stroke(); }
       if (L.glasses) {
         g.strokeStyle = css([34, 28, 28], .95); g.lineWidth = 1; 
-        if (c > .35) { g.beginPath(); g.ellipse(fx - eyDx, eyY, 2.7, 2.5, 0, 0, 7); g.ellipse(fx + eyDx, eyY, 2.7, 2.5, 0, 0, 7); g.moveTo(fx - eyDx + 2.7, eyY); g.lineTo(fx + eyDx - 2.7, eyY); g.stroke(); }
+        if (c > .35) { g.beginPath(); g.ellipse(fx - eyDx, eyY, 2.4, 2.2, 0, 0, 7); g.ellipse(fx + eyDx, eyY, 2.4, 2.2, 0, 0, 7); g.moveTo(fx - eyDx + 2.4, eyY); g.lineTo(fx + eyDx - 2.4, eyY); g.stroke(); }
         else { g.beginPath(); g.ellipse(fx + 1.2 * s, eyY, 2.4, 2.4, 0, 0, 7); g.moveTo(fx + 1.2 * s - 2.4, eyY); g.lineTo(hx - hRx, eyY - .4); g.stroke(); }
         g.fillStyle = css([255, 250, 230], .55); g.fillRect(fx - eyDx - 1.2, eyY - 1.8, 1.2, 1);
       }
@@ -327,14 +327,14 @@ function addOutlineAndRim(src, W, H, rimCol, hangRope) {
   const sz = [W, H], out = mk(W, H), og = ctx2(out);
   // rim light (warm, right/top) + cool fill (left)
   const tmp = mk(W, H), tg = ctx2(tmp);
-  tg.drawImage(src, 0, 0); tg.globalCompositeOperation = 'destination-out'; tg.drawImage(src, -2.8 * SS, 1.1 * SS); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = css(rimCol, .95); tg.fillRect(0, 0, W, H);
+  tg.drawImage(src, 0, 0); tg.globalCompositeOperation = 'destination-out'; tg.drawImage(src, -1.5 * K, .7 * K); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = css(rimCol, .8); tg.fillRect(0, 0, W, H);
   const tmp2 = mk(W, H), t2 = ctx2(tmp2);
-  t2.drawImage(src, 0, 0); t2.globalCompositeOperation = 'destination-out'; t2.drawImage(src, 2.2 * SS, -.6 * SS); t2.globalCompositeOperation = 'source-in'; t2.fillStyle = 'rgba(70,130,150,.65)'; t2.fillRect(0, 0, W, H);
+  t2.drawImage(src, 0, 0); t2.globalCompositeOperation = 'destination-out'; t2.drawImage(src, 1.4 * K, -.4 * K); t2.globalCompositeOperation = 'source-in'; t2.fillStyle = 'rgba(70,130,150,.65)'; t2.fillRect(0, 0, W, H);
   const body = mk(W, H), bg = ctx2(body);
   bg.drawImage(src, 0, 0); bg.drawImage(tmp2, 0, 0); bg.drawImage(tmp, 0, 0);
   // dark ink outline (dilated silhouette underneath)
   const sil = mk(W, H), sg = ctx2(sil);
-  const R = 1.25 * SS;
+  const R = 1.2 * K;
   for (let i = 0; i < 12; i++) { const a = i / 12 * 6.2832; sg.drawImage(src, Math.cos(a) * R, Math.sin(a) * R); }
   sg.globalCompositeOperation = 'source-in'; sg.fillStyle = 'rgb(20,14,18)'; sg.fillRect(0, 0, W, H);
   og.drawImage(sil, 0, 0); og.drawImage(body, 0, 0);
@@ -351,31 +351,44 @@ function greenOutline(spr) {
   spr.hl = c2; return c2;
 }
 
+function figKey(L, facing, frame) { const pose = L.pose || 'stand'; return lookKey(L) + '#' + pose + '#' + facing + '#' + (pose === 'stand' || pose === 'slump' || pose === 'lean' ? frame : 0); }
+const _warmQ = [];
+function queueFigure(look, facing, frame, pose) { _warmQ.push([look, facing, frame, pose]); }
+function warmStep(maxN) {   // bake queued sprites one at a time (called with spare frame time)
+  while (maxN-- > 0 && _warmQ.length) { const q = _warmQ.shift(); getFigure(q[0], q[1], q[2], q[3]); }
+}
+/* returns a ready sprite without ever blocking on animation frames: walk frames fall back to idle while they are baked in the background */
+function figureNow(look, facing, frame, pose) {
+  const L = normLook(look); if (pose) L.pose = pose; facing = FACE_ALIAS[facing] || facing; if (!FACE[facing]) facing = 's';
+  const hit = _spr.get(figKey(L, facing, frame)); if (hit) return hit;
+  if (frame > 0) { for (let f = 1; f <= 4; f++) if (!_spr.get(figKey(L, facing, f))) queueFigure(look, facing, f, pose); const idle = _spr.get(figKey(L, facing, 0)); if (idle) return idle; }
+  return getFigure(look, facing, frame, pose);
+}
 function getFigure(look, facing, frame, poseOver) {
   const L = normLook(look); if (poseOver) L.pose = poseOver;
-  facing = FACE_ALIAS[facing] || facing; const fd = FACE[facing] || FACE.s;
+  facing = FACE_ALIAS[facing] || facing; const fd = FACE[facing] || FACE.s; if (!FACE[facing]) facing = 's';
   const pose = L.pose || 'stand';
-  const key = lookKey(L) + '#' + pose + '#' + facing + '#' + (pose === 'stand' || pose === 'slump' || pose === 'lean' ? frame : 0);
+  const key = figKey(L, facing, frame);
   let spr = _spr.get(key); if (spr) return spr;
-  const W = SPW * SS, Hh = SPH * SS, c = mk(W, Hh), g = ctx2(c);
-  g.save(); g.scale(SS, SS);
+  const W = Math.round(SPW * K), Hh = Math.round(SPH * K), c = mk(W, Hh), g = ctx2(c);
+  g.save(); g.scale(K, K);
   if (fd[1]) { g.translate(SPW, 0); g.scale(-1, 1); }
   g.translate(SAX, SAY);
   const r = RNG(hashStr(key));
   const rot = pose === 'lie';
   if (rot) { g.rotate(-Math.PI / 2); g.translate(0, -2); }
-  drawFigure(g, r, L, fd[0], (pose === 'stand' || pose === 'slump' || pose === 'lean') ? frame : 0, pose === 'lie' ? 'stand' : pose);
-  if (pose === 'hang') {   // rope to the hoop above, noose at the neck
-    g.save(); g.strokeStyle = css([176, 144, 96]); g.lineWidth = 1.8; g.lineCap = 'round';
-    const L2 = normLook(look), hh = (L2.age === 'teen' ? 68 : 74), top = -(hh * .47) - 24 - hh * .30 - 16;
-    g.beginPath(); g.moveTo(0, top + 4); g.lineTo(0, top + 4); g.lineTo(22 * (fd[1] ? -1 : 1) * (fd[1] ? -1 : 1), -128 - 20); g.stroke();
-    g.strokeStyle = css(INK, .5); g.lineWidth = .6; g.stroke();
-    g.restore();
+  if (pose === 'hang') {   // rope drawn behind the figure, from the neck up to the hoop
+    L.extra = 'none';
+    g.save(); g.lineCap = 'round'; const hh = (L.age === 'teen' ? 68 : 74), top = -(hh * .47) - 36 - hh * .30 - 8, rx = fd[1] ? -20 : 20;
+    g.strokeStyle = css(INK, .9); g.lineWidth = 3.4; g.beginPath(); g.moveTo(0, top); g.lineTo(rx, -118); g.stroke();
+    g.strokeStyle = css([190, 156, 104]); g.lineWidth = 2; g.stroke(); g.restore();
   }
+  drawFigure(g, r, L, fd[0], (pose === 'stand' || pose === 'slump' || pose === 'lean') ? frame : 0, pose === 'lie' ? 'stand' : pose);
   g.restore();
+  if (pose === 'hang') { g.save(); g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(14,16,30,.3)'; g.fillRect(0, 0, W, Hh); g.restore(); }
   const rim = C(look && look._rim || [255, 150, 70]);
   const out = addOutlineAndRim(c, W, Hh, rim);
-  spr = { c: out, ax: SAX * SS, ay: SAY * SS, w: W, h: Hh, hl: null };
+  spr = { c: out, ax: SAX * K, ay: SAY * K, w: W, h: Hh, hl: null, hang: pose === 'hang' ? { x: (fd[1] ? -20 : 20) * SC, y: -118 * SC } : null };
   _spr.set(key, spr);
   if (_spr.size > 600) { const k = _spr.keys().next().value; _spr.delete(k); }
   return spr;

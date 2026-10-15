@@ -1,12 +1,12 @@
 
 /* ------------------------------------------------------- moods / time */
 const MOODS = {
-  umber: { amb: [.80, .70, .60], bake: [.97, .90, .80], glow: [255, 170, 90], floorMix: [120, 80, 50] },
+  umber: { amb: [.86, .76, .66], bake: [.97, .90, .80], glow: [255, 170, 90], floorMix: [120, 80, 50] },
   warm:  { amb: [.98, .86, .72], bake: [1.0, .95, .86], glow: [255, 150, 70], floorMix: [150, 90, 40] },
-  cold:  { amb: [.68, .82, .90], bake: [.88, .96, 1.0], glow: [255, 190, 120], floorMix: [60, 100, 110] },
-  dusk:  { amb: [.66, .78, .90], bake: [.90, .96, 1.0], glow: [255, 140, 70], floorMix: [60, 80, 90] },
-  sick:  { amb: [.74, .90, .66], bake: [.92, 1.0, .88], glow: [220, 230, 130], floorMix: [80, 110, 70] },
-  ember: { amb: [.54, .46, .44], bake: [.9, .82, .78], glow: [255, 120, 40], floorMix: [90, 40, 20] }
+  cold:  { amb: [.76, .88, .95], bake: [.88, .96, 1.0], glow: [255, 190, 120], floorMix: [60, 100, 110] },
+  dusk:  { amb: [.82, .88, .96], bake: [.90, .96, 1.0], glow: [255, 140, 70], floorMix: [60, 80, 90] },
+  sick:  { amb: [.80, .94, .72], bake: [.92, 1.0, .88], glow: [220, 230, 130], floorMix: [80, 110, 70] },
+  ember: { amb: [.62, .53, .50], bake: [.9, .82, .78], glow: [255, 120, 40], floorMix: [90, 40, 20] }
 };
 const TIMEKEYS = [
   [0,    [.36, .43, .72], [20, 40, 120, .08]],
@@ -250,7 +250,7 @@ function paintLightFloor(ctx, S) {
     const u = r.r(30, lw(loc) * 64 - 30), v = r.r(30, lh(loc) * 64 - 30), s = r.r(16, 64);
     const c = jit(col, r, .12);
     ctx.globalAlpha = Math.min(1, r.r(.08, .3) * ka);
-    ctx.drawImage(bokehSprite(c, 64), u - s / 2, v - s / 2, s, s);
+    if (i % 4 === 0) ctx.drawImage(bokehSprite(c, 64), u - s / 2, v - s / 2, s, s); else { ctx.globalAlpha *= 1.4; ctx.drawImage(glowSprite(c, 128), u - s * .9, v - s * .9, s * 1.8, s * 1.8); }
     if (i % 3 === 0) { const sp = gp(S, u / 64, v / 64, 0); S.dapples.push({ x: sp[0], y: sp[1], s: s * .9, ph: r() * 6.28, col: c }); }
   }
   ctx.globalAlpha = 1; ctx.restore();
