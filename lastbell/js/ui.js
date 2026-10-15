@@ -4,6 +4,7 @@
   const GD = window.GD, G = window.Game, $ = (s) => document.querySelector(s), Art = window.Art;
   const canvas = $('#scene'), ctx = canvas.getContext('2d');
   let W = 0, H = 0, dpr = 1, cam = { x: 0, y: 0 }, zoom = 1, hover = null, mouse = { x: 0, y: 0 }, highlightAll = false, pulseUntil = 0;
+  const isTouch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
   let started = false, last = performance.now(), renderer = null, rendererLoc = null, rollTimer = null;
   const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
@@ -37,7 +38,8 @@
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2); W = window.innerWidth; H = window.innerHeight;
     [canvas, $('#title-canvas'), $('#ending-canvas')].forEach((c) => { c.width = Math.floor(W * dpr); c.height = Math.floor(H * dpr); });
-    zoom = Math.max(0.7, Math.min(1.6, H / 760));
+    zoom = Math.max(0.55, Math.min(1.6, H / 760));
+    document.body.classList.toggle('portrait', W < 640 && H > W);
   }
   window.addEventListener('resize', resize); resize();
 
@@ -53,6 +55,7 @@
       const l = G.loc();
       if (rendererLoc !== l.id) { renderer = A.getRenderer(l); rendererLoc = l.id; }
       const p = A.project(l, S.px, S.py), ws = A.worldSize(l);
+      if (document.body.classList.contains('portrait')) zoom = Math.max(0.35, Math.min(1, W / ws.w * 1.02));
       const dlgOpen = !!G.D;
       const focusY = dlgOpen ? H * 0.28 : H / 2;
       let tx = p.sx, ty = p.sy - 30 + (H / 2 - focusY) / zoom;
@@ -87,7 +90,13 @@
     }
     return best;
   }
+  function showTip(h, x, y) {
+    hover = h.id; const t = $('#tooltip');
+    t.innerHTML = esc(h.label) + (h.sub ? '<small>' + esc(h.sub) + '</small>' : '') + '<small>' + (h.kind === 'exit' ? 'tap again to go' : 'tap again to interact') + '</small>';
+    t.style.left = Math.max(6, Math.min(W - 250, x - 60)) + 'px'; t.style.top = Math.max(6, y - 90) + 'px'; t.classList.remove('hidden');
+  }
   canvas.addEventListener('mousemove', (e) => {
+    if (isTouch) return;
     mouse = { x: e.clientX, y: e.clientY };
     if (!G.S || G.D || G.S.ending || !started) { hover = null; $('#tooltip').classList.add('hidden'); return; }
     const h = pickHotspot(e.clientX, e.clientY); hover = h ? h.id : null;
@@ -100,7 +109,9 @@
     window.Sound && Sound.init();
     if (!G.S || G.D || G.S.ending || !started) return;
     const h = pickHotspot(e.clientX, e.clientY);
+    if (h && isTouch && hover !== h.id) { showTip(h, e.clientX, e.clientY); return; }   // first tap previews, second tap acts
     if (h) { G.interact(h); return; }
+    if (isTouch) { hover = null; $('#tooltip').classList.add('hidden'); }
     const l = G.loc(), wx = (e.clientX - W / 2) / zoom + cam.x, wy = (e.clientY - H / 2) / zoom + cam.y;
     const t = A.unproject(l, wx, wy); G.moveTo(Math.round(t.x), Math.round(t.y));
   });
@@ -113,6 +124,10 @@
     if (k === 'i') togglePanel('inventory'); else if (k === 'j') togglePanel('journal'); else if (k === 't') togglePanel('thoughts'); else if (k === 'c') togglePanel('character'); else if (k === 'escape') togglePanel('menu');
   });
   window.addEventListener('keyup', (e) => { if (e.key === 'Tab') highlightAll = false; });
+
+  const hl = $('#hl-btn'); hl.onclick = () => { highlightAll = !highlightAll; hl.classList.toggle('on', highlightAll); };
+  $('#rot-ok').onclick = () => $('#rotate').classList.add('hidden');
+  document.addEventListener('dblclick', (e) => e.preventDefault());
 
   // ---------- toasts ----------
   G.on('toast', (t) => {
@@ -285,7 +300,7 @@
   $('#btn-sound').onclick = () => { Sound.init(); Sound.toggle(); refreshTitle(); };
   $('#btn-continue').onclick = () => { Sound.init(); if (G.load()) beginPlay(); };
   $('#btn-new').onclick = () => { Sound.init(); showCreate(); };
-  function beginPlay() { started = true; $('#title').classList.add('hidden'); $('#create').classList.add('hidden'); $('#hud').classList.remove('hidden'); $('#hint').style.display = 'block'; setTimeout(() => ($('#hint').style.display = 'none'), 9000); refreshHud(); rendererLoc = null; cam.x = cam.y = 0; snapCamera(); }
+  function beginPlay() { started = true; document.body.classList.add('playing'); $('#title').classList.add('hidden'); $('#create').classList.add('hidden'); $('#hud').classList.remove('hidden'); $('#hint').style.display = 'block'; setTimeout(() => ($('#hint').style.display = 'none'), 9000); refreshHud(); rendererLoc = null; cam.x = cam.y = 0; snapCamera(); }
   function snapCamera() { const l = G.loc(), p = A.project(l, G.S.px, G.S.py); cam.x = p.sx; cam.y = p.sy - 30; }
   function showCreate() {
     $('#title').classList.add('hidden'); const box = $('#create'); box.classList.remove('hidden');
