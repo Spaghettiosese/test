@@ -54,6 +54,6 @@ test('sv_farm: sprinklers water plots; unprotected crops can be eaten by crows',
   sleep(g);
   assert.equal(P['4,4'].wat, g.day);
   S.crow = { day: g.day, keys: ['4,4'], shooed: false, active: true };
-  g.minutes = 12 * 60; g.bus.emit('hour', {});
+  g.state.time.minutes = 12 * 60; g.bus.emit('hour', {});
   assert.ok(!P['4,4'].crop, 'crows ate it');
 });
