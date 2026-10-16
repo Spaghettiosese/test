@@ -54,5 +54,8 @@ features('Festival Set Pieces', [
   'Sea Glass Dawn (autumn 3): search the tide line at sunrise for sea glass, shells and the odd pearl',
   'Maple Stroll (autumn 10): a forest path walk with Suzu, Kiko or Hina for the reddest leaf, which you press as a keepsake',
   'Snow Fort Day (winter 3): build a snow fort in three choices, with a helper, a chance to topple it and a snow charm',
+  'A tap-friendly bag picker with page arrows and item descriptions is used for the potluck, the secret gift and picnic food',
+  'Thirteen festival keepsakes, from the Flower crown to the Snow fort charm, that you can keep or give as gifts',
+  'New Year\'s Eve decorates the town square with lanterns and winter bunting around the clock tower',
   'Mini events show a morning hint toast and are marked by a walk-up spot you can use in the right hours',
 ]);

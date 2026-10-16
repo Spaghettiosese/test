@@ -39,7 +39,7 @@ const trees = [];
 for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
   const ch = ROWS[y][x], k = TREES[Math.floor(hash(x, y, 21) * TREES.length)];
   if (ch === 'T') { if (hash(x, y, 5) < 0.85) trees.push(prop(`town_tree_${k}`, x, y, { solid: false })); }
-  else if (ch === '.' && !reserved.has(`${x},${y}`) && !near(x, y, 1, (c) => c === ':' || c === '~' || c === 'g' || c === ',') && hash(x, y, 11) < 0.27) trees.push(prop(`town_tree_${k}`, x, y, { shadow: 12 }));
+  else if (ch === '.' && !reserved.has(`${x},${y}`) && !near(x, y, 1, (c) => c === ':' || c === '~' || c === 'g' || c === ',') && hash(x, y, 11) < 0.36) trees.push(prop(`town_tree_${k}`, x, y, { shadow: 12 }));
 }
 const wState = (g) => W2(g).woods;
 const lit = (kind) => (g) => wState(g).solved || wState(g).lit.includes(kind);

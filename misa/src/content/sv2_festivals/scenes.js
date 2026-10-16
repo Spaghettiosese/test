@@ -173,8 +173,8 @@ class GrangeScene {
     drawText(g, 'YOUR BAG', 150, 25, K.paper[4], 1, null);
     this.grid.draw(g, game, (id) => this.left(id));
     const id = this.grid.cur;
-    if (id) drawText(g, clip(itemName(id).toUpperCase(), 160), 150, 29, K.butter[3], 1, null);
-    drawText(g, 'VARIETY, QUALITY AND THE HARVEST THEME SCORE.', 150, 200, K.paper[3], 1, null);
+    if (id) drawText(g, clip(itemName(id).toUpperCase(), 108), 200, 25, K.butter[3], 1, null);
+    drawText(g, 'VARIETY, QUALITY, THEME AND A FULL BOARD.', 150, 200, K.paper[3], 1, null);
     drawText(g, 'GORO LIKES CROPS. MIKA LIKES FOOD.', 150, 208, K.paper[2], 1, null);
     if (this.msgT > 0) { panel(g, 30, 100, 260, 20, 'dark'); drawTextC(g, this.msg, 160, 107, UI.text, 1, null); }
   }
