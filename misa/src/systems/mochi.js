@@ -49,6 +49,8 @@ function homeSpots(world) {
   return S;
 }
 
+const treatId = (g) => ['mochi_treat', 'snack_pet_salmon', 'snack_pet_tuna'].find((i) => g.has(i));
+
 class Mochi extends Critter {
   constructor() {
     super('mochi', { map: 'home', x: 7.5 * TILE, y: 12.8 * TILE, state: 'sleep', t: 8, label: 'Mochi' });
@@ -245,7 +247,7 @@ class Mochi extends Critter {
     const opts = [];
     if (game.weather === 'storm' && s.comfortDay !== game.day && game.world.map.id === 'home') opts.push({ text: 'Comfort her', steps: [{ t: 'call', fn: () => this.comfort(game) }] });
     opts.push({ text: wasState === 'rest' && this.spot && this.spot.pose === 'sleep' ? 'Pet her gently' : 'Pet her', steps: [{ t: 'call', fn: () => this.pet(game) }] });
-    if (game.has('mochi_treat')) opts.push({ text: 'Give a churu treat', steps: [{ t: 'call', fn: () => this.treat(game) }] });
+    if (treatId(game)) opts.push({ text: 'Give a churu treat', steps: [{ t: 'call', fn: () => this.treat(game) }] });
     opts.push({ text: 'Play with the feather wand', steps: [{ t: 'call', fn: () => game.mochiPlay() }] });
     opts.push({ text: 'Brush her', steps: [{ t: 'call', fn: () => game.mochiBrush() }] });
     opts.push({ text: 'Snap a photo', steps: [{ t: 'call', fn: () => this.photo(game, pose) }] });
@@ -271,7 +273,7 @@ class Mochi extends Critter {
   }
   treat(game) {
     const s = ms(game);
-    game.take('mochi_treat', 1); game.sfx('trill');
+    game.take(treatId(game), 1); game.sfx('trill');
     fillNeed(game, 'love', 25); fillNeed(game, 'food', 10);
     const many = s.treatDay === game.day;
     s.treatDay = game.day; s.treatsToday = many ? (s.treatsToday || 1) + 1 : 1;
