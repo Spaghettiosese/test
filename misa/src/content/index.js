@@ -25,4 +25,7 @@ import './story/index.js';
 import './events/index.js';
 import './ui/index.js';
 import './mochi/index.js';
+import './sv_farm/index.js';
 import './gaps.js';
+import './sv_community/index.js';
+import './sv_life/index.js';
