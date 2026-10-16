@@ -153,7 +153,8 @@ defineSprite('ev_toro', 16, 18, (R) => {
 }, { hd: true });
 
 // ---------- moon viewing ----------
-defineSprite('ev_dango_stand', 40, 36, (R) => {
+defineSprite('ev_dango_stand', 40, 40, (R0) => {
+  const R = R0.at(0, 2);
   // susuki grass in a vase
   R(28, 20, 8, 14, K.stone[2]); R(28, 20, 8, 1, K.stone[4]); R(29, 22, 2, 10, K.stone[3]);
   for (const [x, h, d] of [[30, 18, -1], [32, 20, 0], [34, 16, 1], [31, 14, 1]]) { for (let i = 0; i < h; i++) R(x + Math.floor(i * d / 4), 20 - i, 1, 1, K.grassAutumn[2]); R.e(x + Math.floor(h * d / 4), 20 - h, 1, 3, K.paper[3]); }
@@ -221,7 +222,8 @@ defineSprite('ev_leaf_pile', 30, 14, (R) => {
   R.e(15, 9, 14, 5, K.leafAutumn[1]); R.e(13, 7, 10, 4, K.leafAutumn[2]); R.e(17, 6, 7, 3, K.leafAutumn[3]);
   for (const [x, y, c] of [[5, 8, K.butter[2]], [10, 4, K.leafAutumn[4]], [20, 5, K.ribbon[2]], [24, 9, K.leafAutumn[3]], [14, 3, K.butter[3]], [8, 11, K.ribbon[3]]]) { R(x, y, 2, 1, c); R(x + 1, y + 1, 1, 1, c); }
 }, { hd: true });
-defineSprite('ev_hina', 48, 42, (R) => {
+defineSprite('ev_hina', 48, 46, (R0) => {
+  const R = R0.at(0, 1);
   for (let k = 0; k < 3; k++) { const y = 12 + k * 10, inset = 10 - k * 5; R(inset, y + 6, 48 - inset * 2, 4, K.ribbon[2]); R(inset, y + 6, 48 - inset * 2, 1, K.ribbon[3]); R(inset, y + 10, 48 - inset * 2, 2, K.ribbon[1]); }
   R(2, 38, 44, 4, K.woodDark[2]);
   // emperor and empress on top, court ladies below
