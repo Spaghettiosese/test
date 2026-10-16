@@ -153,8 +153,8 @@ defineSprite('ev_toro', 16, 18, (R) => {
 }, { hd: true });
 
 // ---------- moon viewing ----------
-defineSprite('ev_dango_stand', 40, 40, (R0) => {
-  const R = R0.at(0, 2);
+defineSprite('ev_dango_stand', 40, 44, (R0) => {
+  const R = R0.at(0, 6);
   // susuki grass in a vase
   R(28, 20, 8, 14, K.stone[2]); R(28, 20, 8, 1, K.stone[4]); R(29, 22, 2, 10, K.stone[3]);
   for (const [x, h, d] of [[30, 18, -1], [32, 20, 0], [34, 16, 1], [31, 14, 1]]) { for (let i = 0; i < h; i++) R(x + Math.floor(i * d / 4), 20 - i, 1, 1, K.grassAutumn[2]); R.e(x + Math.floor(h * d / 4), 20 - h, 1, 3, K.paper[3]); }
