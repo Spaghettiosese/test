@@ -228,7 +228,7 @@ test('everything draws without throwing: minigames, backdrops, picker, board, re
   const g = createTestGame();
   const G = new Proxy({}, { get: (t, k) => (k in t ? t[k] : k === 'measureText' ? () => ({ width: 5 }) : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
   const fake = () => ({ width: 16, height: 16, getContext: () => G });
-  const had = globalThis.document; globalThis.document = { createElement: fake };
+  const had = globalThis.document, hadId = globalThis.ImageData; globalThis.document = { createElement: fake }; globalThis.ImageData = class { constructor(d, w, h) { Object.assign(this, { data: d, width: w, height: h }); } };
   try {
     for (const id of ['sv2_dance', 'sv2_egg_hunt', 'sv2_strength', 'sv2_fireworks']) {
       const def = R.minigame[id], m = def.make(g, { partner: 'kai' });
@@ -247,5 +247,5 @@ test('everything draws without throwing: minigames, backdrops, picker, board, re
     const world = { map: { id: 'beach' }, sx: (x) => x, sy: (y) => y };
     R.worldLayer.sv2_glow.overlay(G, world, g);
     assert.ok(R.worldLayer.sv2_glow && g.extraLights.length > 0);
-  } finally { globalThis.document = had; }
+  } finally { globalThis.document = had; globalThis.ImageData = hadId; }
 });
