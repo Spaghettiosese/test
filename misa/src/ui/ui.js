@@ -149,8 +149,7 @@ export function button(g, input, x, y, w, h, text, { focused = false, disabled =
   if (ic) iconC(g, ic, tx + 4, ty + 3);
   drawText(g, text, tx + (ic ? 12 : 0), ty, disabled ? P.ink[3] : UI.ink, 1, null);
   if (focused && !disabled) {
-    // marching dashed gold border
-    const t = Math.floor(((typeof performance !== 'undefined' ? performance.now() : 0) / 120)) % 4;
+    const t = UI.reduceMotion ? 0 : Math.floor(((typeof performance !== 'undefined' ? performance.now() : 0) / 120)) % 4; // marching dashed gold border
     g.fillStyle = P.butter[1];
     for (let i = 0; i < w + 2; i++) if ((i + t) % 4 < 2) { g.fillRect(x - 1 + i, y - 2 + dy, 1, 1); g.fillRect(x + w - i, y + h + 1 + dy, 1, 1); }
     for (let i = 0; i < h + 2; i++) if ((i + t) % 4 < 2) { g.fillRect(x + w + 1, y - 1 + i + dy, 1, 1); g.fillRect(x - 2, y + h - i + dy, 1, 1); }

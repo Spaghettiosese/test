@@ -30,11 +30,18 @@ class PhoneScene {
     if (!this.ctx.state.capture && (k.has('q') || k.has('['))) { this.i = (this.i + n - 1) % n; this.openApp(); game.sfx('blip'); }
     if (!this.ctx.state.capture && (k.has(']') || k.has('r'))) { this.i = (this.i + 1) % n; this.openApp(); game.sfx('blip'); }
     // app icons along the top
-    const iw = Math.min(28, 292 / n);
-    if (input.justDown && inside(input.mx, input.my, 14, 16, iw * n, 20)) { const j = Math.floor((input.mx - 14) / iw); if (j >= 0 && j < n && j !== this.i) { this.i = j; this.openApp(); game.sfx('blip'); return; } }
-    if (input.justDown && inside(input.mx, input.my, 296, 3, 18, 11)) return this.close();
-    this.hover = inside(input.mx, input.my, 14, 16, iw * n, 20) ? Math.floor((input.mx - 14) / iw) : -1;
+    const L = this.strip(); this.off = L.off;
+    const go = (d) => { this.i = (this.i + d + n) % n; this.openApp(); game.sfx('blip'); };
+    if (L.arrows && input.justDown) { if (inside(input.mx, input.my, 14, 16, 14, 20)) return go(-1); if (inside(input.mx, input.my, 292, 16, 14, 20)) return go(1); }
+    if (input.justDown && inside(input.mx, input.my, L.x, 16, L.iw * L.vis, 20)) { const j = this.off + Math.floor((input.mx - L.x) / L.iw); if (j >= 0 && j < n && j !== this.i) { this.i = j; this.openApp(); game.sfx('blip'); return; } }
+    if (input.justDown && inside(input.mx, input.my, 284, 1, 32, 15)) return this.close();
+    this.hover = inside(input.mx, input.my, L.x, 16, L.iw * L.vis, 20) ? this.off + Math.floor((input.mx - L.x) / L.iw) : -1;
     if (this.app.update) this.app.update(dt, input, game, this.ctx);
+  }
+  strip() {
+    const n = this.apps.length, vis = Math.min(n, 10), arrows = n > vis, iw = arrows ? 26 : Math.min(28, 292 / n);
+    let off = this.off || 0; if (this.i < off) off = this.i; if (this.i >= off + vis) off = this.i - vis + 1;
+    return { n, vis, arrows, iw, off: Math.max(0, Math.min(off, n - vis)), x: arrows ? 28 : 14 };
   }
   draw(g, game) {
     g.fillStyle = '#10081888'; g.fillRect(0, 0, 320, 224);
@@ -43,21 +50,22 @@ class PhoneScene {
     // status bar
     drawText(g, clockText(game.minutes), 12, 6, UI.text, 1, null);
     drawTextC(g, this.app.name.toUpperCase(), 160, 6, UI.gold, 1, null);
-    rect(g, UI.accent, 296, 4, 16, 9); drawTextC(g, 'X', 304, 6, UI.text, 1, null);
+    rect(g, UI.accent, 292, 3, 20, 12); drawTextC(g, 'X', 302, 6, UI.text, 1, null);
     // app strip
-    const n = this.apps.length, iw = Math.min(28, 292 / n);
-    this.apps.forEach((a, j) => {
-      const x = Math.round(14 + j * iw), on = j === this.i;
+    const L = this.strip();
+    if (L.arrows) { for (const [ax, t] of [[14, '<'], [292, '>']]) { rect(g, UI.ink, ax, 16, 14, 20); rect(g, '#5a4660', ax + 1, 17, 12, 18); drawTextC(g, t, ax + 7, 23, UI.text, 1, null); } }
+    this.apps.slice(L.off, L.off + L.vis).forEach((a, jj) => {
+      const j = L.off + jj, iw = L.iw, x = Math.round(L.x + jj * iw), on = j === this.i;
       rect(g, on ? UI.paper : '#5a4660', x, 16, Math.round(iw) - 2, 20);
       if (a.icon && SPRITES[a.icon]) { const s = SPRITES[a.icon]; g.drawImage(sprite(a.icon), Math.round(x + (iw - 2) / 2 - s.w / 2), 26 - Math.round(s.h / 2)); }
       else drawTextC(g, a.name.slice(0, 3), x + iw / 2 - 1, 23, on ? UI.ink : UI.text, 1, null);
       const badge = a.badge && a.badge(game);
-      if (badge) { rect(g, UI.accent, x + iw - 9, 15, 7, 7); drawTextC(g, String(badge), x + iw - 5, 16, UI.text, 1, null); }
+      if (badge) { rect(g, UI.accent, x + iw - 10, 15, 8, 8); drawTextC(g, String(badge), x + iw - 6, 16, UI.text, 1, null); }
     });
-    if (this.hover >= 0 && this.apps[this.hover]) tooltip(g, this.apps[this.hover].name, (this.game.input || {}).mx + 6 || 0, 38);
+    if (this.hover >= 0 && this.apps[this.hover]) tooltip(g, this.apps[this.hover].name, ((this.game.input || {}).mx || 0) + 6, 38);
     rect(g, UI.paper, AREA.x - 2, AREA.y - 2, AREA.w + 4, AREA.h + 4);
     this.app.draw(g, game, this.ctx);
-    drawText(g, 'Q/E OR CLICK: SWITCH APP   ESC: CLOSE', 14, 216, '#b9a6c4', 1, null);
+    drawText(g, 'Q/E OR TAP ICONS: SWITCH APP   ESC OR X: CLOSE', 14, 216, '#b9a6c4', 1, null);
   }
 }
 register('scene', 'phone', { make: (game, start, opts) => new PhoneScene(game, start, opts) });
@@ -81,8 +89,8 @@ register('phoneApp', 'bag', {
     if (k.has('c')) { st.cat = (st.cat + 1) % ITEM_CATS.length; st.sel = 0; }
     const { x, y } = app.area;
     if (input.justDown) {
-      for (let i = 0; i < ITEM_CATS.length; i++) if (inside(input.mx, input.my, x + 2 + i * 36, y + 2, 34, 10)) { st.cat = i; st.sel = 0; }
-      const gx = Math.floor((input.mx - x - 4) / 22), gy = Math.floor((input.my - y - 16) / 22), j = gy * cols + gx;
+      for (let i = 0; i < ITEM_CATS.length; i++) if (inside(input.mx, input.my, x + 2 + i * 36, y + 1, 34, 15)) { st.cat = i; st.sel = 0; }
+      const gx = Math.floor((input.mx - x - 4) / 22), gy = Math.floor((input.my - y - 18) / 22), j = gy * cols + gx;
       if (gx >= 0 && gx < cols && gy >= 0 && j < list.length) { if (st.sel === j && st.lastClick > 0) this.useSel(game, app, list); st.sel = j; st.lastClick = 0.35; }
     }
     st.lastClick = (st.lastClick || 0) - dt;
@@ -90,8 +98,8 @@ register('phoneApp', 'bag', {
     const sel = list[st.sel];
     st.actions = sel ? this.actions(game, sel) : [];
     for (const [i, a] of st.actions.entries()) {
-      const bx = x + 186, by = y + 120 + i * 13;
-      if ((input.justDown && inside(input.mx, input.my, bx, by, 100, 11)) || k.has(String(i + 1))) a.run();
+      const bx = x + 186, by = y + 118 + i * 18;
+      if ((input.justDown && inside(input.mx, input.my, bx, by, 100, 16)) || k.has(String(i + 1))) a.run();
     }
     if (k.has('enter') || k.has('e') || k.has(' ')) if (st.actions[0]) st.actions[0].run();
   },
@@ -105,9 +113,9 @@ register('phoneApp', 'bag', {
   },
   draw(g, game, app) {
     const { x, y, w, h } = app.area, st = app.state, list = this.items(game, app), cols = 8;
-    ITEM_CATS.forEach((c, i) => { const on = i === st.cat; rect(g, on ? UI.accent : UI.paper2, x + 2 + i * 36, y + 2, 34, 10); drawTextC(g, c, x + 19 + i * 36, y + 4, on ? UI.text : UI.ink, 1, null); });
+    ITEM_CATS.forEach((c, i) => { const on = i === st.cat; rect(g, on ? UI.accent : UI.paper2, x + 2 + i * 36, y + 1, 34, 15); drawTextC(g, c, x + 19 + i * 36, y + 5, on ? UI.text : UI.ink, 1, null); });
     for (let i = 0; i < Math.max(32, list.length); i++) {
-      const gx = x + 4 + (i % cols) * 22, gy = y + 16 + Math.floor(i / cols) * 22;
+      const gx = x + 4 + (i % cols) * 22, gy = y + 18 + Math.floor(i / cols) * 22;
       if (gy > y + h - 22) break;
       rect(g, i === st.sel && list[i] ? UI.gold : UI.paper2, gx, gy, 20, 20); rect(g, UI.paper, gx + 1, gy + 1, 18, 18);
       const e = list[i];
@@ -124,7 +132,7 @@ register('phoneApp', 'bag', {
     wrap(sel.def.desc || '', 24).slice(0, 8).forEach((l, i) => drawText(g, l, x + 188, y + 42 + i * 8, UI.ink, 1, null));
     if (sel.def.energy) drawText(g, `+${sel.def.energy} ENERGY`, x + 188, y + 108, UI.good, 1, null);
     if (sel.def.price) drawText(g, `SELLS ${sel.def.price}c`, x + 240, y + 108, UI.dim, 1, null);
-    (st.actions || []).forEach((a, i) => { const by = y + 120 + i * 13; rect(g, UI.ink, x + 186, by, 100, 11); rect(g, UI.mint, x + 187, by + 1, 98, 9); drawTextC(g, `${i + 1} ${a.text}`, x + 236, by + 3, UI.ink, 1, null); });
+    (st.actions || []).forEach((a, i) => { const by = y + 118 + i * 18; rect(g, UI.ink, x + 186, by, 100, 16); rect(g, UI.mint, x + 187, by + 1, 98, 14); drawTextC(g, `${i + 1} ${a.text}`, x + 236, by + 5, UI.ink, 1, null); });
     drawText(g, 'C: FILTER  ENTER: USE', x + 4, y + h - 8, UI.dim, 1, null);
   },
 });
@@ -138,15 +146,15 @@ register('phoneApp', 'quests', {
     const st = app.state, list = this.list(game, app), k = input.pressed;
     if (k.has('arrowdown') || k.has('s')) st.sel = Math.min(list.length - 1, st.sel + 1);
     if (k.has('arrowup') || k.has('w')) st.sel = Math.max(0, st.sel - 1);
-    if (k.has('c') || (input.justDown && inside(input.mx, input.my, app.area.x, app.area.y, 120, 11))) { st.tab = 1 - st.tab; st.sel = 0; }
-    if (input.justDown) { const i = Math.floor((input.my - app.area.y - 16) / 11); if (input.mx < app.area.x + 120 && i >= 0 && i < list.length) st.sel = i; }
+    if (k.has('c') || (input.justDown && inside(input.mx, input.my, app.area.x, app.area.y, 120, 16))) { st.tab = 1 - st.tab; st.sel = 0; }
+    if (input.justDown) { const i = Math.floor((input.my - app.area.y - 19) / 14); if (input.mx < app.area.x + 120 && i >= 0 && i < list.length) st.sel = i; }
     const q = list[st.sel]; if (q) game.state.seen['q:' + q.id] = 1;
   },
   draw(g, game, app) {
     const { x, y } = app.area, st = app.state, list = this.list(game, app);
-    rect(g, UI.accent, x, y, 120, 11); drawTextC(g, st.tab ? 'COMPLETED (C)' : 'ACTIVE (C)', x + 60, y + 3, UI.text, 1, null);
-    list.slice(0, 14).forEach((q, i) => { if (i === st.sel) rect(g, UI.gold, x, y + 15 + i * 11, 120, 10); drawText(g, (q.main ? '* ' : '') + q.name, x + 3, y + 17 + i * 11, UI.ink, 1, null); });
-    if (!list.length) drawText(g, st.tab ? 'NOTHING FINISHED YET' : 'NO ACTIVE QUESTS', x + 4, y + 20, UI.dim, 1, null);
+    rect(g, UI.accent, x, y, 120, 16); drawTextC(g, st.tab ? 'COMPLETED (C)' : 'ACTIVE (C)', x + 60, y + 5, UI.text, 1, null);
+    list.slice(0, 10).forEach((q, i) => { if (i === st.sel) rect(g, UI.gold, x, y + 19 + i * 14, 120, 13); drawText(g, (q.main ? '* ' : '') + q.name, x + 3, y + 22 + i * 14, UI.ink, 1, null); });
+    if (!list.length) drawText(g, st.tab ? 'NOTHING FINISHED YET' : 'NO ACTIVE QUESTS', x + 4, y + 24, UI.dim, 1, null);
     const q = list[st.sel];
     if (!q) return;
     panel(g, x + 126, y, 166, 170, 'paper');
@@ -171,16 +179,16 @@ register('phoneApp', 'friends', {
     const st = app.state, list = this.list(game), k = input.pressed;
     if (k.has('arrowdown') || k.has('s')) st.sel = Math.min(list.length - 1, st.sel + 1);
     if (k.has('arrowup') || k.has('w')) st.sel = Math.max(0, st.sel - 1);
-    if (input.justDown) { const i = Math.floor((input.my - app.area.y) / 12); if (input.mx < app.area.x + 140 && i >= 0 && i < list.length) st.sel = i; }
+    if (input.justDown) { const i = Math.floor((input.my - app.area.y) / 14); if (input.mx < app.area.x + 140 && i >= 0 && i < list.length) st.sel = i; }
   },
   draw(g, game, app) {
     const { x, y } = app.area, st = app.state, list = this.list(game);
     if (!list.length) { drawText(g, 'TALK TO PEOPLE AROUND TOWN TO MAKE FRIENDS!', x + 4, y + 10, UI.dim, 1, null); return; }
-    list.slice(0, 14).forEach((n, i) => {
-      if (i === st.sel) rect(g, UI.gold, x, y + i * 12, 140, 11);
-      drawText(g, n.name, x + 3, y + 3 + i * 12, UI.ink, 1, null);
+    list.slice(0, 12).forEach((n, i) => {
+      if (i === st.sel) rect(g, UI.gold, x, y + i * 14, 140, 13);
+      drawText(g, n.name, x + 3, y + 4 + i * 14, UI.ink, 1, null);
       const h = game.hearts(n.id);
-      for (let k = 0; k < 10; k++) { g.globalAlpha = k < h ? 1 : 0.2; g.drawImage(sprite('heart'), x + 60 + k * 8, y + 2 + i * 12); }
+      for (let k = 0; k < 10; k++) { g.globalAlpha = k < h ? 1 : 0.2; g.drawImage(sprite('heart'), x + 60 + k * 8, y + 4 + i * 14); }
       g.globalAlpha = 1;
     });
     const n = list[st.sel];
@@ -198,44 +206,7 @@ register('phoneApp', 'friends', {
   },
 });
 
-const SETTINGS = [
-  ['music', 'Music volume', 'vol'], ['sfx', 'Sound volume', 'vol'], ['textSpeed', 'Text speed', 'speed'],
-  ['runToggle', 'Always run (Shift walks)', 'bool'], ['tracker', 'Quest tracker on HUD', 'bool'], ['mouseWalk', 'Hold mouse to walk', 'bool'],
-  ['screenShake', 'Screen shake', 'bool'], ['clock24', '24-hour clock', 'bool'], ['autosave', 'Autosave when sleeping', 'bool'],
-];
-register('phoneApp', 'settings', {
-  name: 'Settings', icon: 'i_gear', order: 90,
-  open(game, app) { app.state.sel ??= 0; },
-  update(dt, input, game, app) {
-    const st = app.state, k = input.pressed, s = game.settings, n = SETTINGS.length;
-    if (k.has('arrowdown') || k.has('s')) st.sel = (st.sel + 1) % n;
-    if (k.has('arrowup') || k.has('w')) st.sel = (st.sel + n - 1) % n;
-    const change = (i, dir) => {
-      const [key, , kind] = SETTINGS[i];
-      if (kind === 'vol') s[key] = Math.round(Math.max(0, Math.min(1, (s[key] ?? 0.6) + dir * 0.1)) * 10) / 10;
-      else if (kind === 'speed') s[key] = [0.5, 1, 2, 4][([0.5, 1, 2, 4].indexOf(s[key] ?? 1) + (dir > 0 ? 1 : 3)) % 4];
-      else s[key] = !(s[key] ?? (key === 'tracker' || key === 'mouseWalk' || key === 'autosave' || key === 'screenShake'));
-      game.saveSettings(); if (game.audio) game.audio.setVolumes(s); game.sfx('blip');
-    };
-    if (k.has('arrowleft') || k.has('a')) change(st.sel, -1);
-    if (k.has('arrowright') || k.has('d') || k.has('enter') || k.has(' ')) change(st.sel, 1);
-    if (input.justDown) { const i = Math.floor((input.my - app.area.y - 8) / 14); if (i >= 0 && i < n) { st.sel = i; change(i, input.mx < app.area.x + 200 ? -1 : 1); } }
-  },
-  draw(g, game, app) {
-    const { x, y } = app.area, s = game.settings;
-    SETTINGS.forEach(([key, label, kind], i) => {
-      const yy = y + 8 + i * 14;
-      if (i === app.state.sel) rect(g, UI.gold, x, yy - 2, 292, 12);
-      drawText(g, label, x + 6, yy + 1, UI.ink, 1, null);
-      let v;
-      if (kind === 'vol') { v = `< ${'#'.repeat(Math.round((s[key] ?? 0.6) * 10)).padEnd(10, '.')} >`; }
-      else if (kind === 'speed') v = `< ${{ 0.5: 'SLOW', 1: 'NORMAL', 2: 'FAST', 4: 'INSTANT' }[s[key] ?? 1]} >`;
-      else v = (s[key] ?? (key === 'tracker' || key === 'mouseWalk' || key === 'autosave' || key === 'screenShake')) ? '[ON]' : '[OFF]';
-      drawText(g, v, x + 200, yy + 1, UI.accent2, 1, null);
-    });
-    drawText(g, 'LEFT/RIGHT OR CLICK TO CHANGE', x + 6, y + 152, UI.dim, 1, null);
-  },
-});
+// The Settings app lives in src/content/ui/settings.js
 
 register('phoneApp', 'system', {
   name: 'Save', icon: 'i_save', order: 99,
@@ -246,7 +217,7 @@ register('phoneApp', 'system', {
     if (k.has('arrowdown') || k.has('s')) st.sel = (st.sel + 1) % 3;
     if (k.has('arrowup') || k.has('w')) st.sel = (st.sel + 2) % 3;
     let pick = (k.has('enter') || k.has(' ') || k.has('e')) ? st.sel : -1;
-    if (input.justDown) { const i = Math.floor((input.my - app.area.y - 40) / 18); if (i >= 0 && i < 3) pick = i; }
+    if (input.justDown) { const i = Math.floor((input.my - app.area.y - 40) / 22); if (i >= 0 && i < 3) pick = i; }
     if (pick === 0) { game.save() ? game.toast(`Saved to slot ${game.slot}`, 'i_save') : game.toast('Could not save (storage blocked)'); }
     if (pick === 1) { game.save(); game.scenes.replaceAll(get('scene', 'title').make(game)); game.world = null; }
     if (pick === 2) app.scene.close();
@@ -254,7 +225,7 @@ register('phoneApp', 'system', {
   draw(g, game, app) {
     const { x, y } = app.area;
     drawTextC(g, `SLOT ${game.slot}  -  DAY ${game.day}  -  ${Math.round(game.state.playMs / 60000)} MIN PLAYED`, x + 146, y + 16, UI.ink, 1, null);
-    this.opts.forEach((o, i) => { const yy = y + 40 + i * 18; rect(g, UI.ink, x + 76, yy, 140, 14); rect(g, i === app.state.sel ? UI.gold : UI.mint, x + 77, yy + 1, 138, 12); drawTextC(g, o, x + 146, yy + 4, UI.ink, 1, null); });
-    drawTextC(g, 'THE GAME ALSO SAVES EVERY TIME YOU SLEEP', x + 146, y + 110, UI.dim, 1, null);
+    this.opts.forEach((o, i) => { const yy = y + 40 + i * 22; rect(g, UI.ink, x + 66, yy, 160, 18); rect(g, i === app.state.sel ? UI.gold : UI.mint, x + 67, yy + 1, 158, 16); drawTextC(g, o, x + 146, yy + 5, UI.ink, 1, null); });
+    drawTextC(g, 'THE GAME ALSO SAVES EVERY TIME YOU SLEEP', x + 146, y + 120, UI.dim, 1, null);
   },
 });

@@ -11,14 +11,14 @@
 // New step types: register('command', name, { run(game, step, scene) -> optional Promise }).
 import { get, register } from '../core/registry.js';
 import { check } from '../core/cond.js';
-import { drawText, drawTextC, wrap, CHAR_W } from '../font.js';
+import { drawText, drawTextC, wrap, measure, CHAR_W } from '../font.js';
 import { act } from '../input.js';
 import { drawPortrait, displayName } from './portraits.js';
 import { UI, rect } from './ui.js';
 
 export class CutsceneScene {
   constructor(game, steps, onDone) {
-    Object.assign(this, { name: 'cutscene', opaque: false, pausesTime: true, game, steps: (steps || []).slice(), onDone, idx: -1, fade: 0, fadeTo: 0, fadeRate: 0, scene: null, shown: 0, wait: 0, sel: 0, done: false, tick: 0, waiting: false });
+    Object.assign(this, { name: 'cutscene', opaque: false, pausesTime: true, game, steps: (steps || []).slice(), onDone, idx: -1, fade: 0, fadeTo: 0, fadeRate: 0, scene: null, shown: 0, wait: 0, sel: 0, done: false, clk: 0, waiting: false });
   }
   enter() { this.next(); }
   get step() { return this.steps[this.idx]; }
@@ -80,7 +80,7 @@ export class CutsceneScene {
     this.finish();
   }
   update(dt, input) {
-    this.tick += dt;
+    this.clk += dt;
     if (this.fade !== this.fadeTo) {
       const d = this.fadeRate * dt;
       this.fade = this.fade < this.fadeTo ? Math.min(this.fadeTo, this.fade + d) : Math.max(this.fadeTo, this.fade - d);
@@ -110,7 +110,7 @@ export class CutsceneScene {
   choiceTop() { return Math.round(112 - (this.options.length * 13) / 2); }
   draw(g) {
     const game = this.game;
-    if (this.scene) { const b = get('backdrop', this.scene); if (b) b.draw(g, game, this.tick); }
+    if (this.scene) { const b = get('backdrop', this.scene); if (b) b.draw(g, game, this.clk); }
     if (this.fade > 0) { g.fillStyle = `rgba(10,6,18,${this.fade})`; g.fillRect(0, 0, 320, 224); }
     const s = this.step;
     if (!s || this.closing || this.waiting) return;
@@ -134,19 +134,29 @@ export class CutsceneScene {
     rect(g, UI.ink, 4, y, 312, 76); rect(g, '#2b1d2ef2', 5, y + 1, 310, 74); rect(g, UI.paper, 6, y + 2, 308, 1);
     let tx = 12;
     if (s.who && s.mood !== null) {
-      const talking = !still && this.shown < s.text.length, m = talking && Math.floor(this.tick * 8) % 2 ? 1 : 0, bl = this.tick % 3.3 < 0.13 ? 1 : 0;
+      const talking = !still && this.shown < s.text.length, m = talking && Math.floor(this.clk * 8) % 2 ? 1 : 0, bl = this.clk % 3.3 < 0.13 ? 1 : 0;
       rect(g, UI.paper, 8, y + 4, 68, 68); rect(g, '#b6dcc9', 10, y + 6, 64, 64);
-      drawPortrait(g, s.who, s.mood || 'neutral', m, bl, 10, y + 6 + (talking ? Math.round(Math.sin(this.tick * 16) * 0.6) : 0));
+      drawPortrait(g, s.who, s.mood || 'neutral', m, bl, 10, y + 6 + (talking ? Math.round(Math.sin(this.clk * 16) * 0.6) : 0));
       tx = 84;
     }
     const name = displayName(s.who);
-    if (name) { const nw = name.length * CHAR_W + 8; rect(g, UI.ink, tx - 3, y - 6, nw + 2, 11); rect(g, UI.accent, tx - 2, y - 5, nw, 9); drawText(g, name, tx + 2, y - 3, UI.text, 1, null); }
+    if (name) {
+      const nw = measure(name) + 8, tag = tagColor(s.who);
+      rect(g, UI.ink, tx - 3, y - 6, nw + 2, 11); rect(g, tag.bg, tx - 2, y - 5, nw, 9); drawText(g, name, tx + 2, y - 3, tag.fg, 1, null);
+    }
     const shown = still ? s.text.length : Math.floor(this.shown);
     let left = shown;
     const maxC = Math.floor((308 - tx) / CHAR_W);
     wrap(s.text, maxC).slice(0, 7).forEach((ln, i) => { drawText(g, ln.slice(0, Math.max(0, left)), tx, y + 10 + i * 9, UI.text); left -= ln.length + 1; });
-    if (!still && this.shown >= s.text.length && Math.floor(this.tick * 2) % 2) drawText(g, '>', 304, y + 64, UI.gold);
+    if (!still && this.shown >= s.text.length && (UI.reduceMotion || Math.floor(this.clk * 2) % 2)) drawText(g, '>', 304, y + 64, UI.gold);
   }
 }
 
+// Name tag colours: NPCs use their own `color` (npc def), text flips to dark ink on light colours.
+function tagColor(who) {
+  const npc = who && get('npc', String(who).toLowerCase()), c = npc && npc.color;
+  if (!c || !/^#[0-9a-f]{6}$/i.test(c)) return { bg: UI.accent, fg: UI.text };
+  const r = parseInt(c.slice(1, 3), 16), gg = parseInt(c.slice(3, 5), 16), b = parseInt(c.slice(5, 7), 16);
+  return { bg: c, fg: (0.299 * r + 0.587 * gg + 0.114 * b) > 150 ? UI.ink : UI.text };
+}
 register('scene', 'cutscene', { make: (game, steps, onDone) => new CutsceneScene(game, steps, onDone) });
