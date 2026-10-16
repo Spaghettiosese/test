@@ -5,7 +5,10 @@
 const STYLE = `
 #tc{position:fixed;inset:0;pointer-events:none;z-index:5;font:600 13px system-ui,sans-serif;color:#fff8ec;
   user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-#tc .zone{position:absolute;left:0;bottom:0;width:50%;height:46%;pointer-events:auto;touch-action:none}
+#tc .keys{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));display:none;gap:6px;pointer-events:auto}
+#tc .keys .k{pointer-events:auto;touch-action:none;min-width:44px;height:36px;padding:0 8px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(40,26,58,.6);border:2px solid rgba(255,240,220,.5);font-size:12px}
+#tc .keys .k.on{background:rgba(232,120,160,.75)}
+#tc .zone{position:absolute;left:0;bottom:0;width:42%;height:46%;pointer-events:auto;touch-action:none}
 #tc .base{position:absolute;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;
   background:rgba(40,26,58,.38);border:2px solid rgba(255,240,220,.35);display:none}
 #tc .knob{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;
@@ -16,11 +19,11 @@ const STYLE = `
   justify-content:center;background:rgba(40,26,58,.55);border:2px solid rgba(255,240,220,.5);
   box-shadow:0 3px 0 rgba(0,0,0,.35);transition:transform .05s}
 #tc .btn.on{transform:translateY(2px) scale(.95);background:rgba(232,120,160,.75)}
-#tc .a{width:72px;height:72px;right:22px;bottom:70px;font-size:22px}
-#tc .b{width:56px;height:56px;right:104px;bottom:28px;font-size:18px}
-#tc .run{width:50px;height:50px;right:30px;bottom:160px;font-size:11px}
+#tc .a{width:72px;height:72px;right:calc(22px + env(safe-area-inset-right));bottom:calc(70px + env(safe-area-inset-bottom));font-size:22px}
+#tc .b{width:56px;height:56px;right:calc(108px + env(safe-area-inset-right));bottom:calc(28px + env(safe-area-inset-bottom));font-size:18px}
+#tc .run{width:50px;height:50px;right:calc(30px + env(safe-area-inset-right));bottom:calc(160px + env(safe-area-inset-bottom));font-size:11px}
 #tc .run.lock{background:rgba(120,190,140,.75)}
-#tc .menu{width:44px;height:44px;right:14px;top:12px;font-size:18px;border-radius:12px}
+#tc .menu{width:44px;height:44px;right:calc(14px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));font-size:18px;border-radius:12px}
 @media (orientation:portrait){#tc .menu{top:auto;right:auto;left:20px;bottom:calc(46% - 8px)}}
 `;
 
@@ -36,7 +39,7 @@ export function installTouchControls({ press, release, onLayout }) {
     const st = document.createElement('style'); st.textContent = STYLE; document.head.appendChild(st);
     root = document.createElement('div'); root.id = 'tc';
     root.innerHTML = `<div class="zone"><div class="ghost"></div><div class="base"><div class="knob"></div></div></div>
-      <div class="btn a">A</div><div class="btn b">B</div><div class="btn run">RUN</div><div class="btn menu">☰</div>`;
+      <div class="btn a">A</div><div class="btn b">B</div><div class="btn run">RUN</div><div class="btn menu">☰</div><div class="keys"></div>`;
     document.body.appendChild(root);
     document.body.classList.add('touch');
     wireStick(root.querySelector('.zone'));
@@ -44,6 +47,7 @@ export function installTouchControls({ press, release, onLayout }) {
     wireButton(root.querySelector('.b'), 'escape');
     wireButton(root.querySelector('.menu'), 'escape');
     wireRun(root.querySelector('.run'));
+    buildKeys(root.querySelector('.keys'));
     onLayout && onLayout();
   };
 
@@ -92,6 +96,8 @@ export function installTouchControls({ press, release, onLayout }) {
       id = null; base.style.display = 'none'; ghost.style.display = 'block'; setDirs(new Set());
     };
     zone.addEventListener('pointerup', end); zone.addEventListener('pointercancel', end);
+    const drop = () => { id = null; base.style.display = 'none'; ghost.style.display = 'block'; setDirs(new Set()); };
+    addEventListener('blur', drop); document.addEventListener('visibilitychange', () => { if (document.hidden) drop(); });
   }
 
   function wireButton(el, key) {
@@ -101,9 +107,28 @@ export function installTouchControls({ press, release, onLayout }) {
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   }
 
+  // Context key strip: scenes with keyboard-only actions (decorate mode) get tap buttons for them.
+  const SCENE_KEYS = { decorate: [['Prev', 'q'], ['Rotate', 'r'], ['Store', 'x'], ['Undo', 'z'], ['Style', 'p'], ['Next', 'tab']] };
+  let keysEl = null;
+  function buildKeys(el) { keysEl = el; }
+  function setScene(name) {
+    if (!keysEl) return;
+    const list = SCENE_KEYS[name];
+    if (keysEl.dataset.scene === (list ? name : '')) return;
+    keysEl.dataset.scene = list ? name : ''; keysEl.innerHTML = '';
+    keysEl.style.display = list ? 'flex' : 'none';
+    for (const [label, key] of list || []) {
+      const k = document.createElement('div'); k.className = 'k'; k.textContent = label; keysEl.appendChild(k);
+      k.addEventListener('pointerdown', (e) => { e.preventDefault(); k.classList.add('on'); press(key); setTimeout(() => release(key), 90); });
+      k.addEventListener('pointerup', () => k.classList.remove('on')); k.addEventListener('pointercancel', () => k.classList.remove('on'));
+    }
+  }
+
   // RUN: tap toggles a run lock (Shift held); while held it also fast-forwards dialogue (cutscene reads Shift).
   function wireRun(el) {
     let locked = false;
+    const reset = () => { if (locked) { locked = false; el.classList.remove('lock'); release('shift'); } };
+    addEventListener('blur', reset); document.addEventListener('visibilitychange', () => { if (document.hidden) reset(); });
     el.addEventListener('pointerdown', (e) => {
       e.preventDefault(); locked = !locked; el.classList.toggle('lock', locked);
       if (locked) press('shift'); else release('shift');
@@ -112,5 +137,5 @@ export function installTouchControls({ press, release, onLayout }) {
 
   if (isTouchDevice()) show();
   else addEventListener('touchstart', show, { once: true, passive: true });
-  return { get active() { return !!root; } };
+  return { get active() { return !!root; }, setScene };
 }

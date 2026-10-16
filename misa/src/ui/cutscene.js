@@ -103,8 +103,9 @@ export class CutsceneScene {
       if (input.pressed.has('arrowdown') || input.pressed.has('s')) { this.sel = (this.sel + 1) % n; this.game.sfx('blip'); }
       if (input.pressed.has('arrowup') || input.pressed.has('w')) { this.sel = (this.sel + n - 1) % n; this.game.sfx('blip'); }
       const top = this.choiceTop();
-      if (input.moved || input.justDown) { const i = Math.floor((input.my - top) / 13); if (i >= 0 && i < n && input.mx > 50 && input.mx < 270) this.sel = i; }
-      if (act(input)) { this.game.sfx('select'); this.steps.splice(this.idx + 1, 0, ...(this.options[this.sel].steps || [])); this.next(); }
+      let tapMiss = false;
+      if (input.moved || input.justDown) { const i = Math.floor((input.my - top) / 13); if (i >= 0 && i < n && input.mx > 50 && input.mx < 270) this.sel = i; else if (input.justDown) tapMiss = true; }
+      if (act(input) && !tapMiss) { this.game.sfx('select'); this.steps.splice(this.idx + 1, 0, ...(this.options[this.sel].steps || [])); this.next(); }
     }
   }
   choiceTop() { return Math.round(112 - (this.options.length * 13) / 2); }

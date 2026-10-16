@@ -39,7 +39,7 @@ addEventListener('keydown', (e) => {
   audio.unlock();
 });
 addEventListener('keyup', (e) => input.keys.delete(e.key.toLowerCase()));
-installTouchControls({
+const touchUI = installTouchControls({
   press: (k) => { if (!input.keys.has(k)) pressedNow.add(k); input.keys.add(k); audio.unlock(); },
   release: (k) => input.keys.delete(k),
   onLayout: fit,
@@ -53,7 +53,18 @@ function ptr(e) {
 }
 cv.addEventListener('pointermove', ptr);
 cv.addEventListener('pointerdown', (e) => { cv.focus(); ptr(e); input.down = true; input.justDown = true; input.button = e.button; audio.unlock(); try { cv.setPointerCapture(e.pointerId); } catch { /* ignore */ } });
-cv.addEventListener('pointerup', () => { input.down = false; });
+cv.addEventListener('pointerup', () => { input.down = false; drag = null; });
+// Touch drags on the canvas scroll lists (one wheel tick per 10 canvas px) once they pass a small threshold.
+let drag = null;
+cv.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') drag = { y: e.clientY, acc: 0, on: false }; }, true);
+cv.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerType !== 'touch') return;
+  const r = cv.getBoundingClientRect(), dy = (e.clientY - drag.y) / r.height * VH;
+  if (!drag.on && Math.abs(dy) < 6) return;
+  drag.on = true; drag.acc += dy; drag.y = e.clientY;
+  while (drag.acc >= 10) { input.wheel -= 1; drag.acc -= 10; }
+  while (drag.acc <= -10) { input.wheel += 1; drag.acc += 10; }
+});
 cv.addEventListener('wheel', (e) => { input.wheel += Math.sign(e.deltaY); e.preventDefault(); }, { passive: false });
 cv.addEventListener('contextmenu', (e) => e.preventDefault());
 
@@ -67,6 +78,7 @@ game.initSystems();
 
 let minuteAcc = 0;
 function update(dt) {
+  if (touchUI.active) touchUI.setScene(game.scenes.top?.name);
   input.pressed = pressedNow;
   game.clock += dt;
   if (game.scenes.timeRuns && game.state) {
@@ -80,6 +92,7 @@ function update(dt) {
   game.toasts = game.toasts.filter((t) => t.t > 0);
   audio.tick(dt, game);
 }
+addEventListener('gesturestart', (e) => e.preventDefault());
 function endFrame() { pressedNow = new Set(); input.pressed = pressedNow; input.justDown = false; input.moved = false; input.wheel = 0; }
 function render() {
   g.fillStyle = '#000'; g.fillRect(0, 0, VW, VH);
