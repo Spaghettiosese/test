@@ -30,3 +30,7 @@ import './gaps.js';
 import './sv_community/index.js';
 import './sv_life/index.js';
 import './sv_explore/index.js';
+import './sv2_orchard/index.js';
+import './sv2_wild/index.js';
+import './sv2_festivals/index.js';
+import './sv2_play/index.js';
