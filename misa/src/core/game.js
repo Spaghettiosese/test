@@ -189,7 +189,7 @@ export class Game {
   }
 
   // ---------- feedback ----------
-  toast(text, icon = null) { this.toasts.push({ text, icon, t: 3.2 }); if (this.toasts.length > 4) this.toasts.shift(); }
+  toast(text, icon = null) { const dup = this.toasts.find((x) => x.text === text); if (dup) { dup.t = 3.2; return; } this.toasts.push({ text, icon, t: 3.2 }); if (this.toasts.length > 4) this.toasts.shift(); }
   sfx(name) { this.audio && this.audio.sfx(name); }
 
   // ---------- scenes (factories are registered by the UI/world modules) ----------

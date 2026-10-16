@@ -132,7 +132,7 @@ class OrdersScene {
   draw(g, game) {
     rect(g, '#2a3a2e', 0, 0, 320, 224); rect(g, '#3d5a44', 6, 22, 308, 194);
     for (let i = 0; i < 40; i++) rect(g, i % 2 ? '#476650' : '#35503c', 8 + (i * 37) % 300, 24 + (i * 53) % 188, 2, 2);
-    drawText(g, this.where === 'post' ? 'PIP\'S SPECIAL ORDERS' : 'SPECIAL ORDERS BOARD', 10, 8, UI.gold, 1, null); drawText(g, 'ESC: CLOSE', 270, 8, UI.text, 1, null);
+    drawText(g, this.where === 'post' ? 'PIP\'S SPECIAL ORDERS' : 'SPECIAL ORDERS BOARD', 10, 8, UI.gold, 1, null); drawText(g, 'ESC: CLOSE', 258, 8, UI.text, 1, null);
     panelDraw(g, game, this.st, this.area);
   }
 }

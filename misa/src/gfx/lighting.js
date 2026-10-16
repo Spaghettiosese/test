@@ -5,7 +5,7 @@
 import { gradeAt, lerpHex, multiplyHex, SEASON_GRADE, WEATHER_GRADE } from './palette.js';
 
 export const LIGHTS = {
-  lamp: { c: 'rgba(120,90,40,0.55)', r: 46, b: 4, core: '#fff4c0' },
+  lamp: { c: 'rgba(112,88,54,0.55)', r: 46, b: 4, core: '#fff4c0' },
   window: { c: 'rgba(110,80,30,0.5)', r: 30, b: 3 },
   lantern: { c: 'rgba(140,80,30,0.6)', r: 24, b: 3, flicker: true, core: '#ffd08a' },
   candle: { c: 'rgba(140,80,30,0.55)', r: 18, b: 3, flicker: true, core: '#ffe0a0' },
@@ -16,6 +16,15 @@ export const LIGHTS = {
 };
 
 let L = null, lx = null;
+// Soften banding: twice the bands at half the strength each, so the centre keeps its brightness.
+const SOFT = new Map();
+function softCol(c) {
+  let v = SOFT.get(c);
+  if (!v) { const m = c.match(/rgba\((\d+),(\d+),(\d+),([\d.]+)\)/); v = m ? `rgba(${m[1]},${m[2]},${m[3]},${(+m[4] / 2).toFixed(3)})` : c; SOFT.set(c, v); }
+  return v;
+}
+// Outdoor and ordinary indoor scenes never go darker than this per channel, so Misa and the ground stay readable.
+const lift = (hex, min) => '#' + [1, 3, 5].map((i) => Math.max(min, parseInt(hex.slice(i, i + 2), 16)).toString(16).padStart(2, '0')).join('');
 const disc = (ctx, cx, cy, r, col) => { const ry = Math.round(r * 0.75); ctx.fillStyle = col; for (let y = -ry; y <= ry; y++) { const w = Math.floor(r * Math.sqrt(Math.max(0, 1 - (y * y) / (ry * ry || 1)))); ctx.fillRect(Math.round(cx - w), Math.round(cy + y), w * 2 + 1, 1); } };
 
 // How dark is it (0 = day, 1 = deep night)? Used to switch lights on.
@@ -35,6 +44,7 @@ export function drawLighting(g, game, world) {
     grade = multiplyHex(grade, SEASON_GRADE[game.season] || '#ffffff');
     if (WEATHER_GRADE[game.weather]) grade = multiplyHex(grade, WEATHER_GRADE[game.weather]);
   }
+  if (!def.dark) grade = lift(grade, outdoor ? 0x6c : 0x60);
   const blackout = !!game.flag('blackout') && !outdoor;
   if (blackout) grade = '#2a2648';
   const dark = blackout ? 1 : darkness(mins);
@@ -53,7 +63,8 @@ export function drawLighting(g, game, world) {
       const sx = world.sx(li.x), sy = world.sy(li.y);
       if (sx < -80 || sy < -80 || sx > 400 || sy > 300) continue;
       const r = P.r + (P.flicker ? ((fl + li.x) % 3) - 1 : 0);
-      for (let k = 0; k < P.b; k++) disc(lx, sx, sy, Math.round(r * (1 - k / P.b)), P.c);
+      const nb = P.b * 2, sc = softCol(P.c);
+      for (let k = 0; k < nb; k++) disc(lx, sx, sy, Math.round(r * (1 - k / nb)), sc);
       if (P.core) emissive.push([sx, sy, P.core]);
     }
     lx.globalCompositeOperation = 'source-over';

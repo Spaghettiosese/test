@@ -91,9 +91,10 @@ register('hud', 'main', {
 register('hud', 'toasts', {
   always: true,
   draw(g, game) {
+    const inWorld = !game.scenes.top || game.scenes.top.name === 'world'; // over menus/dialogue they ride at the top instead
     game.toasts.forEach((t, i, arr) => {
       const iconW = t.icon && SPRITES[t.icon] ? SPRITES[t.icon].w + 3 : 0;
-      const w = measure(t.text) + 12 + iconW, slide = UI.reduceMotion ? 0 : Math.max(0, Math.round((t.t - 2.9) * 40)), y = 196 - (arr.length - 1 - i) * 14 + slide;
+      const w = measure(t.text) + 12 + iconW, slide = UI.reduceMotion ? 0 : Math.max(0, Math.round((t.t - 2.9) * 40)), y = inWorld ? 196 - (arr.length - 1 - i) * 14 + slide : 24 + i * 14;
       g.globalAlpha = Math.max(0, Math.min(1, t.t * 2, (3.3 - t.t) * 6));
       panel(g, Math.round(160 - w / 2), y, w, 12, 'dark');
       if (iconW) g.drawImage(sprite(t.icon), Math.round(160 - w / 2) + 4, y + 6 - Math.round(SPRITES[t.icon].h / 2));

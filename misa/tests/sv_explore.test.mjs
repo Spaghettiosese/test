@@ -79,7 +79,7 @@ test('panning: spots on the shore, pan finds items', () => {
 
 test('tool upgrades take two days; smelting and geodes work', () => {
   const g = createTestGame();
-  g.give('tool_hoe', 1, true); g.give('mat_bar_iron', 2, true); g.state.money = 2000;
+  while (g.has('tool_hoe')) g.take('tool_hoe'); g.give('tool_hoe', 1, true); g.give('mat_bar_iron', 2, true); g.state.money = 2000;
   const u = UPGRADES.find((x) => x.from === 'tool_hoe');
   assert.ok(startUpgrade(g, u));
   assert.ok(!g.has('tool_hoe') && !g.has('tool_hoe_2'));

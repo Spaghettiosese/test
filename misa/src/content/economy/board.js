@@ -159,7 +159,7 @@ class BoardScene {
     this.actions.forEach((a, i) => btn(g, a.x, a.y, a.w, a.h, `${i + 1} ${a.text}`, { tone: i === 0 ? 'mint' : 'paper', focus: i === 0, t: this.t }));
     if (this.msg) { const ls = wrapPx(this.msg, 200); panel(g, 10, 200 - ls.length * 8, 206, ls.length * 8 + 8, 'night'); ls.forEach((l, i) => drawText(g, l, 15, 204 - ls.length * 8 + i * 8, C.text)); }
     drawText(g, `Active ${activeReqs(game).length}/4   Done ${game.state.economy.requests.done}`, 10, 214, RAMPS.paper[3], 1, null);
-    drawText(g, 'Arrows pick  Enter/1-3 act  Esc leave', 160, 214, RAMPS.paper[3], 1, null);
+    drawText(g, 'Arrows pick  Enter act  Esc leave', 112, 214, RAMPS.paper[3], 1, null);
   }
 }
 register('scene', 'noticeboard', { make: (game, onDone) => new BoardScene(game, onDone) });
