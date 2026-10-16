@@ -22,7 +22,7 @@ defineSprite('hob_weed', 16, 12, (R) => { R(7, 3, 2, 9, Rr.forest[2]); R(3, 5, 4
 
 // Crop art: one parametric drawer per plant kind, 5 growth stages (0 seed .. 4 ripe), plus wilted and dead looks.
 function cropArt(R, W, H, kind, c, c2, stage, look) {
-  const L = look === 'wilt' ? Rr.grassAutumn : look === 'dead' ? Rr.dirt : Rr.forest, cx = Math.floor(W / 2), by = H - 1;
+  const L = look === 'wilt' ? Rr.grassAutumn : look === 'dead' ? Rr.dirt : Rr.forest, cx = Math.floor(W / 2), by = H - 4;
   const leaf = (x, y, rx, ry, k = 2) => { R.e(x, y, rx, ry, L[k]); R.e(x - 1, y - 1, Math.max(1, rx - 2), Math.max(1, ry - 1), L[k + 1]); };
   R.e(cx, by - 1, 6, 1, D[1]);
   if (stage === 0) { R.e(cx, by - 2, 5, 2, D[2]); R.e(cx - 1, by - 3, 3, 1, D[3]); R(cx - 2, by - 3, 1, 1, Rr.wood[3]); R(cx + 2, by - 2, 1, 1, Rr.wood[3]); return; }
@@ -79,7 +79,7 @@ function cropArt(R, W, H, kind, c, c2, stage, look) {
     }
   }
 }
-const cropSize = (kind) => [28, kind === 'tall' ? 38 : kind === 'vine' ? 30 : 24];
+const cropSize = (kind) => [30, kind === 'tall' ? 42 : kind === 'vine' ? 34 : 28];
 for (const cr of all('crop')) {
   const k = cr.id.slice(5), [W, H] = cropSize(cr.kind);
   for (let s = 0; s < 5; s++) defineSprite(`hob_crop_${k}_${s}`, W, H, (R) => cropArt(R, W, H, cr.kind, cr.c, cr.c2, s, ''), { hd: true, outline: 'selective' });
@@ -201,7 +201,7 @@ register('worldLayer', 'hob_garden', {
       const [tx, ty] = k.split(',').map(Number), cr = get('crop', p.crop); if (!cr) continue;
       const name = p.dead ? 'hob_crop_dead' : p.giant ? 'hob_crop_giant' : p.wilt ? `hob_crop_${cr.id.slice(5)}_wilt` : `hob_crop_${cr.id.slice(5)}_${stageOf(p, cr)}`;
       const ripe = isRipe(p) && !p.dead;
-      out.push({ y: ty * TILE + 14, draw: (gg, w, gm) => { w.drawFeet(name, tx * TILE + 8, ty * TILE + 15); if (ripe && Math.floor(gm.clock * 2 + tx) % 5 === 0) { gg.fillStyle = '#fff6a0'; gg.fillRect(w.sx(tx * TILE + 12), w.sy(ty * TILE + 1), 2, 2); } } });
+      out.push({ y: ty * TILE + 14, draw: (gg, w, gm) => { w.drawFeet(name, tx * TILE + 8, ty * TILE + 17); if (ripe && Math.floor(gm.clock * 2 + tx) % 5 === 0) { gg.fillStyle = '#fff6a0'; gg.fillRect(w.sx(tx * TILE + 12), w.sy(ty * TILE + 1), 2, 2); } } });
     }
     return out;
   },
@@ -259,6 +259,7 @@ export function goFish(game, mapId, ocean) {
     game.advance(15);
     const d = r && r.data;
     if (!d || !d.caught) { if (!r.quit) game.addXP('fishing', 1); return; }
+    if (game.rng() < 0.06) { const junk = ocean ? (game.rng() < 0.5 ? 'crop_seaweed' : 'fish_sea_slug') : 'bug_frog'; game.give(junk, 1, true); game.toast(`Reeled in... ${get('item', junk).name.toLowerCase()}? Oh well!`, get('item', junk).icon); game.addXP('fishing', 1); return; }
     landFish(game, fish, d.size);
   });
 }
@@ -490,6 +491,7 @@ features('Fishing', [
   'Ice fishing through a hole in the frozen park pond in winter',
   'Every catch is measured in cm, with a personal best per species',
   'Fishing XP that grows with the rarity of the catch',
+  'Junk catches now and then: seaweed or a sea slug at sea, a surprised little frog in the pond',
 ]);
 features('Bugs, shells & collections', [
   '30 bugs that appear as living critters on grass, flowers, trees, water edges and sand by map, season, time and weather',
@@ -503,4 +505,17 @@ features('Bugs, shells & collections', [
   'Dig spots appear daily in the park, the shrine forest, the beach and the cave; dig them up with the trowel',
   '12 minerals and fossils from dig spots and cave rocks, including amber, a trilobite and a meteorite',
   'Tap cave rocks once a day for a chance at a crystal',
+]);
+
+features('Fishing', [
+  'The bobber twitches with fake nibbles; strike too early and the fish hesitates',
+  'Miss a bite and the fish nibbles again, up to three times, before it swims off',
+  'The fishing scene shows a starry sky at night and a wooden pier when fishing at sea',
+]);
+features('Bugs, shells & collections', [
+  'Bugs respawn every two in-game hours; scared-off bugs stay away until then',
+  'Flying bugs flap their wings and cast a small shadow; fireflies glow',
+  'A bug you have never caught is just "the bug" until it is in your collection',
+  'Beach finds and dig spots twinkle so you can spot them',
+  'Empty dig spots sometimes give bait worms instead',
 ]);

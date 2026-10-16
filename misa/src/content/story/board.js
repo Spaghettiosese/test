@@ -149,7 +149,8 @@ const boardLabel = (g) => (pendingDeduction(g) ? 'Mystery Board (new deduction!)
 register('interaction', 'mystery_board', {
   label: (g) => (g.flag('board_found') ? boardLabel(g) : 'Old corkboard'),
   run(g) {
-    if (!g.flag('board_found')) return g.run(lines('|An old corkboard, covered in pin holes. It must have been Grandma\'s.', 'misa|I could pin my clues here, like a real detective.', set('board_found'), { t: 'clue', ids: [] }));
+    if (!g.flag('board_found')) return g.run([...lines('|An old corkboard, covered in pin holes. It must have been Grandma\'s.', 'misa|I could pin my clues here, like a real detective. Paper star, button, headline, journal...'), set('board_found'),
+      { t: 'call', fn: (g2) => new Promise((res) => { const d = pendingDeduction(g2); if (!d) return res(); g2.open('story_board', d, res); }) }]);
     g.open('story_board', pendingDeduction(g), () => {});
   },
 });

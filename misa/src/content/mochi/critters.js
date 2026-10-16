@@ -1,8 +1,7 @@
 // The town's other animals at 1:1 density with ink outlines: Kuro the kitten, Daifuku the shiba, ducks, koi,
 // seagulls, sparrows and butterflies. Every sprite faces right; the world flips for left.
-import { defineSprite } from '../../art.js';
 import { RAMPS } from '../../gfx/palette.js';
-import { CAT_PALETTES } from './cats.js';
+import { CAT_PALETTES, cdef } from './cats.js';
 
 const INK = '#2a1a22', WHITE = '#fffaf0';
 const ink = { hd: true, outline: 'ink' };
@@ -51,14 +50,14 @@ function kuroSleep(R, f) {
   R.e(4, 5, 4, 2, KF[3]); R(1, 4, 1, 1, INK); R(2, 5, 1, 1, INK); R(5, 5, 1, 1, INK); R(6, 4, 1, 1, INK);
   R(0, 7, 3, 2, K.cream[1]); R(4, 6, 1, 1, K.nose);
 }
-for (let t = 0; t < 3; t++) defineSprite(`kuro_sit_${t}`, 15, 16, (R) => kuroSit(R, t, 'open'), ink);
-defineSprite('kuro_sit_b', 15, 16, (R) => kuroSit(R, 0, 'blink'), ink);
-defineSprite('kuro_sit_happy', 15, 16, (R) => kuroSit(R, 1, 'happy'), ink);
-defineSprite('kuro_sit_meow', 15, 16, (R) => kuroSit(R, 2, 'happy', { mouth: true }), ink);
-defineSprite('kuro_hiss', 15, 16, (R) => kuroSit(R, 2, 'open', { flat: true, mouth: true }), ink);
-defineSprite('kuro_scared', 15, 16, (R) => kuroSit(R, 0, 'open', { flat: true }), ink);
-for (let f = 0; f < 4; f++) defineSprite(`kuro_walk_${f}`, 20, 12, (R) => kuroWalk(R, f), ink);
-for (let f = 0; f < 2; f++) defineSprite(`kuro_sleep_${f}`, 18, 9, (R) => kuroSleep(R, f), ink);
+for (let t = 0; t < 3; t++) cdef(`kuro_sit_${t}`, 15, 16, (R) => kuroSit(R, t, 'open'), ink);
+cdef('kuro_sit_b', 15, 16, (R) => kuroSit(R, 0, 'blink'), ink);
+cdef('kuro_sit_happy', 15, 16, (R) => kuroSit(R, 1, 'happy'), ink);
+cdef('kuro_sit_meow', 15, 16, (R) => kuroSit(R, 2, 'happy', { mouth: true }), ink);
+cdef('kuro_hiss', 15, 16, (R) => kuroSit(R, 2, 'open', { flat: true, mouth: true }), ink);
+cdef('kuro_scared', 15, 16, (R) => kuroSit(R, 0, 'open', { flat: true }), ink);
+for (let f = 0; f < 4; f++) cdef(`kuro_walk_${f}`, 20, 12, (R) => kuroWalk(R, f), ink);
+for (let f = 0; f < 2; f++) cdef(`kuro_sleep_${f}`, 18, 9, (R) => kuroSleep(R, f), ink);
 
 // ================================================================ Daifuku: cream-and-tan shiba, red collar, curly tail (~30x26)
 const D = { tan: ['#7a4e2a', '#c4943e', '#e0b070', '#e8c890', '#f8e0b0'], cream: ['#e8d8c4', '#f8ece0', WHITE], collar: RAMPS.ribbon, nose: '#2a1a22', tongue: '#e0707a' };
@@ -109,14 +108,14 @@ function dogLie(R, f) {
   H.e(7, 6, 5, 4, D.tan[3]); H(10, 6, 5, 3, D.cream[1]); H(14, 6, 1, 2, D.nose); H(6, 6, 3, 1, INK); H(5, 4, 2, 1, D.cream[1]);
   R(18, 10, 2, 4, D.collar[2]);
 }
-for (let f = 0; f < 4; f++) defineSprite(`dai_walk_${f}`, 30, 23, (R) => dogStand(R, f, { walk: true, wag: true, tongue: true }), ink);
-defineSprite('dai_stand', 30, 23, (R) => dogStand(R, 0, {}), ink);
-defineSprite('dai_bark', 30, 23, (R) => dogStand(R, 0, { bark: true, wag: true }), ink);
-for (let f = 0; f < 4; f++) defineSprite(`dai_sit_${f}`, 26, 24, (R) => dogSit(R, f, { tongue: f % 2 === 0, wag: true }), ink);
-defineSprite('dai_sit_b', 26, 24, (R) => dogSit(R, 0, { blink: true }), ink);
-defineSprite('dai_sit_happy', 26, 24, (R) => dogSit(R, 1, { happy: true, tongue: true }), ink);
-for (let f = 0; f < 2; f++) defineSprite(`dai_lie_${f}`, 30, 15, (R) => dogLie(R, f), ink);
-defineSprite('dai_ball', 6, 6, (R) => { R.e(3, 3, 3, 3, '#c8e04a'); R(1, 1, 2, 1, '#f0ff9a'); R(1, 3, 5, 1, WHITE); }, ink);
+for (let f = 0; f < 4; f++) cdef(`dai_walk_${f}`, 30, 23, (R) => dogStand(R, f, { walk: true, wag: true, tongue: true }), ink);
+cdef('dai_stand', 30, 23, (R) => dogStand(R, 0, {}), ink);
+cdef('dai_bark', 30, 23, (R) => dogStand(R, 0, { bark: true, wag: true }), ink);
+for (let f = 0; f < 4; f++) cdef(`dai_sit_${f}`, 26, 24, (R) => dogSit(R, f, { tongue: f % 2 === 0, wag: true }), ink);
+cdef('dai_sit_b', 26, 24, (R) => dogSit(R, 0, { blink: true }), ink);
+cdef('dai_sit_happy', 26, 24, (R) => dogSit(R, 1, { happy: true, tongue: true }), ink);
+for (let f = 0; f < 2; f++) cdef(`dai_lie_${f}`, 30, 15, (R) => dogLie(R, f), ink);
+cdef('dai_ball', 6, 6, (R) => { R.e(3, 3, 3, 3, '#c8e04a'); R(1, 1, 2, 1, '#f0ff9a'); R(1, 3, 5, 1, WHITE); }, ink);
 
 // ================================================================ Park ducks (swim, waddle) and koi
 const DK = { body: ['#6a5040', '#a08060', '#c8a878', '#e0c8a0'], head: ['#1f4a3a', '#2f7a52', '#4fa078'], bill: RAMPS.butter, white: WHITE };
@@ -132,9 +131,9 @@ function duck(R, f, o = {}) {
   if (!o.swim) { R(6, 9, 1, 2, RAMPS.butter[1]); R(9, 9 - f, 1, 2, RAMPS.butter[1]); R(9, 10, 2, 1, RAMPS.butter[1]); R(6, 10, 2, 1, RAMPS.butter[1]); }
 }
 for (let f = 0; f < 2; f++) {
-  defineSprite(`duck_swim_${f}`, 16, 11, (R) => duck(R, f, { swim: true }), ink);
-  defineSprite(`duck_hen_swim_${f}`, 16, 11, (R) => duck(R, f, { swim: true, hen: true }), ink);
-  defineSprite(`duck_walk_${f}`, 16, 11, (R) => duck(R, f), ink);
+  cdef(`duck_swim_${f}`, 16, 11, (R) => duck(R, f, { swim: true }), ink);
+  cdef(`duck_hen_swim_${f}`, 16, 11, (R) => duck(R, f, { swim: true, hen: true }), ink);
+  cdef(`duck_walk_${f}`, 16, 11, (R) => duck(R, f), ink);
 }
 // koi: seen from above in the water (no outline, slightly translucent orange/white)
 function koi(R, f, c1, c2) {
@@ -143,7 +142,7 @@ function koi(R, f, c1, c2) {
   R.e(8, 4, 5, 2, c1); R(5, 3, 3, 2, c2); R(10, 3, 2, 2, c2); R(12, 3, 2, 1, INK); R(12, 5, 2, 1, INK);
 }
 const KOI = [['#f0703a', WHITE], [WHITE, '#f0703a'], ['#ffd76a', WHITE]];
-KOI.forEach(([a, b], i) => { for (let f = 0; f < 4; f++) defineSprite(`koi_${i}_${f}`, 15, 9, (R) => koi(R, f, a, b), noOutline); });
+KOI.forEach(([a, b], i) => { for (let f = 0; f < 4; f++) cdef(`koi_${i}_${f}`, 15, 9, (R) => koi(R, f, a, b), noOutline); });
 
 // ================================================================ Seagulls (stand, walk, fly)
 const GL = { w: ['#8a90a8', '#c8ccdc', '#f4f4f8', WHITE], grey: ['#5a6070', '#8a9aab'], beak: RAMPS.butter, leg: '#e0a84a' };
@@ -158,8 +157,8 @@ function gullFly(R, f) {
   if (up) { R.t([5, 5], [11, 5], [2, 0], GL.grey[1]); R(1, 0, 2, 1, INK); }
   else { R.t([5, 6], [11, 6], [2, 11], GL.grey[1]); R(1, 10, 2, 1, INK); }
 }
-for (let f = 0; f < 2; f++) defineSprite(`gull_stand_${f}`, 14, 13, (R) => gullStand(R, f), ink);
-for (let f = 0; f < 2; f++) defineSprite(`gull_fly_${f}`, 16, 12, (R) => gullFly(R, f), ink);
+for (let f = 0; f < 2; f++) cdef(`gull_stand_${f}`, 14, 13, (R) => gullStand(R, f), ink);
+for (let f = 0; f < 2; f++) cdef(`gull_fly_${f}`, 16, 12, (R) => gullFly(R, f), ink);
 
 // ================================================================ Sparrows (hop, peck, fly) ~8x8
 const SP = { b: ['#5a3a2e', '#8a5e44', '#b08560', '#d0a87c'], belly: '#e8dcc8', cap: '#6a4436' };
@@ -175,8 +174,8 @@ function sparrow(R, f, mode) {
   const hy = peck ? 3 : 1;
   R(5, hy, 3, 3, SP.b[3]); R(5, hy, 3, 1, SP.cap); R(6, hy + 1, 1, 1, INK); R(8, hy + 1, 1, 1, RAMPS.butter[1]); R(6, hy + 2, 2, 1, SP.belly);
 }
-for (let f = 0; f < 2; f++) { defineSprite(`sparrow_hop_${f}`, 9, 8, (R) => sparrow(R, f, 'hop'), ink); defineSprite(`sparrow_fly_${f}`, 9, 8, (R) => sparrow(R, f, 'fly'), ink); }
-defineSprite('sparrow_peck', 9, 8, (R) => sparrow(R, 0, 'peck'), ink);
+for (let f = 0; f < 2; f++) { cdef(`sparrow_hop_${f}`, 9, 8, (R) => sparrow(R, f, 'hop'), ink); cdef(`sparrow_fly_${f}`, 9, 8, (R) => sparrow(R, f, 'fly'), ink); }
+cdef('sparrow_peck', 9, 8, (R) => sparrow(R, 0, 'peck'), ink);
 // pigeons for the square: a chunkier grey bird
 function pigeon(R, f, peck) {
   R(4, 8, 1, 1, '#e0707a'); R(6, 8, 1, 1, '#e0707a');
@@ -184,12 +183,12 @@ function pigeon(R, f, peck) {
   const hy = peck ? 3 : 0;
   R(7, hy + 1, 3, 3, '#7a7a98'); R(7, hy + 3, 3, 1, '#5fa88a'); R(8, hy + 1, 1, 1, INK); R(10, hy + 2, 1, 1, '#c8c8dc');
 }
-for (let f = 0; f < 2; f++) defineSprite(`pigeon_${f}`, 11, 9, (R) => pigeon(R, f, false), ink);
-defineSprite('pigeon_peck', 11, 9, (R) => pigeon(R, 0, true), ink);
+for (let f = 0; f < 2; f++) cdef(`pigeon_${f}`, 11, 9, (R) => pigeon(R, f, false), ink);
+cdef('pigeon_peck', 11, 9, (R) => pigeon(R, 0, true), ink);
 
 // ================================================================ Butterflies (2-frame flap), no outline; tiny and bright
 const BF = [[RAMPS.butter[2], RAMPS.butter[0]], [RAMPS.sakura[2], RAMPS.sakura[0]], [WHITE, '#8a8aa4'], [RAMPS.sky[2], RAMPS.sky[0]]];
 BF.forEach(([c, d], i) => {
-  defineSprite(`bfly_${i}_0`, 7, 6, (R) => { R(0, 0, 3, 3, c); R(4, 0, 3, 3, c); R(1, 3, 2, 2, c); R(4, 3, 2, 2, c); R(3, 1, 1, 4, INK); R(0, 0, 1, 1, d); R(6, 0, 1, 1, d); }, noOutline);
-  defineSprite(`bfly_${i}_1`, 7, 6, (R) => { R(1, 1, 2, 2, c); R(4, 1, 2, 2, c); R(2, 3, 1, 1, c); R(4, 3, 1, 1, c); R(3, 1, 1, 4, INK); }, noOutline);
+  cdef(`bfly_${i}_0`, 7, 6, (R) => { R(0, 0, 3, 3, c); R(4, 0, 3, 3, c); R(1, 3, 2, 2, c); R(4, 3, 2, 2, c); R(3, 1, 1, 4, INK); R(0, 0, 1, 1, d); R(6, 0, 1, 1, d); }, noOutline);
+  cdef(`bfly_${i}_1`, 7, 6, (R) => { R(1, 1, 2, 2, c); R(4, 1, 2, 2, c); R(2, 3, 1, 1, c); R(4, 3, 1, 1, c); R(3, 1, 1, 4, INK); }, noOutline);
 });

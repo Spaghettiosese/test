@@ -384,3 +384,28 @@ export function consume(game, ingredients) {
 }
 export const ingName = (k) => (k.startsWith('tag:') ? { veg: 'Any vegetable', fish: 'Any fish', flower: 'Any flower', shell: 'Any shell', leafy: 'Any leafy green', mineral: 'Any mineral', citrus: 'Yuzu or lemon' }[k.slice(4)] || (get('item', 'crop_' + k.slice(4)) || get('item', 'ing_' + k.slice(4)) || { name: k.slice(4) }).name : (get('item', k) || { name: k }).name);
 export const ingIcon = (k) => { if (!k.startsWith('tag:')) return (get('item', k) || {}).icon; const t = k.slice(4); const it = get('item', 'crop_' + t) || get('item', 'ing_' + t) || all('item').find((i) => (i.tags || []).includes(t)); return it && it.icon; };
+
+// ---------------------------------------------------------------- odds and ends other areas name in gift lists
+// (junk catches, shop snacks and joke gifts; not part of any museum collection)
+const ODD = [
+  ['fish_sea_slug', 'Sea slug', 'misc', 'eel', Rr.lilac[2], 5, 'Squishy. Came up on the line by mistake.', ['junk']],
+  ['crop_seaweed', 'Seaweed', 'crop', 'leafy', Rr.forest[1], 15, 'A tangle of seaweed from the sea. Good in soup.', ['veg', 'seaweed', 'junk']],
+  ['fish_raw', 'Raw fish scraps', 'misc', 'fish2', Rr.coral[3], 5, 'Fish trimmings. Mochi thinks they are treasure.', ['junk']],
+  ['fish_raw_squid', 'Raw squid', 'misc', 'squid', Rr.paper[3], 30, 'Slippery, cold and staring at you.', ['junk']],
+  ['bug_cockroach', 'Cockroach', 'misc', 'beetle', Rr.woodDark[3], 1, 'Nobody wants this. Nobody.', ['trash']],
+  ['bug_frog', 'Little frog', 'misc', 'toy', Rr.forest[3], 20, 'Not a bug. Hopped into the net anyway.', ['junk']],
+  ['min_stone', 'Plain stone', 'misc', 'rock', Rr.stone[3], 1, 'Just a stone. Nicely round, though.', ['junk']],
+  ['crop_bitter_melon', 'Bitter melon', 'crop', 'fruit', Rr.forest[2], 40, 'Goya. Very healthy, very bitter.', ['veg', 'bitter_melon']],
+  ['crop_lettuce', 'Lettuce', 'crop', 'leafy', Rr.forest[4], 30, 'Crisp and plain.', ['veg', 'leafy', 'lettuce']],
+  ['crop_garlic', 'Garlic', 'crop', 'root', Rr.paper[4], 30, 'Strong enough to scare off ghosts.', ['veg', 'garlic']],
+  ['crop_celery', 'Celery', 'crop', 'leafy', Rr.mint[2], 30, 'Crunchy and stringy.', ['veg', 'celery']],
+  ['dish_natto', 'Natto', 'food', 'bowl', Rr.wood[2], 20, 'Sticky fermented beans. You love it or you don\'t.', ['dish']],
+  ['dish_boiled_egg', 'Boiled egg', 'food', 'sweet', Rr.paper[4], 15, 'A plain boiled egg.', ['dish']],
+  ['drink_decaf', 'Decaf coffee', 'food', 'mug', Rr.woodDark[3], 20, 'Coffee without the point of coffee.', ['dish', 'drink']],
+  ['dish_frozen_pizza', 'Frozen pizza', 'food', 'pie', Rr.ribbon[2], 40, 'Fast, cheesy, and a little sad.', ['dish']],
+  ['dish_marmalade_toast', 'Marmalade toast', 'food', 'bread', Rr.hairGinger[2], 50, 'Toast with bittersweet orange marmalade.', ['dish']],
+  ['dish_instant_noodles', 'Instant noodles', 'food', 'noodles', Rr.butter[2], 30, 'Three minutes to dinner.', ['dish']],
+  ['dish_canned_tuna', 'Canned tuna', 'food', 'box', Rr.sky[2], 25, 'A tin of tuna. Mochi hears it open from anywhere.', ['dish']],
+  ['dish_canned_corn', 'Canned corn', 'food', 'box', Rr.butter[2], 20, 'Sweetcorn in a tin.', ['dish']],
+];
+for (const [id, name, cat, shape, c, price, desc, tags] of ODD) if (!get('item', id)) register('item', id, { name, desc, cat, price, icon: itemIcon(shape, { c }), tags, ...(cat === 'food' ? { energy: Math.max(8, Math.round(price / 2)), mood: 1 } : {}) });

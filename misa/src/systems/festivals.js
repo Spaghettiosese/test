@@ -149,8 +149,8 @@ register('worldLayer', 'festival_decor', {
     const out = [];
     for (const f of festivalsOn(game)) for (const d of ((f.decor || {})[world.map.id] || [])) {
       if (d.flat || (d.when && !check(d.when, game)) || !SPRITES[d.spr]) continue;
-      const p = spotPos(world.map.id, d.spot, d.dx, d.dy);
-      if (p) out.push({ y: p.y + (d.depth || 0), draw: () => { if (d.shadow) world.shadow(p.x, p.y, d.shadow); world.drawFeet(d.spr, p.x, p.y, d.flip); } });
+      const p = spotPos(world.map.id, d.spot, d.dx, d.dy), spr = d.anim ? d.anim[Math.floor(game.clock * 3) % d.anim.length] : d.spr;
+      if (p) out.push({ y: p.y + (d.depth || 0), draw: () => { world.shadow(p.x, p.y, d.shadow || 10); world.drawFeet(spr, p.x, p.y, d.flip); } });
     }
     return out;
   },

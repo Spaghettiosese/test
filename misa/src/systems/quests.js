@@ -70,6 +70,7 @@ const stepsOf = (game, sc) => {
 
 // ---------------------------------------------------------------- the play queue
 // Story scenes triggered by events wait until the player is free (world on top, not mid-warp, no other cutscene).
+// Without a world (headless tests) they simply wait in the queue.
 function makeQueue(game) {
   const q = [];
   const idle = () => { const w = game.world; return !!w && game.scenes.top === w && !w.busy && !game.passingOut; };
@@ -81,10 +82,6 @@ function makeQueue(game) {
     game.run(steps || []).then(job.res, job.res);
   };
   const play = (steps, { front = false } = {}) => new Promise((res) => {
-    if (!game.world) { // headless: run straight away
-      game.run(typeof steps === 'function' ? steps(game) : steps).then(res);
-      return;
-    }
     const job = { steps, res };
     if (front) q.unshift(job); else q.push(job);
     setTimeout(pump, 0);
@@ -245,12 +242,13 @@ register('system', 'quests', {
       play: (steps, o) => queue.play(steps, o),
       advance, startQuest, startChapter, checkChapters, hint, activeMain,
       stageDef: (id) => { const q = game.quest(id); return q ? stageDef(get('quest', id), q.stage) : null; },
-      progress, recheck: recheckSoon, state: S, queueLength: () => queue.length,
+      progress, recheck: recheckSoon, state: S, queueLength: () => queue.length, pump: () => queue.pump(),
     };
 
-    register('worldTick', 'story_queue', { update: () => queue.pump() });
   },
 });
+
+register('worldTick', 'story_queue', { update: (dt, world, game) => { if (game.story) game.story.pump(); } });
 
 // ---------------------------------------------------------------- script commands
 const W = (g) => g.world;
@@ -280,7 +278,9 @@ register('command', 'goto', { // { t:'goto', map, spot, dir } warp to a named sp
 });
 register('command', 'place', { // { t:'place', who, spot? | to? | dx,dy (relative to Misa), dir } put an NPC into the scene
   run(g, s) {
-    const a = npcActor(g, s.who), t = resolveTile(g, s);
+    const t = resolveTile(g, s);
+    if (s.who === 'mochi' && g.mochi && t && W(g)) { const m = g.mochi; m.map = W(g).map.id; m.x = t[0] * 16 + 8; m.y = t[1] * 16 + 14; if (m.set) m.set('sit', 20); return; }
+    const a = npcActor(g, s.who);
     if (!a || !t) return;
     a.present = true; a.leaving = false; a.path = null; a.talkT = 0;
     a.place(t[0], t[1], s.dir || 'down');

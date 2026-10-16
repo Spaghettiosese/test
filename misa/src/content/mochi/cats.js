@@ -1,7 +1,20 @@
 // Cat sprites at 1:1 density (docs/ART.md scale chart): sit ~22x24, walk 30x20, sleep 28x14 including the ink outline.
 // One parametric painter draws Mochi, the neighbourhood strays (palette swaps) and, at a smaller scale, Kuro the kitten.
 // All sprites face right; the world flips them for left.
-import { defineSprite } from '../../art.js';
+import { defineSprite, makeR } from '../../art.js';
+
+// cdef: like defineSprite, but adds a transparent 1px margin and clips the drawing to it, so the ink outline
+// always has room (tests/art.test.mjs) even when a pose reaches a pixel past its box.
+export function cdef(name, w, h, draw, opts) {
+  const W = w + 2, H = h + 2;
+  defineSprite(name, W, H, (R0, ctx) => {
+    const surf = { rect(x, y, ww, hh, c) {
+      const x0 = Math.max(0, x), y0 = Math.max(0, y), x1 = Math.min(W, x + ww), y1 = Math.min(H, y + hh);
+      if (x1 > x0 && y1 > y0) R0(x0, y0, x1 - x0, y1 - y0, c);
+    } };
+    draw(makeR(surf, 1, 1), ctx);
+  }, opts);
+}
 import { RAMPS } from '../../gfx/palette.js';
 
 const INK = '#2a1a22', WHITE = '#fffaf0';
@@ -269,39 +282,52 @@ function paintArch(R, P, f) {
 // ---------------------------------------------------------------- registration
 const opts = { hd: true, outline: 'ink' };
 export function defineCat(prefix, P) {
-  for (let t = 0; t < 4; t++) defineSprite(`${prefix}_sit_${t}`, 20, 22, (R) => paintSit(R, P, { tail: t }), opts);
-  defineSprite(`${prefix}_sit_b`, 20, 22, (R) => paintSit(R, P, { tail: 0, mode: 'blink' }), opts);
-  defineSprite(`${prefix}_sit_happy`, 20, 22, (R) => paintSit(R, P, { tail: 1, mode: 'happy' }), opts);
-  defineSprite(`${prefix}_sit_meow`, 20, 22, (R) => paintSit(R, P, { tail: 2, mode: 'happy', mouth: true }), opts);
-  defineSprite(`${prefix}_sit_wide`, 20, 22, (R) => paintSit(R, P, { tail: 0, mode: 'wide' }), opts);
-  defineSprite(`${prefix}_sit_sleepy`, 20, 22, (R) => paintSit(R, P, { tail: 0, mode: 'sleepy' }), opts);
-  for (let f = 0; f < 6; f++) defineSprite(`${prefix}_walk_${f}`, 28, 18, (R) => paintWalk(R, P, f), opts);
-  for (let f = 0; f < 3; f++) defineSprite(`${prefix}_sleep_${f}`, 26, 12, (R) => paintSleep(R, P, f), opts);
-  defineSprite(`${prefix}_sleep_open`, 26, 12, (R) => paintSleep(R, P, 0, { open: true }), opts);
-  for (let f = 0; f < 2; f++) defineSprite(`${prefix}_loaf_${f}`, 22, 16, (R) => paintLoaf(R, P, f), opts);
-  defineSprite(`${prefix}_loaf_scared`, 22, 16, (R) => paintLoaf(R, P, 0, { flat: true, wide: true }), opts);
-  for (let f = 0; f < 4; f++) defineSprite(`${prefix}_groom_${f}`, 20, 22, (R) => paintGroom(R, P, f), opts);
-  for (let f = 0; f < 3; f++) defineSprite(`${prefix}_back_${f}`, 20, 22, (R) => paintBack(R, P, f), opts);
-  for (let f = 0; f < 3; f++) defineSprite(`${prefix}_stretch_${f}`, 28, 18, (R) => paintStretch(R, P, f), opts);
-  for (let f = 0; f < 4; f++) defineSprite(`${prefix}_pounce_${f}`, 28, 18, (R) => paintPounce(R, P, f), opts);
-  for (let f = 0; f < 2; f++) defineSprite(`${prefix}_eat_${f}`, 28, 18, (R) => paintEat(R, P, f), opts);
-  for (let f = 0; f < 2; f++) defineSprite(`${prefix}_belly_${f}`, 26, 14, (R) => paintBelly(R, P, f), opts);
-  for (let f = 0; f < 2; f++) defineSprite(`${prefix}_arch_${f}`, 26, 20, (R) => paintArch(R, P, f), opts);
+  for (let t = 0; t < 4; t++) cdef(`${prefix}_sit_${t}`, 20, 22, (R) => paintSit(R, P, { tail: t }), opts);
+  cdef(`${prefix}_sit_b`, 20, 22, (R) => paintSit(R, P, { tail: 0, mode: 'blink' }), opts);
+  cdef(`${prefix}_sit_happy`, 20, 22, (R) => paintSit(R, P, { tail: 1, mode: 'happy' }), opts);
+  cdef(`${prefix}_sit_meow`, 20, 22, (R) => paintSit(R, P, { tail: 2, mode: 'happy', mouth: true }), opts);
+  cdef(`${prefix}_sit_wide`, 20, 22, (R) => paintSit(R, P, { tail: 0, mode: 'wide' }), opts);
+  cdef(`${prefix}_sit_sleepy`, 20, 22, (R) => paintSit(R, P, { tail: 0, mode: 'sleepy' }), opts);
+  for (let f = 0; f < 6; f++) cdef(`${prefix}_walk_${f}`, 28, 18, (R) => paintWalk(R, P, f), opts);
+  for (let f = 0; f < 3; f++) cdef(`${prefix}_sleep_${f}`, 26, 12, (R) => paintSleep(R, P, f), opts);
+  cdef(`${prefix}_sleep_open`, 26, 12, (R) => paintSleep(R, P, 0, { open: true }), opts);
+  for (let f = 0; f < 2; f++) cdef(`${prefix}_loaf_${f}`, 22, 16, (R) => paintLoaf(R, P, f), opts);
+  cdef(`${prefix}_loaf_scared`, 22, 16, (R) => paintLoaf(R, P, 0, { flat: true, wide: true }), opts);
+  for (let f = 0; f < 4; f++) cdef(`${prefix}_groom_${f}`, 20, 22, (R) => paintGroom(R, P, f), opts);
+  for (let f = 0; f < 3; f++) cdef(`${prefix}_back_${f}`, 20, 22, (R) => paintBack(R, P, f), opts);
+  for (let f = 0; f < 3; f++) cdef(`${prefix}_stretch_${f}`, 28, 18, (R) => paintStretch(R, P, f), opts);
+  for (let f = 0; f < 4; f++) cdef(`${prefix}_pounce_${f}`, 28, 18, (R) => paintPounce(R, P, f), opts);
+  for (let f = 0; f < 2; f++) cdef(`${prefix}_eat_${f}`, 28, 18, (R) => paintEat(R, P, f), opts);
+  for (let f = 0; f < 2; f++) cdef(`${prefix}_belly_${f}`, 26, 14, (R) => paintBelly(R, P, f), opts);
+  for (let f = 0; f < 2; f++) cdef(`${prefix}_arch_${f}`, 26, 20, (R) => paintArch(R, P, f), opts);
 }
 
 // Mochi: full set plus harness variants for walks outside.
 defineCat('mc', CAT_PALETTES.mochi);
-for (let t = 0; t < 4; t++) defineSprite(`mc_hsit_${t}`, 20, 22, (R) => paintSit(R, CAT_PALETTES.mochi, { tail: t, harness: true }), opts);
-for (let f = 0; f < 6; f++) defineSprite(`mc_hwalk_${f}`, 28, 18, (R) => paintWalk(R, CAT_PALETTES.mochi, f, { harness: true }), opts);
+for (let t = 0; t < 4; t++) cdef(`mc_hsit_${t}`, 20, 22, (R) => paintSit(R, CAT_PALETTES.mochi, { tail: t, harness: true }), opts);
+for (let f = 0; f < 6; f++) cdef(`mc_hwalk_${f}`, 28, 18, (R) => paintWalk(R, CAT_PALETTES.mochi, f, { harness: true }), opts);
 // Strays use a lighter set (sit, loaf, sleep, walk, groom).
 export const STRAYS = ['hanako', 'sumi', 'yuki', 'nezumi', 'tux'];
 for (const id of STRAYS) {
   const P = CAT_PALETTES[id];
-  for (let t = 0; t < 4; t++) defineSprite(`stray_${id}_sit_${t}`, 20, 22, (R) => paintSit(R, P, { tail: t }), opts);
-  defineSprite(`stray_${id}_sit_b`, 20, 22, (R) => paintSit(R, P, { tail: 0, mode: 'blink' }), opts);
-  defineSprite(`stray_${id}_sit_happy`, 20, 22, (R) => paintSit(R, P, { tail: 1, mode: 'happy' }), opts);
-  for (let f = 0; f < 2; f++) defineSprite(`stray_${id}_loaf_${f}`, 22, 16, (R) => paintLoaf(R, P, f), opts);
-  for (let f = 0; f < 3; f++) defineSprite(`stray_${id}_sleep_${f}`, 26, 12, (R) => paintSleep(R, P, f), opts);
-  for (let f = 0; f < 4; f++) defineSprite(`stray_${id}_groom_${f}`, 20, 22, (R) => paintGroom(R, P, f), opts);
-  for (let f = 0; f < 6; f++) defineSprite(`stray_${id}_walk_${f}`, 28, 18, (R) => paintWalk(R, P, f), opts);
+  for (let t = 0; t < 4; t++) cdef(`stray_${id}_sit_${t}`, 20, 22, (R) => paintSit(R, P, { tail: t }), opts);
+  cdef(`stray_${id}_sit_b`, 20, 22, (R) => paintSit(R, P, { tail: 0, mode: 'blink' }), opts);
+  cdef(`stray_${id}_sit_happy`, 20, 22, (R) => paintSit(R, P, { tail: 1, mode: 'happy' }), opts);
+  for (let f = 0; f < 2; f++) cdef(`stray_${id}_loaf_${f}`, 22, 16, (R) => paintLoaf(R, P, f), opts);
+  for (let f = 0; f < 3; f++) cdef(`stray_${id}_sleep_${f}`, 26, 12, (R) => paintSleep(R, P, f), opts);
+  for (let f = 0; f < 4; f++) cdef(`stray_${id}_groom_${f}`, 20, 22, (R) => paintGroom(R, P, f), opts);
+  for (let f = 0; f < 6; f++) cdef(`stray_${id}_walk_${f}`, 28, 18, (R) => paintWalk(R, P, f), opts);
 }
+
+// Cardboard box (empty, and with Mochi peeking out), content 24x22
+const BOX = ['#6a4a2e', '#9a7048', '#c09464', '#dcb47e', '#f0d0a0'];
+function paintBox(R, withCat) {
+  if (withCat) { const P = CAT_PALETTES.mochi; ear(R.at(2, 0), P, [2, 0], [1, 5], [6, 3]); ear(R.at(2, 0), P, [13, 0], [10, 3], [15, 5]); R.at(2, 0).e(8, 7, 7, 5, P.fur[3]); const H = R.at(2, 0); H(13, 5, 2, 5, P.fur[2]); H(3, 4, 4, 1, P.fur[4]); H(7, 2, 1, 2, P.fur[1]); H(9, 2, 1, 2, P.fur[1]); eye(H, 4, 6, P); eye(H, 11, 6, P); H(8, 9, 1, 1, P.nose); }
+  R.t([0, 8], [4, 10], [3, 5], BOX[3]); R.t([23, 8], [19, 10], [21, 4], BOX[2]);   // flaps
+  R(2, 10, 20, 12, BOX[2]); R(2, 10, 20, 2, BOX[4]); R(2, 12, 3, 10, BOX[3]); R(18, 12, 4, 10, BOX[1]); R(2, 21, 20, 1, BOX[0]);
+  R(10, 15, 5, 2, BOX[1]); R(11, 14, 3, 1, BOX[3]);                                   // a little arrow print
+  if (!withCat) R(4, 10, 16, 2, BOX[0]);
+}
+cdef('mochi_box', 24, 22, (R) => paintBox(R, false), { hd: true, outline: 'selective' });
+cdef('mochi_box_cat', 24, 22, (R) => paintBox(R, true), { hd: true, outline: 'selective' });
+cdef('mochi_mouse_toy', 10, 6, (R) => { R.e(5, 3, 4, 2, '#8a9aab'); R(1, 1, 2, 2, '#b9c6d2'); R(7, 2, 1, 1, '#2a1a22'); R(9, 3, 1, 1, '#f7a1b1'); R(0, 4, 1, 2, '#5a6678'); }, { hd: true, outline: 'selective' });
