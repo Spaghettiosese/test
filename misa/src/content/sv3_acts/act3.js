@@ -3,10 +3,10 @@
 // the witnesses/hearing) build a support score (see state.js) that decides the hearing: saved, partial or reprieve.
 import { get, features } from '../../core/registry.js';
 import { chapterDef, hook, lines, choice, advance, scene, fade, wait, sfx, place, give, take, friend, memory, mood, call, mg, IF, setv, mail, N, set } from './kit.js';
-import { S, supportScore, supportParts, resultOf, SUPPORT_PARTS, readLetterSafe } from './state.js';
+import { S, supportScore, supportParts, resultOf, SUPPORT_PARTS } from './state.js';
 import { readLetter, letterStage } from './kit.js';
 
-const KU = (t) => N(`Mr. Kurokawa: ${t}`);
+const KU = (t) => `|Mr. Kurokawa: ${t}`;
 const hall = () => (get('map', 'community_hall') ? 'community_hall' : 'town');
 const hallMap = (m) => m === hall();
 const res = (v) => `flag:a3_result=${v}`;
@@ -45,10 +45,10 @@ chapterDef(26, {
   summary: 'Mr. Kurokawa of Seaglass Holdings opened the Seaglass Emporium on the square and charmed half the town. He wants to build a marina resort where the Community Hall stands.',
   open: lines('|A new striped awning on the square. A new sign. A new smell: sea salt and expensive candles.'),
   stages: [
-    { text: 'Meet the stranger at Cafe Kumo', hint: 'Cafe Kumo, on the square', go: 'cafe', steps: [place('mika', { dx: 1 }), ...lines('|A tall man in a pale linen suit is at the window table, tapping a tablet.', KU('Ah. You must be Misa Aoki. The Keeper. I have heard a great deal. Please. Sit. I never discuss business before a good coffee.').text, 'mika|He ordered the most expensive thing on the menu and then asked what it was.',
-      KU('I want only the best for Hoshimori Bay. A marina. A boardwalk. A real future for the young people. You will thank me when you are older.').text, 'misa|And the Community Hall?', KU('A charming ruin. We will preserve its spirit. In a brochure.').text, 'mika|...Kumo-chan, we are leaving the room. Now.')] },
+    { text: 'Meet the stranger at Cafe Kumo', hint: 'Cafe Kumo, on the square', go: 'cafe', steps: [place('mika', { dx: 1 }), ...lines('|A tall man in a pale linen suit is at the window table, tapping a tablet.', KU('Ah. You must be Misa Aoki. The Keeper. I have heard a great deal. Please. Sit. I never discuss business before a good coffee.'), 'mika|He ordered the most expensive thing on the menu and then asked what it was.',
+      KU('I want only the best for Hoshimori Bay. A marina. A boardwalk. A real future for the young people. You will thank me when you are older.'), 'misa|And the Community Hall?', KU('A charming ruin. We will preserve its spirit. In a brochure.'), 'mika|...Kumo-chan, we are leaving the room. Now.')] },
     { text: 'Look at the new Seaglass Emporium', hint: 'The square, next to the noticeboard', prop: { map: 'town', spot: 'noticeboard', dx: 7, dy: 1, label: 'Look at the Seaglass Emporium' },
-      steps: [...lines('|Glossy shelves, glass jars, soft music. Everything smells like a very clean beach. It is, to be honest, lovely.', KU('Welcome, welcome. The Emporium sells small things for good living. Take a look. A free paper crane for every visitor.').text, 'misa|(I hate that I like the paper crane.)'), set('a3_emporium_seen')] },
+      steps: [...lines('|Glossy shelves, glass jars, soft music. Everything smells like a very clean beach. It is, to be honest, lovely.', KU('Welcome, welcome. The Emporium sells small things for good living. Take a look. A free paper crane for every visitor.'), 'misa|(I hate that I like the paper crane.)'), set('a3_emporium_seen')] },
     { text: 'Ask Sachiko what the town thinks', hint: 'Sunny Mart, on the square', talk: 'sachiko', steps: lines('sachiko|Oh, he has been in three times. Bought a single rice cracker each time. Asked about my lease. Very charming. Very.', 'sachiko|He is giving out discount tickets for the Emporium. I took one. I am not a traitor, I just like a discount.',
       'misa|Sachiko, he wants the Hall lot.', 'sachiko/surprised|The old hall? Where Hana held her harvest suppers?', 'sachiko|...Oh, I took the ticket. I am going to give it back. Slowly. With a lecture.'), },
   ],
@@ -86,7 +86,7 @@ chapterDef(28, {
   open: lines('misa|Council night. At the Hall. I have a speech, a tie, and a stomach full of butterflies.'),
   stages: [
     { text: 'Attend the town council meeting at the Hall (by Summer 6)', hint: 'The Community Hall, after 6 PM', go: hallMap, when: 'time>=18:00',
-      steps: (g) => [scene('sv3_council'), ...lines('|The Hall is full. Chairs scrape. Mika is wearing her good apron. Sachiko is holding a plate of crackers like a weapon.', 'jun|Order! ...Wait, I am not the chair. Sorry. Carry on.'), KU('The proposal is simple. Hoshimori gains a marina, forty jobs and a tidy tax base.').text,
+      steps: (g) => [scene('sv3_council'), ...lines('|The Hall is full. Chairs scrape. Mika is wearing her good apron. Sachiko is holding a plate of crackers like a weapon.', 'jun|Order! ...Wait, I am not the chair. Sorry. Carry on.'), KU('The proposal is simple. Hoshimori gains a marina, forty jobs and a tidy tax base.'),
         'misa|Excuse me. May I say something?',
         choice('How do you speak?',
           ['Speak from the heart', 'misa|This hall is where Grandma held her harvest suppers. It is where the sprites live. It is where we meet when it rains. A town is not a tax base. It is a lantern with a roof.', call((gm) => { S(gm).support.statement += 2; S(gm).support.council += 2; })],
@@ -185,7 +185,7 @@ chapterDef(32, {
     { text: 'Perform the school play at the gym', hint: 'The gym during the Culture Festival, after 2 PM', go: 'gym', when: 'time>=14:00', steps: [scene('sv3_stage'), ...lines('|The lights go down. The paper lighthouse wobbles bravely. A hush falls over the gym.'),
       IF(role('lead'), lines('misa|"I will climb the stairs myself. For everyone out there in the dark." ...I said it. I actually said it.'), IF(role('spirit'), lines('kai|"I am the Moon! I have opinions!"', '|The gym roars with laughter, and Kai nearly falls off the stage.'), IF(role('crew'), lines('rina|Spot, cue, spot. Curtains. Perfect. Do not clap yet, they are still dying on stage.'), lines('theo|...hum.', '|His guitar fills the gym, and his hum is, unexpectedly, perfect.')))),
       mg('sv3_cue', { n: 8, title: 'Opening night', help: 'Press Space on your cue light' }), sfx('chime'), ...lines('|The final line lands. A beat of silence. Then the whole gym stands up.', 'suzu/happy|They are clapping. They are actually clapping. Somebody get me a chair.', 'hina/happy|I cried in the second act! And the third! And the snack bit!'),
-      KU('A charming little production. The best part was the lighthouse. Wooden, I think. They are so hard to maintain.').text, 'misa|(He was in the back row. Writing on a folder.)', scene(null), friend('suzu', 30), friend('kai', 30), mood(25), memory('sv3_open32')] },
+      KU('A charming little production. The best part was the lighthouse. Wooden, I think. They are so hard to maintain.'), 'misa|(He was in the back row. Writing on a folder.)', scene(null), friend('suzu', 30), friend('kai', 30), mood(25), memory('sv3_open32')] },
     { text: 'Find Rina after the show', hint: 'Rina is backstage, at school or the library', talk: 'rina', steps: lines('rina|I saw the folder. When he stood to leave, it fell open. There was a floor plan of the Hall. With a line through it.', 'rina|And a second sheet that said "Hoshimori High: phase two". I cannot prove it. I need that folder.', 'misa|You do not mean...', 'rina|I mean we need a plan. A very quiet, very clever plan. I know exactly who to ask.') },
   ],
   reward: { money: 250 },
@@ -277,17 +277,17 @@ chapterDef(37, {
   stages: [
     { text: 'Practise your closing statement with Rina', hint: 'Rina is at school or the library', talk: 'rina', steps: lines('rina|Five minutes. No notes. You will say it from here. Right here. Hand on your chest.', 'misa|(I cannot breathe.)', 'rina|You can. I have seen you carry a tray of seven teacups through a crowded cafe. You can do anything.'), },
     { text: 'Speak at the public hearing in the Hall', hint: 'The Community Hall, after 3 PM', go: hallMap, when: 'time>=15:00',
-      steps: (g) => [scene('sv3_hearing'), ...lines('|The Hall is packed to the rafters. Hall sprites perch on every beam. A panel from the prefecture sits behind a long table.', KU('The proposal is in the public interest. I have evidence of economic benefit.').text, 'fujita|And I have evidence of a hundred and one human beings who would like to keep their school.'),
-        IF('item:sv3_blueprint', lines('misa|And I have a plan that labels the Hall "REMOVE" and the school "CONSOLIDATE, YEAR 3". Which does not match what was told to this council.', KU('That is... a draft. Confidential.').text, 'rina|It is a plan. It is on paper. It is in your handwriting.'), []),
+      steps: (g) => [scene('sv3_hearing'), ...lines('|The Hall is packed to the rafters. Hall sprites perch on every beam. A panel from the prefecture sits behind a long table.', KU('The proposal is in the public interest. I have evidence of economic benefit.'), 'fujita|And I have evidence of a hundred and one human beings who would like to keep their school.'),
+        IF('item:sv3_blueprint', lines('misa|And I have a plan that labels the Hall "REMOVE" and the school "CONSOLIDATE, YEAR 3". Which does not match what was told to this council.', KU('That is... a draft. Confidential.'), 'rina|It is a plan. It is on paper. It is in your handwriting.'), []),
         choice('Your closing statement...',
           ['A town is not a tax base', 'misa|A town is not a tax base. It is a lantern with a roof. A school is a lantern with a bell. If you take them, you take the light.', call((gm) => { S(gm).support.statement += 3; })],
           ['The figures and the plan', 'misa|The Hall pays for itself through events. The school plus Open Campus show growing interest. Here are the numbers.', call((gm) => { S(gm).support.statement += 2; })],
           ['Read the Tidekeeper\'s letter', 'misa|Someone once wrote me that a hall is a lantern with a roof. She was right.', call((gm) => { S(gm).support.statement += gm.flag('act2_done') ? 3 : 1; })]),
         call((gm) => { const sc = supportScore(gm), r = resultOf(sc); gm.setFlag('a3_result', r); S(gm).act3Result = r; gm.setFlag('a3_score', sc); gm.bus.emit('act3Hearing', { result: r, score: sc }); }),
         ...lines('|The panel confers for a long, silent minute. Hall sprites hold their breath.'),
-        IF(res('saved'), lines('|The chair stands. "The Hall is designated community heritage. The school remains open, with a five-year protection."', '|The Hall erupts. Hall sprites throw their hats. Mika sobs into a cake. Rina has fainted gracefully onto Kai.', KU('Well. I find I have been outbid by sentiment. How inconvenient. How... rare.').text),
-          IF(res('partial'), lines('|The chair stands. "The Hall is designated community heritage. The school will be merged with Minato High after the coming graduating class."', 'rina|After graduation. So we get our last year. That is... something.', 'misa|It is a lantern, still lit. Just a short wick.', KU('A compromise. I am not unhappy with a compromise.').text),
-            lines('|The chair stands. "The decision is deferred for one year pending further evidence. The Hall is protected in the interim."', 'fujita|A reprieve. One year. We have a year, Aoki.', KU('One more year. I shall be patient. I am very good at patience.').text))),
+        IF(res('saved'), lines('|The chair stands. "The Hall is designated community heritage. The school remains open, with a five-year protection."', '|The Hall erupts. Hall sprites throw their hats. Mika sobs into a cake. Rina has fainted gracefully onto Kai.', KU('Well. I find I have been outbid by sentiment. How inconvenient. How... rare.')),
+          IF(res('partial'), lines('|The chair stands. "The Hall is designated community heritage. The school will be merged with Minato High after the coming graduating class."', 'rina|After graduation. So we get our last year. That is... something.', 'misa|It is a lantern, still lit. Just a short wick.', KU('A compromise. I am not unhappy with a compromise.')),
+            lines('|The chair stands. "The decision is deferred for one year pending further evidence. The Hall is protected in the interim."', 'fujita|A reprieve. One year. We have a year, Aoki.', KU('One more year. I shall be patient. I am very good at patience.')))),
         scene(null), friend('rina', 50), friend('fujita', 50), friend('hana', 40), mood(25), memory('sv3_open37')] },
   ],
   reward: { money: 400 },
@@ -303,8 +303,8 @@ chapterDef(38, {
   stages: [
     { text: 'Visit Mika at Cafe Kumo', hint: 'Cafe Kumo, on the square', talk: 'mika', steps: lines('mika/happy|Misa! I did not sleep! I made forty pastries! We should open an extra day, an extra cafe, an extra Mika!', IF(res('saved'), lines('mika|The hall. The school. All of it. I am going to cry on a pastry.'), IF(res('partial'), lines('mika|We lost the school in the end. But a year with it is a whole year of Hoshimori nights.'), lines('mika|We have a year. A year is a whole lot of pastries.'))), friend('mika', 30)) },
     { text: 'Talk to Mr. Kurokawa at the Emporium', hint: 'The Seaglass Emporium on the square', prop: { map: 'town', spot: 'noticeboard', dx: 7, dy: 1, label: 'Talk to Mr. Kurokawa' }, steps: [
-      KU('Miss Aoki. May I say something unprofessional?').text, 'misa|Is it going to be rude?', KU('Not rude. Honest. I did not expect to lose. I do not often lose.').text,
-      IF(res('saved'), lines(KU('The Emporium will stay. Small, local. A paper crane for every customer. I may even learn the names of my regulars.').text), IF(res('partial'), lines(KU('I will redirect the marina to the harbour edge. The Hall remains. Perhaps I will visit it.').text), lines(KU('I will be back at the next hearing. With a better lawyer. And perhaps a better crane.').text))),
+      KU('Miss Aoki. May I say something unprofessional?'), 'misa|Is it going to be rude?', KU('Not rude. Honest. I did not expect to lose. I do not often lose.'),
+      IF(res('saved'), lines(KU('The Emporium will stay. Small, local. A paper crane for every customer. I may even learn the names of my regulars.')), IF(res('partial'), lines(KU('I will redirect the marina to the harbour edge. The Hall remains. Perhaps I will visit it.')), lines(KU('I will be back at the next hearing. With a better lawyer. And perhaps a better crane.')))),
       'misa|I would not mind if you visited the Hall. It has excellent tea.', friend('mika', 20), memory('sv3_open38')] },
   ],
   reward: { money: 250 },

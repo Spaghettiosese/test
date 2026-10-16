@@ -49,7 +49,7 @@ const club = (g) => (S(g) && S(g).club) || null;
 const clubName = (g) => (club(g) ? CLUBS[club(g)].name : 'club');
 const lead = (g) => (club(g) ? CLUBS[club(g)].member : 'fujita');
 const schoolDay = (g) => g.check('school');
-const nearSpot = (world, map, spot, r = 26) => {
+export const nearSpot = (world, map, spot, r = 26) => {
   if (!world || !world.map || world.map.id !== map) return null;
   const p = spotPos(map, spot); if (!p) return null;
   const d = Math.hypot(world.player.x - p.x, world.player.y - 4 - p.y);

@@ -38,7 +38,8 @@ const arr = (x) => (x === undefined ? [] : [].concat(x));
 
 export function chapterDef(n, d) {
   const qid = `sv3_q${n}`, act = actOf(n);
-  CHAPTERS[n] = { n, act, name: d.name, qid, by: d.by, byMin: d.byMin, skip: d.skip, letter: d.letter };
+  const dn = arr(d.trig).map((x) => typeof x === 'string' && x.match(/^dayn>=(\d+)$/)).find(Boolean);
+  CHAPTERS[n] = { n, act, name: d.name, qid, by: d.by, byMin: d.byMin, skip: d.skip, letter: d.letter, day: dn ? +dn[1] : ((CHAPTERS[n - 1] || {}).day || 29) + 1 };
   const open = [card(n, d.name, d.sub || (act === 2 ? 'Act II: The Tidekeeper\'s Letters' : 'Act III: The Second Year')), ...(d.open || [])];
   script(`sv3_open${n}`, open, d.name);
   const stages = d.stages.map((sp, i) => {

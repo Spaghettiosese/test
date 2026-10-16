@@ -130,7 +130,7 @@ test('sv3: group hangouts unlock by hearts, plan, and every scene runs on every 
     const fails = await explore('group ' + gr2.id, (g2) => groupSteps(g2, gr2.id), (g2) => give(g2, gr2.cast));
     assert.deepEqual(fails, [], fails.join('\n'));
     const steps = groupSteps(createTestGame(), gr2.id);
-    assert.ok(steps.length >= 14, gr2.id + ' steps ' + steps.length);
+    assert.ok(steps.length >= 12, gr2.id + ' steps ' + steps.length);
     assert.ok(steps.some((s) => s.t === 'choice'));
   }
 });

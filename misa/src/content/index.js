@@ -35,3 +35,4 @@ import './sv2_wild/index.js';
 import './sv2_festivals/index.js';
 import './sv2_play/index.js';
 import './sv3_hearts/index.js';
+import './sv3_acts/index.js';

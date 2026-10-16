@@ -54,6 +54,7 @@ export function entries(g) {
   for (const k of Object.keys(s.group.done)) if (k.startsWith('bday_')) { const id = k.slice(5).replace(/_y\d+$/, ''); if (get('npc', id)) out.push({ kind: 'party', id: k, npc: id, title: `${nameOf(id)}'s birthday party`, day: s.group.done[k], hearts: 4, picks: s.picks['sv3g_party_' + id] || [], replay: () => sanitize(get('script', 'sv3_party_' + id).steps(g)) }); }
   return out.sort((a, b) => (a.day || 1e9) - (b.day || 1e9) || a.hearts - b.hearts);
 }
+const short = (id) => nameOf(id).replace(/^(Ms\.|Mr\.|Grandma|Captain)\s+/, '').split(' ')[0];
 const flagPicks = (g, id) => Object.keys(g.state.flags).filter((k) => k.startsWith('soc_' + id + '_') || k.startsWith('soc3_' + id + '_')).map((k) => k.replace(/^soc3?_/, '').replace(/_/g, ' '));
 
 // ---------------------------------------------------------------- Heart Archive
@@ -69,7 +70,7 @@ register('phoneApp', 'sv3_archive', {
     if (input.justDown && input.mx < app.area.x + 130) { const i = Math.floor((input.my - app.area.y - 14) / 11) + st.top; if (i >= 0 && i < list.length) st.sel = i; }
     if (st.sel < st.top) st.top = st.sel;
     if (st.sel >= st.top + 13) st.top = st.sel - 12;
-    if (k.has('enter') || k.has(' ') || k.has('e') || k.has('r')) {
+    if (k.has('enter') || k.has(' ') || k.has('e')) {
       const e = list[st.sel];
       if (e) { try { game.run(e.replay()); } catch (err) { game.toast('That scene cannot be replayed right now'); } }
     }
@@ -113,7 +114,7 @@ register('phoneApp', 'sv3_bonds', {
   open(game, app) { Object.assign(app.state, { tab: 0, sel: 0, top: 0, msg: '' }); },
   update(dt, input, game, app) {
     const st = app.state, k = input.pressed, { x, y } = app.area;
-    if (k.has('c') || k.has('tab') || (input.justDown && inside(input.mx, input.my, x, y, 292, 12))) { st.tab = (st.tab + 1) % TABS.length; st.sel = 0; st.top = 0; st.msg = ''; game.sfx('blip'); return; }
+    if (k.has('c') || (input.justDown && inside(input.mx, input.my, x, y, 292, 12))) { st.tab = (st.tab + 1) % TABS.length; st.sel = 0; st.top = 0; st.msg = ''; game.sfx('blip'); return; }
     const n = [CAST.length, REL.length, GROUPS.length, 0][st.tab];
     if (n) {
       if (k.has('arrowdown') || k.has('s')) st.sel = Math.min(n - 1, st.sel + 1);
@@ -133,7 +134,7 @@ register('phoneApp', 'sv3_bonds', {
     const px = x + 128, side = (lines, yy = y + 16) => lines.forEach((l, i) => drawText(g, l[0].toUpperCase(), px, yy + i * 9, l[1] || UI.ink, 1, null));
     rect(g, UI.paper2, px - 3, y + 13, 168, 158);
     if (st.tab === 0) {
-      CAST.slice(st.top, st.top + 14).forEach((id, r) => { const p = perkOf(game, id); row(st.top + r, nameOf(id).split(' ')[0].slice(0, 9).toUpperCase(), p ? 'BOND' : String(game.hearts(id)), p ? UI.good : UI.ink); });
+      CAST.slice(st.top, st.top + 14).forEach((id, r) => { const p = perkOf(game, id); row(st.top + r, short(id).slice(0, 9).toUpperCase(), p ? 'BOND' : String(game.hearts(id)), p ? UI.good : UI.ink); });
       const id = CAST[st.sel], p = perkOf(game, id), h = game.hearts(id);
       const lines = [[nameOf(id), UI.accent2], [`HEARTS: ${h}/10`, UI.ink2], ['', UI.ink]];
       if (p) { lines.push([`BOND: ${p.name}`, UI.good], ['', UI.ink]); wrap(p.text, 38).slice(0, 7).forEach((l) => lines.push([l, UI.ink])); }
@@ -144,7 +145,7 @@ register('phoneApp', 'sv3_bonds', {
     } else if (st.tab === 1) {
       REL.slice(st.top, st.top + 14).forEach((r, i) => { const k = st.top + i, stars = webStars(game, `${r[0]}-${r[1]}`); row(k, `${r[0]}+${r[1]}`.slice(0, 15).toUpperCase(), '*'.repeat(stars) || '-'); });
       const r = REL[st.sel], known = webStars(game, `${r[0]}-${r[1]}`) + webStars(game, `${r[1]}-${r[0]}`) >= 2 || game.hearts(r[0]) >= 6 && game.hearts(r[1]) >= 6;
-      const lines = [[`${nameOf(r[0]).split(' ')[0]} + ${nameOf(r[1]).split(' ')[0]}`, UI.accent2], [r[2], UI.ink2], ['', UI.ink]];
+      const lines = [[`${short(r[0])} + ${short(r[1])}`, UI.accent2], [r[2], UI.ink2], ['', UI.ink]];
       if (known) wrap(r[3], 38).slice(0, 8).forEach((l) => lines.push([l, UI.ink])); else lines.push(['Overhear their chats around', UI.dim], ['town, or get close to both,', UI.dim], ['to learn their story.', UI.dim]);
       side(lines);
     } else if (st.tab === 2) {
