@@ -74,5 +74,6 @@ features('Exploring', [
   'Shimmering pan spots appear every morning along the beach, harbour and park pond; face one and press E to pan',
   'Panning uses a panning dish (Kinoko Woodworks) and finds shells, copper and iron flakes, pyrite, quartz, topaz and rare gems',
   'Rarer finds from panning: aquamarine, amber and star shards, more often with the iron panning dish',
+  'Panning earns Mining and Foraging XP and costs 2 energy (1 with the iron dish)',
   'Panned shells and minerals count in your Collections and can be donated at the museum corner',
 ]);

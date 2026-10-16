@@ -113,15 +113,7 @@ lazy('warps', () => (curFloor() === 0 ? [{ x: 7, y: 8, w: 2, enter: 'down', to: 
 lazy('spawns', () => { const fd = floorData(curFloor()); return { default: [fd.spawn[0], fd.spawn[1], 'down'], from_cave: [7, 7, 'up'] }; });
 lazy('spots', () => ({ entrance: floorData(curFloor()).spawn }));
 
-// The way in from the tide-pool cave: a wooden door in the west wall.
-{
-  const cave = get('map', 'cave');
-  if (cave) {
-    cave.spawns.from_mine = [4, 6, 'right'];
-    const d = Object.getOwnPropertyDescriptor(cave, 'warps'), base = d.get ? d.get : () => d.value;
-    Object.defineProperty(cave, 'warps', { enumerable: true, configurable: true, get: () => [...base(), { x: 3, y: 6, to: 'hoshi_mine:from_cave', when: (g) => { if (g.state.sv_explore) SV(g).mine.floor = 0; return true; } }] });
-  }
-}
+// The way in: a door sprite drawn on the cave's west wall (see sprites() below); the warp itself is one line in coast/maps.js.
 
 // ---------------------------------------------------------------- mining rules
 export const HARD = { stone: 1, coal: 1, copper: 1, iron: 2, silver: 2, stargold: 3, geode: 2, gem: 2, crystal: 2 };
@@ -386,6 +378,8 @@ features('Exploring', [
   'Dust sprites drift around from floor 2: touch one and a shooing minigame starts (or avoid them)',
   'Shoo a dust sprite with the broom to get soft fluff; fail and you only lose a little energy',
   'Out of energy in the mine: you faint, wake at the entrance with a little less money and some energy back, never worse',
+  'The mine resets every morning: broken rocks return and the floors are laid out differently each day',
+  'Ladders work both ways: climb up from any floor to the previous floor\'s ladder, or back to the entrance from floor 1',
   'A mine HUD tag shows your floor, record and pickaxe tier',
   'Mining skill XP for every rock, with higher XP for rarer ore',
   'Miner, Geologist, Blacksmith, Prospector, Excavator and Gemologist professions change swing cost, gem luck, ore yield, geodes and bar prices',

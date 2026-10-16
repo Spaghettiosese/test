@@ -156,7 +156,7 @@ P('sv_barn', 132, 104, (R) => {
 });
 for (const full of [0, 1]) P(`sv_trough_${full}`, 56, 22, (R) => {
   R(2, 8, 52, 13, Rr.wood[2]); R(2, 8, 52, 2, Rr.wood[3]); R(4, 10, 48, 8, Rr.wood[1]); R(5, 19, 4, 3, Rr.wood[1]); R(47, 19, 4, 3, Rr.wood[1]);
-  if (full) { for (let x = 6; x < 50; x += 4) R(x, 6 + ((x / 4) % 2), 5, 5, Rr.butter[2]); R(8, 5, 40, 2, Rr.butter[3]); }
+  if (full) { for (let x = 8; x < 48; x += 4) R(x, 6 + ((x / 4) % 2), 5, 5, Rr.butter[2]); R(8, 5, 40, 2, Rr.butter[3]); }
 });
 for (const full of [0, 1]) P(`sv_bin_${full}`, 28, 28, (R) => {
   R(2, 8, 24, 19, Rr.wood[2]); R(2, 8, 24, 3, Rr.wood[3]); R(2, 16, 24, 2, Rr.wood[1]); R(12, 20, 4, 3, Rr.metal[3]);

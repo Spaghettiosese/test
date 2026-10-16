@@ -29,3 +29,4 @@ import './sv_farm/index.js';
 import './gaps.js';
 import './sv_community/index.js';
 import './sv_life/index.js';
+import './sv_explore/index.js';

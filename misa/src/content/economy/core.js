@@ -82,6 +82,7 @@ export function sellPrice(game, id, shopId) {
   } else p *= seasonalMult(game, it, true);
   const shop = shopId && get('shop', shopId);
   if (shop && shop.bonusCats && shop.bonusCats.includes(it.cat)) p *= 1.1;
+  if (game.sellMult) p *= game.sellMult(it); // profession price hook (sv_explore)
   return Math.max(1, Math.round(p));
 }
 export function noteSold(game, id, n) {

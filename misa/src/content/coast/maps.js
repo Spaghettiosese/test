@@ -161,8 +161,8 @@ function cliffObjects(G, ch = 'C') {
       prop('coast_rock_m', 13, 10, { solid: false }), prop('coast_rock_s', 10, 8, { solid: false }),
       { x: 12, y: 4, w: 1, h: 1, solid: false, use: 'coast_echo' },
     ],
-    warps: [{ x: 10, y: 15, w: 4, enter: 'down', to: 'beach:from_cave' }],
-    spawns: { default: [11, 13, 'up'], from_beach: [11, 13, 'up'] },
+    warps: [{ x: 10, y: 15, w: 4, enter: 'down', to: 'beach:from_cave' }, { x: 3, y: 6, to: 'hoshi_mine:from_cave', when: (g) => { if (g.state.sv_explore) g.state.sv_explore.mine.floor = 0; return true; } }], // door to Hoshi Mine (sv_explore)
+    spawns: { default: [11, 13, 'up'], from_beach: [11, 13, 'up'], from_mine: [4, 6, 'right'] },
     spots: { pools: [7, 9], star_mark: [18, 3], entrance: [12, 13] },
   });
 }
