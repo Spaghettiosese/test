@@ -250,7 +250,7 @@ register('system', 'mochiAnimals', {
   init(game) {
     const dai = new Daifuku(), kuro = new Kuro(), strays = STRAYS.map((id) => new Stray(STRAY_DEFS.find((d) => d.id === id)));
     kuro.game = game; game.kuro = kuro; game.daifuku = dai;
-    game.bus.on('mapEnter', () => { for (const a of [dai, kuro, ...strays]) if (!game.world.pets.includes(a)) game.world.pets.push(a); });
+    game.bus.on('mapEnter', () => { if (!game.world || !game.world.pets) return; for (const a of [dai, kuro, ...strays]) if (!game.world.pets.includes(a)) game.world.pets.push(a); });
   },
 });
 

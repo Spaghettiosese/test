@@ -317,6 +317,7 @@ register('system', 'mochi', {
     };
     game.bus.on('mapEnter', ({ map }) => {
       const world = game.world, s = ms(game);
+      if (!world || !world.pets) return;
       if (!world.pets.includes(mochi)) world.pets.push(mochi);
       mochi.path = null; mochi.spot = null; mochi.lift = 0; mochi.hopT = 0;
       if (s.walking) {
