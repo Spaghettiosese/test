@@ -284,8 +284,6 @@ features('Farm & Animals', [
   'Shipping log keeps every item you have ever shipped with totals and bonus coins',
   'Starred goods earn a quality bonus (silver +25%, gold +50%, star +100%) when shipped or sold in shops',
   'Items with quality stay starred through preserves jars, cheese presses and the rest of the machines',
-  'Bag-space friendly: animal goods and machines are ordinary items you can gift, cook with or sell',
-  'Mill and fermenter outputs can be used by the stove recipes through their ingredient tags',
   'Heart emotes, sounds and happy toasts as animals bond with you',
   'Everything saves: animals, hearts, machines in progress, the trough, bin, shipping log and the greenhouse',
 ]);
