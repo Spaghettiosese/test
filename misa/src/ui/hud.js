@@ -42,12 +42,12 @@ register('hud', 'main', {
     if (!w || game.hideHud) return;
     // date + clock
     const day = s.time.day, season = seasonOf(day);
-    panel(g, 2, 2, 86, 23, 'dark');
+    panel(g, 2, 2, 96, 23, 'dark');
     rect(g, SEASON_C[season], 5, 5, 3, 17);
     drawText(g, `${WEEKDAYS[weekdayOf(day)]} ${dateOf(day)}`, 11, 6, UI.gold);
     drawText(g, season.toUpperCase(), 44, 6, SEASON_C[season]);
     drawText(g, hudClock(game), 11, 15, UI.text);
-    icon(g, WICON[s.weather] || 'i_sun', 70, 6);
+    icon(g, WICON[s.weather] || 'i_sun', 82, 6);
     // coins + energy
     const coins = String(s.money);
     panel(g, 318 - 46, 2, 44, 31, 'dark');
