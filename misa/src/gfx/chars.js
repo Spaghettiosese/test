@@ -53,6 +53,27 @@ export function lookPairs(look) {
   return out;
 }
 
+// Misa's hand-painted sheet has its own palette: outfits recolour its hoodie, trousers and hair families,
+// keeping each pixel's lightness relative to the family's mid tone.
+const MISA_FAMILIES = {
+  top: { mid: '#3d5a8c', all: ['#5f80b4', '#3d5a8c', '#2d4472', '#2c4270', '#304169'] },
+  bottom: { mid: '#2a3552', all: ['#2a3552', '#1f2840'] },
+  hair: { mid: '#8b5a44', all: ['#b0703c', '#8b5a44', '#7a4a3a', '#5e3d30', '#5a3a2e'] },
+};
+export function misaLookPairs(look) {
+  const hx = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)), lum = (c) => 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
+  const out = [];
+  for (const [k, fam] of Object.entries(MISA_FAMILIES)) {
+    if (!look[k]) continue;
+    const t = hx(look[k]), m = lum(hx(fam.mid));
+    for (const c of fam.all) {
+      const f = lum(hx(c)) / m, n = t.map((v) => Math.max(0, Math.min(255, Math.round(v * f))));
+      out.push([c, '#' + n.map((v) => v.toString(16).padStart(2, '0')).join('')]);
+    }
+  }
+  return out;
+}
+
 // Get (and cache) a drawable sheet. key: 'misa', 'misa@<outfitId>' or an NPC id.
 export function sheetFor(key, look) {
   if (canv[key]) return canv[key];
@@ -61,7 +82,7 @@ export function sheetFor(key, look) {
   if (key.startsWith('misa@') && imgs['outfit_' + key.slice(5)]) return (canv[key] = imgs['outfit_' + key.slice(5)]);
   if (imgs['cast_' + key]) return (canv[key] = imgs['cast_' + key]);
   if (!base || !look) return base || null;
-  return (canv[key] = recolor(base, lookPairs(look)));
+  return (canv[key] = recolor(base, key.startsWith('misa@') ? misaLookPairs(look) : lookPairs(look)));
 }
 export function smoothSheet(key, look) {
   if (smooth[key]) return smooth[key];
