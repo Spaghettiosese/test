@@ -6,14 +6,15 @@
 // the ceremony closes it in the following spring (the same day as the Starlight Festival).
 //
 // Save data: state.sv3y (see DEFAULT). Legacy (New Game+) lives OUTSIDE the save: localStorage key 'misa-life:legacy'.
-// Condition kinds added: grade>=2 (0 = alumni), alum, track:<id>, sv3club:<clubId>, sv3cday (today is a meeting day of Misa's club),
-//   sv3enrolled:<kohaiId>.
+// Condition kinds added: grade>=2 (0 = alumni), alum, track:<id>, clubis:<clubId>, clubday (today is a meeting day of Misa's club),
+//   kohai:<kohaiId>.
 // Bus events emitted: svYearStart {year}, svElective {id}, svElection {year, won}, svClubRole {role}, svTrip {}, svTrack {id},
 //   svMock {n, avg}, svEntrance {passed}, svGraduated {ending}, svEpilogue {}, svAlumni {season}, svLegacy {runs}
 // Hooks for the story-acts pack: reads flags act2_done, act3_done and state.sv3_acts?.actsEnding (all optional).
 import { register, get, all } from '../../core/registry.js';
 import { addCondKind } from '../../core/cond.js';
 import { yearOf, seasonOf, dateOf, SEASONS, SEASON_DAYS } from '../../core/time.js';
+import { CLUBS } from '../school/data.js';
 
 export const DEFAULT = () => ({
   done: {}, elective: null, rep: {}, role: {}, trip: { done: false, picks: {} }, enrolled: {},
@@ -41,8 +42,9 @@ export const ord = (n) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 's
 addCondKind('grade', (g) => gradeOf(g));
 addCondKind('alum', (g) => isAlum(g));
 addCondKind('track', (g, a) => Y(g).track === a);
-addCondKind('sv3club', (g, a) => !!g.state.school && g.state.school.club === a);
-addCondKind('sv3enrolled', (g, a) => !!Y(g).enrolled[a]);
+addCondKind('clubis', (g, a) => !!g.state.school && g.state.school.club === a);
+addCondKind('clubday', (g) => { const c = g.state.school && g.state.school.club; return !!c && !!CLUBS[c] && CLUBS[c].days.includes(g.weekday); });
+addCondKind('kohai', (g, a) => !!Y(g).enrolled[a]);
 
 // ---------------------------------------------------------------- script helpers
 export const say = (who, mood, text) => ({ t: 'say', who, mood, text });

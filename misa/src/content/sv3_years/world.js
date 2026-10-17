@@ -99,7 +99,7 @@ register('system', 'sv3_world', {
     g.sellMult = (it) => (prevSell ? prevSell(it) : 1) * sellDrift(yr(g), it);
     const drift = () => applyBuyDrift(yr(g));
     g.bus.on('gameStart', drift); g.bus.on('gameLoaded', drift); g.bus.on('newGame', drift); g.bus.on('loaded', drift);
-    g.bus.on('dayStart', () => { if (g.date === undefined && (g.day - 1) % 112 === 0) drift(); });
+    g.bus.on('dayStart', () => { if ((g.day - 1) % 112 === 0) drift(); });
     g.bus.on('harvested', (e) => {
       if (!e || !e.item || yr(g) < 2) return;
       if (g.rngFor('yield' + st(g, 'harvested'))() < Math.min(0.3, 0.06 * (yr(g) - 1))) { g.give(e.item, 1, true); g.toast('Bonus harvest!', 'i_leaf'); }

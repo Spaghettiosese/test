@@ -1,6 +1,6 @@
 // The kohai: three first-years enrol in each of the three new Aprils (game years 2, 3 and 4). Nine NPCs, each with a palette-swapped
 // look, a schedule that follows Misa's club, two short heart events, gifts and a farewell letter used on graduation day.
-// They exist from the start but are inert until `enrol(g, group)` runs (their schedules need `sv3enrolled:<id>` and their `gifts`
+// They exist from the start but are inert until `enrol(g, group)` runs (their schedules need `kohai:<id>` and their `gifts`
 // are hidden until then, so the Heart Meter ignores them).
 import { get } from '../../core/registry.js';
 import { npc, sc, ch, open, leave, mood, time, giveOr } from '../social/util.js';
@@ -14,10 +14,10 @@ const enrolledNow = (id) => !!GAME && !!GAME.state.sv3y && !!GAME.state.sv3y.enr
 
 const ROOM = { astronomy: ['school_halls', 'astro_room'], art: ['school_halls', 'art_room'], music: ['school_halls', 'music_room'], soccer: ['school_grounds', 'goal'], nature: ['school_grounds', 'greenhouse'], literature: ['school_halls', 'library_corner'], cooking: ['school_halls', 'science_lab'] };
 function scheduleOf(id, S) {
-  const on = `sv3enrolled:${id}`, stop = (at, p) => (p ? { at, map: p[0], spot: p[1], ...(p[2] ? { dir: p[2] } : {}) } : { at, map: null });
+  const on = `kohai:${id}`, stop = (at, p) => (p ? { at, map: p[0], spot: p[1], ...(p[2] ? { dir: p[2] } : {}) } : { at, map: null });
   const lunch = S.lunch, after = S.after;
   const g = [{ when: `${on}&school&weather:rain|storm|snow`, stops: [stop('08:15', ['school_halls', 'lockers']), stop('12:30', ['school_halls', 'library_corner']), stop('16:00')] }];
-  for (const club of Object.keys(CLUBS)) g.push({ when: `${on}&school&sv3cday&sv3club:${club}`, stops: [stop('08:15', ['school_halls', 'lockers']), stop('12:30', lunch), stop('15:40', ROOM[club]), stop('17:40')] });
+  for (const club of Object.keys(CLUBS)) g.push({ when: `${on}&school&clubday&clubis:${club}`, stops: [stop('08:15', ['school_halls', 'lockers']), stop('12:30', lunch), stop('15:40', ROOM[club]), stop('17:40')] });
   g.push({ when: `${on}&school`, stops: [stop('08:15', ['school_halls', 'lockers']), stop('12:30', lunch), stop('15:40', after), stop('18:00')] });
   g.push({ when: `${on}&weather:rain|storm|snow`, stops: [stop('10:00', S.rain || ['library', 'table_2']), stop('17:00')] });
   g.push({ when: on, stops: S.weekend.map(([at, m, s]) => stop(at, [m, s])).concat([stop('19:00')]) });
@@ -112,7 +112,7 @@ export const LETTERS = Object.fromEntries(SPECS.map((s) => [s.id, s.letter]));
 
 const mkEvents = (s) => ['h1', 'h2', 'h3', 'h5'].filter((k) => s[k]).map((k) => {
   const [map, when, thanks, script] = s[k], hearts = +k.slice(1);
-  return { id: `${s.id}_${k}`, hearts, map, when: `sv3enrolled:${s.id}&${when}`, thanks, script };
+  return { id: `${s.id}_${k}`, hearts, map, when: `kohai:${s.id}&${when}`, thanks, script };
 });
 for (const s of SPECS) {
   const lines = { default: s.l.d, morning: s.l.m, afternoon: s.l.a, evening: s.l.e, rain: s.l.r, weekend: s.l.w, h1: s.l.h1, h2: s.l.h2, h3: s.l.h3, h6: s.l.h6, firstMeet: s.l.fm, birthday: s.l.b, gift_love: s.l.gl, gift_like: s.l.gk, gift_neutral: s.l.gn, gift_dislike: s.l.gd, gift_hate: s.l.gh, greet: s.l.gr, at_school_halls: [s.l.d[0]], at_school_grounds: [s.l.d[s.l.d.length - 1]] };

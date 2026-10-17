@@ -141,7 +141,7 @@ chapterDef(30, {
     { text: (g) => `Recruit four friends to run booths (${qn('sv3_q30')(g)}/4)`, hint: 'Kai, Hina, Theo and Suzu', on: { on: 'sv3Recruit', count: 4 }, steps: lines('misa/happy|Four booths. Four friends. We are an army!', 'rina|An army with matching name tags. I will not be argued with.') },
     { text: 'Run Open Campus day at school', hint: 'The school grounds', go: 'school_grounds', steps: [place('rina', { dx: 1 }), place('kai', { dx: -2 }), ...lines('|Banners wave over the school gate. Families wander the grounds with maps and polite smiles.', 'kai/happy|Soccer penalty shootout! Win a snack! Lose a snack! Either way, there is a snack!',
       'hina/happy|Look at our school garden! These ladybirds all have names!', 'theo|Quick sketches. Free. Do not stare at the paper, it makes me nervous.', 'suzu|Short story corner. Three minutes, one ending, no refunds.',
-      'rina|Twelve families! Eleven smiles! One toddler eating a petition! I call this a triumph.', call((g) => { S(g).support.recruits = Math.max(S(g).support.recruits, 4); }), friend('rina', 40), memory('sv3_open30')] },
+      'rina|Twelve families! Eleven smiles! One toddler eating a petition! I call this a triumph.', call((g) => { S(g).support.recruits = Math.max(S(g).support.recruits, 4); }), friend('rina', 40), memory('sv3_open30'))] },
   ],
   reward: { money: 250 },
 });

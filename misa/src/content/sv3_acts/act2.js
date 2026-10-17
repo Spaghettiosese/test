@@ -90,7 +90,7 @@ chapterDef(13, {
       steps: [place('theo', { dx: 1 }), scene('sv3_harbour_mural'), ...lines('|Theo covers his lamp. The old wall shows its second face: pale sea-green glyphs, a ring of waves, a lantern.', 'theo|There. See? It has been here the whole time. Waiting for the lights to go out.',
         'misa|It wants us to copy the pattern, I think.'), mg('sv3_sigil', { len: 6, seed: 5, title: 'The harbour wall' }), scene(null), lit('harbour'), set('a2_mural'),
         ...lines('theo|It did not even glow for me. It glowed for you.', 'misa|It glowed for both of us. You just kept it a secret too long.', 'theo/happy|...Yeah. Okay. Thanks.'), friend('theo', 40)] },
-    { text: 'Ask Captain Jun about the wall lamp', hint: 'Captain Jun is at the harbour Bait & Tackle', talk: 'jun', steps: lines('jun/happy|Ha! The wall lamp! Ahoy, little keeper! Come in, sit, I have fifty-seven stories and two of them are true.', 'misa|Captain, the harbour wall lantern. Who built it?',
+    { text: 'Ask Captain Jun about the wall lamp', hint: 'Captain Jun is at the harbour Bait & Tackle', talk: 'jun', steps: [...lines('jun/happy|Ha! The wall lamp! Ahoy, little keeper! Come in, sit, I have fifty-seven stories and two of them are true.', 'misa|Captain, the harbour wall lantern. Who built it?',
       'jun|A small crew. Tobias on the gears. A wiry lad called Haru on the lantern glass. And a girl who stood at the end of the pier with a clipboard, telling us we were all wrong.', 'jun/happy|She was usually right. That is what was so annoying.',
       'misa|Captain... what was the girl\'s name?', 'jun|Ahh. A good captain never names a tide. Come back when you have the other four lit.'), friend('jun', 30), memory('sv3_open13')] },
   ],
