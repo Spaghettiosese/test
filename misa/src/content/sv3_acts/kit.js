@@ -6,12 +6,12 @@
 //   { text, hint, on: Matcher, steps? }                                    any quest matcher
 // Chapter: { n, name, sub, trig, on?, by, byMin?, art?, teaser, summary, open: [steps], stages, reward?, flags?, skip?(g), onStart?(g) }
 import { register, get } from '../../core/registry.js';
-import { lines, choice, advance, scene, fade, wait, sfx, emote, place, walk, leave, goto, give, take, set, friend, card, memory, mood, call, script, hook } from '../story/util.js';
+import { L, lines, choice, advance, scene, fade, wait, sfx, emote, place, walk, leave, goto, give, take, set, friend, card, memory, mood, call, script, hook } from '../story/util.js';
 import { CHAPTERS, S, letterText, actOf } from './state.js';
 
 export { lines, choice, advance, scene, fade, wait, sfx, emote, place, walk, leave, goto, give, take, set, friend, card, memory, mood, call, script, hook };
 export const mg = (id, opts = {}, done) => ({ t: 'minigame', id, opts, done });
-export const IF = (cond, then, els = []) => ({ t: 'if', cond, then, else: els });
+export const IF = (cond, then, els = []) => ({ t: 'if', cond, then: [].concat(then), else: [].concat(els) });
 export const flagIs = (k, v) => (g) => g.flag(k) === v;
 export const setv = (k, v) => ({ t: 'flag', k, v });
 export const mail = (id, from, text) => ({ t: 'mail', id, from, text });
@@ -34,6 +34,7 @@ export const letterStage = (k, where = {}, extra = []) => ({
   steps: [...readLetter(k), ...extra],
 });
 
+const norm = (st) => (typeof st === 'function' ? (...a) => norm(st(...a)) : Array.isArray(st) ? st.flat().map((x) => (typeof x === 'string' ? L(x) : x)) : st);
 const arr = (x) => (x === undefined ? [] : [].concat(x));
 
 export function chapterDef(n, d) {
@@ -41,11 +42,11 @@ export function chapterDef(n, d) {
   const dn = arr(d.trig).map((x) => typeof x === 'string' && x.match(/^dayn>=(\d+)$/)).find(Boolean);
   CHAPTERS[n] = { n, act, name: d.name, qid, by: d.by, byMin: d.byMin, skip: d.skip, letter: d.letter, day: dn ? +dn[1] : ((CHAPTERS[n - 1] || {}).day || 29) + 1 };
   const open = [card(n, d.name, d.sub || (act === 2 ? 'Act II: The Tidekeeper\'s Letters' : 'Act III: The Second Year')), ...(d.open || [])];
-  script(`sv3_open${n}`, open, d.name);
+  script(`sv3_open${n}`, norm(open), d.name);
   const stages = d.stages.map((sp, i) => {
     const st = { text: sp.text, hint: sp.hint || sp.text };
     const here = [`quest:${qid}=${i}`, ...arr(sp.when)];
-    const steps = sp.steps || [];
+    const steps = norm(sp.steps || []);
     if (sp.go !== undefined) { st.done = { on: 'mapEnter', map: sp.go, when: sp.when }; st.script = steps; }
     else if (sp.prop) {
       const id = `sv3_p${n}_${i}`;

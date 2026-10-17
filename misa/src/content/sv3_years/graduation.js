@@ -36,7 +36,16 @@ const pickLine = (id, g) => { const a = L[id] || KOH(id) || ['Congratulations, M
 const KOH = (id) => (LETTERS[id] ? [LETTERS[id]] : null);
 export function buildLetters(g) {
   const out = [];
-  for (const d of cast()) { const h = g.hearts(d.id); if (h >= 2 && L[d.id]) out.push({ from: d.id, name: d.name, hearts: h, text: pickLine(d.id, g) }); }
+  const perk = (g.state.sv3h && g.state.sv3h.perk) || {};
+  for (const d of cast()) {
+    const h = g.hearts(d.id); if (h < 2 || !L[d.id]) continue;
+    const best = !!perk[d.id], text = pickLine(d.id, g) + (best ? ' P.S. You are one of my Best Friends. That does not expire at graduation.' : '');
+    out.push({ from: d.id, name: d.name, hearts: best ? Math.max(h, 10) : h, text, best });
+  }
+  if (g.state.sv3h && g.state.sv3h.circle) {
+    const names = Object.keys(perk).map((i) => nm(i).split(' ')[0]).slice(0, 5).join(', ');
+    out.push({ from: 'mochi', name: g.state.sv3h.circleName || 'Friend Circle', hearts: 10, text: `A card signed by the whole circle: ${names}. It says: wherever you go, the circle has a chair for you. Mochi signed with a paw.` });
+  }
   for (const id of enrolledKohai(g)) { const h = g.hearts(id); if (h >= 1) out.push({ from: id, name: nm(id), hearts: h, text: LETTERS[id] }); }
   for (const id of ['mum', 'dad', 'nori']) out.push({ from: id, name: nm(id), hearts: g.hearts(id), text: pickLine(id, g) });
   out.push({ from: 'mochi', name: 'Mochi', hearts: 10, text: L.mochi[0] });
@@ -86,7 +95,7 @@ export function chooseEnding(g) {
   if (t === 'university') base = Z.entrance && Z.entrance.passed ? 'scholar' : 'second_chance';
   else if (t === 'cafe') base = trackDone(g) ? 'cafe' : 'wanderer';
   else if (t === 'keeper') base = trackDone(g) ? 'keeper' : 'wanderer';
-  const strong = cast().filter((d) => g.hearts(d.id) >= 8).length, bond = strong >= 7 ? 'together' : strong >= 3 ? 'close' : 'quiet';
+  const circle = !!(g.state.sv3h && g.state.sv3h.circle), strong = cast().filter((d) => g.hearts(d.id) >= 8).length + (circle ? 3 : 0), bond = strong >= 7 ? 'together' : strong >= 3 ? 'close' : 'quiet';
   const best = topFriends(g, 1)[0];
   return { id: `${base}_${bond}`, base, bond, best: best ? best[0] : null, title: ENDINGS[base].title, acts: actsEnding(g) };
 }
@@ -226,7 +235,7 @@ register('system', 'sv3_grad', {
 
 features('Years & Graduation', [
   'Graduation ceremony on Spring 28 of the final term: diploma, kohai farewell song, second button tradition, class photos and Mochi in a bow tie',
-  'Farewell letters from every friend with 2 or more hearts (read with their portraits), the kohai, family and Mochi',
+  'Farewell letters from every friend with 2 or more hearts (read with their portraits), the kohai, family and Mochi; Best Friends add a postscript and a Friend Circle sends a joint card',
   'A three-page result card of the three years: grades and clubs, friendships, and farm/fishing/mine/town records',
   'Five endings chosen by your path and how it went (Scholar, Long Way Round, Cafe Apprentice, Keeper of the Light, Free Spirit)',
   'Each ending has a friendship epilogue (everyone together, a few close friends, or quiet goodbyes) and mentions your closest friend',

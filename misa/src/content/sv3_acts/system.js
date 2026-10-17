@@ -98,5 +98,8 @@ features('Story Acts', [
   'Typhoon day: once the clock tower is mended an autumn storm is forced so the typhoon chapter can happen',
   'Act IV hook: act2_done and act3_done flags, an actsComplete bus event and the actsEnding (stay, travel or study) stored in state.sv3_acts',
   'Four Story Acts achievements: finishing Act II, finishing Act III, saving the Hall and reading all fifteen Tidekeeper letters',
+  'Every chapter has a teaser and a summary written in Misa\'s voice, shown in the Story Log and in the recap when you return after a long break',
+  'Letters keep a keepsake item in your key items for each Tidekeeper letter you read',
+  'Chapter rewards give coins and friendship, and completed chapters count toward the Heart Meter story percentage',
   'Console helper __misa.sv3.jump(n) jumps to any Act II or Act III chapter (10 to 40) for testing',
 ]);

@@ -329,7 +329,7 @@ chapterDef(39, {
 
 // ================================================================ Chapter 40: the cliffhanger
 chapterDef(40, {
-  name: 'Three Envelopes', on: ['dayStart', 'mapEnter', 'hour'], trig: ['since:39>=1', { any: ['flag:a3_eval_seen', 'year>=3'] }], flags: ['act3_done'], art: 'sv3_envelope_town',
+  name: 'Three Envelopes', on: ['dayStart', 'mapEnter', 'hour'], trig: [{ any: ['flag:a3_eval_seen', 'year>=3'] }], flags: ['act3_done'], art: 'sv3_envelope_town',
   skip: (g) => { if (!S(g).actsEnding) S(g).actsEnding = 'stay'; },
   teaser: 'The year-end evaluation is done. Late that night, Pip knocks with a bundle of envelopes.',
   summary: 'After the evaluation, three envelopes arrived: one from the sea, one from school, one from the town. A fourth, with a wave seal, held a question about the fifth lantern. I opened one first.',

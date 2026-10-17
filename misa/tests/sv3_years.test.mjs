@@ -81,6 +81,7 @@ test('sv3y: stepping day by day through three years runs the day hooks without e
 
 test('sv3y: elective, election, club roles, showcase, trip and festival special all play through', async () => {
   const g = mk();
+  g.state.time.day = dayOf(2, 'spring', 6);
   assert.ok(setElective(g, 'business')); assert.equal(TIMETABLE[3][1], 'business'); assert.ok(get('npc', 'fujita'));
   g.state.time.day = dayOf(2, 'spring', 6); assert.equal(TIMETABLE[2][1], 'business');
   const r = electionResult(g, 2, 0.9); assert.ok(r.won || r.total < r.need);
