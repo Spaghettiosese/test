@@ -91,7 +91,8 @@ register('hud', 'main', {
 register('hud', 'toasts', {
   always: true,
   draw(g, game) {
-    const inWorld = !game.scenes.top || game.scenes.top.name === 'world'; // over menus/dialogue they ride at the top instead
+    const topName = game.scenes.top && game.scenes.top.name, inWorld = !topName || topName === 'world'; // over menus they ride at the top
+    if (topName === 'cutscene') return; // dialogue owns the screen; toasts wait it out
     game.toasts.forEach((t, i, arr) => {
       const iconW = t.icon && SPRITES[t.icon] ? SPRITES[t.icon].w + 3 : 0;
       const w = measure(t.text) + 12 + iconW, slide = UI.reduceMotion ? 0 : Math.max(0, Math.round((t.t - 2.9) * 40)), y = inWorld ? 196 - (arr.length - 1 - i) * 14 + slide : 24 + i * 14;

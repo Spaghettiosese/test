@@ -87,7 +87,7 @@ register('phoneApp', 'story_diary', {
       wrapPx(text, w - 116).slice(0, 12).forEach((l, i) => drawText(g, l, x + 108, y + 34 + i * 10, UI.ink, 1, null));
     };
     if (st.tab === 0) {
-      list.forEach((c, i) => left(c.n === 0 ? 'Prologue' : c.n >= 9 ? 'Finale' : `Ch.${c.n} ${c.name}`, i, game.flag(`chapter_${c.n}_done`)));
+      list.forEach((c, i) => left(c.n === 0 ? 'Prologue' : c.n === 9 ? 'Finale' : `Ch.${c.n} ${c.name}`, i, game.flag(`chapter_${c.n}_done`)));
       if (!list.length) drawText(g, 'Nothing yet...', x + 4, y + 20, UI.dim, 1, null);
       if (sel) body(sel.name, (game.flag(`chapter_${sel.n}_done`) ? sel.summary : sel.teaser || sel.summary) || '', sel.art);
       const hn = game.story && game.story.hint();
@@ -175,7 +175,7 @@ register('system', 'story_life', {
       s.realT = Date.now();
       if (away < 3 * 86400000 || !s.started[0]) return;
       const c = all('chapter').filter((ch) => s.started[ch.n] !== undefined).sort((a, b) => b.n - a.n)[0], h = game.story.hint();
-      if (c) game.story.play([{ t: 'call', fn: (g) => new Promise((res) => g.open('story_recap', { title: c.n === 0 ? `Prologue: ${c.name}` : `${c.n >= 9 ? 'Finale' : 'Chapter ' + c.n}: ${c.name}`, text: c.teaser || c.summary, next: h && h.text }, res)) }], { front: true });
+      if (c) game.story.play([{ t: 'call', fn: (g) => new Promise((res) => g.open('story_recap', { title: c.n === 0 ? `Prologue: ${c.name}` : `${c.n === 9 ? 'Finale' : 'Chapter ' + c.n}: ${c.name}`, text: c.teaser || c.summary, next: h && h.text }, res)) }], { front: true });
     });
     // Hana visit counter (Chapter 7 needs three visits in total)
     game.bus.on('talk', ({ npc }) => { if (npc === 'hana' && game.flag('hana_visit_day') !== game.day) { game.setFlag('hana_visit_day', game.day); game.inc('hana_visits'); } });
