@@ -1,0 +1,12 @@
+// Sprites for the Seasonal Diary rewards (decor). Uses the home area's clipped `cd` helper: nothing touches the outer pixel ring.
+import { cd } from '../sv4_home/art.js';
+const P = (R, x, y, c) => R(x, y, 1, 1, c);
+cd('furn_sv5_kite_wall', 24, 28, (R) => { for (let i = 0; i < 9; i++) { R(11 - i, i, 2 * i + 2, 1, i % 2 ? '#f7a1b1' : '#e8745a'); R(11 - i, 17 - i, 2 * i + 2, 1, i % 2 ? '#7fb2e0' : '#ffd76a'); } R(11, 1, 1, 17, '#fff6e0'); for (let k = 0; k < 4; k++) { R(11 + (k % 2), 18 + k * 2, 1, 2, '#8a6a5a'); R(9 + (k % 2) * 4, 19 + k * 2, 3, 2, k % 2 ? '#f7a1b1' : '#7fb2e0'); } });
+cd('furn_sv5_petal_rug', 40, 22, (R) => { R(0, 2, 40, 18, '#e89aae'); R(2, 0, 36, 22, '#e89aae'); R(3, 3, 34, 16, '#fbd0da'); for (let i = 0; i < 7; i++) { R(6 + i * 5, 6 + (i % 2) * 6, 3, 2, '#f7a1b1'); R(7 + i * 5, 7 + (i % 2) * 6, 1, 1, '#fff'); } }, { outline: false });
+cd('furn_sv5_melon_stool', 22, 20, (R) => { R.e(11, 10, 10, 8, '#3f9a4a'); R.e(11, 8, 9, 5, '#e0506a'); R(4, 7, 14, 1, '#fff6e0'); P(R, 8, 9, '#2a2a2a'); P(R, 13, 8, '#2a2a2a'); P(R, 11, 11, '#2a2a2a'); R(5, 16, 2, 3, '#8a6a4a'); R(15, 16, 2, 3, '#8a6a4a'); });
+cd('furn_sv5_chime_wall', 20, 28, (R) => { R(2, 0, 16, 3, '#a87848'); R(2, 0, 16, 1, '#d8b078'); for (let i = 0; i < 5; i++) { R(3 + i * 3, 3, 1, 4 + (i % 2) * 3, '#fff6e0'); R(2 + i * 3, 8 + (i % 2) * 3, 3, 10 + (i % 3) * 2, i % 2 ? '#8fb8e0' : '#b8dcf4'); } R(9, 20, 3, 3, '#a87848'); R(9, 23, 1, 3, '#fff6e0'); R(6, 25, 8, 2, '#f7a1b1'); });
+cd('furn_sv5_leaf_garland', 40, 16, (R) => { R(0, 2, 40, 1, '#8a6a4a'); for (let i = 0; i < 6; i++) { const c = ['#d8742a', '#e8a040', '#b8452a'][i % 3]; R(2 + i * 6, 3, 5, 6 + (i % 2) * 3, c); R(3 + i * 6, 4, 1, 4, '#f4d078'); } });
+cd('furn_sv5_pumpkin_lantern', 22, 24, (R) => { R.e(11, 14, 10, 8, '#e8802a'); R.e(11, 13, 7, 7, '#f0a040'); R(10, 3, 3, 5, '#5a8a3a'); R(6, 11, 3, 3, '#ffe08a'); R(14, 11, 3, 3, '#ffe08a'); R(8, 17, 7, 2, '#ffe08a'); R(10, 16, 2, 1, '#ffe08a'); });
+cd('furn_sv5_snowman_mini', 20, 28, (R) => { R.e(10, 20, 8, 6, '#fafcff'); R.e(10, 11, 6, 5, '#fafcff'); R(6, 3, 9, 3, '#4a5a8a'); R(8, 0, 5, 4, '#4a5a8a'); P(R, 8, 10, '#2a2a2a'); P(R, 12, 10, '#2a2a2a'); R(10, 12, 4, 1, '#e8802a'); R(5, 14, 11, 2, '#e8452a'); P(R, 10, 19, '#2a2a2a'); P(R, 10, 22, '#2a2a2a'); });
+cd('furn_sv5_mochi_stand', 24, 24, (R) => { R(2, 14, 20, 8, '#a87848'); R(2, 14, 20, 2, '#d8b078'); R(6, 8, 12, 7, '#fffaf0'); R(7, 6, 10, 3, '#fffaf0'); R(10, 3, 4, 3, '#fffaf0'); P(R, 9, 11, '#3a2a30'); P(R, 14, 11, '#3a2a30'); R(10, 13, 3, 1, '#f7a1b1'); });
+export const DECOR_ART = true;
