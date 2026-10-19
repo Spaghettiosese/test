@@ -106,7 +106,7 @@ class CameraGame {
     for (const x of [107, 213]) rect(g, '#ffffff60', x, 0, 1, 224);
     for (const y of [75, 149]) rect(g, '#ffffff60', 0, y, 320, 1);
     for (const [px, py] of [[107, 75], [213, 75], [107, 149], [213, 149]]) { rect(g, '#ffffffc0', px - 3, py, 7, 1); rect(g, '#ffffffc0', px, py - 3, 1, 7); }
-    for (const [px, py, dx, dy] of [[10, 22, 1, 1], [310, 22, -1, 1], [10, 214, 1, -1], [310, 214, -1, -1]]) { rect(g, '#fff', px, py, 14 * dx || 1, 1); rect(g, '#fff', px, py, 1, 14 * dy || 1); if (dx < 0) rect(g, '#fff', px - 13, py, 14, 1); if (dy < 0) rect(g, '#fff', px, py - 13, 1, 14); }
+    for (const [px, py, dx, dy] of [[10, 22, 1, 1], [310, 22, -1, 1], [10, 214, 1, -1], [310, 214, -1, -1]]) { rect(g, '#fff', px, py, 14 * dx, 1); rect(g, '#fff', px, py, 1, 14 * dy); }
     rect(g, '#2b1d2ee0', 0, 0, 320, 14); drawText(g, `PHOTO: ${this.target.name.toUpperCase()}`, 6, 4, Rr.butter[3], 1, null);
     const fl = `FILM ${this.film}`; drawText(g, fl, 314 - measure(fl), 4, Rr.paper[4], 1, null);
     const hint = 'ARROWS OR MOUSE: MOVE THE FRAME.  SPACE: SHUTTER'; rect(g, '#2b1d2ed0', 160 - measure(hint) / 2 - 4, 207, measure(hint) + 8, 11); drawTextC(g, hint, 160, 210, Rr.paper[4], 1, null);
@@ -176,7 +176,7 @@ register('targetProvider', 'sv4_camera', {
 
 // Sora's requests: she offers the next one when you carry the camera, and pays when the matching photo is ready.
 const ASK = ['I have a job for my apprentice.', 'Got a minute? I need a particular shot, and I need it from you.', 'Request time. Don\'t worry, it\'s a nice one.'];
-register('talkHook', 'nc_sora_offer', { npc: 'sora', priority: 35, when: (g) => g.has('key_sv4_camera') && g.hearts('sora') >= 2 && !activeRequest(g) && !!nextRequest(g) && (g.state.sv4nc.reqDay || 0) !== g.day,
+register('talkHook', 'nc_sora_offer', { npc: 'sora', priority: 35, when: (g) => g.has('key_sv4_camera') && g.hearts('sora') >= 2 && !activeRequest(g) && !!nextRequest(g) && S(g).reqDay !== g.day,
   steps: (g) => { const rq = nextRequest(g) || REQUESTS[0]; return sc('sora', { t: 'call', fn: (gg) => { S(gg).reqDay = gg.day; Q(gg, rq.id).state = 'active'; gg.toast(`Photo request: ${rq.title}`, 'i_star'); } },
     `happy|${ASK[0]}`, `I need: ${rq.title}. ${rq.text}`, `Rating needed: ${rq.min} star${rq.min > 1 ? 's' : ''} or better. The reward is ${rq.coins} coins${rq.item ? ' and a little extra' : ''}.`,
     ch('Will you do it?', ['Leave it to me', 'happy|That is the spirit. Stand near it, press E, and wait for the light.', 5], ['Show me the basics again', 'Frame the subject on a thirds point, keep the camera still when you press, and shoot in sunrise or golden hour. Lamps like the dark.', 3]), time(5)); } });
