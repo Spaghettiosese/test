@@ -96,11 +96,11 @@ listApp('tp_bank', { name: 'Pip Bank', icon: itemIcon('coin', { c: Rr.butter[2] 
   { name: 'Lotto', build(g) { const l = S(g).lotto, mine = l.tickets.filter((t) => t.w === weekNo(g.day)); return { lines: [{ t: 'Town lottery', c: Rr.coral[1] }, `Tickets cost ${TICKET_PRICE}c, ${TICKET_CAP} a week. Draw every Sunday.`, `This week: ${mine.length ? mine.map((t) => String(t.n).padStart(3, '0')).join(' ') : 'none yet'}`, `Capsule stubs: ${l.stubs}/5 (each mart capsule gives one, 5 = free ticket)`, `Last: ${l.result || 'no draw yet'}`, `Total won: ${l.won}c in ${l.wins} wins`],
     acts: [{ label: 'Buy ticket', off: g.money < TICKET_PRICE || mine.length >= TICKET_CAP, run: () => buyTicket(g) }] }; } },
 ] });
-mapPatch('post_office', { objects: [prop('tp_sugg_box', 8, 2, { use: 'tp_savings_desk', shadow: 6 })] });
+mapPatch('post_office', { objects: [prop('tp_piggy', 8, 2, { use: 'tp_savings_desk', shadow: 6 })] });
 register('interaction', 'tp_savings_desk', { label: "Pip's savings desk", run: (g) => g.run([say('pip', 'happy', 'Savings account? Piggy bank? Council loan? Shares? I do it all. And stamps.'), call((gg) => gg.open('phone', 'tp_bank'))]) });
 
 // ---------------------------------------------------------------- auction day (Sundays on the harbour)
-mapPatch('harbour', { objects: [prop('tp_auction_stand', 29, 6, { w: 3, h: 2, when: ['day:sun', 'time>=10:00', 'time<16:00'], use: 'tp_auction', shadow: 30 })] });
+mapPatch('harbour', { objects: [prop('tp_auction_stand', 16, 5, { w: 3, h: 2, when: ['day:sun', 'time>=10:00', 'time<16:00'], use: 'tp_auction', shadow: 30 })] });
 register('interaction', 'tp_auction', { label: 'Harbour auction',
   run: async (g) => {
     const a = S(g).auction;
@@ -122,4 +122,10 @@ features('Town Growth', [
   'Weekly town lottery with tickets, a Sunday draw and prizes mailed to Misa, capped at five tickets a week',
   'Capsule tie-in: every figurine from the mart capsule machine gives a lottery stub, and five stubs trade for a free ticket',
   'Auction day: on Sundays the harbour stand sells five mystery crates to bid on against three rivals, with a budget cap so nobody loses out',
+]);
+
+features('Town Growth', [
+  "A savings desk with a piggy-bank stand in the post office opens the Pip Bank app after a word from Pip",
+  "A monthly friendly mail reminds Misa about the council loan, with no interest or penalty",
+  "Lottery results arrive by mail every Sunday, with the winning number and any prize already paid",
 ]);

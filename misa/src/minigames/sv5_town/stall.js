@@ -59,7 +59,7 @@ export class StallGame {
       else if (k.has('arrowdown') || k.has('s')) this.sell(c, g.price * 0.85, true);
     }
   }
-  finish() { this.done = true; this.score = clamp(this.revenue / this.target, 0, 1); this.result = { text: `${this.served} served, ${this.revenue} coins` }; }
+  finish() { if (this.done) return; this.done = true; this.score = clamp(this.revenue / this.target, 0, 1); this.result = { text: `${this.served} served, ${this.revenue} coins` }; if (this.o.onDone) this.o.onDone(this); }
   draw(g) {
     rect(g, K.sky[3], 0, 0, 320, 224); rect(g, K.grass[2], 0, 80, 320, 144); rect(g, K.wood[2], 0, 110, 320, 10); rect(g, K.wood[3], 0, 110, 320, 2);
     drawText(g, this.cafe ? 'POP-UP CAFE' : 'MARKET STALL', 8, 6, K.ink[1], 1, null); drawText(g, `TIME ${Math.max(0, Math.ceil(this.T - this.t))}`, 130, 6, K.ink[1], 1, null);

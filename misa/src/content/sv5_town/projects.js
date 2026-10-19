@@ -103,12 +103,12 @@ register('system', 'tp_ceremony', { init(g) { for (const e of ['mapEnter', 'hour
 // ---------------------------------------------------------------- the world: sites and finished projects
 const PLACE = {
   bus: [['town', 40, 12], ['harbour', 7, 5], ['park', 23, 8], ['lane', 30, 9]],
-  library: [['library', 16, 3]], skate: [['park', 16, 23]], garden: [['park', 32, 2]], recycle: [['lane', 37, 11]], weather: [['harbour', 44, 5]], promenade: [['harbour', 21, 8]], night: [['town', 29, 19]],
+  library: [['library', 16, 4]], skate: [['park', 16, 23]], garden: [['park', 32, 2]], recycle: [['lane', 37, 11]], weather: [['harbour', 44, 5]], promenade: [['harbour', 21, 8]], night: [['town', 29, 19]],
 };
 const when = (id, extra = '') => `flag:tp_${id}_done${extra}`;
 const siteObj = (id, x, y) => {
   const [w, h] = PROJECT_SIZE[id];
-  return { spr: `tp_site1_${id}`, x, y, w, h, shadow: 0, when: `flag:tp_${id}_site&!flag:tp_${id}_done`,
+  return { spr: `tp_site1_${id}`, x, y, w, h, shadow: 0, solid: false, when: `flag:tp_${id}_site&!flag:tp_${id}_done`,
     sprFn: (g) => { const p = PROJ[id], st = PS(g, id); return `tp_site${(g.day - st.start) * 2 >= p.days ? 2 : 1}_${id}`; },
     interact: { label: 'Construction site', run: (g) => g.say(null, null, `${PROJ[id].name}: ${daysLeft(g, id)} more day${daysLeft(g, id) === 1 ? '' : 's'} of work. The sign says: THANK YOU, MISA!`) } };
 };
@@ -125,8 +125,8 @@ for (const [id, list] of Object.entries(PLACE)) for (const [map, x, y] of list) 
   const objs = [siteObj(id, x, y)];
   if (doneObjs[id]) objs.push(doneObjs[id](x, y));
   if (id === 'promenade') {
-    for (const px of [2, 6, 14, 20, 30, 40, 43]) objs.push(prop('tp_prom_planter', px, 9, { when: when(id), shadow: 12 }));
-    objs.push(prop('tp_prom_sign', 30, 8, { when: when(id), use: 'tp_prom_stroll', shadow: 6 }), prop('tp_bench_prom', 8, 8, { w: 2, when: when(id), use: 'bench', shadow: 14 }), prop('tp_bench_prom', 26, 8, { w: 2, when: when(id), use: 'bench', shadow: 14 }));
+    for (const px of [2, 6, 14, 21, 31, 40, 43]) objs.push(prop('tp_prom_planter', px, 9, { when: when(id), shadow: 12 }));
+    objs.push(prop('tp_prom_sign', 29, 7, { when: when(id), use: 'tp_prom_stroll', shadow: 6 }), prop('tp_bench_prom', 8, 7, { w: 2, when: when(id), use: 'bench', shadow: 14 }), prop('tp_bench_prom', 24, 7, { w: 2, when: when(id), use: 'bench', shadow: 14 }));
   }
   if (id === 'night') {
     ['a', 'b', 'c'].forEach((k, i) => objs.push(prop(`tp_nm_stall_${k}`, 29 + i * 4, 20, { w: 2, when: [when(id), 'weekend', 'time>=17:00'], use: 'tp_night_shop', shadow: 22 })));
@@ -196,7 +196,7 @@ register('talkHook', 'tp_mayor_intro', { npc: 'mayor', priority: 30, when: '!fla
   "happy|Misa! I have been hoping to meet you. Grandma Hana says you are good with a bucket and a plan.", "This town can grow, but it needs neighbours who care. The Town Council app lists projects: a bus line, a garden, a library wing and more.",
   "Donate coins, earn the town's trust by helping out, and builders will start work. Then comes the ribbon. I love the ribbon.", "happy|Open the podium by the noticeboard or the app on your phone anytime. Welcome to the council, honorary member Misa.") });
 register('talkHook', 'tp_mayor_ready', { npc: 'mayor', priority: 28, when: (g) => PROJECTS.some((q) => projDone(g, q.id) && !PS(g, q.id).cut),
-  steps: (g) => { const p = PROJECTS.find((q) => projDone(g, q.id) && !PS(g, q.id).cut); return sc('mayor', `happy|The ${p.name} is finished and waiting for you! Go and cut the ribbon, any day between 8 and 7.`); } });
+  steps: (g) => { const p = PROJECTS.find((q) => projDone(g, q.id) && !PS(g, q.id).cut); if (!p) return []; return sc('mayor', `happy|The ${p.name} is finished and waiting for you! Go and cut the ribbon, any day between 8 and 7.`); } });
 
 features('Town Growth', [
   'Town Council app and a podium by the noticeboard: browse eight town projects, see costs, requirements and perks',
@@ -206,4 +206,10 @@ features('Town Growth', [
   'A ribbon-cutting ceremony with the Mayor for every finished project, with a coin gift, a Star Sticker and a mood lift',
   'Mayor Hoshino: a new resident of the square with a weekday patrol, lines for every season and weather, gifts and two heart events',
   'Council mail announces each project the moment Misa has enough trust to fund it',
+]);
+
+features('Town Growth', [
+  "Mayor Hoshino explains the Town Council the first time Misa speaks with her",
+  "The Mayor reminds Misa whenever a finished project is still waiting for its ribbon cutting",
+  "Construction sites show a SOON sign first and a scaffold with a BUILDING sign halfway through, at all four bus stops too",
 ]);

@@ -46,3 +46,4 @@ import './sv4_city/index.js';
 import './sv4_home/index.js';
 import './sv4_land/index.js';
 import './sv5_meta/index.js';
+import './sv5_town/index.js';

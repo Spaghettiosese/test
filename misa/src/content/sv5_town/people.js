@@ -72,7 +72,7 @@ for (const f of FAMILIES) {
   b.obj.when = `flag:${k}`;
   const emptyHouse = { spr: `tp_house_${f.n}`, x: f.pos[0], y: f.pos[1], w: 4, h: fac.hT, shadow: 0, when: `!flag:${k}`, sprFn: () => `tp_house_${f.n}`, interact: { label: 'Empty house', run: (g) => g.say(null, null, `A FOR RENT sign hangs in the window. It says: The ${f.family} family arrives on ${f.date}.`) } };
   mapPatch('town', {
-    objects: [b.obj, emptyHouse, tile(tx, ty - 1, { use: 'tp_knock', when: `flag:${k}`, fam: f.id }), prop('tp_van', f.pos[0], ty, { w: 3, h: 2, shadow: 24, when: `flag:tp_van_${f.id}` }), prop('tp_boxes', f.pos[0] + 3, ty, { w: 1, h: 1, solid: false, shadow: 10, when: `flag:tp_van_${f.id}` })],
+    objects: [b.obj, emptyHouse, tile(tx, ty - 1, { use: 'tp_knock', when: `flag:${k}`, fam: f.id }), prop('tp_van', f.pos[0], ty, { w: 3, h: 2, shadow: 24, solid: false, when: `flag:tp_van_${f.id}` }), prop('tp_boxes', f.pos[0] + 3, ty, { w: 1, h: 1, solid: false, shadow: 10, when: `flag:tp_van_${f.id}` })],
     edit: (o) => ((o.spr === 'town_tree_oak_s' && o.x === 3 && o.y === 29 && f.id === 'ayame') || (o.spr === 'town_tree_maple_s' && o.x === 32 && o.y === 29 && f.id === 'masaru') ? { ...o, when: `!flag:${k}` } : o),
     spots: { [mk(f.n)]: [tx, ty] },
   });
@@ -161,4 +161,8 @@ features('Town Growth', [
   'Southside block party on the 13th when it falls on a weekend, with lanterns, shared food and a mood lift',
   'Southside garage sale on the 6th of each season with cheap craft supplies and picture books',
   'Knock on a family door for a word, or read the FOR RENT sign to learn when the next neighbours arrive',
+]);
+
+features('Town Growth', [
+  "The Census Families page lists each family, their house number, size and Misa's hearts with them",
 ]);

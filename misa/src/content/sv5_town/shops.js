@@ -34,7 +34,7 @@ I('gift_tp_bell_bright', 'Bright bell', 'gift', 130, 'star', Rr.mint[3], 'A bell
 // ---------------------------------------------------------------- the data
 const L = (...a) => a;
 const SHOPS = [
-  { id: 'flower', owner: 'fuyuka', name: 'Petal and Pot', open: 42, pos: [41, 13], closed: [1], hours: ['9:00', '18:00'], color: Rr.coral[2], facade: 'tp_shop_flower', date: 'Summer 14',
+  { id: 'flower', owner: 'fuyuka', name: 'Petal and Pot', open: 42, pos: [40, 13], closed: [1], hours: ['9:00', '18:00'], color: Rr.coral[2], facade: 'tp_shop_flower', date: 'Summer 14',
     stock: ['gift_tp_posy', 'gift_tp_grand_bouquet', 'gift_tp_terrarium', 'bev_tp_rose_tea', 'gift_pressed_flower'], job: { wage: 240, xp: { gardening: 8, charm: 4 }, role: 'Florist helper' },
     who: { name: 'Fuyuka', full: 'Fuyuka Mizuno', age: 38, role: 'Owner of Petal and Pot', color: '#e87a90', birthday: { season: 'summer', day: 21 }, look: { hair: '#4a3a52', top: '#6aa88a', bottom: '#f8f0e0', skin: '#f4d2b4', eyes: '#4a3a2a', accent: '#f0a0b0' },
       bio: 'Fuyuka Mizuno, 38, quit a loud city job to open a tiny flower shop. She speaks softly, names every plant and believes a bunch of flowers can fix about half of everything.',
@@ -47,11 +47,11 @@ const SHOPS = [
         birthday: L('happy|You remembered my birthday! I will press this card between two pages forever.'), gift_love: L('happy|A flower! You found the one thing that makes me cry in a good way.'), gift_like: L('happy|How lovely. I will find it a vase.'), gift_neutral: L('Thank you. I will find a place for it, probably next to a fern.'), gift_dislike: L('sad|Hm. I will put it in the back, far from the lilies.'), gift_hate: L('sad|Oh. Oh, no. That is a smell I cannot be around.') },
       ev: [{ at: 2, t: [`happy|Misa! Hold this pot. No, like a baby bird. Gently.`, `@Fuyuka shows you how to tie a ribbon with one hand while singing to a fern.`], q: ['Which flower says "thank you"?', ['Cosmos', "happy|Yes! Quiet, steady gratitude. You listen.", 20], ['Red roses', "happy|Ha. Romance, not gratitude. Cute, though.", 10], ['A cactus', "surprised|A cactus means I endure. Honest, at least.", 12]], end: "She hands you a posy tied with a double knot. A real one, with thanks." },
         { at: 4, t: [`sad|I opened this shop in a hurry. I was running away from a very loud office.`, `The flowers were the first things that did not ask for anything.`], q: ['What do you say?', ['You made something kind here', "happy|That is a better review than any five stars.", 25], ['Do you miss the city?', "happy|Only the noodles. The noodles, yes.", 15], ['Run away to flowers anytime', "happy|Together, then. We will open a greenhouse.", 20]], end: 'She presses a small dried flower into your palm. "For luck," she says.' }] } },
-  { id: 'books', owner: 'genji', name: 'Nook Books', open: 92, pos: [41, 19], closed: [0], hours: ['10:00', '19:00'], color: Rr.sky[2], facade: 'tp_shop_books', date: 'Winter 8',
+  { id: 'books', owner: 'genji', name: 'Nook Books', open: 92, pos: [40, 19], closed: [0], hours: ['10:00', '19:00'], color: Rr.sky[2], facade: 'tp_shop_books', date: 'Winter 8',
     stock: ['book_tp_haiku_zine', 'book_tp_bay_history', 'gift_tp_bookmark_set', 'gift_tp_reading_lamp', 'book_poetry', 'book_picture_book', 'book_mystery'], job: { wage: 230, xp: { study: 10, charm: 3 }, role: 'Bookshop assistant' },
     who: { name: 'Genji', full: 'Genji Kurata', age: 61, role: 'Owner of Nook Books', color: '#4a78b8', birthday: { season: 'winter', day: 3 }, look: { hair: '#c8c8d4', top: '#4a6a88', bottom: '#3a3a4a', skin: '#e8c6a2', eyes: '#3a3a4a', accent: '#d8b868' },
       bio: 'Genji Kurata, 61, sold books from a cart for twenty years before the annex opened. He is dry, kind and has read exactly what you are holding.',
-      love: ['book_poetry', 'gift_tea_tin', 'bev_green_tea'], like: ['book_mystery', 'gift_postcard', 'gift_bookmark', 'ing_honey'], dislike: ['snack_candy'], hate: ['misc_spoiled_food'],
+      love: ['book_poetry', 'gift_tea_tin', 'bev_green_tea'], like: ['book_mystery', 'gift_postcard', 'gift_postcard', 'ing_honey'], dislike: ['snack_candy'], hate: ['misc_spoiled_food'],
       lines: { default: L('That one? Read it twice. It gets better. Or I do.', 'neutral|Silence is a service. Please enjoy it responsibly.', 'happy|Every book here has been loved by at least one person. I count that as a warranty.', 'I do not recommend books. I recommend moods. What is yours?', 'Do not dog-ear. I will forgive you the first time.', 'A bookshop is a hospital for wandering minds. Ask the cat.', 'happy|The annex has the quiet shelves. The cart outside has the silly ones.'),
         morning: L('Ink and tea. The best breakfast.', 'Early customers buy the right books. Late ones buy the sleepy ones.'), afternoon: L('The sun slants on the poetry shelf at three. I time my tea to it.', 'A slow afternoon. A bookseller dreams of slow afternoons.'), evening: L('Closing time. The books lean on each other when I turn off the lamps.', 'Take one home. Return it never. I will pretend.'),
         rain: L('happy|Rain sells mystery novels. It is a natural law.', 'Dripping umbrellas, steaming glasses. A perfect shop.'), weekend: L('Weekends bring families. The kids corner becomes a small riot.'),
@@ -118,7 +118,7 @@ for (const sh of SHOPS) {
   const b = building(sh.facade, sh.pos[0], sh.pos[1], { litUntil: 19 * 60, shop: true, obj: { when: `flag:${flagk}` } });
   mapPatch('town', {
     objects: [b.obj, tile(tx, ty - 1, { use: mk(sh.id), when: `flag:${flagk}` }), { ...signpost(tx, ty, `Paper covers the window. A sign says: ${sh.name.toUpperCase()}, opening ${sh.date}. Fresh paint, fresh start!`), when: `!flag:${flagk}` }],
-    edit: (o) => (['town_tree_oak@2,15', 'town_tree_oak@43,15', 'town_tree_sakura_s@43,22', 'town_tree_pine_s@1,24'].includes(`${o.spr}@${o.x},${o.y}`) && Math.abs(o.x - sh.pos[0] - 2) < 3 ? { ...o, when: `!flag:${flagk}` } : o),
+    edit: (o) => (['town_tree_oak@2,15', 'town_tree_oak@43,15', 'town_tree_sakura_s@43,22', 'town_tree_pine_s@1,24', 'town_bush_azalea@40,14'].includes(`${o.spr}@${o.x},${o.y}`) && Math.abs(o.x - sh.pos[0] - 2) < 3 ? { ...o, when: `!flag:${flagk}` } : o),
     spots: { [mk(sh.id)]: [tx, ty] },
   });
 }
@@ -147,4 +147,9 @@ features('Town Growth', [
   'Each shop owner has two heart events: a hands-on scene at 2 hearts and a personal story at 4 hearts with choices',
   'Four new part-time job shifts in the Jobs app, each with its own pick-the-right-answer minigame (bouquets, shelving, pricing, repairs)',
   'Notice signs cover the shopfronts until opening day, and trees that stood on the lots vanish when the shops open',
+]);
+
+features('Town Growth', [
+  "Every new shop sends a welcome mail with a small gift on opening day",
+  "Each shop is closed one weekday a week and its owner takes a bench break instead",
 ]);

@@ -101,6 +101,9 @@ spr('tp_auction_stand', 96, 64, (R, M) => {
   R(40, 32, 16, 12, M.paper[4]); signText(R, 'LOT', 42, 35, M.navy[1]); R(70, 30, 18, 10, M.woodDark[2]); R(76, 24, 6, 8, M.woodDark[3]);
   for (const [x, c] of [[8, M.butter[2]], [22, M.coral[2]]]) { R(x, 36, 12, 12, c); R(x, 36, 12, 2, M.paper[4]); }
 });
+spr('tp_piggy', 30, 40, (R, M) => {
+  R(10, 22, 4, 16, M.woodDark[2]); R(18, 22, 4, 16, M.woodDark[2]); R(4, 8, 22, 15, M.coral[3]); R(4, 8, 22, 3, M.coral[4]); R.e(24, 14, 3, 4, M.coral[2]); R(22, 5, 3, 4, M.coral[2]); R(12, 6, 6, 2, M.charcoal[1]); R(8, 12, 2, 2, M.ink[1]);
+});
 spr('tp_van', 96, 56, (R, M) => {
   R(2, 12, 66, 34, M.paper[4]); R(2, 12, 66, 3, M.paper[3]); R(66, 20, 28, 26, M.sky[2]); R(70, 22, 18, 10, M.sky[4]); R(2, 36, 92, 6, M.coral[2]); R(88, 36, 6, 8, M.butter[3]);
   signText(R, 'MOVING', 10, 20, M.coral[1]); R(14, 28, 18, 4, M.coral[2]);
