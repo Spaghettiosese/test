@@ -19,7 +19,7 @@ export function canConfess(g, id) {
 }
 export const theyReady = (g, id) => {
   const s = S(g);
-  return isCand(id) && !s.partner && stageOf(g, id) === 3 && aff(g, id) >= THEY_AT && (s.cool[id] || 0) <= g.day && !(s.seen[`conf_${id}_them`] || s.seen[`conf_${id}_misa`]);
+  return isCand(id) && !s.partner && stageOf(g, id) === 3 && aff(g, id) >= THEY_AT && (s.cool[id] || 0) <= g.day;
 };
 
 function finish(g, id, by, accepted, kind) {
@@ -37,7 +37,7 @@ export function confessSteps(g, id, who) {
     return sc(id, ...open, ...c.them,
       ch(`${nm} waits for your answer.`,
         ['I like you too', ...yesBranch, rec(`conf_${id}_them`, 'I like you too')],
-        ['Can I have a little time?', ...c.wait, call((gg) => { setCooldown(gg, id, 7); finish(gg, id, 'them', false, 'wait'); }), rec(`conf_${id}_them`, 'A little time')],
+        ['Can I have a little time?', ...c.wait, call((gg) => { setCooldown(gg, id, 21); finish(gg, id, 'them', false, 'wait'); }), rec(`conf_${id}_them`, 'A little time')],
         ['I would rather stay friends', ...c.friends, call((gg) => { stayFriends(gg, id); finish(gg, id, 'them', false, 'friends'); }), rec(`conf_${id}_them`, 'Stay friends')]),
       ...close);
   }

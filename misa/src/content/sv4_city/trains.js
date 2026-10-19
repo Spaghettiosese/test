@@ -32,7 +32,7 @@ const g = grid(40, 19, '=');
 g.fill(0, 0, 40, 2, 'W').fill(0, 2, 40, 4, 'K').fill(0, 6, 40, 4, '+').fill(0, 10, 40, 1, 'W').fill(0, 18, 40, 1, 'W');
 g.fill(19, 10, 2, 1, '=').fill(1, 11, 9, 6, 'c');
 const edge = row('kc_platform_edge', 0, 39, 6, { flat: true, solid: false, dy: -8 });
-const rails = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38].map((x) => ({ spr: 'kc_rails', x, y: 4, w: 2, flat: true, solid: false, dy: 4 }));
+const rails = Array.from({ length: 40 }, (_, x) => ({ spr: 'kc_rails', x, y: 4, flat: true, solid: false, dy: 4 }));
 cmap('station', {
   name: 'Hoshimori Station', legend: { '.': 'grass', '=': 'paved', '+': 'plaza', W: 'wall_brick', K: 'kc_track', c: 'int_fl_carpet_sky' },
   rows: g.rows(), music: 'town',

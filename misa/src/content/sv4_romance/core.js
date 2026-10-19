@@ -79,7 +79,9 @@ export const pick = (arr, n = 0) => arr[Math.abs(Math.floor(n)) % arr.length];
 export const markSeen = (key, title, npc) => call((g) => noteSeen(g, key, title, npc));
 export function noteSeen(g, key, title, npc) {
   const s = S(g);
-  if (!s.seen[key]) { s.seen[key] = { day: g.day, title, npc, picks: [] }; g.stat('romScenes'); }
+  const e = s.seen[key];
+  if (!e) { s.seen[key] = { day: g.day, title, npc, picks: [] }; g.stat('romScenes'); }
+  else if (!e.npc) { e.title = title; e.npc = npc; e.day = g.day; g.stat('romScenes'); }
 }
 // A recorded choice (for the Romance Archive).
 export const rec = (key, text) => call((g) => { const e = S(g).seen[key]; if (e && !e.picks.includes(text)) e.picks.push(text); else if (!e) { S(g).seen[key] = { day: g.day, title: key, npc: null, picks: [text] }; } });

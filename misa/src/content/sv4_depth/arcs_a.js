@@ -117,6 +117,7 @@ arc('suzu', [
       ch(`What do you do from the front row?`,
         [`Smile and nod: keep going.`, T('calm'), F('suzu_nod'), `@Suzu nods back, swallows, and finishes the page with a steadiness that raises goosebumps.`, 40],
         [`Quietly say "what happens next?" like always.`, T('curious'), F('suzu_next'), `@She laughs once, startled, then reads the next line as if answering you across a room.`, 45],
+        [`Mouth the words along with her, the way only a first reader can.`, { when: 'trait:curious>=2' }, T('curious'), F('suzu_mouth'), `@Suzu sees your lips moving on her own lines and her voice catches, then soars.`, 45],
         [`Stand up and clap before she finishes.`, T('brave'), F('suzu_clap'), `@The audience follows you in a crashing wave. Suzu goes pink, then bright pink, then grins and reads louder.`, 40]),
       `@When she's done, the room is silent for exactly one second. Then it erupts.`,
       `happy|They ASKED me to read another! They asked! Misa, there's a small child with a bun asking what happens to the cat!`,

@@ -6,6 +6,7 @@ import { facade } from '../town/facade.js';
 import { RAMPS as K } from '../../gfx/palette.js';
 
 register('tile', 'kc_track', { ground: 'gravel', solid: true });
+register('tile', 'kc_pool', { ground: 'water', solid: true });
 register('tile', 'kc_platform', { ground: 'plaza' });
 register('tile', 'kc_tile_dark', { ground: 'asphalt' });
 

@@ -131,7 +131,7 @@ item('furn_shell_lantern', 'Shell lantern', 'decor', 380, 'furniture', Rr.sand[3
 item('furn_bottle_ship', 'Ship in a bottle', 'decor', 700, 'bottle', Rr.sky[2], 'A tiny ship that sails on a sea of glass.', { tags: ['decor', 'treasure'] });
 item('furn_lighthouse_model', 'Tower model', 'decor', 800, 'furniture', Rr.paper[4], 'A little model of the Lantern Isle tower. The lamp blinks.', { tags: ['decor', 'treasure'] });
 item('furn_coral_aquarium', 'Reef aquarium', 'decor', 1500, 'furniture', Rr.sky[1], 'A glowing tank of tiny reef fish. A perfect Reef Guide reward.', { tags: ['decor', 'nature'] });
-item('furn_hammock', 'Island hammock', 'decor', 900, 'furniture', Rr.coral[2], 'Strung between two palms. You never want to get up.', { tags: ['decor', 'beach'] });
+item('furn_island_hammock', 'Island hammock', 'decor', 900, 'furniture', Rr.coral[2], 'Strung between two palms. You never want to get up.', { tags: ['decor', 'beach'] });
 item('furn_pirate_flag', 'Pirate flag', 'decor', 600, 'paper', Rr.charcoal[2], 'A skull with a very friendly grin.', { tags: ['decor', 'treasure'] });
 
 // rare crops from the Lantern garden: id, name, kind, c, c2, seasons, days, regrow, seed price, price
@@ -174,7 +174,7 @@ export function stamp(g, id) {
   return true;
 }
 export const PASSPORT_REWARDS = [
-  [12, 'Bronze seal', { money: 400, items: { gift_tsubame_charm: 1 } }], [24, 'Silver seal', { money: 800, items: { mat_pearl: 1, furn_hammock: 1 } }], [36, 'Golden seal', { money: 2000, items: { gift_golden_stamp: 1 } }],
+  [12, 'Bronze seal', { money: 400, items: { gift_tsubame_charm: 1 } }], [24, 'Silver seal', { money: 800, items: { mat_pearl: 1, furn_island_hammock: 1 } }], [36, 'Golden seal', { money: 2000, items: { gift_golden_stamp: 1 } }],
 ];
 
 // ---------------------------------------------------------------- 30 notes in bottles
