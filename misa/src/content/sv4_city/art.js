@@ -149,7 +149,7 @@ spr('kc_tea_lantern', 20, 56, (R) => { R(8, 24, 4, 30, K.woodDark[2]); R.e(10, 1
 
 // ---------------------------------------------------------------- aquarium, cinema, museum, game centre, hotel, ramen
 const tank = (name, w, h, fr) => spr(name, w, h, (R) => {
-  R(0, 0, w, h, K.navy[0]); R(2, 2, w - 4, h - 6, K.sky[2]); R(2, 2, w - 4, 6, K.sky[3]); for (let y = 8; y < h - 6; y += 6) R(2, y, w - 4, 3, K.sky[1 + ((y / 6) % 2)]);
+  R(0, 0, w, h, K.navy[0]); R(2, 2, w - 4, h - 6, K.sky[2]); R(2, 2, w - 4, 6, K.sky[3]); for (let y = 8; y < h - 6; y += 6) R(2, y, w - 4, 3, K.sky[1 + (Math.floor(y / 6) % 2)]);
   R(2, h - 12, w - 4, 8, K.sand ? K.sand[3] : K.butter[2]); for (let i = 0; i < 5; i++) { R(6 + i * 18, h - 20, 3, 10, K.forest[3]); R(8 + i * 18, h - 24, 2, 14, K.forest[2]); }
   for (let i = 0; i < 5; i++) { const x = 8 + ((i * 29 + fr * 8 * (i % 2 ? 1 : -1)) % (w - 20)), y = 10 + (i * 11) % (h - 36); R.e(Math.abs(x), y, 5, 3, [K.coral, K.butter, K.mint, K.lilac, K.sky][i][3]); R.t([Math.abs(x) + 5, y], [Math.abs(x) + 9, y - 3], [Math.abs(x) + 9, y + 3], [K.coral, K.butter, K.mint, K.lilac, K.sky][i][2]); R(Math.abs(x) - 2, y - 1, 1, 1, K.ink[0]); }
   R(0, 0, w, 2, K.metal[3]); R(0, h - 4, w, 4, K.metal[2]);

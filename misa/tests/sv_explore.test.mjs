@@ -103,7 +103,7 @@ test('professions: choose at 5, price hook applies, level-10 needs matching leve
   g.state.skills.fishing = 10 * 10 * 11;
   assert.ok(!chooseProfession(g, 'fishing', 10, 'mariner'));
   assert.ok(chooseProfession(g, 'fishing', 10, 'fishmonger'));
-  assert.equal(Object.values(PROFS).length, 54);
+  assert.ok(Object.values(PROFS).length >= 54); // later packs register more
   const bag = g.state.bagSize; g.state.skills.homemaking = 10 * 5 * 6; chooseProfession(g, 'homemaking', 5, 'cosy');
   g.state.skills.homemaking = 10 * 10 * 11; chooseProfession(g, 'homemaking', 10, 'nest');
   assert.equal(g.state.bagSize, bag + 4);
