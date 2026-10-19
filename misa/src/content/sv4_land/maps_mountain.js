@@ -84,7 +84,7 @@ const first = (id, key, text) => (g) => { const S = SV4(g); if (S && !S.visited[
     name: 'Tsukimi Falls', music: 'shrine', bg: '#10201a', legend: MLEGEND, rows: g.rows(), objects: objs,
     warps: [{ x: 27, y: 10, h: 3, to: 'tsukimi_forest:from_tsukimi_falls' }],
     spawns: { default: [24, 11, 'left'], from_tsukimi_forest: [25, 11, 'left'] },
-    spots: { pool: [13, 15], entrance: [26, 11], meditate: [21, 16], cave: [5, 7], cave_spring: [4, 5], fall_view: [13, 8] },
+    spots: { pool: [13, 15], entrance: [26, 11], meditate: [21, 16], cave: [5, 7], cave_spring: [4, 5], fall_view: [22, 9] },
     onEnter(game) { first('tsukimi_falls')(game); badge(game, 'falls'); },
   });
 }
@@ -191,7 +191,7 @@ interior('ryokan_room', {
       ...[2, 4, 6, 8].map((x) => ({ spr: 'yk_wash', x, y: 7, use: 'yk_wash', shadow: 6 })),
       { spr: 'yk_locker', x: 1, y: 10, w: 2, h: 2, shadow: 0 }, { spr: 'yk_poster', x: 6, y: 10, use: 'yk_poster', shadow: 4 },
       { spr: 'coast_counter', x: 14, y: 11, w: 3, use: 'yk_bath_counter', shadow: 0 }, { spr: 'yk_fruitmilk', x: 19, y: 10, use: 'yk_milk', shadow: 8 },
-      { spr: 'coast_bench', x: 9, y: 13, w: 2, use: 'bench', shadow: 12 }, { spr: 'coast_rock_m', x: 19, y: 7, shadow: 12 }, { spr: 'coast_rock_s', x: 12, y: 8, shadow: 8 },
+      { spr: 'coast_bench', x: 6, y: 13, w: 2, use: 'bench', shadow: 12 }, { spr: 'coast_rock_m', x: 19, y: 7, shadow: 12 }, { spr: 'coast_rock_s', x: 12, y: 8, shadow: 8 },
       { spr: 'yk_noren_bath', x: 5, y: 9, w: 2, flat: true, solid: false, dy: -4 },
     ],
     warps: [{ x: 10, y: 15, w: 2, to: 'yukemuri_village:from_onsen_bath' }],
