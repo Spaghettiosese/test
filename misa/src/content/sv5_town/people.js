@@ -5,7 +5,6 @@ import { register, get, all, features } from '../../core/registry.js';
 import { itemIcon } from '../../gfx/icons.js';
 import { RAMPS as Rr } from '../../gfx/palette.js';
 import { FACADES, building } from '../town/facade.js';
-import { rngDay } from './util.js';
 import { S, mapPatch, prop, tile, mailSafe, idle, clamp, sc, ch, open, npc, N, say, call } from './state.js';
 import { PROJECTS, projDone, doneCount } from './projects.js';
 import { SHOPS } from './shops.js';
@@ -97,7 +96,7 @@ register('system', 'tp_people', {
         if (g.flag(`tp_van_${f.id}`) && S(g).arrived[f.id] !== g.day) g.setFlag(`tp_van_${f.id}`, false);
         if (!g.state.flags[`tp_in_${f.id}`] && g.day >= f.day) arrive(g, f);
       }
-      g.setFlag('tp_party_today', g.check('weekend') && g.state.time && ((g.day - 1) % 28) + 1 === 13 && arrivedCount(g) >= 2);
+      g.setFlag('tp_party_today', ((g.day - 1) % 28) + 1 === 13 && arrivedCount(g) >= 2);
       g.setFlag('tp_garage_today', ((g.day - 1) % 28) + 1 === 6 && arrivedCount(g) >= 3);
       census(g);
     };
