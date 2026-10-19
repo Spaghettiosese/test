@@ -27,32 +27,40 @@ export const timetableText = (g, dir, n = 3) => {
   return out.length ? out.join(', ') : 'none until 6:00 AM';
 };
 
-// ---------------------------------------------------------------- the station map
-const g = grid(40, 19, '=');
-g.fill(0, 0, 40, 2, 'W').fill(0, 2, 40, 4, 'K').fill(0, 6, 40, 4, '+').fill(0, 10, 40, 1, 'W').fill(0, 18, 40, 1, 'W');
-g.fill(19, 10, 2, 1, '=').fill(1, 11, 9, 6, 'c');
-const edge = row('kc_platform_edge', 0, 39, 6, { flat: true, solid: false, dy: -8 });
-const rails = Array.from({ length: 40 }, (_, x) => ({ spr: 'kc_rails', x, y: 4, flat: true, solid: false, dy: 4 }));
+// ---------------------------------------------------------------- the station maps: concourse ('station') and platform ('station_platform')
+const ticketOk = (gm) => S(gm).ride.ticketDay === gm.day || dayPass(gm);
+const gc = grid(40, 10, '=');
+gc.fill(0, 0, 40, 2, 'W').fill(0, 9, 40, 1, 'W').fill(19, 1, 2, 1, '=').fill(1, 3, 9, 5, 'c');
 cmap('station', {
   name: 'Hoshimori Station', legend: { '.': 'grass', '=': 'paved', '+': 'plaza', W: 'wall_brick', K: 'kc_track', c: 'int_fl_carpet_sky' },
-  rows: g.rows(), music: 'town',
+  rows: gc.rows(), music: 'town',
   objects: [
-    ...rails, ...edge,
-    { x: 6, y: 5, w: 26, h: 1, solid: true, use: 'kc_train_door' },
-    { ...P('kc_st_gate', 19, 10, { use: 'kc_gate', shadow: 8 }), dy: 6 }, { ...P('kc_st_gate', 20, 10, { use: 'kc_gate', shadow: 8 }), dy: 6 },
-    P('kc_st_pillar', 8, 8, { shadow: 6 }), P('kc_st_pillar', 16, 8, { shadow: 6 }), P('kc_st_pillar', 24, 8, { shadow: 6 }), P('kc_st_pillar', 32, 8, { shadow: 6 }),
-    P('kc_st_board', 28, 7, { w: 2, h: 2, use: 'kc_timetable', shadow: 18 }), bench(4, 8, { use: 'kc_wait' }), bench(12, 8, { use: 'kc_wait' }), bench(20, 8, { use: 'kc_wait' }),
-    lamp(2, 7), lamp(36, 7),
-    P('kc_st_board', 14, 11, { w: 2, h: 2, use: 'kc_timetable', shadow: 18 }), P('kc_st_kiosk', 28, 11, { w: 2, h: 2, use: 'kc_kiosk', shadow: 24 }),
-    bench(2, 12, { use: 'kc_wait' }), bench(5, 12, { use: 'kc_wait' }), P('town_vending', 8, 12, { use: 'vending', shadow: 12 }), P('town_planter', 1, 16), P('town_planter', 9, 16),
-    P('town_planter', 22, 12), P('town_planter', 33, 12), P('town_bins', 36, 12),
-    signpost(24, 11, 'Platform 1: trains to Kitaminato, every hour from 6:00 AM. Last train 10:30 PM. Tickets at the gate.'),
-    P('kc_map_board', 36, 15, { w: 2, h: 2, interact: plaque('Route map: Hoshimori, then fields, the long bridge and Kitaminato Station. 20 minutes.'), shadow: 20 }),
-    lamp(14, 16), lamp(26, 16),
+    P('kc_st_gate', 17, 2, { use: 'kc_gate', shadow: 8 }), P('kc_st_gate', 22, 2, { use: 'kc_gate', shadow: 8 }),
+    P('kc_st_board', 14, 2, { w: 2, h: 2, use: 'kc_timetable', shadow: 18 }), P('kc_st_kiosk', 28, 2, { w: 2, h: 2, use: 'kc_kiosk', shadow: 24 }),
+    bench(2, 4, { use: 'kc_wait' }), bench(5, 4, { use: 'kc_wait' }), P('town_vending', 8, 3, { use: 'vending', shadow: 12 }), P('town_planter', 1, 7), P('town_planter', 9, 7),
+    P('town_planter', 25, 3), P('town_planter', 33, 3), P('town_bins', 36, 3), lamp(12, 6), lamp(27, 6),
+    signpost(24, 5, 'Platform 1: trains to Kitaminato, every hour from 6:00 AM. Last train 10:30 PM. Buy a ticket at the gate machines.'),
+    P('kc_map_board', 35, 6, { w: 2, h: 2, interact: plaque('Route map: Hoshimori, then fields, the long bridge and Kitaminato Station. 20 minutes.'), shadow: 20 }),
   ],
-  warps: [{ x: 0, y: 14, w: 1, h: 3, to: 'town:from_station' }],
-  spawns: { default: [3, 14, 'right'], from_town: [1, 15, 'right'], from_train: [18, 7, 'down'] },
-  spots: { gate: [19, 11], platform: [19, 7], kiosk: [29, 13], waiting: [4, 14], timetable: [15, 13] },
+  warps: [{ x: 0, y: 5, w: 1, h: 3, to: 'town:from_station' }, { x: 19, y: 1, w: 2, h: 1, enter: 'up', to: 'station_platform:from_gate', locked: (gm) => !ticketOk(gm), lockedText: 'The gate stays shut. You need a ticket first: use the ticket machine beside the gate.' }],
+  spawns: { default: [3, 5, 'right'], from_town: [1, 6, 'right'], from_platform: [19, 3, 'down'] },
+  spots: { gate: [19, 3], kiosk: [29, 4], waiting: [4, 6], timetable: [15, 4] },
+});
+const gp = grid(40, 11, '+');
+gp.fill(0, 0, 40, 2, 'W').fill(0, 2, 40, 4, 'K').fill(0, 10, 40, 1, 'W').fill(19, 10, 2, 1, '=');
+const edge = row('kc_platform_edge', 0, 39, 6, { flat: true, solid: false, dy: -8 });
+const rails = Array.from({ length: 40 }, (_, x) => ({ spr: 'kc_rails', x, y: 4, flat: true, solid: false, dy: 4 }));
+cmap('station_platform', {
+  name: 'Hoshimori Station Platform', legend: { '.': 'grass', '=': 'paved', '+': 'plaza', W: 'wall_brick', K: 'kc_track' },
+  rows: gp.rows(), music: 'town',
+  objects: [
+    ...rails, ...edge, { x: 6, y: 5, w: 26, h: 1, solid: true, use: 'kc_train_door' },
+    P('kc_st_pillar', 8, 8, { shadow: 6 }), P('kc_st_pillar', 16, 8, { shadow: 6 }), P('kc_st_pillar', 24, 8, { shadow: 6 }), P('kc_st_pillar', 32, 8, { shadow: 6 }),
+    P('kc_st_board', 28, 7, { w: 2, h: 2, use: 'kc_timetable', shadow: 18 }), bench(4, 8, { use: 'kc_wait' }), bench(12, 8, { use: 'kc_wait' }), bench(20, 8, { use: 'kc_wait' }), lamp(2, 7), lamp(36, 7),
+  ],
+  warps: [{ x: 19, y: 10, w: 2, h: 1, enter: 'down', to: 'station:from_platform' }],
+  spawns: { default: [19, 8, 'up'], from_gate: [19, 9, 'up'], from_train: [18, 7, 'down'] },
+  spots: { platform: [19, 7], door: [19, 7] },
 });
 
 // the door in the town square (east side of the plaza, tile 45,19); the town files are not edited
@@ -76,7 +84,7 @@ export const trainHere = (game) => { const t = trainState(game); return !!(t && 
 const tick = { m: -1, c: 0, force: null };
 register('worldLayer', 'kc_train', {
   sprites(world, game) {
-    if (world.map.id !== 'station') return [];
+    if (world.map.id !== 'station_platform') return [];
     if (tick.m !== game.minutes) { tick.m = game.minutes; tick.c = game.clock; }
     const frac = Math.min(1, (game.clock - tick.c) / 0.45);
     let t = trainState(game, game.minutes + frac);
@@ -92,17 +100,13 @@ export const departAnim = (game) => { tick.force = game.clock; };
 registerMany('interaction', {
   kc_timetable: { label: 'Timetable', run: (gm) => gm.run([N(`Hoshimori to Kitaminato: every hour on the hour, 6:00 AM to 10:00 PM, and a last train at 10:30 PM. Next: ${timetableText(gm, 'hoshi')}.`), N('Kitaminato to Hoshimori: every hour at half past, 6:30 AM to 9:30 PM, and a last train at 10:30 PM. The ride takes 20 minutes.'), N(`Fares: single ${FARE} coins. Train Pass card ${PASS_FARE} coins per trip (card costs ${PASS_PRICE}). City Day Pass ${DAY_PRICE}: all trips today plus the city subway.`)]) },
   kc_gate: {
-    label: (gm) => (gm.world && gm.world.player && gm.world.player.y < 10 * 16 + 4 ? 'Exit gate' : 'Ticket gate'),
+    label: 'Ticket machine',
     run: (gm) => {
-      const onPlatform = gm.world && gm.world.player && gm.world.player.y < 10 * 16 + 4;
-      if (onPlatform) return gm.run([N('The gate swings open for you. Back to the concourse.'), warpStep('station', 'default')]);
-      const valid = S(gm).ride.ticketDay === gm.day || dayPass(gm);
-      const through = [{ t: 'sfx', name: 'chime' }, N('Beep! The gate lets you through.'), { t: 'warp', map: 'station', x: 19, y: 9, dir: 'down' }];
-      if (valid) return gm.run([N('Your ticket is still valid today.'), ...through]);
+      if (ticketOk(gm)) return gm.say(null, null, 'Your ticket is valid today. The gate to the platform will open for you.');
       if (!nextDep('hoshi', gm.minutes)) return gm.run([N('The last train has gone. The gates are shut for the night.'), call((g2) => lastTrainMissed(g2))]);
-      gm.run([{ t: 'choice', prompt: `Ticket gate. Next train ${timetableText(gm, 'hoshi', 1)}.`, options: [
-        { text: `Single to Kitaminato (${fareNow(gm)})`, when: `money>=${fareNow(gm)}`, steps: [call((g2) => { g2.spend(fareNow(g2)); S(g2).ride.ticketDay = g2.day; g2.sfx('coin'); }), ...through] },
-        { text: `City Day Pass (${DAY_PRICE})`, when: `money>=${DAY_PRICE}&!flag:kc_nodaypass`, steps: [call((g2) => buyDayPass(g2)), ...through] },
+      gm.run([{ t: 'choice', prompt: `Ticket machine. Next train ${timetableText(gm, 'hoshi', 1)}.`, options: [
+        { text: `Single to Kitaminato (${fareNow(gm)})`, when: `money>=${fareNow(gm)}`, steps: [call((g2) => { g2.spend(fareNow(g2)); S(g2).ride.ticketDay = g2.day; g2.sfx('coin'); }), N('Beep! Ticket issued. The gate is open.')] },
+        { text: `City Day Pass (${DAY_PRICE})`, when: `money>=${DAY_PRICE}`, steps: [call((g2) => buyDayPass(g2)), N('Beep! Day Pass loaded. The gate is open.')] },
         { text: `Train Pass card (${PASS_PRICE})`, when: `money>=${PASS_PRICE}&!item:key_city_train_pass`, steps: [call((g2) => buyPass(g2)), say('misa', 'happy', 'A shiny IC card with a tiny paper train on it. Every trip is cheaper now!')] },
         { text: 'Not now', steps: [] }] }]);
     },
@@ -110,7 +114,7 @@ registerMany('interaction', {
   kc_train_door: {
     label: (gm) => (trainHere(gm) ? 'Board the train' : 'Wait for the train'),
     run: (gm) => {
-      if (!(S(gm).ride.ticketDay === gm.day || dayPass(gm))) return gm.say('misa', 'neutral', 'I need a ticket first. The gate is behind me.');
+      if (!ticketOk(gm)) return gm.say('misa', 'neutral', 'I need a ticket first. The gate is behind me.');
       const d = nextDep('hoshi', gm.minutes);
       if (d === null) return lastTrainMissed(gm);
       if (trainHere(gm)) return gm.run([{ t: 'choice', prompt: 'The doors are open. Board the train to Kitaminato?', options: [{ text: 'Board', steps: [call((g2) => rideScript(g2, 'kita'))] }, { text: 'Not yet', steps: [] }] }]);
@@ -165,7 +169,7 @@ export function rideScript(gm, dir) {
   S(gm).ride.dir = dir; S(gm).ride.start = gm.minutes;
   const first = dir === 'kita' ? 'The platform slides away. Hoshimori Bay shrinks behind the glass.' : 'The city lights thin out. Soon it will be harbour air again.';
   const steps = [
-    { t: 'sfx', name: 'bell' }, call((g2) => { if (g2.world && g2.world.map && g2.world.map.id === 'station') departAnim(g2); }), { t: 'wait', dur: dir === 'kita' ? 2.4 : 0.2 },
+    { t: 'sfx', name: 'bell' }, call((g2) => { if (g2.world && g2.world.map && g2.world.map.id === 'station_platform') departAnim(g2); }), { t: 'wait', dur: dir === 'kita' ? 2.4 : 0.2 },
     { t: 'fade', to: 1, dur: 0.6 }, { t: 'scene', name: 'kc_window' }, { t: 'fade', to: 0, dur: 0.6 },
     N(first), N(night ? 'Windows glow like scattered coins in the dark.' : SCENERY[gm.season]), { t: 'time', add: 7 },
     ...vig, { t: 'time', add: 7 },

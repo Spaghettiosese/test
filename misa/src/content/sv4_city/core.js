@@ -48,7 +48,7 @@ export const stampCount = (g) => Object.keys(S(g).stamps).length;
 // ---------------------------------------------------------------- maps
 // cmap(id, def): a town-style map that lists itself as part of the city and draws the city banner.
 export function cmap(id, def) {
-  const m = townMap(id, { noBanner: true, music: 'town', ...def });
+  const m = townMap(id, { noBanner: true, music: 'town', noWarp: id.startsWith('kita_'), ...def });
   CITY_MAPS.push(id);
   if (!def.indoor) TOWN_MAPS.add(id);
   return m;

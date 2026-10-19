@@ -50,7 +50,7 @@ wrapMap('kita_arcade', { objects: [
   obj(4, 7, 'Pick up the parcel', (g) => g.run([N('A brown parcel tied with string. The label says: "Hotel Tsuki, east end of the arcade. Please hurry."'), call((gm) => { Q(gm).parcel = gm.minutes; gm.toast('Parcel picked up', null); })]), (g) => Q(g).step === 3 && !Q(g).parcel, 'kc_parcel'),
   obj(66, 11, 'Deliver the parcel', (g) => {
     const fast = g.minutes - Q(g).parcel <= 35;
-    g.run([say('kuma', 'happy', 'At last! My towels!'), N(fast ? 'You made it in record time. Kuma tips well.' : 'A little late, but the towels are safe.'), call((gm) => { gm.addMoney(fast ? 300 : 160, true); gm.advance(10); Q(gm).parcel = 0; step(gm, 4); gm.toast('Mission 2 complete', 'i_star'); })]);
+    g.run([say('kc_kuma', 'happy', 'At last! My towels!'), N(fast ? 'You made it in record time. Kuma tips well.' : 'A little late, but the towels are safe.'), call((gm) => { gm.addMoney(fast ? 300 : 160, true); gm.advance(10); Q(gm).parcel = 0; step(gm, 4); gm.toast('Mission 2 complete', 'i_star'); })]);
   }, (g) => Q(g).step === 3 && !!Q(g).parcel),
 ] });
 
@@ -168,9 +168,9 @@ register('phoneApp', 'kc_city', {
 
 // ---------------------------------------------------------------- orders board, graduation hook, achievement, system
 TEMPLATES.push(
-  { id: 'kc_cookies', who: 'sora', title: 'A souvenir from the city', text: 'Bring me a tin of Kitaminato cookies from the station kiosk. I will play your favourite song in return.', mk: () => ({ t: 'have', items: { gift_city_station_cookies: 1 } }), days: 8, reward: { coins: 420, friend: 40, stickers: 1 } },
-  { id: 'kc_rides', who: 'bunta', title: 'Ride the rails', text: 'I want to hear about the train ride. Take it twice this week and tell me what you saw from the window.', mk: () => ({ t: 'stat', k: 'kcRides', n: 2, label: 'train rides' }), days: 7, reward: { coins: 360, friend: 35 } },
-  { id: 'kc_stamps', who: 'umi', title: 'Stamp collector', text: 'Collect five new Kitaminato stamps. I will stamp one more at the aquarium myself.', mk: () => ({ t: 'stat', k: 'kcStamps', n: 5, label: 'city stamps' }), days: 9, reward: { coins: 480, stickers: 2, friend: 40 } },
+  { id: 'kc_cookies', who: 'kc_sora', title: 'A souvenir from the city', text: 'Bring me a tin of Kitaminato cookies from the station kiosk. I will play your favourite song in return.', mk: () => ({ t: 'have', items: { gift_city_station_cookies: 1 } }), days: 8, reward: { coins: 420, friend: 40, stickers: 1 } },
+  { id: 'kc_rides', who: 'kc_bunta', title: 'Ride the rails', text: 'I want to hear about the train ride. Take it twice this week and tell me what you saw from the window.', mk: () => ({ t: 'stat', k: 'kcRides', n: 2, label: 'train rides' }), days: 7, reward: { coins: 360, friend: 35 } },
+  { id: 'kc_stamps', who: 'kc_umi', title: 'Stamp collector', text: 'Collect five new Kitaminato stamps. I will stamp one more at the aquarium myself.', mk: () => ({ t: 'stat', k: 'kcStamps', n: 5, label: 'city stamps' }), days: 9, reward: { coins: 480, stickers: 2, friend: 40 } },
 );
 register('achievement', 'kc_city_stamps', { name: 'City Collector', desc: 'Fill every one of the 40 Kitaminato stamps.', cond: 'flag:kc_all_stamps', icon: 'i_star' });
 register('achievement', 'kc_city_missions', { name: 'Day Tripper', desc: 'Finish all five Kitaminato Day Missions.', cond: 'flag:kc_quest_done', icon: 'i_star' });

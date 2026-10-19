@@ -1,6 +1,6 @@
 // Pottery & Weaving: a wheel and kiln in the Community Hall, a shape-the-clay minigame, glazes, firing over days, a loom, finished
 // pieces as decor items (furn_sv4h_*) for the decorate menu, and a seasonal craft fair where you sell at a premium.
-// Try it: __misa.warp('community_hall', 19, 10, 'up') (wheel and kiln), __misa.warp('community_hall', 4, 10, 'up') (loom).
+// Try it: __misa.warp('community_hall', 19, 10, 'up') (wheel and kiln), __misa.warp('community_hall', 20, 10, 'up') (loom).
 import { register, get, features } from '../../core/registry.js';
 import { RAMPS as K } from '../../gfx/palette.js';
 import { itemIcon } from '../../gfx/icons.js';
@@ -145,7 +145,7 @@ register('festival', 'sv4h_craft_fair', {
 addObjects('community_hall', [
   { spr: 'sv4h_wheel', x: 19, y: 9, use: 'sv4h_wheel', shadow: 12 },
   { spr: 'sv4h_kiln', x: 21, y: 9, use: 'sv4h_kiln', shadow: 14, light: { kind: 'lamp', y: -8 } },
-  { spr: 'sv4h_loom', x: 4, y: 9, use: 'sv4h_loom', shadow: 14 },
+  { spr: 'sv4h_loom', x: 20, y: 9, use: 'sv4h_loom', shadow: 14 },
 ]);
 features('Creative Hobbies', [
   'Pottery skill (levels 1 to 10): a pottery wheel and a kiln in the Community Hall, plus a loom for weaving',

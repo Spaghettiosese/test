@@ -112,9 +112,9 @@ register('interaction', 'kc_openday', {
     if (g.minutes < 9 * 60 || g.minutes >= 17 * 60) return g.say(null, null, 'The Main Hall is open for visitors 9 AM to 5 PM.');
     g.run([{ t: 'choice', prompt: 'Kitaminato University: open campus visit', options: [
       { text: 'Join the campus tour (free)', when: today ? 'flag:never' : '', steps: [fadeOut, call((gm) => { gm.advance(75); st.openDay[gm.day] = true; st.visits = (st.visits || 0) + 1; gm.addXP && gm.addXP('study', 8); gm.addMood(4); gm.stat('kcOpenDays'); stamp(gm, 'openday'); }), fadeIn,
-        N('The tour winds past lecture halls, a rooftop observatory and a cafeteria that serves forty kinds of curry.'), say('ibuki', 'happy', track === 'university' ? 'You are on the university track? Then listen: the entrance exam loves clear thinking, not fast scribbling.' : track ? 'Whatever your path, the campus is a good place to wander. Many people change their minds here.' : 'No pressure. Just see what it feels like to be a student.'),
+        N('The tour winds past lecture halls, a rooftop observatory and a cafeteria that serves forty kinds of curry.'), say('kc_ibuki', 'happy', track === 'university' ? 'You are on the university track? Then listen: the entrance exam loves clear thinking, not fast scribbling.' : track ? 'Whatever your path, the campus is a good place to wander. Many people change their minds here.' : 'No pressure. Just see what it feels like to be a student.'),
         call((gm) => { if ((st.visits || 0) >= 3 && has('cloth_city_blazer') && !gm.flag('kc_blazer')) { gm.setFlag('kc_blazer'); gm.give('cloth_city_blazer', 1); } })] },
-      { text: 'Ask about the entrance exam', steps: [say('ibuki', 'neutral', track === 'university' ? 'Study in blocks of forty minutes and sleep properly. You will do fine. I did the same, and I only cried twice.' : 'The exam is five papers in spring. A lot of work, but a lot of time to prepare.')] },
+      { text: 'Ask about the entrance exam', steps: [say('kc_ibuki', 'neutral', track === 'university' ? 'Study in blocks of forty minutes and sleep properly. You will do fine. I did the same, and I only cried twice.' : 'The exam is five papers in spring. A lot of work, but a lot of time to prepare.')] },
       { text: 'Leave', steps: [] }] }]);
   },
 });
@@ -133,7 +133,7 @@ register('interaction', 'kc_aq_ticket', {
   label: 'Aquarium tickets',
   run: (g) => {
     const q = S(g);
-    if (g.minutes < 9 * 60 || g.minutes >= 18 * 60) return g.say('umi', 'neutral', 'We are open 9 AM to 6 PM. Come back then.');
+    if (g.minutes < 9 * 60 || g.minutes >= 18 * 60) return g.say('kc_umi', 'neutral', 'We are open 9 AM to 6 PM. Come back then.');
     if (q.aqDay === g.day) return g.say(null, null, 'You already have a ticket for today. The tunnel is open.');
     g.run([{ t: 'choice', prompt: 'Aquarium entry: 300 coins', options: [{ text: 'Buy a ticket', when: 'money>=300', steps: [call((gm) => { pay(gm, 300); q.aqDay = gm.day; gm.sfx('buy'); }), N('The gate to the tunnel swings open. Blue light spills over the floor.')] }, { text: 'Not now', steps: [] }] }]);
   },
@@ -143,16 +143,16 @@ register('interaction', 'kc_feed_show', {
   run: (g) => {
     const q = S(g);
     if (q.aqDay !== g.day) return g.say(null, null, 'The show area is for ticket holders.');
-    if (q.showDay === g.day) return g.say('umi', 'happy', 'Thank you for the help today! The fish are stuffed. We will do another one tomorrow.');
-    g.run([say('umi', 'happy', 'Want to help with the feeding show? Drop pellets for the little fish. Do not let the big ones steal!'), { t: 'choice', prompt: 'Join the show?', options: [{ text: 'Yes!', steps: [{ t: 'minigame', id: 'kc_feed', opts: {}, done: (gm, r) => finishShow(gm, r) }] }, { text: 'Watch only', steps: [N('The crowd gasps as a ray glides right past the glass.')] }] }]);
+    if (q.showDay === g.day) return g.say('kc_umi', 'happy', 'Thank you for the help today! The fish are stuffed. We will do another one tomorrow.');
+    g.run([say('kc_umi', 'happy', 'Want to help with the feeding show? Drop pellets for the little fish. Do not let the big ones steal!'), { t: 'choice', prompt: 'Join the show?', options: [{ text: 'Yes!', steps: [{ t: 'minigame', id: 'kc_feed', opts: {}, done: (gm, r) => finishShow(gm, r) }] }, { text: 'Watch only', steps: [N('The crowd gasps as a ray glides right past the glass.')] }] }]);
   },
 });
 function finishShow(g, r) {
   if (r.quit) return;
   const q = S(g); q.showDay = g.day; g.advance(40); g.stat('kcShows'); stamp(g, 'show');
-  const coins = 80 + (r.stars || 1) * 70; g.addMoney(coins, true); g.addFriend('umi', 10 + (r.stars || 1) * 8);
+  const coins = 80 + (r.stars || 1) * 70; g.addMoney(coins, true); g.addFriend('kc_umi', 10 + (r.stars || 1) * 8);
   if (r.stars >= 3 && has('gift_city_aquarium_plush') && !g.flag('kc_plush')) { g.setFlag('kc_plush'); g.give('gift_city_aquarium_plush', 1); }
-  g.run([say('umi', 'happy', r.stars >= 3 ? 'Perfect show! The kids screamed! Take this, you earned it.' : r.stars === 2 ? 'Very good! The fish are happy.' : 'Not bad! Practice makes pellets.'), N(`The aquarium pays you ${coins} coins as a helper.`)]);
+  g.run([say('kc_umi', 'happy', r.stars >= 3 ? 'Perfect show! The kids screamed! Take this, you earned it.' : r.stars === 2 ? 'Very good! The fish are happy.' : 'Not bad! Practice makes pellets.'), N(`The aquarium pays you ${coins} coins as a helper.`)]);
 }
 
 // ---------------------------------------------------------------- cinema: six films, one screen of summary, one quiz question
@@ -167,7 +167,7 @@ export const FILMS = [
 const watch = (g, f, who) => {
   const q = S(g), quiz = { t: 'choice', prompt: `Quiz: ${f.q}`, options: f.a.map((txt, i) => ({ text: txt, steps: [call((gm) => { if (i === f.ok) { gm.addMoney(150, true); gm.toast('Correct! +150 coins and a perfect-quiz stamp', 'i_star'); stamp(gm, 'quiz'); q.quizBest = Math.max(q.quizBest, 1); } else gm.toast('Not quite. The usher grins.', null); })] })) };
   return [fadeOut, { t: 'sfx', name: 'page' }, call((gm) => { gm.advance(125); gm.addMood(8); q.films[f.id] = gm.day; gm.stat('kcFilms'); stamp(gm, 'film'); if (who) { gm.addFriend(who, 40); romance(gm, who); } }), fadeIn,
-    N(`${f.title} (${f.genre}): ${f.sum}`), ...(who ? [say(who, 'happy', 'That was really good. Thanks for inviting me.')] : []), say('mio', 'happy', 'Quick quiz for the sharp-eyed viewers!'), quiz];
+    N(`${f.title} (${f.genre}): ${f.sum}`), ...(who ? [say(who, 'happy', 'That was really good. Thanks for inviting me.')] : []), say('kc_mio', 'happy', 'Quick quiz for the sharp-eyed viewers!'), quiz];
 };
 register('interaction', 'kc_cinema_desk', {
   label: 'Buy a cinema ticket',
@@ -211,15 +211,15 @@ function clawPrize(g, r) {
 }
 register('interaction', 'kc_puri', { label: 'Photo sticker booth (300)', run: (g) => g.run([{ t: 'choice', prompt: 'Sticker photos, 300 coins?', options: [{ text: 'Strike a pose', when: 'money>=300', steps: [call((gm) => { pay(gm, 300); gm.advance(15); gm.addMood(10); gm.stat('kcPuri'); gm.sfx('camera'); }), N('Flash! Sparkles, cat ears and tiny hearts appear around your face. The sticker sheet slides out, still warm.'), say('misa', 'happy', 'I look ridiculous and I love it.')] }, { text: 'Not now', steps: [] }] }]) });
 register('interaction', 'kc_cab', { label: 'Arcade cabinet', run: (g) => g.say('misa', 'happy', 'Neko Jump, Sakana Run, Bubble Panic. All of them cost one coin and all of them steal an afternoon.') });
-register('interaction', 'kc_gc_counter', { label: 'Prize counter', run: (g) => g.say('ryo', 'happy', 'Prize counter! Claw winners get a figurine. The golden Mochi one is only from the capsule machine in Hoshimori.') });
+register('interaction', 'kc_gc_counter', { label: 'Prize counter', run: (g) => g.say('kc_ryo', 'happy', 'Prize counter! Claw winners get a figurine. The golden Mochi one is only from the capsule machine in Hoshimori.') });
 
 // ---------------------------------------------------------------- capsule hotel
 register('interaction', 'kc_hotel_desk', {
   label: 'Capsule hotel desk',
-  run: (g) => g.run([say('kuma', 'neutral', 'Welcome to Tsuki. How can I help?'), { t: 'choice', prompt: 'Capsule Hotel Tsuki', options: [
+  run: (g) => g.run([say('kc_kuma', 'neutral', 'Welcome to Tsuki. How can I help?'), { t: 'choice', prompt: 'Capsule Hotel Tsuki', options: [
     { text: 'Nap in a capsule (200, 2 hours)', when: 'money>=200', steps: [call((gm) => { pay(gm, 200); }), fadeOut, call((gm) => { gm.advance(120); gm.addEnergy(35); gm.addMood(4); }), fadeIn, say('misa', 'sleepy', 'A dark, tiny, perfect nap. I feel brand new.')] },
     { text: `Stay the night (${HOTEL_PRICE})`, when: `money>=${HOTEL_PRICE}`, steps: [call((gm) => hotelSleep(gm))] },
-    { text: 'Ask about trains', steps: [say('kuma', 'neutral', 'Last train to Hoshimori leaves at half past ten. First one is half past six. A pod is always cheaper than a taxi.')] }, { text: 'No thanks', steps: [] }] }]),
+    { text: 'Ask about trains', steps: [say('kc_kuma', 'neutral', 'Last train to Hoshimori leaves at half past ten. First one is half past six. A pod is always cheaper than a taxi.')] }, { text: 'No thanks', steps: [] }] }]),
 });
 register('interaction', 'kc_hotel_bath', { label: 'Hotel bath', run: (g) => { if (g.flag('kc_bathDay') === g.day) return g.say('misa', 'happy', 'One bath a day is a good rule. Two is a luxury.'); g.setFlag('kc_bathDay', g.day); g.advance(30); g.addEnergy(12); g.addMood(8); g.sfx('splash'); g.say('misa', 'sleepy', 'Warm water, soft light, a view of the city skyline on the wall. Heaven.'); } });
 

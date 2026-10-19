@@ -41,3 +41,5 @@ import './sv4_newcast/index.js';
 import './sv4_depth/index.js';
 import './sv4_romance/index.js';
 import './sv4_islands/index.js';
+import './sv4_hobbies/index.js';
+import './sv4_city/index.js';

@@ -85,20 +85,20 @@ const SH = (id, name, keeper, hours, stock, extra = {}) => register('shop', id, 
 SH('kc_kiosk', 'Station Kiosk', KEEP('Kiosk lady', '#c9c0d8', '#e0707a'), ['05:30', '23:00'], ['city_ekiben', 'city_canned_coffee', 'city_senbei', 'city_melon_pan', 'gift_city_station_cookies', 'gift_city_museum_postcards', 'bev_sports_drink'].filter((x) => x), { buys: [] });
 SH('kc_stationery', 'Fude Stationery', KEEP('Clerk Aya', '#38334f', '#b89ae0'), ['10:00', '20:00'], ['gift_city_fountain_pen', 'gift_city_washi_set', 'gift_city_letter_set', 'gift_city_stamp_pad', 'gift_city_sticker_book', 'gift_cute_stationery'].filter((x) => x), { closed: [2] });
 SH('kc_electronics', 'Denki Corner', KEEP('Clerk Jin', '#24203a', '#3d5a8c'), ['10:00', '20:30'], ['gift_city_headphones', 'gift_city_mini_radio', 'gift_city_toy_camera', 'gift_city_handheld'], { color: K.navy[2] });
-SH('kc_import', 'Maison Import Foods', KEEP('Lena', '#d9763f', '#f0c040'), ['10:00', '20:00'], ['gift_city_macarons', 'gift_city_chocolate', 'gift_city_tea_leaves', 'gift_city_jam', 'gift_city_olive_oil'], { owner: 'lena', color: K.butter[2] });
-SH('kc_vintage', 'Daigo\'s Old Things', KEEP('Daigo', '#c8c8dc', '#8b5a44'), ['11:00', '19:00'], ['gift_city_vinyl_jazz', 'gift_city_old_camera', 'gift_city_brooch', 'gift_city_pocket_watch', 'gift_city_tin_robot'], { owner: 'daigo', closed: [1], color: K.wood[2] });
-SH('kc_pet', 'Paws and Whiskers', KEEP('Nao', '#5a3a2e', '#86cdb0'), ['10:00', '19:30'], ['city_pet_wand', 'city_pet_treats', 'city_pet_bell_ball', 'city_pet_collar', 'city_pet_cloud_bed'], { owner: 'nao', color: K.mint[2] });
+SH('kc_import', 'Maison Import Foods', KEEP('Lena', '#d9763f', '#f0c040'), ['10:00', '20:00'], ['gift_city_macarons', 'gift_city_chocolate', 'gift_city_tea_leaves', 'gift_city_jam', 'gift_city_olive_oil'], { owner: 'kc_lena', color: K.butter[2] });
+SH('kc_vintage', 'Daigo\'s Old Things', KEEP('Daigo', '#c8c8dc', '#8b5a44'), ['11:00', '19:00'], ['gift_city_vinyl_jazz', 'gift_city_old_camera', 'gift_city_brooch', 'gift_city_pocket_watch', 'gift_city_tin_robot'], { owner: 'kc_daigo', closed: [1], color: K.wood[2] });
+SH('kc_pet', 'Paws and Whiskers', KEEP('Nao', '#5a3a2e', '#86cdb0'), ['10:00', '19:30'], ['city_pet_wand', 'city_pet_treats', 'city_pet_bell_ball', 'city_pet_collar', 'city_pet_cloud_bed'], { owner: 'kc_nao', color: K.mint[2] });
 SH('kc_boutique', 'Boutique Mirai', KEEP('Stylist Rei', '#ff85b8', '#262436'), ['11:00', '20:00'], ['cloth_city_sailor', 'cloth_city_trench', 'cloth_city_overalls', 'cloth_city_ballet', 'gift_hair_clip'].filter((x) => x), { closed: [2], color: K.coral[2] });
 SH('kc_sweets', 'Puff and Pop Sweets', KEEP('Sweet seller', '#f4a8c0', '#e0707a'), ['10:00', '20:00'], ['city_cream_puff', 'city_soft_cream', 'city_milk_tea', 'city_matcha_wagashi']);
 SH('kc_bakery', 'Boulangerie Kita', KEEP('Baker Sho', '#8b5a44', '#f4f0f0'), ['07:00', '19:00'], ['city_croissant', 'city_melon_pan', 'city_milk_tea']);
-SH('kc_tea', 'Hanaori Tea House', KEEP('Haruka', '#38334f', '#4f8a58'), ['10:00', '18:00'], ['city_hojicha', 'city_matcha_wagashi', 'gift_city_tea_leaves'], { owner: 'haruka', closed: [0], color: K.forest[2] });
-SH('kc_dept_1f', 'Hoshizora 1F', KEEP('Chie', '#7a4e2a', '#e43b44'), ['10:00', '20:00'], ['cloth_city_sailor', 'cloth_city_overalls', 'gift_hair_clip', 'gift_city_brooch'].filter((x) => x), { owner: 'chie', color: K.ribbon[2] });
-SH('kc_dept_2f', 'Hoshizora 2F', KEEP('Chie', '#7a4e2a', '#e43b44'), ['10:00', '20:00'], ['gift_city_fountain_pen', 'gift_city_sticker_book', 'gift_city_letter_set', 'gift_city_washi_set'], { owner: 'chie', color: K.ribbon[2] });
-SH('kc_book', 'Bunta Books', KEEP('Bunta', '#4a3436', '#4f8a58'), ['10:00', '19:00'], ['gift_city_museum_postcards', 'gift_city_letter_set', 'gift_handmade_bookmark'].filter((x) => x), { owner: 'bunta', color: K.navy[2], buys: ['book'] });
-SH('kc_popcorn', 'Cinema Snack Bar', KEEP('Snack girl', '#b8a0c8', '#e43b44'), ['10:00', '23:00'], ['city_popcorn', 'city_canned_coffee', 'city_milk_tea', 'city_senbei'], { owner: 'mio' });
+SH('kc_tea', 'Hanaori Tea House', KEEP('Haruka', '#38334f', '#4f8a58'), ['10:00', '18:00'], ['city_hojicha', 'city_matcha_wagashi', 'gift_city_tea_leaves'], { owner: 'kc_haruka', closed: [0], color: K.forest[2] });
+SH('kc_dept_1f', 'Hoshizora 1F', KEEP('Chie', '#7a4e2a', '#e43b44'), ['10:00', '20:00'], ['cloth_city_sailor', 'cloth_city_overalls', 'gift_hair_clip', 'gift_city_brooch'].filter((x) => x), { owner: 'kc_chie', color: K.ribbon[2] });
+SH('kc_dept_2f', 'Hoshizora 2F', KEEP('Chie', '#7a4e2a', '#e43b44'), ['10:00', '20:00'], ['gift_city_fountain_pen', 'gift_city_sticker_book', 'gift_city_letter_set', 'gift_city_washi_set'], { owner: 'kc_chie', color: K.ribbon[2] });
+SH('kc_book', 'Bunta Books', KEEP('Bunta', '#4a3436', '#4f8a58'), ['10:00', '19:00'], ['gift_city_museum_postcards', 'gift_city_letter_set', 'gift_handmade_bookmark'].filter((x) => x), { owner: 'kc_bunta', color: K.navy[2], buys: ['book'] });
+SH('kc_popcorn', 'Cinema Snack Bar', KEEP('Snack girl', '#b8a0c8', '#e43b44'), ['10:00', '23:00'], ['city_popcorn', 'city_canned_coffee', 'city_milk_tea', 'city_senbei'], { owner: 'kc_mio' });
 SH('kc_stall_drink', 'Drink Cart', KEEP('Cart man', '#8f8fae', '#5a8cc0'), ['09:00', '21:00'], ['city_milk_tea', 'city_canned_coffee', 'city_hojicha', 'bev_sports_drink'].filter((x) => x), { buys: [] });
 SH('kc_stall_snack', 'Snack Stall', KEEP('Stall auntie', '#d6508c', '#fff1d6'), ['10:00', '21:00'], ['city_takoyaki', 'city_gyoza', 'city_soft_cream', 'city_senbei'], { buys: [] });
-RAMEN.forEach(([id, name, , , ,], i) => SH('kc_ramen_' + i, ['Gen\'s Ramen', 'Miso Mansion', 'Pork Bone Paradise', 'Shio Whisper', 'Fire Dragon'][i], KEEP(i === 0 ? 'Gen' : 'Ramen chef', i === 0 ? '#c8c8dc' : '#24203a', '#fff1d6'), ['11:00', '23:30'], [`city_ramen_${id}`, 'city_gyoza', i % 2 ? 'city_ramen_shoyu' : 'city_ramen_miso'], { owner: i === 0 ? 'gen' : null, buys: [] }));
+RAMEN.forEach(([id, name, , , ,], i) => SH('kc_ramen_' + i, ['Gen\'s Ramen', 'Miso Mansion', 'Pork Bone Paradise', 'Shio Whisper', 'Fire Dragon'][i], KEEP(i === 0 ? 'Gen' : 'Ramen chef', i === 0 ? '#c8c8dc' : '#24203a', '#fff1d6'), ['11:00', '23:30'], [`city_ramen_${id}`, 'city_gyoza', i % 2 ? 'city_ramen_shoyu' : 'city_ramen_miso'], { owner: i === 0 ? 'kc_gen' : null, buys: [] }));
 
 const OPEN_MSG = (s, g) => `Closed right now. ${hoursText(s)}`;
 const open = (sid) => (g) => {
@@ -116,7 +116,7 @@ for (const [iid, sid] of Object.entries(SHOPS)) register('interaction', iid, { l
 RAMEN.forEach((_, i) => register('interaction', 'kc_ramen_' + i, { label: 'Order ramen', run: open('kc_ramen_' + i) }));
 
 // ---------------------------------------------------------------- the bookshop job
-JOBS.kita_book = { name: 'Bunta Books', role: 'Book shelver', boss: 'bunta', bossName: 'Bunta', minigame: 'kc_shift', wage: 240, energy: 16, xp: { study: 8, charm: 4 }, after: ['15:30', '18:30'], free: ['10:00', '18:00'], closed: [2], unlock: (g) => g.flag('kc_visited'), unlockText: 'Visit Kitaminato first' };
+JOBS.kita_book = { name: 'Bunta Books', role: 'Book shelver', boss: 'kc_bunta', bossName: 'Bunta', minigame: 'kc_shift', wage: 240, energy: 16, xp: { study: 8, charm: 4 }, after: ['15:30', '18:30'], free: ['10:00', '18:00'], closed: [2], unlock: (g) => g.flag('kc_visited'), unlockText: 'Visit Kitaminato first' };
 register('interaction', 'kc_book_job', { label: 'Part-time shift: shelving books', run: (g) => startShift(g, 'kita_book').then(() => { if (g.state.economy.jobs.kita_book && g.state.economy.jobs.kita_book.shifts) stamp(g, 'shift'); }) });
 
 features('Kitaminato Shops', [
