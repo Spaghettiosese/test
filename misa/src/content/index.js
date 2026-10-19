@@ -43,3 +43,4 @@ import './sv4_romance/index.js';
 import './sv4_islands/index.js';
 import './sv4_hobbies/index.js';
 import './sv4_city/index.js';
+import './sv4_home/index.js';
