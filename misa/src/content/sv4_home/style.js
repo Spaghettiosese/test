@@ -113,5 +113,6 @@ features('Home & Pets', [
   'Four saved looks store an outfit with its dyes and accessories for one-click changes',
   'Laundry: wearing the same outfit three days running makes it dirty and costs a little mood until you wash it in the basket',
   'Workshop sewing machine: six sewing patterns turn cloth and yarn into new wardrobe outfits',
+  'Dyed hair, outfits and equipped accessories are saved with the game and come back on load',
 ]);
 void N; void say; void call; void registerMany; void nm;

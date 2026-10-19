@@ -18,12 +18,12 @@ async function rescue(game) {
     const S = SV4(game);
     await game.run([
       { t: 'say', who: null, text: 'Thunder cracks right overhead. Misa crouches in the wet ferns, and the trail turns into a river of mist.' },
-      { t: 'say', who: 'shun', mood: 'happy', text: 'Misa! There you are. Easy now, I have a rope and a flask of ginger tea. You did the right thing waiting.' },
+      { t: 'say', who: 'shun_tk', mood: 'happy', text: 'Misa! There you are. Easy now, I have a rope and a flask of ginger tea. You did the right thing waiting.' },
       { t: 'fade', to: 1, dur: 0.8 },
       { t: 'call', fn: () => { S.rescues++; S.expo = 0; S.stamina = Math.max(S.stamina, 60); game.state.energy = Math.max(game.state.energy, 30); game.advance(90); game.stat('rescues'); badge(game, 'storm_wise'); game.bus.emit('sv4Rescued', {}); } },
     ]);
     await game.warp('mountain_hut', 6, 8, 'up');
-    await game.run([{ t: 'fade', to: 0, dur: 0.8 }, { t: 'say', who: 'osuzu', mood: 'happy', text: 'Wrapped in a blanket, are we? Sit by the fire, dear. Shun finds somebody every storm. Nobody is in trouble here.' }, { t: 'say', who: 'misa', mood: 'happy', text: 'Thank you both. I will carry a poncho next time.' }]);
+    await game.run([{ t: 'fade', to: 0, dur: 0.8 }, { t: 'say', who: 'osuzu_tk', mood: 'happy', text: 'Wrapped in a blanket, are we? Sit by the fire, dear. Shun finds somebody every storm. Nobody is in trouble here.' }, { t: 'say', who: 'misa', mood: 'happy', text: 'Thank you both. I will carry a poncho next time.' }]);
   } finally { rescuing = false; }
 }
 register('worldTick', 'sv4_trail', {

@@ -205,4 +205,5 @@ features('Home & Pets', [
   'Dinner parties: invite three friends in the evening and choose three dishes; each guest rates the table by their tastes',
   'Cooking sometimes makes leftovers, which spoil overnight unless you keep them in the fridge',
   'Fridge and pantry app: store up to forty food items and ingredients and take them out again from your phone',
+  'Three-star dishes are more likely to leave leftovers, and the kitchen fridge opens the Fridge app',
 ]);

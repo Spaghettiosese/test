@@ -237,4 +237,6 @@ features('Home & Pets', [
   'Guest room with a double bed: invite a friend to stay over and wake up to a morning scene',
   'Every new room has its own walls, floors, windows and lamps, and can be decorated with the decor box like the rest of the house',
   'The wing hall shows boarded doors with a progress bar for the room being built, and framed doors for finished rooms',
+  'Every seventh onsen soak earns a rice-paper tile glaze keepsake',
+  'Tea time uses a cup of green tea from your bag for extra mood',
 ]);

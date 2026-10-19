@@ -134,7 +134,7 @@ export function calendar(g, from = g.day, n = 14) {
 // ---------------------------------------------------------------- the Home Plans phone app
 register('phoneApp', 'sv4_plans', {
   name: 'Home Plans', icon: itemIcon('furniture', { c: '#e8c050' }), order: 63, when: (g) => !!g.state.sv4_home,
-  badge: (g) => (active(g) ? '' : 0),
+  badge: (g) => (active(g) ? '!' : 0),
   open(g, app) { app.state.tabs ||= new Tabs(['Plans', 'Calendar', 'Score', 'Bills']); app.state.list ||= new List(PROJECT_IDS, 8, 12); app.state.conf = null; },
   update(dt, input, g, app) {
     const st = app.state, { x, y, w } = app.area; st.tabs.update(input, x + 4, y + 2, w - 8);
@@ -180,5 +180,6 @@ features('Home & Pets', [
   'Family photo wall furniture set: framed family, ship, Nori, garland and a big collage that unlock as photos of parties, sleepovers and projects pile up',
   'Home Score out of 100 from decor, rooms, pets, chores, kitchen, clean clothes, bills and photos; days above 70 count as perfect home days for the year-end evaluation',
   'Renovations count as home upgrades in the year-end evaluation',
+  'The Home Plans app badge shows while a renovation is under way',
 ]);
 void rect; void drawTextC;

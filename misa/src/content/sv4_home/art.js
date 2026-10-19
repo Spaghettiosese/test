@@ -248,13 +248,13 @@ const bow = (R, x, y, c) => { R(x, y + 1, 4, 5, c[2]); R(x + 6, y + 1, 4, 5, c[2
 });
 accDef('hairclip_star', 'Star hairclip', 'hair', 120, C.butter, 'A tiny gold star clip.', (R, d, c) => { const x = d === 'side' ? 20 : 26, y = 5; R(x, y, 5, 2, c[3]); R(x + 1, y - 1, 3, 1, c[4]); R(x + 2, y + 2, 1, 1, c[2]); });
 accDef('glasses_round', 'Round glasses', 'face', 220, C.charcoal, 'Thin round frames. Instantly studious.', (R, d, c) => {
-  if (d === 'up') return;
+  if (d === 'up') { R(6, 17, 2, 2, c[2]); R(33, 17, 2, 2, c[2]); return; }
   const f = c[2], tint = 'rgba(200,230,255,0.28)';
   if (d === 'down') { for (const x of [11, 23]) { R(x, 15, 7, 1, f); R(x, 21, 7, 1, f); R(x, 15, 1, 7, f); R(x + 6, 15, 1, 7, f); R(x + 1, 16, 5, 5, tint); } R(18, 17, 5, 1, f); R(8, 17, 3, 1, f); R(30, 17, 3, 1, f); }
   else { R(22, 15, 8, 1, f); R(22, 21, 8, 1, f); R(22, 15, 1, 7, f); R(29, 15, 1, 7, f); R(23, 16, 6, 5, tint); R(12, 17, 10, 1, f); }
 });
 accDef('glasses_sun', 'Sunglasses', 'face', 260, C.charcoal, 'Dark lenses for bright summer days.', (R, d, c) => {
-  if (d === 'up') return;
+  if (d === 'up') { R(6, 17, 2, 2, c[2]); R(33, 17, 2, 2, c[2]); return; }
   if (d === 'down') { R(10, 15, 9, 7, c[1]); R(22, 15, 9, 7, c[1]); R(19, 16, 3, 1, c[2]); R(10, 15, 3, 1, c[3]); R(22, 15, 3, 1, c[3]); R(8, 16, 2, 1, c[2]); R(31, 16, 2, 1, c[2]); }
   else { R(21, 15, 10, 7, c[1]); R(21, 15, 3, 1, c[3]); R(12, 16, 9, 1, c[2]); }
 });

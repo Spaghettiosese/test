@@ -17,11 +17,11 @@ const ftxt = (n) => `${n} coins`;
 IA('tk_register', 'Trail Book desk', async (g) => {
   const S = SV4(g);
   if (!g.has('key_tk_trail_book')) {
-    await g.run([{ t: 'say', who: 'shun', mood: 'happy', text: 'New hiker? Sign the register and take a Trail Book. Collect twelve badges and the association will remember you.' }, { t: 'give', item: 'key_tk_trail_book', n: 1 }]);
+    await g.run([{ t: 'say', who: 'shun_tk', mood: 'happy', text: 'New hiker? Sign the register and take a Trail Book. Collect twelve badges and the association will remember you.' }, { t: 'give', item: 'key_tk_trail_book', n: 1 }]);
     badge(g, 'first_steps'); return;
   }
   const got = badgesGot(g);
-  await say(g, `Trail Book: ${got}/12 badges. Stamina ${Math.round(S.stamina)}%. Mountain weather today: ${mtWeather(g)}. Missing: ${BADGES.filter((b) => !S.badges[b[0]]).slice(0, 3).map((b) => b[1]).join(', ') || 'nothing, you did it!'}.`, 'shun');
+  await say(g, `Trail Book: ${got}/12 badges. Stamina ${Math.round(S.stamina)}%. Mountain weather today: ${mtWeather(g)}. Missing: ${BADGES.filter((b) => !S.badges[b[0]]).slice(0, 3).map((b) => b[1]).join(', ') || 'nothing, you did it!'}.`, 'shun_tk');
 });
 IA('tk_bell', 'Ring the bear bell', (g) => { const S = SV4(g); S.bellsRung++; g.sfx('bell'); g.toast('Clang! Any bears nearby are now very politely elsewhere.'); badge(g, 'bear_bell'); g.addMood(1); });
 IA('tk_trailmap', 'Trail map', (g) => {
@@ -81,7 +81,7 @@ const VIEW = { spring: 'Cherry petals drift onto the water.', summer: 'Cicadas c
 export async function soak(g, id) {
   const S = SV4(g), b = BATHS[id];
   if (S.soak.day !== g.day) S.soak = { day: g.day, n: 0, per: {} };
-  if (b.public && S.pass !== g.day && !(S.stay.paid === g.day)) return say(g, 'Bath pass first, please! The attendant at the counter sells day passes.', 'tetsu');
+  if (b.public && S.pass !== g.day && !(S.stay.paid === g.day)) return say(g, 'Bath pass first, please! The attendant at the counter sells day passes.', 'tetsuya_yk');
   if (g.minutes < 6 * 60 || (b.public && g.minutes >= 22 * 60)) return say(g, 'The bath is closed right now. Open 8 AM to 10 PM.');
   if (S.soak.n >= 4) return say(g, 'Four soaks is plenty for one day. Misa is light-headed and pink. Time for fruit milk and a rest!', 'misa');
   if (b.public && S.washed !== g.day) { S.washed = g.day; await say(g, 'Wash first! Misa hurries to a stool, scrubs, rinses, then slides into the bath like she meant to all along.', null); }
@@ -107,15 +107,15 @@ IA('yk_wash', 'Washing stool', (g) => { const S = SV4(g); if (S.washed === g.day
 IA('yk_poster', 'Bath etiquette poster', async (g) => {
   const S = SV4(g);
   if (S.etiq === g.day) return say(g, 'You already passed the etiquette quiz today. The poster seems proud of you.', 'misa');
-  await say(g, 'Tetsu: Want to test your bath manners, Misa? Answer right and the baths feel even better today.', 'tetsu');
+  await say(g, 'Tetsuya: Want to test your bath manners, Misa? Answer right and the baths feel even better today.', 'tetsuya_yk');
   const r = await g.minigame('yk_etiquette', {});
   if (r.quit) return;
-  if (r.score >= 0.6) { S.etiq = g.day; g.addFriend('tetsu', 12); g.addMood(3); await say(g, 'Spotless manners! The baths will feel extra nice today.', 'tetsu'); } else await say(g, 'Close! Wash first, towel on your head, quiet voices. Try again tomorrow.', 'tetsu');
+  if (r.score >= 0.6) { S.etiq = g.day; g.addFriend('tetsuya_yk', 12); g.addMood(3); await say(g, 'Spotless manners! The baths will feel extra nice today.', 'tetsuya_yk'); } else await say(g, 'Close! Wash first, towel on your head, quiet voices. Try again tomorrow.', 'tetsuya_yk');
 });
 IA('yk_bath_counter', 'Bath counter', (g) => {
-  const S = SV4(g), fee = g.hearts('tetsu') >= 4 ? 150 : 300;
-  if (S.pass === g.day || S.stay.paid === g.day) return say(g, 'Your pass is good until closing. Enjoy the water!', 'tetsu');
-  return ask(g, `Day pass: ${ftxt(fee)}`, [['Buy a day pass', () => { if (!g.spend(fee)) return g.toast('Not enough coins'); S.pass = g.day; g.sfx('coin'); if (!g.has('key_yk_rally_card')) g.give('key_yk_rally_card', 1, true); return say(g, 'Here is your pass and a Stamp Rally card. Six baths in the region, six stamps. Towels are in the lockers.', 'tetsu'); }, `money>=${fee}`], ['Ask about the Stamp Rally', () => say(g, `Six baths, six stamps: two here, the footbath plaza, the hidden cave spring, a ryokan room tub and the hut's barrel bath. You have ${stampsGot(g)}/6.`, 'tetsu')], ['Not now', null]]);
+  const S = SV4(g), fee = g.hearts('tetsuya_yk') >= 4 ? 150 : 300;
+  if (S.pass === g.day || S.stay.paid === g.day) return say(g, 'Your pass is good until closing. Enjoy the water!', 'tetsuya_yk');
+  return ask(g, `Day pass: ${ftxt(fee)}`, [['Buy a day pass', () => { if (!g.spend(fee)) return g.toast('Not enough coins'); S.pass = g.day; g.sfx('coin'); if (!g.has('key_yk_rally_card')) g.give('key_yk_rally_card', 1, true); return say(g, 'Here is your pass and a Stamp Rally card. Six baths in the region, six stamps. Towels are in the lockers.', 'tetsuya_yk'); }, `money>=${fee}`], ['Ask about the Stamp Rally', () => say(g, `Six baths, six stamps: two here, the footbath plaza, the hidden cave spring, a ryokan room tub and the hut's barrel bath. You have ${stampsGot(g)}/6.`, 'tetsuya_yk')], ['Not now', null]]);
 });
 IA('yk_milk', 'Fruit milk', (g) => ask(g, 'Bath fruit milk, 70 coins', [['Buy one', () => { if (!g.spend(70)) return g.toast('Not enough coins'); g.give('drink_yk_fruit_milk', 1); g.sfx('coin'); }, 'money>=70'], ['Not now', null]]));
 IA('yk_vent', 'Steaming vent', (g) => {
@@ -137,7 +137,7 @@ async function runDownhill(g, mode) {
 }
 IA('yk_cat_house', 'Cat caretaker\'s house', (g) => {
   const S = SV4(g);
-  return ask(g, 'The onsen cats nap on the porch.', [['Give a cat snack', () => { if (!g.take('dish_yk_cat_snack', 1)) return say(g, 'No cat snacks. The egg stand sells them.', 'misa'); S.cats.fedN++; S.cats.hearts = Math.min(10, S.cats.hearts + (S.cats.fed === g.day ? 0 : 1)); S.cats.fed = g.day; g.addMood(4); g.addFriend('mayu', 4); g.sfx('pop'); return say(g, `Six cats appear from nowhere. Colony friendship: ${S.cats.hearts}/10.`, 'misa'); }], ['Count the cats', () => say(g, 'One ginger, one black, one cream... and a fourth who is mostly steam. Six in all.', 'misa')], ['Leave', null]]);
+  return ask(g, 'The onsen cats nap on the porch.', [['Give a cat snack', () => { if (!g.take('dish_yk_cat_snack', 1)) return say(g, 'No cat snacks. The egg stand sells them.', 'misa'); S.cats.fedN++; S.cats.hearts = Math.min(10, S.cats.hearts + (S.cats.fed === g.day ? 0 : 1)); S.cats.fed = g.day; g.addMood(4); g.addFriend('mayu_yk', 4); g.sfx('pop'); return say(g, `Six cats appear from nowhere. Colony friendship: ${S.cats.hearts}/10.`, 'misa'); }], ['Count the cats', () => say(g, 'One ginger, one black, one cream... and a fourth who is mostly steam. Six in all.', 'misa')], ['Leave', null]]);
 });
 IA('sv4_region_board', 'Village noticeboard', (g) => say(g, `Yukemuri Notice: Stamp Rally ${stampsGot(g)}/6. Public bath 8 AM to 10 PM. Ropeway 8 AM to 6 PM. Winter: sled runs by the north hill, lantern festival on Winter 8.`));
 
@@ -159,9 +159,9 @@ register('system', 'sv4_sleep', { init(game) { game.sv4Sleep = (k) => sleepAt(ga
 IA('yk_desk', 'Ryokan reception', (g) => {
   const S = SV4(g), booked = S.stay.paid === g.day;
   return ask(g, 'Okami Chiyo: Welcome to Kitsune-no-Yu.', [
-    ['Book a room tonight (1200)', () => { if (g.minutes >= 22 * 60) return say(g, 'We close the books at 10 PM, dear.', 'chiyo'); if (!g.spend(1200)) return g.toast('Not enough coins'); S.stay.paid = g.day; g.sfx('coin'); g.stat('ryokanBookings'); return say(g, 'A room for one, with dinner and breakfast. Check in from 3 PM, the door at the end of the lobby. The baths are yours too.', 'chiyo'); }, !booked ? 'money>=1200' : 'flag:never_sv4'],
-    ['Check my booking', () => say(g, 'Room Plum Blossom is ready from 3 PM. Dinner is served in your room at 6.', 'chiyo'), booked ? undefined : 'flag:never_sv4'],
-    ['Day-guest tea (100)', () => { if (!g.spend(100)) return g.toast('Not enough coins'); g.addEnergy(8); g.addMood(4); g.advance(30); return say(g, 'Matcha and a sweet bean sweet in the lobby. The room is warm and the clock ticks softly.', 'chiyo'); }, 'money>=100'],
+    ['Book a room tonight (1200)', () => { if (g.minutes >= 22 * 60) return say(g, 'We close the books at 10 PM, dear.', 'chiyo_yk'); if (!g.spend(1200)) return g.toast('Not enough coins'); S.stay.paid = g.day; g.sfx('coin'); g.stat('ryokanBookings'); return say(g, 'A room for one, with dinner and breakfast. Check in from 3 PM, the door at the end of the lobby. The baths are yours too.', 'chiyo_yk'); }, !booked ? 'money>=1200' : 'flag:never_sv4'],
+    ['Check my booking', () => say(g, 'Room Plum Blossom is ready from 3 PM. Dinner is served in your room at 6.', 'chiyo_yk'), booked ? undefined : 'flag:never_sv4'],
+    ['Day-guest tea (100)', () => { if (!g.spend(100)) return g.toast('Not enough coins'); g.addEnergy(8); g.addMood(4); g.advance(30); return say(g, 'Matcha and a sweet bean sweet in the lobby. The room is warm and the clock ticks softly.', 'chiyo_yk'); }, 'money>=100'],
     ['Browse the souvenir counter', () => g.run([{ t: 'shop', id: 'sv4_souv' }])], ['Leave', null]]);
 });
 IA('yk_tea', 'Lobby tea', (g) => { g.addMood(2); g.addEnergy(2); g.advance(10); return say(g, 'Free barley tea in a tin kettle. Please help yourself, a note says.', 'misa'); });
@@ -236,17 +236,17 @@ IA('ml_row_sign', 'Orchard row sign', (g, o) => {
   const row = ORCHARD_ROWS.find((r) => r[1] === o.y) || ORCHARD_ROWS[0];
   return say(g, `${row[0] === 'apple' ? 'Apple and persimmon' : row[0][0].toUpperCase() + row[0].slice(1)} row. Ripe in ${row[2]}${row[2] === g.season ? ': ripe now!' : '.'}`);
 });
-IA('ml_boathouse', 'Boat house', (g) => ask(g, 'Boatman Ginjiro: Fine day for it.', [['Rent a rowing boat (150)', () => rowing(g), 'money>=150'], ['Buy a lake lantern (150)', () => { if (!g.spend(150)) return g.toast('Not enough coins'); g.give('gift_ml_lantern', 1); g.sfx('coin'); }, 'money>=150'], ['Fishing tips', () => say(g, 'Catfish bite at night, bass on bright days, and the moon koi only under a clear night sky. Be patient.', 'ginjiro')], ['Leave', null]]));
+IA('ml_boathouse', 'Boat house', (g) => ask(g, 'Boatman Ginjiro: Fine day for it.', [['Rent a rowing boat (150)', () => rowing(g), 'money>=150'], ['Buy a lake lantern (150)', () => { if (!g.spend(150)) return g.toast('Not enough coins'); g.give('gift_ml_lantern', 1); g.sfx('coin'); }, 'money>=150'], ['Fishing tips', () => say(g, 'Catfish bite at night, bass on bright days, and the moon koi only under a clear night sky. Be patient.', 'ginjiro_ml')], ['Leave', null]]));
 IA('ml_row', 'Dock: row a boat', (g) => rowing(g));
 async function rowing(g) {
-  if (g.minutes < 7 * 60 || g.minutes >= 18 * 60) return say(g, 'Boats go out between 7 AM and 6 PM.', 'ginjiro');
+  if (g.minutes < 7 * 60 || g.minutes >= 18 * 60) return say(g, 'Boats go out between 7 AM and 6 PM.', 'ginjiro_ml');
   if (!g.spend(150)) return g.toast('Not enough coins');
   g.sfx('coin'); const S = SV4(g);
   const r = await g.minigame('ml_rowing', { calm: !['storm', 'rain'].includes(g.weather) });
   g.advance(60); g.useEnergy(8); g.addMood(10); S.rows.best = Math.max(S.rows.best, Math.round(r.score * 100)); g.stat('rowTrips');
   const pay = Math.round(40 + r.score * 180); g.addMoney(pay, true);
   if (r.score >= 0.7 && get('item', 'forage_ml_lotus')) { g.give('forage_ml_lotus', 1, true); g.collect('forage', 'forage_ml_lotus'); }
-  await say(g, `Rowing score ${Math.round(r.score * 100)}. Ginjiro refunds ${pay} coins in tips and lotus bounty. Personal best ${S.rows.best}.`, 'ginjiro');
+  await say(g, `Rowing score ${Math.round(r.score * 100)}. Ginjiro refunds ${pay} coins in tips and lotus bounty. Personal best ${S.rows.best}.`, 'ginjiro_ml');
 }
 IA('ml_cabin_desk', 'Cabin rental board', (g) => {
   const S = SV4(g);

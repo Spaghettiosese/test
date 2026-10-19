@@ -238,5 +238,8 @@ features('Home & Pets', [
   'Mochi and Azuki friendship arc in five small events, from a hissing standoff to napping together in one dog bed',
   'Pets notice each other: they trade hearts when they meet and Mochi arches her back at the puppy at first',
   'Pet show at Sakura Park on weekends: enter a pet in a trick-and-beat minigame for coins and a rosette',
+  'Dog, rabbit and turtle curl up to sleep from ten at night while the parakeet stays up chirping',
+  'A full day of every need cared for adds a bond bonus the next morning, for each pet',
+  'The Pets app badge lights up when a pet is hungry or lonely',
 ]);
 void say; void N; void call; void act_;

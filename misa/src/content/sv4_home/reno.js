@@ -123,4 +123,5 @@ features('Home & Pets', [
   'Builders on site: Goro and a carpenter hammer away at the wing door with a progress bar and drifting dust',
   'An arched door in the sunroom leads to the East Wing hall that connects every new room',
   'Renovation discounts: the cypress tub, the farm greenhouse and a crafting skill of 3 each knock coins off a project',
+  'Crates and sawhorses fill the wing hall while a project is being built',
 ]);
