@@ -1,5 +1,6 @@
 // Kitaminato maps: station plaza, Hikari Arcade, Harbour Walk, Old Town, University, and the interiors (department store x3,
 // aquarium, cinema, museum, ramen street, bookstore, game centre, capsule hotel). Interaction ids are registered in activities.js / shops.js.
+import { features } from '../../core/registry.js';
 import { grid, TP } from '../town/lib.js';
 import { building } from '../town/facade.js';
 import { P, tree, lamp, streetlight, bench, row, plaque, spot } from '../town/interactions.js';
@@ -304,4 +305,21 @@ const room = (w, h, x0, y0, x1, y1) => { const g = grid(w, h, '#'); g.fill(x0, y
     spots: { desk: [4, 6, 'up'], lounge: [15, 11], pod: [12, 6], door: [11, 11] },
   });
 }
+features('Kitaminato City', [
+  'Station Plaza: a 60x40 bright plaza with a big fountain that freezes over in winter, a zebra crossing, benches and a Tourist Info desk',
+  'Hikari Arcade: a 70-tile covered shopping street under paper lanterns with twelve storefronts, stalls and vending machines',
+  'Harbour Walk: a waterfront boardwalk with the aquarium entrance, an animated ferris wheel, boats and a ferry pier',
+  'Old Town: a temple street with stone lanterns, teahouses, a calligrapher and a hedge gap that hides an alley',
+  'University campus: gate pillars, lawns, a lecture hall, the main hall and the museum door',
+  'Department store in three floors joined by stairs: clothes and a counter on 1F, books and stationery on 2F, a rooftop garden above',
+  'Rooftop game corner with claw machines, an arcade cabinet and a telescope looking back toward the sea',
+  'Ramen Street: five lantern-lit counters with noren curtains and stools',
+  'Bunta Books: floor-to-ceiling shelves, a reading nook and a shelving job cart',
+  'Capsule Hotel Tsuki: reception, stacked pods, lockers, a lounge sofa and a bath',
+  'Every city building is a seasonal storefront with windows that light up after dark and the district name appears on arrival',
+  'A cat sits just outside the Old Town hedge gap as a hint to the hidden alley',
+  'The Kitaminato Station gate lets you wait for and board the next train home, with the fare or pass handled for you',
+  'A stamp toast appears the first time you enter each new place in the city',
+  'Hot bath at the capsule hotel once a day for energy and mood',
+]);
 void TP; void spot; void streetlight;

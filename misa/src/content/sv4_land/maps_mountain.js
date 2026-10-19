@@ -136,8 +136,6 @@ const first = (id, key, text) => (g) => { const S = SV4(g); if (S && !S.visited[
     bench(30, 20), P('town_noticeboard', 14, 22, { w: 2, use: 'sv4_region_board', shadow: 18 }),
     { spr: 'town_stone_lantern', x: 33, y: 17, light: LIGHT.stone },
   ];
-  for (const x of [8, 18, 30, 40, 52]) objs.push({ spr: 'ev_lanterns_winter_dummy', x, y: 17, solid: false, when: 'flag:festival_yk_lantern_snow' });
-  objs.length -= 5; // (festival lanterns come from the festival decor list)
   objs.push(...scatter(g.rows(), objs, { seed: 31, dens: 0.2 }));
   townMap('yukemuri_village', {
     name: 'Yukemuri Village', music: 'town', bg: '#10201a', legend: MLEGEND, rows: g.rows(), objects: objs,

@@ -14,7 +14,7 @@ test('every Kitaminato map builds and all its warps resolve and come back', () =
     const m = buildMap(id); assert.ok(m.w > 0 && get('map', id).spawns.default, id);
     for (const w of m.warps) {
       const t = warpTarget(w), dest = get('map', t.map);
-      assert.ok(dest && dest.spawns[t.spawn], `${id} -> ${w.to}`);
+      assert.ok(dest && dest.spawns[w.to.split(':')[1]], `${id} -> ${w.to}`);
       if (!w.to.startsWith('town:') && CITY_MAPS.includes(t.map)) assert.ok(buildMap(t.map).warps.some((b) => warpTarget(b).map === id), `${t.map} has no way back to ${id}`);
     }
   }

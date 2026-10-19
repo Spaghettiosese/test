@@ -237,4 +237,10 @@ features('Kitaminato Places', [
   'Game centre with claw machines that pay out collectible figurines, a sticker photo booth and arcade cabinets',
   'Capsule hotel for naps, baths, overnight stays and a wake-up in your pod',
 ]);
+features('Kitaminato Minigames', [
+  'Shopping spree: a timed grid minigame where you grab five target items before the clock runs out',
+  'Claw machine minigame with five tries and moving prizes, paying out collectible figurines',
+  'Aquarium feeding show minigame: drop pellets for the little fish while big fish try to steal them',
+  'Bookshop shelving shift minigame with ranks that shorten the time per book',
+]);
 void registerMany; void clockText; void K;

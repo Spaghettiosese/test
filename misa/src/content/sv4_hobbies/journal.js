@@ -104,3 +104,12 @@ features('Creative Hobbies', [
   'Hobby buffs (Inspired, Steady hands, Bookish glow, Humming, Fresh bloom) show in the buff HUD',
   'Hobby ribbons from contests, gigs, shows and the finished novel are collected in one place',
 ]);
+features('Creative Hobbies', [
+  'Pets and animals in the frame (Mochi, Daifuku, Kuro) raise a photo\'s rarity',
+  'Weather and time change a photo\'s light: golden hour and snow shine, storms and midnight do not',
+  'A higher Music level unlocks later songs even if you have not cleared the earlier ones',
+  'At Pottery level 7 (or as a Kiln Keeper) pieces fire in one day, and the kiln gains slots at levels 3 and 6',
+  'The loom works on up to three weaving projects at once, ready in one to two days',
+  'Every second novel chapter earns a phone review from a neighbour',
+  'Each readable book gives its buff once a day and takes half an hour to read',
+]);
