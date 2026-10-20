@@ -36,6 +36,18 @@ export class Sfx {
       this._noise(t, { dur: 0.2, gain: 0.7, freq: 2800, freqEnd: 700, decay: 0.12 });
       this._noise(t, { dur: 0.3, gain: 0.35, freq: 260, decay: 0.2 });
       this._tone(t, { freq: 160, freqEnd: 60, dur: 0.1, gain: 0.4, decay: 0.1 });
+    } else if (kind === 'glock') {
+      this._noise(t, { dur: 0.18, gain: 0.75, freq: 3800, freqEnd: 700, decay: 0.12 });
+      this._noise(t, { dur: 0.3, gain: 0.35, freq: 300, decay: 0.2 });
+      this._tone(t, { freq: 170, freqEnd: 60, dur: 0.08, gain: 0.4, decay: 0.08 });
+    } else if (kind === 'ump') {
+      this._noise(t, { dur: 0.22, gain: 0.7, freq: 2400, freqEnd: 500, decay: 0.14 });
+      this._noise(t, { dur: 0.35, gain: 0.45, freq: 220, decay: 0.25 });
+      this._tone(t, { freq: 130, freqEnd: 50, dur: 0.12, gain: 0.5, decay: 0.12 });
+    } else if (kind === 'awp') {
+      this._noise(t, { dur: 0.3, gain: 1, freq: 4600, freqEnd: 450, decay: 0.22 });
+      this._noise(t, { dur: 1.8, gain: 0.75, freq: 200, freqEnd: 55, decay: 1.5 });
+      this._tone(t, { freq: 80, freqEnd: 28, dur: 0.45, gain: 0.85, decay: 0.5 });
     } else if (kind === 'ak47') {
       this._noise(t, { dur: 0.28, gain: 0.95, freq: 3200, freqEnd: 550, decay: 0.18 });
       this._noise(t, { dur: 0.45, gain: 0.6, freq: 260, decay: 0.32 });
