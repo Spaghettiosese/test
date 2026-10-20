@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>LAST BELL — A Day at School No. 9</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="scene"></canvas>
+
+  <div id="hud" class="hidden">
+    <div id="badge"><canvas id="portrait" width="128" height="128"></canvas></div>
+    <div id="meters">
+      <div class="meter body" title="Body — your physical health"><span>BODY</span><div class="bar"><i id="m-hp"></i></div></div>
+      <div class="meter nerve" title="Nerve — your morale"><span>NERVE</span><div class="bar"><i id="m-morale"></i></div></div>
+    </div>
+    <div id="menubar">
+      <button data-panel="inventory" title="Inventory (I)"><b>▣</b><em>Inventory</em></button>
+      <button data-panel="journal" title="Journal (J)"><b>☰</b><em>Journal</em></button>
+      <button data-panel="thoughts" title="Thought Cabinet (T)"><b>✺</b><em>Thoughts</em></button>
+      <button data-panel="character" title="Character (C)"><b>◈</b><em>Character</em><u id="pt-dot" class="hidden"></u></button>
+      <button data-panel="menu" title="Menu (Esc)"><b>⋯</b><em>Menu</em></button>
+    </div>
+    <div id="topright">
+      <div id="clock">07:30</div>
+      <div id="surv" title="Surveillance — how closely the State is watching you. At 100 you are arrested."><span>WATCHED</span><div class="bar"><i id="m-surv"></i></div></div>
+      <div id="curfew">Curfew 21:00</div>
+    </div>
+    <div id="locname"></div>
+    <div id="tasktrack"></div>
+    <div id="tooltip" class="hidden"></div>
+    <div id="toasts"></div>
+    <button id="hl-btn" title="Highlight everything you can interact with">◉ Show</button>
+    <div id="hint">Click to move · Click people &amp; objects to interact · Hold <kbd>Tab</kbd> to highlight everything</div>
+  </div>
+
+  <div id="dialogue" class="hidden">
+    <div id="dlg-head"><span id="dlg-title"></span><button id="dlg-skip" title="Skip dice animation" class="hidden">…</button></div>
+    <div id="dlg-log"></div>
+    <div id="dlg-choices"></div>
+  </div>
+
+  <div id="panel" class="hidden"><div id="panel-inner"><button id="panel-close">✕</button><div id="panel-body"></div></div></div>
+
+  <div id="title">
+    <canvas id="title-canvas"></canvas>
+    <div id="title-box">
+      <h1>LAST BELL</h1>
+      <h2>A Day at School No. 9</h2>
+      <p class="tag">You woke up on a stage. Something rang in your head all night. The Warden hears everything — except, apparently, you.</p>
+      <div id="title-buttons">
+        <button id="btn-new">New Game</button>
+        <button id="btn-continue">Continue</button>
+        <button id="btn-how">How to Play</button>
+        <button id="btn-sound">Sound: On</button>
+      </div>
+      <div id="endings-seen"></div>
+      <small>An original dialogue-and-skill-check RPG. Headphones recommended.</small>
+    </div>
+  </div>
+
+  <div id="rotate"><div><b>↻</b><p>Landscape works best.<br>Rotate your phone for the full scene.</p><button class="cbtn" id="rot-ok">Continue anyway</button></div></div>
+  <div id="create" class="hidden"><div id="create-inner"></div></div>
+  <div id="ending" class="hidden"><canvas id="ending-canvas"></canvas><div id="ending-summary" class="hidden"></div></div>
+</div>
+<script src="data/world.js"></script>
+<script src="data/skills.js"></script>
+<script src="data/items.js"></script>
+<script src="data/tasks.js"></script>
+<script src="data/thoughts.js"></script>
+<script src="data/barks.js"></script>
+<script src="data/dialogue_a.js"></script>
+<script src="data/dialogue_b.js"></script>
+<script src="js/art.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
