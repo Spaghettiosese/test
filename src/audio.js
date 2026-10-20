@@ -48,6 +48,18 @@ export class Sfx {
       this._noise(t, { dur: 0.3, gain: 1, freq: 4600, freqEnd: 450, decay: 0.22 });
       this._noise(t, { dur: 1.8, gain: 0.75, freq: 200, freqEnd: 55, decay: 1.5 });
       this._tone(t, { freq: 80, freqEnd: 28, dur: 0.45, gain: 0.85, decay: 0.5 });
+    } else if (kind === 'm4a1s') {
+      this._noise(t, { dur: 0.12, gain: 0.22, freq: 1800, freqEnd: 500, decay: 0.07 });
+      this._noise(t, { dur: 0.2, gain: 0.16, freq: 220, decay: 0.12 });
+    } else if (kind === 'scar') {
+      this._noise(t, { dur: 0.32, gain: 1, freq: 3800, freqEnd: 500, decay: 0.2 });
+      this._noise(t, { dur: 0.6, gain: 0.7, freq: 240, freqEnd: 60, decay: 0.45 });
+      this._tone(t, { freq: 110, freqEnd: 38, dur: 0.2, gain: 0.7, decay: 0.2 });
+    } else if (kind === 'winchester') {
+      this._noise(t, { dur: 0.3, gain: 0.9, freq: 3600, freqEnd: 450, decay: 0.2 });
+      this._noise(t, { dur: 0.9, gain: 0.6, freq: 210, freqEnd: 60, decay: 0.7 });
+      this._tone(t, { freq: 100, freqEnd: 34, dur: 0.25, gain: 0.7, decay: 0.28 });
+      this._noise(t + 0.2, { dur: 0.8, gain: 0.09, freq: 650, freqEnd: 200, decay: 0.7, attack: 0.04 });
     } else if (kind === 'ak47') {
       this._noise(t, { dur: 0.28, gain: 0.95, freq: 3200, freqEnd: 550, decay: 0.18 });
       this._noise(t, { dur: 0.45, gain: 0.6, freq: 260, decay: 0.32 });

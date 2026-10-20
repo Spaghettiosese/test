@@ -12,6 +12,9 @@ import { AK47, createAK47 } from './ak47.js';
 import { GLOCK, createGlock } from './glock.js';
 import { UMP, createUMP } from './ump.js';
 import { AWP, createAWP } from './awp.js';
+import { SCAR, createSCAR } from './scar.js';
+import { WINCHESTER, createWinchester } from './winchester.js';
+import { M4A1S, createM4A1S } from './m4a1s.js';
 import { weaponProp } from './prop.js';
 
 export const WEAPONS = [
@@ -24,6 +27,9 @@ export const WEAPONS = [
   { id: 'garand', capacity: 8, gun: GARAND, create: createGarand },
   { id: 'mp7', capacity: 40, gun: MP7, create: createMP7 },
   { id: 'ak47', capacity: 30, gun: AK47, create: createAK47 },
+  { id: 'm4a1s', capacity: 30, gun: M4A1S, create: createM4A1S },
+  { id: 'scar', capacity: 20, gun: SCAR, create: createSCAR },
+  { id: 'winchester', capacity: 6, gun: WINCHESTER, create: createWinchester },
   { id: 'deagle', capacity: 7, gun: DEAGLE, create: createDeagle },
   { id: 'glock', capacity: 17, gun: GLOCK, create: createGlock },
   { id: 'ump', capacity: 25, gun: UMP, create: createUMP },

@@ -39,6 +39,9 @@ const CFG = {
   ak47: { label: 'AK-47', mag: 30, auto: true, interval: 0.1, spread: 0.026, adsSpread: 0.0035, pellets: 1, kick: 1.4, kickAds: 0.8, adsFov: 50, relief: 0.2, impulse: 4, brass: 'ak', ejectOnShot: true },
   glock: { label: 'Glock 17', mag: 17, auto: false, interval: 0.12, spread: 0.016, adsSpread: 0.002, pellets: 1, kick: 2.4, kickAds: 1.6, adsFov: 54, relief: 0.28, impulse: 3, brass: 'pistol', ejectOnShot: true },
   ump: { label: 'UMP-45', mag: 25, auto: true, interval: 0.1, spread: 0.022, adsSpread: 0.004, pellets: 1, kick: 0.9, kickAds: 0.5, adsFov: 52, relief: 0.2, impulse: 3, brass: 'magnum44', ejectOnShot: true },
+  m4a1s: { label: 'M4A1 Suppressed', mag: 30, auto: true, interval: 0.08, spread: 0.016, adsSpread: 0.002, pellets: 1, kick: 0.7, kickAds: 0.35, adsFov: 50, relief: 0.2, impulse: 3, brass: 'rifle', ejectOnShot: true },
+  scar: { label: 'SCAR-H', mag: 20, auto: true, interval: 0.1, spread: 0.02, adsSpread: 0.003, pellets: 1, kick: 2.2, kickAds: 1.4, adsFov: 48, relief: 0.2, impulse: 7, brass: 'magnum', ejectOnShot: true },
+  winchester: { label: 'Winchester 94', mag: 6, auto: false, interval: 1.0, spread: 0.02, adsSpread: 0.0018, pellets: 1, kick: 4, kickAds: 2.8, adsFov: 52, relief: 0.2, impulse: 8, brass: 'ak', ejectOnShot: false },
   awp: { label: 'AWP', mag: 5, auto: false, interval: 1.42, spread: 0.07, adsSpread: 0, pellets: 1, kick: 5, kickAds: 3.6, adsFov: 6.5, relief: 0.07, impulse: 16, brass: 'magnum', scoped: true },
   deagle: { label: 'Desert Eagle', mag: 7, auto: false, interval: 0.3, spread: 0.02, adsSpread: 0.002, pellets: 1, kick: 8.5, kickAds: 6, adsFov: 52, relief: 0.28, impulse: 9, brass: 'ae50' },
   mp7: { label: 'MP7', mag: 40, auto: true, interval: 0.063, spread: 0.02, adsSpread: 0.0035, pellets: 1, kick: 0.5, kickAds: 0.26, adsFov: 52, relief: 0.2, impulse: 2, brass: 'pdw', ejectOnShot: true },
@@ -65,7 +68,7 @@ for (const [i, w] of WEAPONS.entries()) {
   const c = makeWeaponProp(w.id, { detail: 0.7 });
   c.name = w.gun.name + ' (display)';
   const q = E.quat.multiply(E.quat.create(), E.quat.fromEuler(E.quat.create(), 0, 62 + i * 8, 0), E.quat.fromEuler(E.quat.create(), 0, 0, 90));
-  const [sx, sz] = { m4a1: [-6.4, 0.5], sniper: [-0.3, 0.5], shotgun: [6.3, 0.5], revolver: [-4.7, 0.5], smg: [4.5, 0.5], double: [5.2, 0.76], garand: [-5.4, 0.78], mp7: [1.1, 0.52], deagle: [-2.6, 0.5], ak47: [2.6, 0.5], glock: [-3.4, 0.74], ump: [3.4, 0.74], awp: [0.4, 0.76] }[w.id] ?? [0, 0.5];
+  const [sx, sz] = { m4a1: [-6.4, 0.5], sniper: [-0.3, 0.5], shotgun: [6.3, 0.5], revolver: [-4.7, 0.5], smg: [4.5, 0.5], double: [5.2, 0.76], garand: [-5.4, 0.78], mp7: [1.1, 0.52], deagle: [-2.6, 0.5], ak47: [2.6, 0.5], glock: [-3.4, 0.74], ump: [3.4, 0.74], awp: [0.4, 0.76], m4a1s: [-7.4, 0.76], scar: [7.4, 0.76], winchester: [-1.6, 0.78] }[w.id] ?? [0, 0.5];
   c.rotation.set(q); c.position.set([sx, 0.935 + 0.03, sz]);
   scene.add(c); displays.push(c);
 }
