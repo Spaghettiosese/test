@@ -1445,7 +1445,8 @@ ilsabet_d3: {
       choices: [
         C(`'All right. I'll hold your hand.'`, "test_run"),
         C(`'No. Not you. We'll find someone else.'`, "test_refuse"),
-        C(`'Let me hold the dial. You should concentrate.'`, "test_run", { effects: [{ xp: 1 }] })
+        C(`'Let me hold the dial. You should concentrate.'`, "test_run", { effects: [{ xp: 1 }] }),
+        C(`'Not yet. Let me think.'`, "hub")
       ]
     }),
 
@@ -1721,6 +1722,1685 @@ fenwick_d3: {
         I("empathy", 4, `He's happy, and a little drunk on it. Let him be.`)
       ],
       choices: [X(`'See you at eight.'`)]
+    })
+  }
+},
+
+// =====================================================================
+lemmy_d3: {
+  title: "Lemmy Tarsk",
+  start: [
+    { cond: "flag.lemmy_redeemed", node: "ready_again" },
+    { cond: "flag.lemmy_informs", node: "fallen" },
+    { node: "open" }
+  ],
+  nodes: {
+    open: N("lemmy", `He is ironing his armband. It is on a hotplate-warmed towel on the end of his bunk, and he is going over it with a flat iron as if there were something under the cloth that wanted out. His hair is oiled, his boots shine, his satchel is packed. He looks like a boy dressed for his own execution by a tailor who adores him.\n\n'Citizen-student!' He springs to attention, drops the iron, retrieves it. 'Good morning! Per Regulation Twelve, a morning is good unless otherwise. I am, ah, on duty at nineteen-thirty. At the Hall doors. With the list.' His voice cracks on 'list'. 'I have been told it is a very great honour.'`, {
+      interjections: [
+        I("empathy", 3, `He has been ironing the same sleeve for twenty minutes. He is not pressing it. He is trying to iron out whatever's underneath.`),
+        I("instinct", 4, `The satchel. A folded paper sticks out of the flap, typed, official, with a red stamp. He has not looked at it since you walked in.`, { effects: [{ set: "lemmy_list_seen", val: true }] }),
+        I("doublethink", 3, `A list, a door, a good uniform. The best possible life. (We are very envious. We have never been trusted with a list.)`)
+      ],
+      choices: [C(`'Lemmy. Sit down.'`, "hub")]
+    }),
+
+    hub: N("lemmy", `He sits on the very edge of the bunk with his hands on his knees. His knuckles are the colour of boiled eggs.\n\n'Yes, citizen-student? A complaint? A query? I am not permitted social calls but I have been told, by someone, that one should always, ah, be prepared to be flexible.' He looks at the armband on the towel and then very quickly away from it.`, {
+      interjections: [
+        I("volition", 4, `He will tell you in his own time. The best thing you can do is not look at the satchel.`),
+        I("senses", 3, `He smells of starch, iron and the particular cold sweat of a boy who has not slept in the same shirt for two days.`)
+      ],
+      choices: [
+        C(`'What's on the list?'`, "list", { cond: "!flag.lemmy_list" }),
+        C(`'Who gave you the list, Lemmy?'`, "who", { cond: "flag.lemmy_list && !flag.lemmy_who" }),
+        C(`'Still paying dues to Rhea?'`, "dues", { cond: "!flag.lemmy_dues3" }),
+        C(`'Do you remember the ticket you didn't write me?'`, "ticket", { cond: "(flag.lemmy_ticket_off || flag.lemmy_spared) && !flag.lemmy_ticket3" }),
+        C(`[Take off the armband you took from him.] 'I don't want this. I want you.'`, "armband", { cond: "(flag.lemmy_armband_worn || has('vanguard_armband')) && !flag.lemmy_redeemed && !flag.lemmy_informs" }),
+        C(`'Lemmy. What are you going to do?'`, "choice", { cond: "flag.lemmy_list && flag.lemmy_who" }),
+        X(`'Nothing. Good luck with the iron.'`)
+      ]
+    }),
+
+    list: N("lemmy", `He fishes it out and hands it over with two fingers, like a dead mouse. A typed sheet, three columns, a red stamp. Names, each with a small empty box. At the top: DISTRICT 9 YOUTH COMPLEMENT, JUBILEE ATTENDANCE (PRIORITY). Under it, in capitals: PERSONS OF INTEREST: PLEASE NOTE ARRIVAL, DEMEANOUR AND COMPANIONS.\n\nThe sixth name is Orrin, I. The ninth is Kell, V. The fourteenth is yours. After yours someone has added, in ink, a note: 'Especially if humming.'`, {
+      onEnter: [{ set: "lemmy_list", val: true }, { xp: 2 }, { surv: 2 }],
+      interjections: [
+        I("archive", 3, `Form J-1, 'Attendance and Demeanour'. It is counter-signed by a Ministry stamp I know: the lidded eye. This is not the school's list. This is Voss's.`),
+        I("deduction", 4, `"Especially if humming." They know about the Wake tone or something like it. Somebody in the Ministry has been very attentive to what the Undercurrent hums.`),
+        I("empathy", 4, `He has been carrying your name in his satchel since Wednesday. He hasn't been able to put it down.`)
+      ],
+      choices: [C(`Hand it back.`, "hub")]
+    }),
+
+    who: N("lemmy", `'The, ah, a gentleman.' He lowers his voice. 'In a grey coat. He came in the morning, when I was doing the corridors, and asked whether I took my duties seriously, and I said Per Regulation Twelve I did, and he said, "Of course you do. You have the eyes for it." And he gave me the list, and a, a sweet.' He looks at his hand. 'A toffee. It was a very good toffee. It's been, ah, in my pocket since. I can't eat it. I can't throw it away.'\n\n'He said it was a chance for a boy like me to be of use.'`, {
+      onEnter: [{ set: "lemmy_who", val: true }, { xp: 2 }],
+      interjections: [
+        I("empathy", 5, `A toffee. They bought him with a toffee, and he hasn't been able to swallow it, and that is the whole of his moral position.`),
+        I("instinct", 3, `A grey coat, a kind voice and a sweet. They know their trade.`),
+        I("rhetoric", 4, `Use the toffee. A boy who can't eat it is a boy who can still be reached.`)
+      ],
+      choices: [C(`Stay with him.`, "hub")]
+    }),
+
+    dues: N("lemmy", `'The dues.' He flinches. 'Twelve a Thursday.' A short silence. 'I paid. I mean, I took them, from the Hall till. I'm... I don't know what I am. In the Vanguard I'm a sort of treasurer. In the Hall I'm a monitor. In the dormitory I'm...' He opens his hands. 'I am three people. They all wear the same armband.'\n\nHe adds, with the horrid dignity of a child quoting something he's been taught: 'Rhea says a man with three jobs has no time to be anything else.'`, {
+      onEnter: [{ set: "lemmy_dues3", val: true }, { xp: 1 }],
+      interjections: [
+        I("solidarity", 4, `We are three people, too. We are a cook, a girl, a bellringer. It's not a flaw. It's a way of being many.`, { cond: "flag.rhea_turned || flag.rhea_exposed" }),
+        I("empathy", 4, `He's too busy to be a person. That's what the Vanguard calls efficiency.`)
+      ],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    ticket: N("lemmy", `For a second his face does something unbearable. 'Per Regulation Zero,' he says. 'The Unwritten Mercy Clause.' He opens his notebook and, with a trembling finger, turns it to a page near the back, folded, soft with handling. On it, in his neat hand, is a drawing of a paper dove.\n\n'I keep it,' he says. 'Nobody had ever made me a dove. I am not sure it is within the Regulations. I think it is a Class Three Sentiment.' He closes the book. 'I would like to be somebody who gives people doves.'`, {
+      onEnter: [{ set: "lemmy_ticket3", val: true }, { xp: 2 }, { morale: 1 }],
+      interjections: [
+        I("charm", 4, `A paper dove, kept in a notebook for two days. You are the most important person in this boy's week.`),
+        I("empathy", 4, `He doesn't need a speech. He needs the dove back.`)
+      ],
+      choices: [C(`'You can be.'`, "hub", { effects: [{ ideo: "undercurrent", n: 1 }] })]
+    }),
+
+    armband: N("narrator", `You take the red armband off your sleeve, the stiff one he pinned on you with his own trembling hands, and fold it once, twice, and lay it in his lap.\n\n'I wore this because you wanted me to,' you say. 'It was kind of you. It is not me.'\n\nLemmy stares at it as if it were a letter. The iron on the towel ticks as it cools. For a long time nothing in the room moves, and then his shoulders go, slowly, down, and he puts both hands over the armband like somebody over a small bird.`, {
+      onEnter: [{ xp: 3 }, { set: "lemmy_armband_returned", val: true }, { take: "vanguard_armband" }],
+      interjections: [
+        I("empathy", 5, `You gave it back. He wasn't expecting that. He had been waiting to be told he was a good boy and what he got was a boy being given a choice.`),
+        I("authority", 4, `Don't say anything else. Let the silence have its say.`)
+      ],
+      choices: [
+        C(`'Whose side are you on, Lemmy?'`, "redeem", { cond: "true" }),
+        C(`Let him think.`, "hub")
+      ]
+    }),
+
+    choice: N("lemmy", `He looks at the toffee on the blanket, at the list, at the armband, at you. His mouth works soundlessly. Eventually he says, in a very small voice:\n\n'If I, ah, if I stand at the door and do as I am, I am a good boy. I have a record. I am promoted, perhaps. They said so. I would be a Hall Warden at seventeen.' He swallows. 'If I, if I don't, then Rhea and the grey coat and the Principal all look at me, and I haven't a, a regulation that says what happens. I looked. I looked all morning. There isn't one.'\n\nHe is not asking you what to do. He is asking whether there is a page for it.`, {
+      onEnter: [{ xp: 1 }],
+      interjections: [
+        I("archive", 4, `There isn't one. There is no regulation for courage. It's the one omission in the whole of the Code, and it is deliberate.`),
+        I("rhetoric", 5, `Offer him a page. A tiny, absurd, perfect regulation. He'll take the form before he'll take the courage.`),
+        I("authority", 4, `You could order him. He would obey. It would be the worst thing you could do to him.`)
+      ],
+      choices: [
+        K(`[Rhetoric] Draft the missing regulation with him. Regulation Zero, Subsection Nerve.`, "rhetoric", 11, "lemmy_d3_regulation", "redeem", "fall_soft", { cond: "!flag.lemmy_chose" }),
+        K(`[Empathy] Tell him what you saw in his dove: that he's already the person he's afraid not to be.`, "empathy", 10, "lemmy_d3_empathy", "redeem", "fall_soft", { cond: "!flag.lemmy_chose" }),
+        K(`[Authority] Order him to lose the list. Make it an inspection.`, "authority", 11, "lemmy_d3_order", "coerce", "fall_soft", { cond: "!flag.lemmy_chose" }),
+        C(`'It's your call. I won't tell you what to do.' Leave him with it.`, "fall_soft", { cond: "!flag.lemmy_chose" }),
+        C(`Back off for now.`, "hub")
+      ]
+    }),
+
+    redeem: N("lemmy", `He takes a pen from his pocket and opens his notebook to a clean page. He writes at the top, in his best capitals: REGULATION ZERO, SUBSECTION NERVE. Under it, painfully, laboriously, he draws up a clause:\n\n"A citizen who has been given a list of names may, in the exercise of his duties, discover that the ink has run."\n\nHe looks at it. He looks at you. 'That, ah, is a very bad regulation,' he says, in a voice that wobbles halfway up and then does not come down. 'Nobody would ever pass it.' He tears the page out, folds it, and puts it in his pocket, with the toffee. 'I am going to be sick,' he adds, calmly. 'And then I am going to be at the door. With the list. It is a, ah, a very wet list. The ink has run.'`, {
+      onEnter: [{ set: "lemmy_chose", val: true }, { set: "lemmy_redeemed", val: true }, { set: "lemmy_ready", val: true }, { task: "task_lemmy", state: "done" }, { xp: 4 }, { morale: 3 }, { thought: "th_chosen_family" },
+        { note: "task_lemmy", text: "Lemmy will stand at the Hall door at 19:30 with a list whose ink has run, and let in everyone who needs to come in. He wrote a regulation for it." }],
+      interjections: [
+        I("solidarity", 3, `A boy who has never had a regulation to be brave under has just written one. We are going to put it on the wall.`),
+        I("charm", 3, `A paper dove, a bad regulation and a toffee. That's how a revolution begins: with stationery.`),
+        I("authority", 4, `He'll be at the door. He'll hold it. He doesn't know how much that matters, and neither do you, yet.`)
+      ],
+      choices: [C(`Shake his hand.`, "ready_again")]
+    }),
+
+    coerce: N("lemmy", `He goes white, nods, and says 'Yes, citizen-student' in the voice of a boy who has been given an order and, for once, would have liked a choice. 'The list will, ah, be mislaid.' He is already folding it into smaller and smaller squares. 'It's not, ah, my fault if it's mislaid.'\n\nHe does it. He does it quite perfectly, and with such dead eyes that you know it is an order and not a decision, and that the difference will matter at about twenty past seven, when Rhea asks him what he did with it.`, {
+      onEnter: [{ set: "lemmy_chose", val: true }, { set: "lemmy_coerced", val: true }, { xp: 2 }, { ideo: "vanguard", n: 1 }, { surv: -3 }],
+      interjections: [
+        I("empathy", 4, `You made a decision for him. It's the only thing the Union has ever done to him. You've done a kind one, but you have done the same thing.`),
+        I("authority", 3, `Efficient. Clean. And you will think of it again.`)
+      ],
+      choices: [C(`Go.`, "ready_again")]
+    }),
+
+    fall_soft: N("lemmy", `He stares at the page for a long time, and then at his hands, and then at the door. 'I can't,' he says in a very quiet voice. 'I, ah, I'd like to. I would like to so very much. But I looked, and there isn't a, there's no page.' He puts the list in his satchel and buckles it, buckle by buckle. 'I'm sorry. I'm so sorry. I'm going to do what's, ah, what's on it. Because it's on it.'\n\nHe stands. He puts the armband on his sleeve. He pins it very carefully, from habit, and then looks at the pin as though it had gone off.`, {
+      onEnter: [{ set: "lemmy_chose", val: true }, { set: "lemmy_informs", val: true }, { task: "task_lemmy", state: "failed" }, { surv: 8 }, { morale: -2 }, { thought: "th_good_son" },
+        { note: "task_lemmy", text: "Lemmy chose the list. At 19:30 he will stand at the Hall door and tick us off. He is not a bad boy. There was no page." }],
+      interjections: [
+        I("empathy", 5, `It isn't cowardice. It's that he's never been taught anything else. There was no page, and you did not give him one.`),
+        I("volition", 4, `Whatever happens at the door tonight, remember that you were the one who left him alone with it.`)
+      ],
+      choices: [X(`Go.`)]
+    }),
+
+    fallen: N("lemmy", `He is at his post by the dormitory door, boots polished, armband pinned, notebook out. He does not meet your eye. When you pass he says, 'Citizen-student,' in a voice with all the colour taken out, and writes something down.\n\n'It's nothing personal,' he adds, to the notebook. 'It's what I'm for.'`, {
+      onEnter: [{ surv: 2 }],
+      interjections: [
+        I("empathy", 4, `A child standing very straight so as not to fall. There is no scolding him for it. There is only the keeping of him in mind.`),
+        I("solidarity", 3, `We've lost one. We would like it noted that we didn't mean to.`)
+      ],
+      choices: [X(`Go.`)]
+    }),
+
+    ready_again: N("lemmy", `Lemmy has taken the iron to his collar and is working it with the ferocity of a person ironing out an old argument. He has the list unfolded on his bunk, face up, and has spilled, with deliberate care, half a mug of tea across the first column. The names are going blue and soft.\n\n'It was an accident,' he tells you, solemnly. 'A, ah, a regulation accident. I am going to be very upset about it.' He holds up the iron. 'Do you think I'm convincing?'`, {
+      interjections: [
+        I("charm", 3, `Don't lie. He's terrible at it. It is the best thing about him.`),
+        I("empathy", 4, `He is happy. He has never been this frightened or this happy.`)
+      ],
+      choices: [
+        C(`'Very convincing. Be sick first.'`, "ready_again", { effects: [{ morale: 1 }] }),
+        X(`'See you at the door.'`)
+      ]
+    })
+  }
+},
+
+// =====================================================================
+osk_d3: {
+  title: "Janitor Osk",
+  start: [
+    { cond: "flag.osk_ready", node: "ready_again" },
+    { cond: "has('osk_keys') || flag.osk_keys", node: "keys_after" },
+    { node: "open" }
+  ],
+  nodes: {
+    open: N("osk", `He is sweeping the same three feet of cobble he swept on Tuesday and every day before it, with the same slow, heavy, tender strokes, and the bunting hangs above him like a lot of small flags for a very small country. When you come up he stops, leans the broom against his hip, and takes off his cap, which he has never done.\n\n"{name}," he says. "You didn't have me taken." He says it as one says a thing to be sure the sky is still above. "I've been thinking about that for two days. A man isn't used to being spared. It leaves him with nothing to push against."`, {
+      interjections: [
+        I("empathy", 3, `He is not thanking you. He's telling you what it did to him. There's a difference.`),
+        I("the_grey", 4, `A man who has swept the same floor for thirty-one years. He knows every crack by its first name and every footstep by its weight. Today he has put on a clean shirt.`),
+        I("solidarity", 3, `We are glad. We are so glad it's him. We are glad, and we're not going to say it, because it's the wrong sort of glad.`)
+      ],
+      choices: [C(`'What have you been thinking?'`, "hub")]
+    }),
+
+    hub: N("osk", `"Ask," says Osk, and takes the broom up again, because his hands cannot be trusted with themselves. "I'm only a janitor. But I've keys to every door in this school and ears for the rest. It's Thursday. A man tends to be forthcoming on a Thursday, if only so as to have said it."`, {
+      interjections: [
+        I("authority", 4, `This is a man who can open doors. Ask for what you need and then don't thank him: it embarrasses him.`)
+      ],
+      choices: [
+        C(`'Tell me about Tuesday night. What did you really see?'`, "saw", { cond: "!flag.osk_saw3" }),
+        C(`'The keys. Could the keys open the tower stair?'`, "keys", { cond: "!has('osk_keys')" }),
+        C(`'What did you do before the school?'`, "past", { cond: "!flag.osk_past" }),
+        C(`'Marta. You said your wife swept here.'`, "marta", { cond: "flag.osk_past && !flag.osk_marta" }),
+        C(`'What if I need every door open at eight?'`, "ready", { cond: "has('osk_keys') && !flag.osk_ready" }),
+        X(`'Nothing, Osk. Thank you for the broom.'`)
+      ]
+    }),
+
+    saw: N("osk", `"Half past one." He looks at the broom. "I said so, on Tuesday, a little. I'll say it properly, because I can. Three pairs of boots in the big doors. The first, in the red-brown coat, walking light. Two behind, carrying something between them that wanted to swing. The smaller one on the left had a bad back for a boy of his years. A hitch on every third step. I know a hitch. I've swept up after a hundred of them."\n\nHe wipes his mouth. "I stood in the stove-room with the door shut and a poker in my hand. And I did not come out."`, {
+      onEnter: [{ set: "osk_saw3", val: true }, { xp: 2 }, { thought: "th_weight_of_osk" }],
+      interjections: [
+        I("deduction", 4, `A smaller boy with a hitch in his step. A bad back in the Vanguard cadets: Jorik Presch, Second Squad. The Cook's boy, if it's him.`, { cond: "flag.bronka_jorik" }),
+        I("empathy", 5, `He has been apologising to a poker for two days.`),
+        I("volition", 4, `Do not tell him it was the right thing, staying hidden. It was the only thing. But it was not the right thing, and he knows.`)
+      ],
+      choices: [C(`'You'd have died.'`, "hub"), C(`'You can come out now.'`, "hub", { effects: [{ morale: 1 }, { ideo: "undercurrent", n: 1 }] })]
+    }),
+
+    keys: N("osk", `"The stair." He looks away over the roofs, then back. "The Library's tower door has had a bolt on it since the Warden's Jubilee of '78. It's my bolt. I'm the only man who knows it's been oiled." He reaches under his coat and brings out a ring the size of a saucer, eighty-odd keys on a loop of brass, each hand-labelled in capitals. CLASSROOMS (MOST). STORE (HAUNTED). DO NOT.\n\n"They've never been out of my pocket in thirty-one years. Not for the Principal. Not for the Inspectorate." His hand shakes a little. "I've decided to be a person who hands things over."`, {
+      onEnter: [{ give: "osk_keys" }, { set: "osk_keys", val: true }, { set: "tower_open", val: true }, { task: "task_osk2", state: "done" }, { xp: 4 }, { morale: 2 }, { thought: "th_chosen_family" },
+        { note: "task_osk2", text: "Osk gave me his keys: eighty-odd, labelled. The tower stair, the Principal's cellar, the Hall fuse-room. 'I've decided to be a person who hands things over.'" }],
+      interjections: [
+        I("authority", 4, `Eighty keys. Every door in the school, including the ones the Principal doesn't know exist. You are, as of this moment, the most dangerous student in District 9.`),
+        I("empathy", 5, `He's crying a little and pretending it's the wind.`),
+        I("slip", 4, `The cellar. The mixing desk. The Hall fuse-room. Three doors you couldn't have opened yesterday.`)
+      ],
+      choices: [C(`'Thank you, Osk.'`, "hub")]
+    }),
+
+    keys_after: N("osk", `Osk is leaning on his broom by the plinth, staring up at the statue with an expression of patient, unfinished contempt. The garland on its shoulder has slipped, and he has fixed it, twice.\n\n"Thirty-one years of keeping a man tidy," he says, not turning. "And never once told him what I thought. I could say it now, I suppose. But he's only stone. It would be a very lopsided conversation." He turns the broom over. "Ask, {name}. The ring's yours. Ask what else I know."`, {
+      interjections: [
+        I("the_grey", 3, `The statue's plinth is hollow. He knows. He sounded it once, as a young man, with the broom-handle. It rang like a drum. It is the only joke he has ever told.`)
+      ],
+      choices: [C(`Ask.`, "hub")]
+    }),
+
+    past: N("osk", `"Before?" He thinks. "I was a stoker, on the lake boats. Coal and a shovel. Then I was a bad husband for a while, and then I was a good one, and then I was a widower, and then somebody found me a broom." He sweeps. "There's a dignity in a broom, if you don't look at it for long. It does exactly what it's told, and when it's done the floor is cleaner than it was."\n\nHe looks up. "Do you know what I've swept up in this school? Teeth. Notes. Coupons. Once a wedding ring. Two hundred and eleven Vanguard pins, Union-issue, ah, brass. Nobody ever comes back for the pins."`, {
+      onEnter: [{ set: "osk_past", val: true }, { xp: 1 }],
+      interjections: [
+        I("archive", 3, `Osk Dremm, born in the lake provinces. Employed by the Ministry of Schools these thirty-one years. Pension: pending. Pension: always pending.`),
+        I("the_grey", 4, `A broom and a man. Between them, thirty-one years of what the district drops.`)
+      ],
+      choices: [C(`'Tell me about your wife.'`, "marta"), C(`Go on.`, "hub")]
+    }),
+
+    marta: N("osk", `"Marta." The broom goes still. "She swept here before me. Twenty years. She had the same little route: Hall, gym, Library, the stairs. She did it in a headscarf and sang. Nobody ever heard what; it was under her breath. And one night in the spring she went home after the Bell and did not know me."\n\nHe says it very evenly. "Not rudely. She was very polite. She said, 'You are very kind. Are you the janitor?' She's in a home in the east now. They say she is happy. I go every second Sunday." A beat. "Every second Sunday, she asks if I'm the janitor."\n\nHe looks at the broom. "I'd like to have a Thursday where nobody asks."`, {
+      onEnter: [{ set: "osk_marta", val: true }, { xp: 3 }, { morale: -1 }, { ideo: "undercurrent", n: 1 }, { thought: "th_good_son" }],
+      interjections: [
+        I("empathy", 5, `Every second Sunday for a year. A man visiting a wife who asks if he is the janitor. And he says yes.`),
+        I("solidarity", 4, `We wish to be the ones who do not forget him. We will be at the door, at eight, with a broom.`)
+      ],
+      choices: [C(`'I'm sorry.'`, "hub"), C(`'We'll try to change that.'`, "hub", { effects: [{ morale: 1 }] })]
+    }),
+
+    ready: N("osk", `He weighs the ring in his hand, and then holds it out to you, and then, thoughtfully, takes it back.\n\n"I'll open them myself," he says. "You'll want every door, and you'll want them quiet, and you'll want a man who knows which one sticks." He nods. "The Hall's fuse-room. The Principal's cellar, where the mixing desk is. The tower stair, which has a loose third step I oiled for forty years and never fixed. At twenty hundred I will be in the Courtyard by the old bell, with the keys in my pocket and a broom in my hand, looking like a man with nothing to do."\n\nHis eyes are very bright. "If you need the bell rung, I'll ring it. I've always wondered what it sounded like when somebody meant it."`, {
+      onEnter: [{ set: "osk_ready", val: true }, { xp: 4 }, { morale: 3 },
+        { note: "task_jubilee", text: "Osk will be in the Courtyard at eight with every key in the school. He'll open any door and, if asked, ring the old school bell." }],
+      interjections: [
+        I("authority", 4, `Doors. Doors are all a plan is, in the end: places a person is, and places she is allowed to go.`),
+        I("solidarity", 4, `We have a man with a broom and a ring and every door. He'll be exactly where he's needed, and look as if he'd never been anywhere else.`)
+      ],
+      choices: [C(`'Thank you, Osk.'`, "ready_again")]
+    }),
+
+    ready_again: N("osk", `Osk is sweeping. He has swept the same patch of cobble clean so many times that it shines, a little, in the grey light, like a coin that has been through a hundred hands. When you pass he lifts two fingers from the broom handle, a salute so small you could miss it.\n\n"Twenty hundred," he says, to the cobbles. "I'll be here."`, {
+      choices: [X(`'So will I.'`)]
+    })
+  }
+},
+
+// =====================================================================
+rhea_d3: {
+  title: "Rhea Vantage",
+  start: [
+    { cond: "flag.rhea_ready", node: "ready_again" },
+    { cond: "flag.rhea_turned", node: "turned_open" },
+    { cond: "flag.rhea_allied || flag.rhea_deal || flag.verdict_good_student", node: "allied_open" },
+    { node: "hostile_open" }
+  ],
+  nodes: {
+    turned_open: N("narrator", `She is sitting on the kerb of Karsov Avenue with her boots in the gutter and an orange in her lap, unpeeled. The Jubilee bunting overhead flutters, red and gold, and a ration-queue shuffles by on the far pavement without looking at her. She has taken off the armband. It lies on the kerb beside her, folded square, like something she is trying out the absence of.\n\nShe does not look up. 'You came,' says Rhea Vantage, to the orange. 'I wasn't sure you'd want to see me in daylight.'`, {
+      interjections: [
+        I("empathy", 3, `She is very, very still. It's the stillness of a person who has set down a weight and is waiting for her arms to understand.`),
+        I("senses", 3, `Citrus, faintly. An orange in the Union is a miracle. She gets one a day; nobody knows how. She hasn't peeled this one.`),
+        I("the_grey", 4, `The kerb is cold. She has sat on it for an hour. The pavement is trying to be gentle with her and doesn't know how.`)
+      ],
+      choices: [C(`Sit beside her on the kerb.`, "hub_t")]
+    }),
+
+    hub_t: N("rhea", `"I've been trying to work out," she says, "which of the things I did was the worst. I made a list. It's quite short. It's the same thing on every line." She turns the orange over. "It's strange. I always thought remorse would be a feeling. It's a sort of arithmetic."`, {
+      interjections: [
+        I("volition", 4, `Don't forgive her. Don't punish her. Be in the same place. That's the only thing she's asking.`),
+        I("empathy", 4, `She isn't looking for absolution. She wants a witness who won't flinch.`)
+      ],
+      choices: [
+        C(`'What did Ostrov say, at the end?'`, "last_words", { cond: "!flag.rhea_lastwords" }),
+        C(`'Jorik Presch. Your cadet with the bad back.'`, "jorik", { cond: "(flag.bronka_jorik || flag.bronka_son_told) && !flag.rhea_jorik" }),
+        C(`'The Homes. The children you write to.'`, "homes", { cond: "!flag.rhea_homes" }),
+        C(`'What do you want to do tonight?'`, "tonight", { cond: "flag.rhea_lastwords && !flag.rhea_ready" }),
+        X(`Sit in silence a while longer.`)
+      ]
+    }),
+
+    last_words: N("rhea", `"He wasn't afraid." She says it flatly. "He had a rope round his neck by then, and I had the other end, and he looked at me and he said, 'Rhea, you don't have to be a fist.' And then, because I didn't answer: 'I'm not afraid of you. I'm afraid of what they'll tell you tomorrow.'"\n\nShe puts the orange down very carefully on the kerb. "I didn't understand. I thought it was a plea. It was a prediction. Because tomorrow I woke up and I'd been told I'd done something necessary, and it was true, and it was a lie, and I couldn't tell the two apart. He knew. He knew exactly what the Bell would do to me, and he said it to my face, and I pulled."`, {
+      onEnter: [{ set: "rhea_lastwords", val: true }, { xp: 3 }, { morale: -1 }, { thought: "th_loyal_rhea" }],
+      interjections: [
+        I("empathy", 5, `Do you see it? He wasn't pleading. He was trying to warn her. The last act of the man she killed was to tell her what would be done to her.`),
+        I("grit", 5, `Stay. Stay where you are. Don't look at the road.`),
+        I("rote", 3, `SHE DOES NOT HAVE TO BE A FIST. (The ninth Virtue: DISCIPLINE. The tenth, unprinted: DOUBT.)`)
+      ],
+      choices: [C(`Say nothing. Stay.`, "hub_t")]
+    }),
+
+    jorik: N("rhea", `"Jorik." Her head comes up. "Second Squad. A good voice for a command, and a back like a broken umbrella. I picked him because he was always last in the line and always the first to stay behind and carry whatever had been left. I needed one who'd carry." She flinches, saying it. "He did. He carried the Commissar's feet. All the way across the Hall and up the steps and to the hoop, and he didn't say a word, and he didn't look. And when it was over he asked if he could go home and wash."`, {
+      onEnter: [{ set: "rhea_jorik", val: true }, { xp: 2 }, { thought: "th_good_son" }],
+      interjections: [
+        I("empathy", 5, `She chose him because he'd carry. She knows exactly what she did. She is telling you in the plainest words she has.`),
+        I("solidarity", 4, `His mother is a cook who writes notes in bread. There's a loaf with his name on it, somewhere. Think about that.`, { cond: "flag.bronka_son_told" })
+      ],
+      choices: [
+        C(`'Will you tell him?'`, "jorik_tell"),
+        C(`'Leave him out of it.'`, "hub_t")
+      ]
+    }),
+
+    jorik_tell: N("rhea", `"I will." She stares at her knees. "Before eight. It's the only thing I can do that is of use to him. Not the Vanguard's way. Not an order. I'll go and find him, and I'll say, 'It was me. You carried because I told you to. It wasn't a crime to carry. It was a crime to ask.'" She takes a breath that she has plainly been saving up. "He'll hate me. That's all right. It's rather the point."`, {
+      onEnter: [{ set: "rhea_will_tell_jorik", val: true }, { xp: 2 }, { morale: 1 }],
+      choices: [C(`Stay with her.`, "hub_t")]
+    }),
+
+    homes: N("rhea", `"The Homes." Something loosens. "Sixty-two children in the Vanguard Home on Cinder Street. Between four and eleven. I write to them. Every Sunday, in pencil, so they can erase the spelling. I send my rations, a coupon each, an orange when I can. They call me Big Sister. It's the only name I've ever answered to without thinking."\n\nShe laughs: a small, awful, tender sound. "Do you know what I tell them? 'Be good. The Warden hears you.' It's what I was told. I never knew it was a threat until yesterday. I thought it was comfort."\n\nShe looks at you. "On Friday I'll write the same letter. And it will mean something else. And I won't know why."`, {
+      onEnter: [{ set: "rhea_homes", val: true }, { xp: 3 }, { thought: "th_loyal_rhea" }, { note: "task_rhea2", text: "Rhea writes to sixty-two children in the Vanguard Home on Cinder Street. 'Be good. The Warden hears you.' She thought it was comfort." }],
+      interjections: [
+        I("empathy", 5, `Sixty-two children and a big sister who loves them with the only words she was given. It's not an excuse. It is the shape of the harm.`),
+        I("archive", 4, `Cinder Street Home for Children of the Hunger Winter. Founded under the Vanguard Scheme. Capacity: 40. Occupancy: 62. A statistic with a face.`)
+      ],
+      choices: [C(`'We'll keep them in mind.'`, "hub_t")]
+    }),
+
+    tonight: N("rhea", `"Tonight." She picks up the orange and weighs it. "At eight the district forgets, and I forget with it, and in the morning I'm clean. A girl with a pin and a purpose. It would be so easy to let it. It's the thing I'm best at."\n\nShe turns and looks you full in the face for the first time. "I'd like to not be clean."\n\n"I can do two things. I can stand up in front of the Hall and say what I did, in a clear voice, to the whole district, and they'll take me away, and it will be on the record that I said it. Or I can live. And carry it. And every morning wake up and read it off a card in my own pocket." Her mouth twists. "I don't know which one's braver. I think the second. I'm afraid it's the first."`, {
+      onEnter: [{ xp: 1 }],
+      interjections: [
+        I("volition", 5, `Neither is the brave one. Both are expensive. Let her pick, and then hold her to it.`),
+        I("rhetoric", 4, `A public confession is a gift to the audience. A private one is a gift to the person. She is offering you both. Think about which you need.`),
+        I("authority", 4, `She would do it. She would stand there and say it, and she would not flinch. Know that, whichever you choose.`)
+      ],
+      choices: [
+        C(`'Live. Carry it. I'll write it on a card for you.'`, "ready_live"),
+        C(`'Stand up and say it. The district needs to hear it.'`, "ready_public"),
+        C(`'I can't choose for you.'`, "hub_t")
+      ]
+    }),
+
+    ready_live: N("rhea", `She nods slowly. She takes a pencil stub from her breast pocket and the back of a ration form and writes, in a hand like a ruler: I KILLED OSTROV DANE ON TUESDAY AT 01:40. HE SAID I DID NOT HAVE TO BE A FIST. I DID NOT LISTEN. READ THIS EVERY MORNING. SHE SAID IT WAS NECESSARY. IT WAS NOT.\n\nShe folds it in four and tucks it into the lining of her cap. 'And Second Squad,' she says. 'At eight I'll have them stand at the Hall doors. Not against anyone. With. Wearing their pins and holding the doors. If anyone wants in, they'll have to go through the Vanguard. And the Vanguard, tonight, will be extremely hard of hearing.'\n\nShe holds out the orange. 'Peel it. Please. I never let anyone.'`, {
+      onEnter: [{ set: "rhea_ready", val: true }, { set: "rhea_to_live", val: true }, { task: "task_rhea2", state: "done" }, { xp: 5 }, { morale: 3 }, { thought: "th_good_son" }, { ideo: "undercurrent", n: 1 },
+        { note: "task_rhea2", text: "Rhea has written a card for her own pocket: she will carry what she did. At eight, Second Squad will hold the Hall doors with us, not against." }],
+      interjections: [
+        I("empathy", 5, `She asked you to peel it. It's the closest thing to a hug she has.`),
+        I("solidarity", 4, `We hold the door with the squad that did the killing. It is not forgiveness. It is something harder and more useful.`),
+        I("authority", 4, `A card in a cap. A squad at the door. A girl who has chosen to keep it. It's what an officer does after a battle.`)
+      ],
+      choices: [C(`Peel the orange.`, "orange")]
+    }),
+
+    ready_public: N("rhea", `"All right." She says it as if she'd been handed a sentence. "I'll say it. At the stage, after the Anthem. In front of the choir and the Principal and whoever is listening." She sets her cap straight. "And then I'll go with whoever comes. It's not a martyrdom. It's a deposition. I want it entered."\n\nShe stands, a straight small figure in red-brown, and in the half-second before she turns away you see how much she is afraid and how much she is not going to let it show. "Second Squad will hold the doors until I'm done. After that they can decide."`, {
+      onEnter: [{ set: "rhea_ready", val: true }, { set: "rhea_confess_public", val: true }, { task: "task_rhea2", state: "done" }, { xp: 4 }, { morale: 1 }, { surv: 4 }, { ideo: "undercurrent", n: 1 },
+        { note: "task_rhea2", text: "Rhea will confess on the Hall stage after the Anthem, before the whole district, and go with whoever comes. Second Squad will hold the doors until she's done." }],
+      interjections: [
+        I("adrenaline", 3, `YES. A confession into a live mic. It's the loudest thing in the district and it will cost her everything.`),
+        I("empathy", 5, `You asked a girl to give up a future so a crowd could hear. Hold the thought. You'll want it later.`)
+      ],
+      choices: [C(`'Thank you.'`, "ready_again")]
+    }),
+
+    orange: N("narrator", `You peel it. The skin comes away in one slow spiral under your thumbs, the way hers does, a continuous ribbon of bright oil, and the smell goes through the street like a small bell. A ration-queue woman turns her head in wonder and then, politely, away.\n\nRhea takes the first segment and eats it with her eyes shut. She does not say anything at all. When she has finished she takes the peel from your hand, rolls it, and puts it in her pocket with the card, as if it were a thing worth keeping.`, {
+      onEnter: [{ xp: 2 }, { morale: 2 }],
+      choices: [C(`Stand.`, "ready_again")]
+    }),
+
+    allied_open: N("rhea", `"There you are." She is at the barrier by the ration queue, uniform pressed, armband straight, and the whole length of the avenue seems to be arranged around the fact of her. She is smiling, very slightly. It is not the smile of Tuesday. It is the smile of a person who has been proved right and is trying not to look pleased.\n\n"I'm told you've been very helpful," she says. "The Inspector asked after you. The Principal's delighted. There's an honour-guard formation at the Relay at nineteen-thirty and I've a place in it that's got your name on it. A front-rank place. You'd stand beside me."`, {
+      interjections: [
+        I("doublethink", 3, `A place in the front rank! Honour! A seat at the table of the Union! We do so want to be in the front rank. (We have always known we were meant for better than a mop.)`),
+        I("empathy", 4, `She means it. She is offering you the best thing she has. That is what's terrible.`),
+        I("instinct", 4, `The smile is a hair too fixed. Behind it she has doubts of her own. Poke, and see.`)
+      ],
+      choices: [C(`'Tell me about the formation.'`, "allied_hub")]
+    }),
+
+    allied_hub: N("rhea", `"Nineteen-thirty. The Relay gate. Forty cadets, ranked by height, and a banner." She straightens an armband that does not need it. "When the first stroke of the Bell comes, we present arms. The Inspector says it'll be broadcast. It's the biggest thing the Vanguard has ever been given to do."`, {
+      choices: [
+        C(`'I'll stand beside you.'`, "allied_armband", { cond: "!flag.rhea_expects_you" }),
+        K(`[Empathy] 'Rhea. Do you ever wonder what's in the glue?'`, "empathy", 12, "rhea_d3_doubt_empathy", "allied_doubt_pass", "allied_doubt_fail", { w: 1, cond: "!flag.rhea_doubt3" }),
+        K(`[Dialectics] Find the contradiction in what she believes. Say it out loud.`, "dialectics", 13, "rhea_d3_doubt_dialectics", "allied_doubt_pass", "allied_doubt_fail", { w: 1, cond: "!flag.rhea_doubt3" }),
+        C(`'What happened to Osk?'`, "allied_osk", { cond: "flag.osk_scapegoat && !flag.rhea_osk3" }),
+        X(`'I'll think about it.'`)
+      ]
+    }),
+
+    allied_armband: N("rhea", `"Good." She takes a spare armband from her belt and fastens it on your sleeve herself, with a quick, practised hand. "I knew you'd see sense." Her eyes are bright. "I'm going to be so proud of you tonight."\n\nThe cloth is stiff as a board, and a little warm, and it does something to your shoulders. You feel the whole avenue tilt a degree toward you.`, {
+      onEnter: [{ set: "rhea_expects_you", val: true }, { give: "vanguard_armband" }, { ideo: "vanguard", n: 2 }, { surv: -5 }, { xp: 1 }],
+      interjections: [
+        I("doublethink", 3, `Doesn't it feel right? Doesn't it feel exactly right? (Say it. It's easier than not.)`),
+        I("volition", 4, `You can take it off. You're allowed to take it off. Remember that you put it on with your eyes open.`)
+      ],
+      choices: [C(`Straighten your shoulders.`, "allied_hub")]
+    }),
+
+    allied_doubt_pass: N("rhea", `The smile stops. It doesn't fall; it stops, like a clock. For a moment she looks at the ration queue, the shuffling shawls, a woman in a headscarf trying to keep a small boy from the gutter.\n\n"Glue," she says. "From the wallpaper. The whole street. I was seven. My mother put me on her knee and said 'It's sweet, it's only flour,' and she ate the first piece to show me." She laughs, and it is not a laugh. "She was lying. I knew she was lying. And I ate it, because she wanted me to. And it was the kindest thing she ever did."\n\nShe looks at you. Her face is white and open. "Ostrov told me the Bell was glue. I thought he was a liar."`, {
+      onEnter: [{ set: "rhea_doubt3", val: true }, { set: "rhea_turned", val: true }, { xp: 4 }, { morale: 1 }, { thought: "th_loyal_rhea" },
+        { note: "task_rhea2", text: "Rhea heard the glue, and for a second there was no Vanguard in her face. 'Ostrov told me the Bell was glue. I thought he was a liar.' She has turned." }],
+      interjections: [
+        I("empathy", 5, `She's falling. Be there. Don't catch her. Just be there.`),
+        I("dialectics", 4, `The argument is not that she is wrong. It's that she has been so right for so long that she forgot to be sorry.`)
+      ],
+      choices: [C(`Take her armband off. Gently.`, "turned_open")]
+    }),
+
+    allied_doubt_fail: N("rhea", `"I don't know what you mean." It comes out flat and quick. Her eyes close for a fraction of a second and open again, a degree harder, like a door shut and then bolted. "You're tired. We all are. You'll be better after the Jubilee." She does the thing with her sleeve. "Nineteen-thirty, front rank. Don't be late."\n\nShe turns away. You have said something that went in, and she's walled it off with a very good mortar. It will come out, one day, like a splinter. Not today.`, {
+      onEnter: [{ set: "rhea_doubt3", val: true }, { surv: 3 }],
+      choices: [X(`Go.`)]
+    }),
+
+    allied_osk: N("rhea", `"The janitor." She waves it off. "He's been processed. He'll get a short sentence, and a long rest, and a lesson in respecting boundaries." She looks at you steadily. "It was a good plan. It was your plan, in the end. I only suggested it."\n\nSomething in her eye flickers. "He did see us, you know. He was in the stove-room. I knew he was there. I let him hear."\n\nShe says it with a strange, hungry look, as if she would like you to tell her it was kind.`, {
+      onEnter: [{ set: "rhea_osk3", val: true }, { xp: 2 }, { thought: "th_weight_of_osk" }],
+      interjections: [
+        I("empathy", 5, `She let him hear. She wanted someone, anyone, to know. It's what she's been trying to do the whole time.`),
+        I("grit", 4, `You made a deal with somebody who wanted to be caught. You do not have to forgive yourself for it.`)
+      ],
+      choices: [C(`Back.`, "allied_hub")]
+    }),
+
+    hostile_open: N("narrator", `She is at the barrier at the head of the ration queue, ramrod straight, with a clipboard and a face like a lacquered box. A cordon of cadets stands behind her in the red-brown. The loudspeaker on the third lamp-post is playing the Jubilee March, a bar behind itself, and she is keeping the beat with one finger on the clip.\n\nWhen she sees you she does not smile and does not frown. She makes a small mark on the clipboard. "Thursday," says Rhea Vantage. "I told you that you had until the Bell. I'm told that's tonight. I wonder what you'll do with the last ten hours."`, {
+      interjections: [
+        I("empathy", 3, `Underneath the lacquer she looks tired. Not afraid. Tired, the way a very good machine is tired just before the part wears through.`),
+        I("authority", 4, `SHE IS ON DUTY. SHE IS ARMED WITH FORTY CADETS AND A CLIPBOARD. DO NOT DUEL HER HERE.`),
+        I("instinct", 4, `She has a card in her cap. A very small corner of paper, folded. You don't know why you notice. You do.`, { cond: "flag.rhea_exposed" })
+      ],
+      choices: [
+        C(`'Rhea. I'd like to talk.'`, "hostile_talk"),
+        C(`Walk on.`, "hostile_leave")
+      ]
+    }),
+
+    hostile_leave: N("narrator", `You walk on. She watches you go with an expression you cannot read, and makes another small mark on the clipboard.`, {
+      onEnter: [{ surv: 2 }],
+      choices: [X(`Go.`)]
+    }),
+
+    hostile_talk: N("rhea", `"Talk." She looks at the clock on the Relay. "I have six minutes. The Inspector is very precise." She lowers her voice. "I've been told to detain persons of interest at nineteen-thirty. You're on the list. It's alphabetical, so you're quite near the end, which is a mercy."\n\nHer eyes meet yours. "I don't enjoy it. I want you to know. I think the world is better with fewer people in it who think they know best. I include myself."`, {
+      onEnter: [{ xp: 1 }],
+      interjections: [
+        I("dialectics", 4, `"The world is better with fewer people who think they know best, and I am one of them." That's a contradiction in a hat. Pull the thread.`),
+        I("empathy", 4, `She has said the most honest thing she's ever said to you, and she hasn't noticed.`)
+      ],
+      choices: [
+        K(`[Dialectics] 'If you include yourself, then you have to stop. Say what that costs.'`, "dialectics", 14, "rhea_d3_hostile_dial", "hostile_pass", "hostile_fail", { w: 1 }),
+        K(`[Empathy] Say 'Big Sister' and watch her face.`, "empathy", 13, "rhea_d3_hostile_emp", "hostile_pass", "hostile_fail", { w: 1, cond: "flag.rhea_homes || flag.rhea_exposed" }),
+        C(`'I'll be in the Hall at eight. Come and arrest me there.'`, "hostile_defy"),
+        C(`'Forget it.'`, "hostile_leave")
+      ]
+    }),
+
+    hostile_pass: N("rhea", `Her pen stops. The clipboard lowers by an inch. For a long, long moment she looks like a girl standing at the edge of a swimming-pool. Then, in a voice you have never heard, she says: "Say that again."\n\nYou do. She listens. Her jaw works. When she speaks she is not looking at you, but at the Relay, at the thin red aerial and the sky behind it.\n\n"Ostrov said the same thing." She closes the clipboard. "I'll have to take off the armband for this. And I'll want to sit down."`, {
+      onEnter: [{ set: "rhea_turned", val: true }, { xp: 5 }, { morale: 2 }, { thought: "th_loyal_rhea" },
+        { note: "task_rhea2", text: "Rhea heard her own sentence handed back to her and stopped. She is taking off the armband. She wants to sit down." }],
+      choices: [C(`Sit with her.`, "turned_open")]
+    }),
+
+    hostile_fail: N("rhea", `"You're very clever," says Rhea, and makes a small mark on the clipboard. "It's a pity. I really did like you." She does not raise her voice. "Six minutes. I'd suggest you use them to go somewhere quiet."\n\nShe turns away. You have said something, and she has heard it, and has put it in a drawer marked Later. There may not be a Later.`, {
+      onEnter: [{ surv: 6 }, { set: "rhea_hostile", val: true }],
+      choices: [X(`Go.`)]
+    }),
+
+    hostile_defy: N("rhea", `A brief, hard smile. "The Hall. At eight." She writes it on the clipboard. "I'll be there." A pause. "I'd rather you weren't."\n\nShe says it without malice, almost with tenderness, the way a doctor says it to a patient who has refused the treatment. She does not touch her whistle. She turns back to her queue.`, {
+      onEnter: [{ set: "rhea_hostile", val: true }, { surv: 8 }, { xp: 1 }],
+      choices: [X(`Go.`)]
+    }),
+
+    ready_again: N("rhea", `Rhea is not at the barrier. She is at the far end of the avenue, standing at ease with her squad in a ragged line, giving what looks like a stern lecture and is, you realise as you pass, a long list of names: each cadet, one by one, saying something small aloud: a village, a mother, a favourite food. A boy with a bad back says 'bread' in a voice you can hear from here.\n\nShe sees you. She does not stop what she is doing. She lifts two fingers to the peak of her cap, and goes on.`, {
+      interjections: [
+        I("empathy", 4, `She is teaching them to say who they are. It's the first lesson the Vanguard never taught.`),
+        I("solidarity", 4, `We hold the doors with them. It is the strangest and best thing we've ever planned.`)
+      ],
+      choices: [X(`Go.`)]
+    })
+  }
+},
+
+// =====================================================================
+marr_d3: {
+  title: "Principal Odalys Marr",
+  start: [
+    { cond: "flag.marr_ready", node: "ready_again" },
+    { cond: "flag.marr_turned", node: "turned_open" },
+    { node: "cold_open" }
+  ],
+  nodes: {
+    cold_open: N("marr", `"Ah. The student who looks. Sit, if you must." Principal Marr does not rise. The office is the colour of a cold pea, the desk is clear but for a stack of printed forms, three pens in a row, and a seal. The Warden's portrait looks down from the wall with the benign, listening expression of a man who is paid to.\n\n"It is the Jubilee," she says. "Every child in the district will sign the Pledge before the Bell. 'I will remember this day as one of gladness.' It is a modest request. It is a request, I am told, that history will find entirely reasonable." She slides a form across the blotter. "I have signed four hundred and six this morning. My wrist is quite tired."`, {
+      interjections: [
+        I("empathy", 3, `Her hand is cramping. She hasn't noticed. She has been signing for six hours and each signature is a very small neat apology.`),
+        I("senses", 4, `A locked drawer, bottom left. A key on a ribbon at her throat. Beside the blotter a pencil, sharpened at both ends: a woman who has stopped trusting the one.`, { effects: [{ set: "marr_drawer_seen", val: true }] }),
+        I("doublethink", 3, `A pledge! A modest request! We love a form. We should sign it, shouldn't we? It would be the simplest, nicest thing.`)
+      ],
+      choices: [C(`'Principal.'`, "hub")]
+    }),
+
+    hub: N("marr", `"Do go on." She has put her glasses back on, and behind them her eyes are two small clean rooms. "I find that students always come to me with something they would rather say to a window."`, {
+      interjections: [
+        I("volition", 4, `She is tired. Do not take the tiredness for weakness. A tired Marr is merely a Marr who has stopped pretending to have time.`)
+      ],
+      choices: [
+        C(`'The Pledge. What happens if I don't sign?'`, "pledge", { cond: "!flag.marr_pledge" }),
+        C(`'Inspector Voss. What does he want from you?'`, "voss", { cond: "!flag.marr_voss3" }),
+        C(`'The drawer. The one with the key on the ribbon.'`, "drawer", { cond: "flag.marr_drawer_seen && !flag.marr_drawer_open" }),
+        C(`'You signed the muzzle on the Great Bell. I saw the tag.'`, "muzzle", { cond: "flag.tower_marr_signed && !flag.marr_muzzle" }),
+        C(`'Tonight. Will you be at the Hall?'`, "ready_cold", { cond: "flag.marr_drawer_open && !flag.marr_ready" }),
+        X(`'Nothing, Principal.'`)
+      ]
+    }),
+
+    pledge: N("marr", `"What happens." She takes off her glasses and polishes them. "In practice? Nothing. A mark. A small neat mark in a column. In theory, a student who does not pledge to remember the Jubilee as glad is a student who has declared an intention to remember it otherwise, which is, you will agree, an unusual intention." She puts the glasses back. "It is not a threat. I am describing a mechanism."\n\nShe nudges the form an inch toward you. "I would prefer you signed. I would prefer a great many things."`, {
+      onEnter: [{ set: "marr_pledge", val: true }, { xp: 1 }],
+      interjections: [
+        I("archive", 4, `The Jubilee Pledge is a legal instrument, Annex C of the Quiet Hours Act. It is also, if you read the small print, an advance waiver of the right to recall the event.`),
+        I("dialectics", 4, `"Remember this day as gladness." A person cannot be required to remember gladness. They can only be required to forget everything else.`)
+      ],
+      choices: [
+        C(`Sign it.`, "pledge_sign"),
+        C(`Slide it back, unsigned.`, "pledge_refuse")
+      ]
+    }),
+
+    pledge_sign: N("marr", `You sign. She takes it and blots it with the soft pad, and her face does something swift and complicated that is gone before you can name it.\n\n"Thank you," she says, a shade too carefully. "That is... most conscientious." She files it. Her hand, as it passes over the pile, pauses; she looks as if she might say something. She does not.`, {
+      onEnter: [{ ideo: "quiet", n: 1 }, { surv: -8 }, { morale: -1 }, { set: "marr_signed_pledge", val: true }],
+      interjections: [
+        I("empathy", 5, `She didn't want you to sign. She's relieved you did, and ashamed of the relief. It's a very full face.`)
+      ],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    pledge_refuse: N("marr", `She regards the form lying between you and does not take it back. For a long moment nothing happens.\n\n"Ah," she says. "I see. Yes." The faintest crease between her brows. "I have signed four hundred and six. You are, I believe, the first to refuse. I'll note it as 'deferred'." She writes it. It is a very kind word. It is the word that will be used at your hearing.`, {
+      onEnter: [{ ideo: "undercurrent", n: 1 }, { surv: 5 }, { xp: 1 }],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    voss: N("marr", `"The Inspector." She says it like a weather front. "He is, I understand, my supervisor, in the sense that the tide is the supervisor of the harbour. He arrives at seven, to audit the Hall. A sound-check at six-thirty, the choir, the microphone, the patch. He is meticulous. He was, I'm told, once rather a gifted man."\n\nShe taps a pen on the blotter. "I'll tell you something, since you ask so nicely. He has never once raised his voice to me. That is not a courtesy. It's the way a tailor measures a dead man."`, {
+      onEnter: [{ set: "marr_voss3", val: true }, { set: "marr_gave_schedule", val: true }, { xp: 2 }, { note: "task_jubilee", text: "Marr says Voss audits the Hall at seven: choir, microphone and patch. Sound-check at six-thirty." }],
+      interjections: [
+        I("rhetoric", 4, `A tailor measures a dead man. She's very good. She is also, in her own way, saying: I know what's in the suit.`),
+        I("instinct", 4, `She's warning you. Under the polish, she's telling you where the Inspector will be and when. She doesn't know she is.`)
+      ],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    muzzle: N("marr", `Her pen stops. "The bell." It comes out softly. "Yes. I signed that. It's a form, 'Control of Striking, District Bells'. It came by courier on Tuesday with a note saying it was a courtesy. I read it twice. And then I signed it, in this chair, with that pen." She looks at the pen. "It is such a very small thing, a pen. It took no effort at all."\n\nShe replaces it very precisely in the row. "I have been signing things for nine years, student. I have never once been asked whether I minded. It would be a great relief to be asked."`, {
+      onEnter: [{ set: "marr_muzzle", val: true }, { xp: 2 }],
+      interjections: [
+        I("empathy", 5, `"It would be a great relief to be asked." She has just told you what she wants. It is the most naked sentence she has ever said.`),
+        I("volition", 4, `Ask. Not as an interrogator. Ask as a person. Ask whether she minds.`)
+      ],
+      choices: [
+        C(`'Do you mind, Principal?'`, "mind"),
+        C(`Leave it.`, "hub")
+      ]
+    }),
+
+    mind: N("marr", `The office is entirely silent. A pigeon outside the window thinks better of it. The clock on the wall clears its throat and doesn't go on.\n\n"Yes," says Principal Marr. It comes out as a single dry syllable, like a leaf. "Yes. I mind."\n\nShe sits with her hands flat on the blotter, looking at them, as if they had belonged to someone else and been returned. Then, without looking up, she reaches for the ribbon at her throat and draws it over her head. On the end of it hangs a small brass key.`, {
+      onEnter: [{ set: "marr_minded", val: true }, { xp: 3 }, { morale: 1 }],
+      interjections: [
+        I("empathy", 5, `Look at what she's doing. She's decided. She doesn't know it yet; her hands do.`)
+      ],
+      choices: [C(`Take the key.`, "drawer_open", { effects: [{ set: "marr_drawer_open", val: true }] })]
+    }),
+
+    drawer: N("marr", `Her hand goes to the ribbon at her throat before she can stop it. "That," she says. "That is a private drawer. Principals are permitted one." Her voice has dropped by a very small fraction. "There is nothing in it you will find useful."\n\nShe is lying. She does it well, and for the first time since you walked in, she does not meet your eye.`, {
+      onEnter: [{ xp: 1 }],
+      interjections: [
+        I("instinct", 4, `She is terrified of that drawer. It isn't a secret she's hiding. It's one she cannot bear to open herself.`),
+        I("empathy", 4, `Whatever's in it has her handwriting on it. It is the saddest kind of evidence: the kind you wrote yourself.`)
+      ],
+      choices: [
+        K(`[Empathy] 'You don't have to open it. You only have to stop locking it.'`, "empathy", 12, "marr_d3_drawer_emp", "drawer_open", "drawer_fail", { w: 1 }),
+        K(`[Archive] Quote her a regulation: private papers must be inventoried at the end of every term.`, "archive", 11, "marr_d3_drawer_archive", "drawer_open", "drawer_fail", { w: 1 }),
+        K(`[Rhetoric] 'What would you say to the woman who put it there?'`, "rhetoric", 12, "marr_d3_drawer_rhet", "drawer_open", "drawer_fail", { w: 1 }),
+        C(`Leave it.`, "hub")
+      ]
+    }),
+
+    drawer_fail: N("marr", `"That will do." The cold comes down like a blind. "A private drawer is a private drawer. I think we have, ah, exhausted the subject." She picks up the pen, and her hand is not quite steady. "I am very busy. You will excuse me."\n\nIt is not a dismissal. It is a plea.`, {
+      onEnter: [{ surv: 3 }],
+      choices: [C(`Back off.`, "hub")]
+    }),
+
+    drawer_open: N("narrator", `The key turns easily. It has been oiled. Inside, tied in tidy bundles with black ribbon, are letters: dozens, perhaps a hundred, each in a cream envelope with the same four words on the front, in a small, neat, upright hand: DEAR ODALYS. PLEASE READ.\n\nEvery one of them is sealed.`, {
+      onEnter: [{ set: "marr_drawer_open", val: true }, { xp: 2 }, { thought: "th_double_agent" }],
+      interjections: [
+        I("archive", 4, `Nine years of Thursdays. Fifty-two a year, less holidays. A hundred and sixteen letters. Not one opened.`),
+        I("empathy", 5, `Every Thursday she writes to herself, and every Friday she forgets she did. The Bell takes the letter with the rest.`),
+        I("the_grey", 4, `A drawer in an office in a school. A hundred and sixteen small attempts to remember. The paper is soft where a thumb has gone over the seals, and not once broken them.`)
+      ],
+      choices: [C(`'Why have you never read them?'`, "why_unread")]
+    }),
+
+    why_unread: N("marr", `"I don't know that they exist." She says it quietly, to the open drawer. "Not on a Friday. On a Friday I find the key on a ribbon round my neck and I think it's a keepsake. I find a drawer I never open, and I think it's a drawer. On Thursday, at about five, I find the pen in my hand and a sheet of cream paper in front of me and a very strong feeling that there is something to be said. I write it. I seal it. I lock it. And then the Bell comes, and by morning I have never written a thing in my life."\n\nShe looks up. "I am the longest-serving rebel in the district, student. I have never once remembered it."`, {
+      onEnter: [{ xp: 3 }, { morale: -1 }],
+      interjections: [
+        I("empathy", 5, `Nine years of resistance, forgotten each night. It is the most heroic and the most wasted thing you've ever heard of.`),
+        I("rote", 3, `THE LONGEST-SERVING REBEL IN THE DISTRICT. (This is not in the Orthodoxy. We think it should be.)`)
+      ],
+      choices: [
+        C(`'Read one. Now. Out loud.'`, "letters"),
+        C(`'You don't have to.'`, "hub")
+      ]
+    }),
+
+    letters: N("narrator", `She chooses one from the top of the pile. The date on the envelope is last Thursday. She breaks the seal, and the sound is very loud in the green room, like a small bone.\n\nThe letter is one page. She reads it aloud in her precise, even Principal's voice, and as she reads, the voice begins, very slightly, to fail.\n\n"Dear Odalys. Don't. They will tell you it is for the children. It is for the tape. You were a teacher once; you taught a boy called Ostrov to read the small print. He is going to be killed in the gym on Tuesday and you are going to pass on the name of the room. Don't. I am sorry. I have written this every Thursday for nine years and I know that you will not read it. Please read it. Please. Odalys."`, {
+      onEnter: [{ set: "marr_letters3", val: true }, { xp: 3 }, { morale: -2 }, { thought: "th_last_assembly" }],
+      interjections: [
+        I("empathy", 5, `Last Thursday: a full week before the gym. She knew the order was coming, and wrote to herself about it, and the Bell took the warning with the rest. She always knows. She just cannot hold it overnight.`),
+        I("deduction", 5, `"You are going to pass on the name of the room." So the order came to her, and she relayed it. She is the hinge on which Ostrov's door swung.`),
+        I("grit", 5, `She just read aloud the fact of her own part in a man's death, in her own handwriting, on the wrong day. Do not look at the window. Look at her.`)
+      ],
+      choices: [C(`Stay with her.`, "turn")]
+    }),
+
+    turn: N("marr", `She folds it along its creases and sets it on the blotter, squared to the edge. When she lifts her head she is a different shape: smaller, plainer, and more upright.\n\n"I passed on the name of the room," she says. "I signed the order for the gym lights to be switched off at one-thirty. I told myself it was an administrative matter." She takes off her glasses. "I have been very good at being useful. I would like, now, to be something else for a few hours, before the Bell tidies it up."\n\nShe opens a second drawer, takes out a stamped card, a laminated pass with a photograph of someone almost you, and lays it on the blotter. "The Relay. Visitor class. It's for 'maintenance, inspection or lunch'. I find that I would like very much to arrange a lunch."`, {
+      onEnter: [{ set: "marr_turned", val: true }, { give: "relay_pass" }, { set: "relay_access", val: true }, { task: "task_marr", state: "done" }, { xp: 5 }, { morale: 2 }, { surv: -4 },
+        { note: "task_marr", text: "Marr read her own letter aloud and turned. She gave me a Relay visitor pass. She would like to arrange a lunch." }],
+      interjections: [
+        I("authority", 4, `A Principal turned. That is not a school, it is a castle with a door and a key. Be careful of the weight.`),
+        I("solidarity", 4, `We would like to say welcome. We would like to say it very gently, and then give her something to do.`)
+      ],
+      choices: [C(`'Thank you, Principal.'`, "ostrov_letter")]
+    }),
+
+    turned_open: N("narrator", `The Warden's portrait has been taken down. It leans against the wall by the window, face to the plaster, and where it hung there is a pale rectangle on the green paint, perfectly clean. On the desk are three pens, and for the first time they are not in a row.\n\nPrincipal Marr is standing at the window with a cigarette, which she is not smoking: she is holding it, a long white thing between two fingers, and watching the Courtyard with the expression of a woman who is trying to remember the shape of the sky.\n\n"Student," she says. "I'm told the Jubilee is in eleven hours. I should like to be useful."`, {
+      interjections: [
+        I("empathy", 3, `She isn't smoking it. She's holding it the way you'd hold a hand.`),
+        I("senses", 3, `Dust, a little. The room is airier. Without the portrait the microphone's absence is a draught.`),
+        I("doublethink", 3, `Oh dear. Oh no. We are going to miss the portrait. It was so very attentive.`)
+      ],
+      choices: [C(`'There's something you wanted to give me.'`, "turned_hub")]
+    }),
+
+    turned_hub: N("marr", `"Several things," says Principal Marr. She turns from the window. She looks remarkably well, for a woman who has, within two days, dismantled the whole of her profession. "Ask."`, {
+      choices: [
+        C(`'The letter you never sent.'`, "ostrov_letter", { cond: "!flag.marr_letter_given" }),
+        C(`'Read me one of the Thursday letters.'`, "letters", { cond: "!flag.marr_letters3 && flag.marr_drawer_open" }),
+        C(`'What will you do at eight?'`, "ready_cold", { cond: "!flag.marr_ready" }),
+        X(`'Nothing, Principal. Thank you.'`)
+      ]
+    }),
+
+    ostrov_letter: N("marr", `"There is one more." She takes it from the inner pocket of her jacket: a single cream envelope, addressed in the neat upright hand: TO OSTROV DANE. UNSENT.\n\n"I wrote it on Wednesday night," she says. "In the dark, so I would not see the words. It says that I am sorry and that I am a coward. It says that I passed on a room number and kept the receipt." She holds it out. "I should like it read at the Jubilee, if there's a place for it. Or put with the Ledger. Or burnt, in front of me. I find I have no preference, as long as it isn't me who decides."\n\nShe lights the cigarette at last, with a steady hand, in the school office, for the first time in fifteen years. The smoke goes up past the pale rectangle on the wall, and nothing happens. Nothing happens at all.`, {
+      onEnter: [{ set: "marr_letter_given", val: true }, { set: "marr_letter", val: true }, { xp: 3 }, { morale: 2 }, { thought: "th_burned_paper" }],
+      interjections: [
+        I("empathy", 5, `Dear Ostrov. Unsent. It's addressed to a dead man, and it's the most honest thing she's ever written. Keep it safe.`),
+        I("authority", 4, `A confession in your pocket is a weapon and a burden. Decide what to do with it before eight.`),
+        I("appetite", 2, `She lit it. I never thought I'd feel so happy about a cigarette that isn't mine.`)
+      ],
+      choices: [C(`'I'll keep it safe.'`, "turned_hub")]
+    }),
+
+    ready_cold: N("marr", `"At eight." She considers it with the care she gives the weather. "At eight, I am supposed to be on the dais, at the Inspector's left hand, in my good suit. I am to say a few words about discipline. I have a text."\n\nShe takes it from the blotter and tears it down the middle, evenly, with a clean ripping sound. "I shall be on the dais. I shall not say those words. I shall say, if I can find them, a different few. And I shall see to it that the attendance register is mislaid, the doors to the Hall are propped open, and the Inspector's chair is a good way from the microphone." She puts the halves in the bin. "It is not very much. It is, for me, practically a coup."`, {
+      onEnter: [{ set: "marr_ready", val: true }, { xp: 4 }, { morale: 3 }, { surv: -3 },
+        { note: "task_jubilee", text: "Marr will sit on the dais at eight and not read the Ministry's text. The register will go missing, the Hall doors will be propped open, and Voss's chair will be a long way from the mic." }],
+      interjections: [
+        I("authority", 4, `The Principal's authority over the Hall is the one real power in the building. She's just lent it to you.`),
+        I("charm", 4, `A woman tearing up a speech is the most beautiful sound in a school.`)
+      ],
+      choices: [C(`'Thank you, Principal.'`, "ready_again")]
+    }),
+
+    ready_again: N("marr", `Principal Marr is writing. She doesn't look up, but she has left her glasses off, and the pen moves with an unfamiliar rhythm, slower, less sure: the pen of a woman writing something that isn't a form.\n\n"The Thursday letter," she says, to the paper. "I thought I should write it early, today. In case I'm needed." A small, dry noise that might be a laugh. "It begins, 'Dear Odalys. Do.'"`, {
+      interjections: [
+        I("empathy", 5, `Dear Odalys. Do. It is the only letter that matters and she has written it. You will keep it for her.`)
+      ],
+      choices: [X(`'See you at eight, Principal.'`)]
+    })
+  }
+},
+
+// =====================================================================
+anka_d3: {
+  title: "Mother Anka",
+  start: [
+    { cond: "flag.anka_ready", node: "ready_again" },
+    { cond: "flag.cell_active || flag.ledger_with_anka || flag.verdict_ledger", node: "briefing_open" },
+    { node: "thin_open" }
+  ],
+  nodes: {
+    briefing_open: N("anka", `The chairs are in a circle again, the unsanctioned ones, and for once somebody has swept. A dozen tin mugs stand on the planning table in a row. The kettle sings. On the boiler door, in yellow chalk, is a list in a hand you know: names and times, and beside each a single word. SOUP. TYPEWRITER. VALVES. DOOR. TRAM. PIPES.\n\n"Sit," says Mother Anka. She does not look up from the list. "This is the last briefing. Tomorrow I will not remember giving it, and tomorrow's you will not remember hearing it, and we shall both have to be taught by our sleeves." She taps the chalk. "So we do it properly. Ten minutes. Tea first."`, {
+      interjections: [
+        I("solidarity", 3, `A circle of chairs. A list. A kettle. This is the whole of our army and it is perfect.`),
+        I("empathy", 4, `She is not tired today. She is something quieter, with its sleeves rolled. A woman who has finally been given the day she planned for.`),
+        I("archive", 3, `Eleven names on the door. Last week it was nine. The Undercurrent is growing at the unheard-of rate of two persons a fortnight.`)
+      ],
+      choices: [C(`Sit and take the tea.`, "hub")]
+    }),
+
+    thin_open: N("anka", `The chairs are in a circle and nobody is sitting in them. There are fewer mugs than there should be. Mother Anka is at the table alone with a cigarette and a very small stack of paper, and the kettle sings to nobody.\n\n"Ah," she says. "The student. I'd hoped you might come by before the end of the world." She waves at the chairs. "As you see, the Undercurrent is in a state of recess. Without the book, a cell is only a tea party. People came on Tuesday and Wednesday. They are afraid, and they are right to be, and they are in the Library and the kitchen and the street, holding what they can."`, {
+      interjections: [
+        I("empathy", 4, `She's not angry. She's too old and too practical. She is looking at the Ledger-shaped hole in the table.`),
+        I("deduction", 4, `No copies in progress. No typewriters in the room. The cell never got the proof. It has been waiting for you, and you have not come.`)
+      ],
+      choices: [
+        C(`[Give her the Ledger.] 'Here. Please. It's yours.'`, "hand_now", { cond: "has('ledger')" }),
+        C(`'I haven't got it. Not with me.'`, "hub", { cond: "!has('ledger')" }),
+        C(`'Tell me what's left.'`, "hub")
+      ]
+    }),
+
+    hand_now: N("anka", `She does not take it at once. She puts her palms flat on the table on either side of it. Her chin comes up. She looks at the green cloth book, at the nervous handwriting, at you, and her face, which is a very old and very dry face, does something it has not done in public for thirty years.\n\n"It will be copied tonight," she says. "Nine times. Nine typewriters. Before the Bell. I have a woman in the mills who types eighty words a minute with her eyes closed." She picks it up as you pick up a sleeping child. "Thank you. I know you wanted to keep it. It is a very heavy thing to hand over. It's heavier to carry."`, {
+      onEnter: [{ take: "ledger" }, { set: "ledger_with_anka", val: true }, { set: "cell_active", val: true }, { xp: 5 }, { morale: 2 }, { ideo: "undercurrent", n: 2 }, { task: "task_anka", state: "done" }, { thought: "th_chosen_family" },
+        { note: "task_anka", text: "Handed the Ledger to Mother Anka on Thursday morning. She will have it copied nine times before the Bell." }],
+      interjections: [
+        I("volition", 4, `You did it. A day late, perhaps, but it counts.`),
+        I("solidarity", 4, `We are the cell now. We are an actual cell. We have an actual book.`)
+      ],
+      choices: [C(`Sit and take the tea.`, "hub")]
+    }),
+
+    hub: N("anka", `"Ask, and be quick," says Mother Anka, and pours. "A briefing is a conversation that has been told the time. I find that students always have exactly one question more than I have minutes."`, {
+      interjections: [
+        I("authority", 4, `Briefing is the Undercurrent's drill. Treat it as one.`),
+        I("senses", 3, `A smell of hot pipe, chicory, old cigarette, a little chlorine from the sink. The room is working.`)
+      ],
+      choices: [
+        C(`'Who are the eleven? What does each one do?'`, "eleven", { cond: "!flag.anka_eleven" }),
+        C(`'What about the Ledger? What happens to the copies?'`, "copies", { cond: "(flag.cell_active || flag.ledger_with_anka) && !flag.anka_copies" }),
+        C(`'The Inspector. Has he been here?'`, "voss", { cond: "!flag.anka_voss3" }),
+        C(`'The pipes. What did you mean by PIPES?'`, "pipes", { cond: "!flag.anka_pipes_asked" }),
+        C(`'Tell me about Ostrov, as a boy.'`, "ostrov", { cond: "!flag.anka_ostrov3" }),
+        C(`'What happens to us tomorrow, when the Bell takes this?'`, "sleeve", { cond: "!flag.anka_sleeve_done" }),
+        C(`'I could take the tram, Anka.'`, "tram", { cond: "!flag.anka_tram3" }),
+        C(`'At eight. What can the cell do?'`, "ready", { cond: "flag.anka_pipes_asked && !flag.anka_ready" }),
+        X(`'That's enough for now.'`)
+      ]
+    }),
+
+    eleven: N("anka", `She counts them off on fingers stained with nicotine and chalk. "Bronka. Bread: she has four hundred loaves and a note in each. Ysolde, in the Library: paper, and the Forbidden Stacks. Quill: history, a reading-room and a cough. Gregor, on the avenue: valves, solder and discretion. Nadia: the tram. Tomas, at the Relay, who doesn't yet know he's one of us. Wren: the legs. Osk," she hesitates, "if he'll have us. A boy in the Vanguard who doesn't know what he's become. Your Ilsabet: she's the first of the next lot. And myself."\n\nShe taps the table. "That is eleven. Somebody is always about to become twelve."`, {
+      onEnter: [{ set: "anka_eleven", val: true }, { xp: 2 }],
+      interjections: [
+        I("archive", 3, `Bronka, Ysolde, Quill, Gregor, Nadia, Tomas, Wren, Osk, a boy, Ilsabet, Anka. It's eleven. It's also a seating plan.`),
+        I("empathy", 5, `She said "if he'll have us" about Osk, and her mouth went still. She is thinking of the corridor with the mop. She will not mention it.`, { cond: "flag.osk_scapegoat" }),
+        I("solidarity", 4, `Eleven. Look at us. We are a Thursday.`)
+      ],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    copies: N("anka", `"Nine," she says. "A woman in the mills types it onto onion-skin. A man in a post office at Gravel Cross has a franking machine and a talent for indifference. A girl on the tram line. A priest who is not, strictly, a priest. They go out in nine suitcases on the night tram, and by Saturday it is in nine provinces, in handwriting, in the margins of the Catechism." She pauses. "The Bell cannot reach what isn't in the district."\n\nShe looks at you with great steadiness. "The copies make the Ledger undeletable. They do not make anyone remember. That, my dear, is the other part, and it is yours."`, {
+      onEnter: [{ set: "anka_copies", val: true }, { xp: 2 }, { note: "task_jubilee", text: "Anka will have the Ledger copied nine times and sent out on the night tram. The copies make it undeletable. Making people remember is the other half, and it's mine." }],
+      interjections: [
+        I("rhetoric", 4, `"The Bell cannot reach what isn't in the district." That is the thesis of the Undercurrent, and also, as it happens, a rather beautiful sentence.`),
+        I("archive", 4, `If you hold the relay logbook as well, the copies would have a second witness. Her typists would be glad of a fresh page.`, { cond: "has('relay_log') || flag.relay_log_found" })
+      ],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    voss: N("anka", `She smiles with one side of her mouth. "Hale Voss. Yes. He came down this morning at six, alone, in a good coat, with two cups of tea. He sat in that chair. He said, 'Mrs Brodsky, I am going to ask you to go home.' Not an order. A request. He said he would like the whole of this room to go back to its own kitchens and put the kettle on and not think about the Jubilee. He said it'd be kinder to everyone."\n\nShe drinks her tea. "He did not take a name. He didn't need to. He knows them all. He sat there, drank half a cup, and left the other half. I thought: there is a man who is trying to save me from something and cannot tell whether it's the Ministry or himself."`, {
+      onEnter: [{ set: "anka_voss3", val: true }, { xp: 2 }],
+      interjections: [
+        I("empathy", 5, `Two cups of tea. He was in this room for half an hour and he didn't threaten anyone. That frightens her more than a gun.`),
+        I("instinct", 4, `Hale Voss is a man who wants to be talked out of it. He is hoping somebody in the building will.`, { cond: "flag.voss_met" }),
+        I("doublethink", 3, `He was so kind. It's wonderful that a man like that exists. (He exists to dissolve us. Oh, but kindly.)`, { cond: "flag.voss_ally || flag.voss_invited" })
+      ],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    pipes: N("anka", `"Pipes." Her face lights, quite suddenly, with the wicked glee of a chemistry teacher who has been waiting all term to do the practical. "The school's heating was laid in the old Warden's time, with a main trunk running from this boiler to every radiator in every wing. It's iron. It's two inches thick. It is, if you knock on it, the loudest telegraph in the district. We've used it for forty years. Knock twice in the cellar and the Library hears it. Knock a rhythm and it carries from the dormitory to the gym."\n\n"Put a tone down it and it rings the building like a bell," she says. "Every radiator is a speaker. They hum. If you've a sound that wants to be everywhere at once and doesn't want a loudspeaker, that is the cheapest, ugliest, most beautiful way I know."`, {
+      onEnter: [{ set: "anka_pipes_asked", val: true }, { xp: 3 }, { thought: "th_wake_tone" }],
+      interjections: [
+        I("deduction", 4, `The radiators in the dormitory. They hum when the boiler's on. A pipe's an organ. A school's a pipe-organ made of grievance.`),
+        I("the_grey", 4, `YES. Finally. Somebody has noticed that I'm iron and I am connected to everything. I would like to carry this one, please.`),
+        I("senses", 4, `Hob's tapping on the beams. The same beat, on a different pipe. The tower and the cellar could talk if somebody would introduce them.`, { cond: "flag.hob_rhythm" })
+      ],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    ostrov: N("anka", `"Ostrov." She sits back. "He was twelve. In the second row, the clever one, the one who read the small print on the exam. He'd put up his hand and say, 'Mrs Brodsky, the question says "which of the following is NOT"; is that a trick?' And I'd say it was a test of reading, and he'd say, 'Then it's a trick on people who read.' He would have made a very good chemist."\n\n"I told him once that everything is a reaction. That the Union is just a precipitate: dissolved, then settled out of grief. He said, 'Then you could dissolve it again.' I said yes, in principle. And he looked at me with such terrible hope that I changed the subject."`, {
+      onEnter: [{ set: "anka_ostrov3", val: true }, { xp: 2 }, { morale: 1 }],
+      interjections: [
+        I("empathy", 5, `She changed the subject. It is the thing she regrets most. Not what she did. What she did not say to a twelve-year-old.`),
+        I("rote", 3, `EVERYTHING IS A REACTION. (This is not in the Orthodoxy. It is, however, in the Periodic Table, which the Ministry has not yet found a way to ban.)`)
+      ],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    sleeve: N("anka", `"Tomorrow." She does not flinch. "At nine tonight, or at eight if the Jubilee has its way, the Bell will pass over the district like a broom, and in the morning we shall be a lot of nice, hazy persons who have lost an afternoon." She pushes up the sleeve of her lab coat. On the inside of her forearm, in yellow chalk, in a firm round hand, is written: ASK THE STUDENT ABOUT TUESDAY.\n\n"We write it on the skin," she says. "On the forearm, in chalk. It's the one place the Bell has never found. You wake up and you look at your arm, and it says what to do. It's very crude. It has worked for years." She takes a stub of chalk from her pocket and holds it out to you. "Write mine. And let me write yours."`, {
+      onEnter: [{ xp: 2 }],
+      interjections: [
+        I("empathy", 5, `A woman who writes her own instructions on her skin so as not to lose herself. Do it. Take the chalk.`),
+        I("sleight", 4, `Your hand knows how to hold the chalk. Write small. Write neatly. Write something you'll believe.`),
+        I("solidarity", 4, `We are tattooing a revolution in chalk. It's the only kind the Bell can't scrub.`)
+      ],
+      choices: [
+        C(`Write: "ASK ME ABOUT THE LEDGER. IT WAS ME."`, "sleeve_done", { effects: [{ set: "anka_sleeve_ledger", val: true }] }),
+        C(`Write: "YOU WERE BRAVE. THEY WERE KIND. BOTH ARE TRUE."`, "sleeve_done", { effects: [{ set: "anka_sleeve_kind", val: true }] }),
+        C(`Write: "SHE LIKED YOUR TEA."`, "sleeve_done", { effects: [{ set: "anka_sleeve_tea", val: true }] })
+      ]
+    }),
+
+    sleeve_done: N("anka", `She takes your forearm in her cool dry hand and writes along it, in chalk the colour of margarine: WAKE UP. LOOK AT THE BOILER ROOM. ASK THE OLD WOMAN WHY SHE'S SMILING. You hold hers, and write, and the two of you stand for a moment with your arms side by side, chalked, in the yellow light, like two children comparing a summer.\n\n"It'll come off in the wash," she says briskly. "Don't wash." She pulls her sleeve down. "There. We are now, technically, a cell. Eleven chalk arms and a kettle."`, {
+      onEnter: [{ set: "anka_sleeve_done", val: true }, { xp: 4 }, { morale: 3 }, { thought: "th_chosen_family" }],
+      interjections: [
+        I("senses", 4, `Chalk on the skin. It smells of classrooms and of school-chalk, and it's the nicest smell in the world.`),
+        I("volition", 4, `Whatever the Bell takes, this is on your arm. You will wake up and look.`)
+      ],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    tram: N("anka", `"The tram." She sets the kettle down very carefully. "You think I haven't thought of it. Nadia is a thief and a patriot and her tram leaves at twenty-forty. There's a seat for you, if you want it. There is a seat for Wren, and for the clever ones, and a suitcase with the Ledger in it, and a province at the end of the line with different slogans."\n\n"I am not going to tell you to take it. I am not going to tell you to stay." She meets your eye. "I will tell you that I have watched eleven of my best students die brave, and I did not once think that brave was the same as useful. I want you to survive. I want that more than I want a district that wakes. I'm not ashamed of it. I want you to know it's allowed."`, {
+      onEnter: [{ set: "anka_tram3", val: true }, { xp: 2 }],
+      interjections: [
+        I("volition", 5, `It is allowed. Say it to yourself in the voice you'd use to a friend.`),
+        I("grit", 4, `She has said "allowed." It's the heaviest word in the district.`),
+        I("empathy", 5, `She doesn't want you to be a hero. She has wanted that, every day, for thirty years, for every child that walked through that door.`)
+      ],
+      choices: [
+        C(`'If it comes to it, I'll take the seat. Thank you.'`, "hub", { effects: [{ set: "anka_blessed_exit", val: true }, { morale: 1 }] }),
+        C(`'I'm not going anywhere.'`, "hub", { effects: [{ set: "anka_blessed_stay", val: true }, { ideo: "undercurrent", n: 1 }] }),
+        C(`'Ask me again at eight.'`, "hub")
+      ]
+    }),
+
+    ready: N("anka", `"What the cell can do." She taps the chalk on the boiler door, one item at a time. "SOUP: Bronka feeds the district. TYPEWRITER: the Ledger goes out in nine suitcases. VALVES: Gregor stays on the avenue, holding the line. DOOR: Osk, if you've kept him. TRAM: Nadia holds it as long as she can. PIPES." She looks at the last word and her face loosens. "That is me."\n\n"At eight I'll be in this cellar with a wrench on the main, knocking seven, eleven, seven, eleven, on every pipe in the school, as loud as an old woman can. Every radiator in the dormitory, the Library, the gym, the Hall will take it up. If the choir carries the tone and the horns carry the tape and a tower carries the bell, it will want a skeleton to hold on to." She puts the chalk down. "I'll be the skeleton."`, {
+      onEnter: [{ set: "anka_ready", val: true }, { set: "anka_pipes", val: true }, { xp: 5 }, { morale: 3 }, { thought: "th_chosen_family" },
+        { note: "task_jubilee", text: "Anka will be in the cellar at eight with a wrench on the main, knocking seven-eleven on every pipe in the school. Every radiator becomes a speaker." }],
+      interjections: [
+        I("authority", 4, `A cell leader, formally in position, in the one place in the school nobody ever goes. She's thought about this longer than you've been alive.`),
+        I("solidarity", 4, `Skeleton. It is a lovely word. We are all one big, noisy skeleton.`),
+        I("the_grey", 4, `Iron, hot, humming. I will carry it. I will carry it to every room. I have waited a century for a reason.`)
+      ],
+      choices: [C(`'Thank you, Mother Anka.'`, "ready_again")]
+    }),
+
+    ready_again: N("anka", `Mother Anka is under the boiler on her back on a bit of cardboard, her white hair full of dust, doing something to a valve with a wrench. A voice emerges from beneath the machine.\n\n"If you've come to help, hold the lamp. If you've come to worry, go and worry elsewhere; the boiler dislikes it." The wrench clinks. "The tea is on the table. Drink it. A person should have something warm in her before a revolution. I was taught that by a man who didn't have one."`, {
+      interjections: [
+        I("empathy", 4, `She's happy. Quite alarmingly happy. She's finally been handed a wrench.`)
+      ],
+      choices: [
+        C(`Hold the lamp for a minute.`, "ready_again", { effects: [{ xp: 1 }, { morale: 1 }], once: true }),
+        X(`'See you at eight.'`)
+      ]
+    })
+  }
+},
+
+// =====================================================================
+matron_d3: {
+  title: "Matron Pritt",
+  start: [
+    { cond: "flag.matron_ready", node: "ready_again" },
+    { cond: "flag.matron_informs", node: "informer_open" },
+    { cond: "flag.matron_bribed", node: "bribed_open" },
+    { node: "open" }
+  ],
+  nodes: {
+    open: N("matron", `"Stand up straight, dear. It's the Jubilee." Matron Hallow Pritt is on her rounds with a clipboard, a pencil on a string, and a cardigan the colour of boiled ham. Down the dormitory the bunks have been made so tight you could bounce a coupon off them. "Collars. Cuffs. Shoes. I'll be doing you in a minute. And I have your name down for a hot-water ration, which is a very great privilege."\n\nShe gives you the full, slow, ferocious once-over of someone who has been inspecting children for fourteen years and has never once found them satisfactory, and has never once stopped hoping.`, {
+      interjections: [
+        I("senses", 3, `Sherry, very faint, under the lavender. She has had a small one. She has had a small one every morning for fourteen years, and the whole dormitory knows, and it's the kindest thing about her.`),
+        I("empathy", 4, `She looks at each of you the way you'd look at a row of lamps. Checking they're lit.`),
+        I("instinct", 3, `The clipboard. Not the one on top. The one beneath it: a fat green book, stubby corners worn, which she touches twice for luck each time she turns a page.`)
+      ],
+      choices: [C(`'Matron.'`, "hub")]
+    }),
+
+    bribed_open: N("matron", `"Ah, there you are." She makes a small neat tick in the margin of the clipboard, and her whole face does something unauthorised: a very slight softening, like a stiff collar that someone has undone a button on. "My favourite delinquent. I've saved you a cup." There is, on the table by the hotplate, a cup of tea and a biscuit.\n\n"Don't make a fuss. It's Thursday." Her eyes slide, once, toward the fat green book on the shelf and then away. "I've had a funny morning. I've been thinking about footsteps."`, {
+      interjections: [
+        I("empathy", 4, `She likes you. She'd be appalled to be accused of it. A woman who has never had an ally is trying out the word on the inside of her cheek.`),
+        I("appetite", 3, `A BISCUIT. She has saved a biscuit. It's enormous. It's the moral centre of the dormitory.`)
+      ],
+      choices: [C(`Take the tea.`, "hub")]
+    }),
+
+    informer_open: N("matron", `She is waiting at the door with the clipboard and a fixed, pleased little smile, and does not move aside. "There you are. I was just saying to the Inspector's gentleman how very regular you've been in your comings and goings." She tilts her head. "Wednesday, ten past one. Left. Eleven twenty. Returned. Wet shoes."\n\nShe says it with such perfect pleasantness that for a moment you think it is a compliment. "I do like a tidy record. It is such a comfort. I'm told it's going to be needed this evening."`, {
+      onEnter: [{ surv: 3 }],
+      interjections: [
+        I("empathy", 4, `She is not malicious. That's the horror. She believes that a ledger kept faithfully for the right reader is a form of love.`),
+        I("authority", 4, `She's passed your times to Voss's man. You know it. Don't let her see you know it. Make her look at what she's doing.`),
+        I("composure", 4, `Hands still. She notes hands. Everything is noted.`)
+      ],
+      choices: [
+        K(`[Empathy] 'Who do you write it for, Matron? Who's the reader?'`, "empathy", 12, "matron_d3_turn_emp", "turn_pass", "turn_fail", { w: 1 }),
+        K(`[Archive] Quote her the regulation: informers must be bonded, and she hasn't been.`, "archive", 12, "matron_d3_turn_arch", "turn_pass", "turn_fail", { w: 1 }),
+        C(`'Of course, Matron.' Move past her.`, "informer_pass")
+      ]
+    }),
+
+    informer_pass: N("narrator", `You move past her. She lets you. At your back there is the small, round, satisfied sound of a pencil being licked.`, {
+      onEnter: [{ ideo: "quiet", n: 1 }],
+      choices: [X(`Go.`)]
+    }),
+
+    turn_pass: N("matron", `Her smile stays where it was for three seconds after the rest of her has left it. The pencil stops. "Who," she says. "Who is the reader." She says it as though it were a word from another language, and she was just now hearing it spoken by somebody who knew.\n\n"I've never asked," says Matron Pritt. "In fourteen years. I send it to the Office and it goes off in an envelope, and I take it as read that someone's reading. I've never thought: is it a person? Is it, ah, somebody with a face?" She looks at the green book. "I think I might be writing to a drawer."\n\nShe takes a step back from the door.`, {
+      onEnter: [{ set: "matron_informs", val: false }, { set: "matron_turned3", val: true }, { xp: 4 }, { morale: 1 }, { thought: "th_matron_eyes" }],
+      interjections: [
+        I("empathy", 5, `She's afraid, now. Not of you. Of the reader being nobody. Be gentle. She's only just found out what she's been living in.`)
+      ],
+      choices: [C(`Go in.`, "hub")]
+    }),
+
+    turn_fail: N("matron", `"Regulations," says the Matron, with immense and chilly relish. "My dear. I know them all. I was a clerk in the Ministry before they gave me a dormitory." She taps the clipboard. "It's very sweet. It's rather like a child explaining a joke." She shifts, and does not move aside. "I would think about your shoes."\n\nYou cannot get through. You can go round. She watches you do it with her pencil raised.`, {
+      onEnter: [{ surv: 4 }, { morale: -1 }],
+      choices: [X(`Go.`)]
+    }),
+
+    hub: N("matron", `"Well, dear? I haven't all day. I have forty-one pairs of shoes and a Jubilee." She puts the clipboard down on the table and her hand rests on the fat green book without her seeming to notice.`, {
+      interjections: [
+        I("volition", 4, `She is a lonely woman with a fixation. Do not mistake her for a monster; it makes you less careful.`)
+      ],
+      choices: [
+        C(`'Tell me about the ledger. How does it work?'`, "ledger", { cond: "!flag.matron_ledger3" }),
+        C(`'Does it have my name in it?'`, "your_entry", { cond: "flag.matron_ledger3 && !flag.matron_entry" }),
+        C(`'Share a drop of sherry, Matron. It's a hard morning.'`, "sherry", { cond: "!flag.matron_sherry" }),
+        C(`'The first page. What is the first page?'`, "first_page", { cond: "flag.matron_sherry && flag.matron_ledger3 && !flag.matron_first" }),
+        C(`'Could I borrow the ledger? Only for the day.'`, "ask_ledger", { cond: "(flag.matron_first || flag.matron_bribed || flag.matron_turned3) && !has('matron_ledger')" }),
+        C(`'There are names in there that shouldn't be.'`, "burn", { cond: "flag.matron_first && !flag.matron_burned" }),
+        C(`'Tonight. Could the dormitory be left unwatched?'`, "ready", { cond: "!flag.matron_ready && (flag.matron_first || flag.matron_bribed || flag.matron_turned3)" }),
+        X(`'Nothing, Matron.'`)
+      ]
+    }),
+
+    ledger: N("matron", `"The ledger." She fondles the corner. "Who comes in. Who goes out. What they were wearing, what they were carrying, whether they looked left or right at the door. Fourteen years of footsteps. I keep it in three colours: blue for the regular, red for the irregular, green for what I haven't made up my mind about." She smiles with what is very nearly shyness. "Everybody laughs at the green. They shouldn't. It's the only colour that's honest."\n\n"The Office reads the red. I read the lot. I find I can't sleep without it. If I didn't write them down, dear, how would I know I'd been there?"`, {
+      onEnter: [{ set: "matron_ledger3", val: true }, { xp: 2 }, { thought: "th_matron_eyes" }],
+      interjections: [
+        I("archive", 4, `A triple-coded ledger of ingress and egress. In any other country this would be a masterpiece of social science.`),
+        I("empathy", 5, `"How would I know I'd been there?" She isn't spying. She is leaving herself notes, like you, like Marr, like Anka. The whole district is writing to itself.`),
+        I("deduction", 4, `Not "for the Office." She writes for herself first. The Office merely reads her diary. That is a very different crime.`)
+      ],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    your_entry: N("matron", `"Yours?" She leafs through. "Oh, a good many, dear. Blue mostly. A little red." She stops. "Here. Tuesday night. Ten past eleven. Left. Student V., with a parcel, wrapped in a flag. A little, ah, stiff in the gait. In the margin I've written: said 'I'm going to forgive somebody.' I put a green mark. I didn't know what it meant." She turns her head, and for once she looks at you as at a person. "Did you? Forgive somebody?"\n\nYou do not know. Somewhere in the Static there is a lit window, and you were on the other side of it.`, {
+      onEnter: [{ set: "matron_entry", val: true }, { xp: 3 }, { thought: "th_ghost_of_yesterday" }],
+      interjections: [
+        I("empathy", 5, `"I'm going to forgive somebody." That's the third note. That is you, in your own voice, in a cardigan's handwriting, from the night you forgot. You were not afraid.`),
+        I("archive", 4, `Entry: Tuesday, 23:10. It's the only independent corroboration of the night. Anka says midnight. Hob has a knot. Now a ledger. Three witnesses and not one of them knew what they saw.`)
+      ],
+      choices: [C(`'Thank you, Matron.'`, "hub")]
+    }),
+
+    sherry: N("matron", `She hesitates, and then, with the exaggerated stealth of a woman who has done it forty times and been seen at each, she opens the third drawer and brings out a small bottle and two enamel mugs. "Medicinal," she says. "For the nerves. Not a word."\n\nIt is dreadful. It tastes of cough-drops and honest regret. She drinks hers in two efficient swallows and sits very upright, a little pink about the ears. "I shall tell you something," she says. "I'm not made for this. I'm made for knitting. But somebody has to look after them."`, {
+      onEnter: [{ set: "matron_sherry", val: true }, { xp: 2 }, { hp: -1 }, { morale: 1 }],
+      interjections: [
+        I("appetite", 3, `Sherry. Cheap, warm, a little frightening. I would like another and would not like to be seen to.`),
+        I("charm", 4, `The Matron has a soft side. Don't poke it. Let her find you at the edge of it.`)
+      ],
+      choices: [C(`Raise the mug.`, "hub")]
+    }),
+
+    first_page: N("matron", `She opens the ledger at the very first leaf, and there is no entry at all. A date, fourteen years old, in a much younger hand: then a name, scored through so hard that the nib has torn the paper. Under it, in small capitals: SOMEONE LEFT.\n\n"I don't know who," she says. "That's why I started. A girl, I think. In my care. Went out one night after the Bell, and in the morning there was a gap in the bunks and a gap in my head, and nobody in the building could say who." She closes her hand over the page. "So I wrote down everyone who came and went. Every one. So that it could never happen again. So that I could always say who."\n\nShe looks at the shut book. "I've never found her. I've found, I think, about eleven thousand other people."`, {
+      onEnter: [{ set: "matron_first", val: true }, { xp: 4 }, { morale: -1 }, { thought: "th_counting_footsteps" }],
+      interjections: [
+        I("empathy", 5, `Fourteen years of watching so she'd never lose another child. The surveillance state's chief informer is a woman keeping a vigil.`),
+        I("the_grey", 4, `A scratched-out name. A gap in the bunks. I carry that one. It is a long way down in the drains and it's still there.`),
+        I("solidarity", 4, `We are all that girl, a little. We are all someone who left, and somebody wrote it down.`)
+      ],
+      choices: [C(`Stay with her.`, "hub")]
+    }),
+
+    ask_ledger: N("matron", `"My book." She does not snatch it back. She holds it to her chest, both arms folded round, and looks at you as if you'd asked for a kidney. "I have never let it out of this room. Not for the Office. They get copies."\n\nThen, slowly: "What would you do with it?"`, {
+      interjections: [
+        I("rhetoric", 4, `Tell her the truth: a record of footsteps is a record of who was where, and where is a thing the Inspector will use.`),
+        I("empathy", 5, `Do not ask for it as a favour. Ask for it as a trust.`)
+      ],
+      choices: [
+        K(`[Rhetoric] 'Put it where Voss can't read it. Put it where it's safe, and put it with someone who writes it too.'`, "rhetoric", 11, "matron_d3_book_rhet", "book_pass", "book_fail", { w: 1 }),
+        K(`[Empathy] 'You've been the only one who wrote down that we were here. Let me carry it for you tonight.'`, "empathy", 10, "matron_d3_book_emp", "book_pass", "book_fail", { w: 1 }),
+        C(`'Never mind.'`, "hub")
+      ]
+    }),
+
+    book_pass: N("matron", `She holds it out. Both hands, like a tray. Her lip trembles and is mastered. "You will bring it back." Not a question. "You will bring it back on the morning, and read me every entry from Tuesday, and tell me who's in it. Because I won't know. I'll have a tidy gap and a ledger in somebody else's handwriting." She presses it into your arms. "It's the only thing I've got. Mind the corners."`, {
+      onEnter: [{ give: "matron_ledger" }, { set: "matron_gave_book", val: true }, { xp: 4 }, { morale: 2 }, { ideo: "undercurrent", n: 1 }],
+      interjections: [
+        I("empathy", 5, `She just handed over her memory. Don't treat it as a trophy.`),
+        I("authority", 3, `Fourteen years of footsteps, indexed. A weapon, or a mercy. Choose which.`)
+      ],
+      choices: [C(`'I'll mind them.'`, "hub")]
+    }),
+
+    book_fail: N("matron", `"No." It comes out kind and absolute. "I'm sorry, dear. You mean well. But I've put my life in it and I'm too old to be talked out of that by a pretty argument." She sets it on the shelf, out of reach. "Come back when you've had your shoes inspected."`, {
+      onEnter: [{ morale: -1 }],
+      choices: [C(`Back off.`, "hub")]
+    }),
+
+    burn: N("matron", `She doesn't ask which. She opens the book at the page for last Tuesday and runs a thick finger down the green column. Her mouth has gone narrow. "The Wren child. The girl in the chair. Corvin Hale, whom I have always disliked. The Brodsky woman, in the cellar." She looks at you. "Fifteen. Sixteen. You've all, ah, turned up as green. I never knew what green meant. I thought it was just a mood."\n\nShe tears the page out. The sound is like a very small thunderclap. She holds it over the hotplate with two fingers and it blackens at the edge and curls and goes. Then she does the next. And the next.\n\n"There," she says. "A tidy gap."`, {
+      onEnter: [{ set: "matron_burned", val: true }, { set: "burned_something", val: true }, { xp: 4 }, { morale: 2 }, { surv: -8 }, { thought: "th_burned_paper" }],
+      interjections: [
+        I("empathy", 5, `She's burning her own life's work, with a steady hand, to protect people she never admitted to liking.`),
+        I("composure", 4, `Smoke. Smoke. The dormitory smells of toast. Nobody will mention it.`)
+      ],
+      choices: [C(`'Thank you.'`, "hub")]
+    }),
+
+    ready: N("matron", `She looks at the long room with its forty-one bunks, and her mouth goes into a line you recognise as a decision.\n\n"At nineteen-thirty I do a roll-call. I will go down the length of the room and say 'All present and correct,' to an empty dormitory, in a firm voice, to the radiator. I will lock the main door from the inside and leave it, in a manner of speaking, unlocked. I will make a very great deal of cocoa. And the green book," she nods to it, "will say, in my own hand, that every child in this room was tucked up at eight."\n\nShe straightens her cardigan. "I have never in my life told a lie in a ledger. It's going to be wonderful."`, {
+      onEnter: [{ set: "matron_ready", val: true }, { xp: 4 }, { morale: 3 }, { surv: -3 }, { thought: "th_chosen_family" },
+        { note: "task_matron", text: "The Matron will log every child as in bed at eight and leave the dorm door unwatched. She'll have cocoa for whoever comes home." }],
+      interjections: [
+        I("slip", 4, `An empty dormitory with a perfect alibi. You couldn't hope for a better stage.`),
+        I("charm", 4, `Cocoa. In a revolution. We would like it on the flag.`)
+      ],
+      choices: [C(`'Thank you, Matron.'`, "ready_again")]
+    }),
+
+    ready_again: N("matron", `Matron Pritt is putting out forty-one mugs. She does it with her own hands, one at a time, along the length of the long table, setting each one on a saucer and turning the handle just so. A pan of milk steams on the hotplate. The room smells of cocoa and carbolic and, faintly, of fear being managed.\n\n"If anyone asks," she says, not turning, "I was never here. I have never been anywhere. I'm a dormitory." She straightens a mug. "Go on, dear. I've a great deal of nothing to be doing."`, {
+      choices: [X(`'See you after.'`)]
+    })
+  }
+},
+
+// =====================================================================
+dov_d3: {
+  title: "Dov Kessel",
+  start: [
+    { cond: "flag.dov_ready", node: "ready_again" },
+    { cond: "flag.dov_leaving", node: "leaving_again" },
+    { cond: "flag.dov_ally", node: "ally_prev" },
+    { node: "open" }
+  ],
+  nodes: {
+    ally_prev: N("dov", `"Don't look at me like that." Dov is sitting on the footlocker with the lid up and the parcels out, counting a stack of forged passes into sixteen neat heaps. "I was going to be on the tram. I had a seat. I had a hat." He licks his thumb. "And then I thought: who's going to hand these out? Nadia? She'd charge. So I'm staying, till the last one's on. Twenty past eight, the platform. I want it noted that it's your fault."\n\nHe presses a pass into your hand without looking. "On the house. Don't read anything into it. I'm a dealer. We do not do sentiment. We do goodwill, which is different, and has a much better margin."`, {
+      onEnter: [{ set: "dov_ready", val: true }, { give: "forged_pass" }, { set: "dov_free_pass", val: true }, { xp: 3 }, { morale: 2 }, { thought: "th_chosen_family" },
+        { note: "task_dov", text: "Dov is staying. He'll be on the tram platform at 20:20, handing out sixteen free passes, until Nadia rings the bell." }],
+      interjections: [
+        I("empathy", 4, `A man who was always early has decided to be on time. It's the bravest thing he's ever done and he has priced it as a favour.`),
+        I("sleight", 3, `Sixteen heaps. Sixteen names. The stamps are perfect.`)
+      ],
+      choices: [C(`'Thank you, Dov.'`, "ready_again")]
+    }),
+
+    open: N("dov", `"Don't touch the blue box. Touch the blue box and I'll have to charge you for the privilege of having touched it." Dov Kessel is kneeling on the floor of the dormitory in his shirtsleeves with the footlocker open, packing: shirts rolled like cigars, a tin of boot-polish that is not boot-polish, three kilos of brown paper parcels each with a price pencilled on it in his looping hand. He doesn't look up.\n\n"It's Thursday," he says, "and I have a theory about Thursdays. They are the day before the day the district wakes up and discovers it has been burgled. I would like to be in a different postcode when that happens. Don't make a face. I'm not running. I'm relocating, with commercial intent."`, {
+      interjections: [
+        I("sleight", 3, `The blue box has a false bottom. The parcels have false labels. The shirts have false pockets. The whole footlocker is a nest of small, helpful lies.`),
+        I("charm", 3, `He's very funny. Don't forget he's also afraid. He's using the first to hide the second, as all the good ones do.`),
+        I("senses", 3, `Tram-ticket glue. Cheap soap. The faint metal of tokens, somewhere. And, under the cigarettes, the smell of a boy who hasn't slept.`)
+      ],
+      choices: [C(`'You're leaving tonight.'`, "hub")]
+    }),
+
+    hub: N("dov", `"Leaving, relocating, expanding into new markets." He closes the lid on a flap of paper and leans on it. "What can I do you for? I give a discount to friends and a lecture to enemies, and I haven't yet decided which you are."`, {
+      choices: [
+        C(`'What've you got?'`, "price_list", { cond: "!flag.dov_prices" }),
+        C(`'Why tonight? Why the tram?'`, "why", { cond: "!flag.dov_why" }),
+        C(`'The brown parcels. What's in them?'`, "parcels", { cond: "flag.dov_why && !flag.dov_parcels" }),
+        C(`'Stay, Dov. We need what you can do.'`, "stay_ask", { cond: "flag.dov_parcels && !flag.dov_leaving && !flag.dov_ready" }),
+        C(`'Fine. Go. Take care of yourself.'`, "let_go", { cond: "flag.dov_why && !flag.dov_leaving && !flag.dov_ready" }),
+        X(`'Nothing. Good luck with the box.'`)
+      ]
+    }),
+
+    price_list: N("dov", `He unfolds a card from his breast pocket, a grubby thing in four colours of pencil. "Menu." He clears his throat. "Tram token, one coupon. Two for a pair, because I'm not a monster. Forged pass, three coupons, and it's the best in the district; Nadia stamps them herself. Cigarettes, by the pair. Reassurance, by the hour. Advice, free, and worth every penny."\n\nHe taps the bottom. "And under 'Other': the thing you actually want. Ask me. It's not on the card."`, {
+      onEnter: [{ set: "dov_prices", val: true }, { xp: 1 }],
+      interjections: [
+        I("archive", 3, `A price list is a political document. Note the "reassurance". Hallmark of the black-market economy: the most valuable good is the one that cannot be forged.`),
+        I("appetite", 3, `Cigarettes. Pairs. I can be brought to the point where I would pay three coupons for the second one.`)
+      ],
+      choices: [
+        C(`[Buy a tram token. One coupon.]`, "hub", { cond: "has('ration_coupon') && !has('tram_token')", effects: [{ take: "ration_coupon" }, { give: "tram_token" }, { toast: "Tram token acquired." }], once: true }),
+        C(`[Buy a forged pass. Three coupons.]`, "hub", { cond: "has('ration_coupon') && !has('forged_pass') && !flag.dov_free_pass", effects: [{ take: "ration_coupon" }, { give: "forged_pass" }, { toast: "Forged pass acquired." }], once: true }),
+        C(`'Fine. Menu noted.'`, "hub")
+      ]
+    }),
+
+    why: N("dov", `"Why tonight." He laughs, and it is a good laugh, quick and white. "Because it's the Jubilee. Because on the evening of the Jubilee every guard in the district is looking at a loudspeaker. The tram stop will have three men on it and every one of them will be watching the sky. You could take an elephant." He sits back on his heels. "Because I'm not brave, you know. I'm early. It's a talent, being early. I have never once been in a building when it burned. I've always, always left five minutes before."\n\nHe is smiling. He is also not looking at you.`, {
+      onEnter: [{ set: "dov_why", val: true }, { xp: 2 }],
+      interjections: [
+        I("empathy", 4, `"I'm not brave, I'm early." He's been saying it for years. It is how he forgives himself for the buildings.`),
+        I("instinct", 3, `A man leaving is trying to tell you something. He is leaving because he'd like to be asked not to.`)
+      ],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    parcels: N("dov", `"Those." He hesitates. His hand goes to the nearest parcel, brown paper and string, with a pencilled 14 on it. "Don't laugh. You can't tell anyone. It would ruin me."\n\nHe opens it. Inside, wrapped in newspaper, are passes: sixteen, in a neat rubber-banded stack, every one a forged district movement pass with a different name in careful blue. Under them, a rank of tram tokens in a twist of cloth. On the slip of paper at the top is written, in his looping hand: FOR THE LITTLE ONES. NO CHARGE.\n\n"Eighty per cent of my stock," says Dov Kessel, in a small flat voice, "is charity. I am the worst dealer in the Union. I've been giving them away since the spring. To the ones who need out. A first-year with a baby sister. A girl whose father was taken. I keep a list. I keep a very short list of reasons I've never been caught, and it's mostly luck."`, {
+      onEnter: [{ set: "dov_parcels", val: true }, { xp: 3 }, { morale: 1 }, { thought: "th_chosen_family" }],
+      interjections: [
+        I("empathy", 5, `The most hardened cynic in the dormitory is a one-man railway for the children of the Hunger Winter. He has hidden it behind a price list.`),
+        I("sleight", 4, `Sixteen forgeries in a stack. The work is exquisite. It's the best work you've ever seen, and he does it for nothing.`),
+        I("solidarity", 4, `We would like to throw our arms around him, and he would charge us for it.`)
+      ],
+      choices: [C(`'You're leaving them.'`, "hub")]
+    }),
+
+    stay_ask: N("dov", `"Stay." He says it like a word in a dead language. "And do what? Get caught? Be a hero? I have a perfectly lovely cowardice, and a seat on a tram." He looks at the parcels. "Who'd get them there? Somebody has to hand these out at the stop. Somebody who knows which child, which stamp. The Union doesn't do it. Nadia's busy being a criminal. It would have to be me. And I'd have to stay until the last one's on."\n\nHe shakes his head. "I am so very, very early."`, {
+      interjections: [
+        I("rhetoric", 4, `He's already thought it through. The only thing missing is permission.`),
+        I("empathy", 4, `Don't tell him to be brave. Tell him he's already been.`),
+        I("solidarity", 4, `Tell him we'd carry him if he fell. Tell him we'd be at the stop, at eight.`)
+      ],
+      choices: [
+        K(`[Empathy] 'You've been brave for a year. You just did it in small change.'`, "empathy", 10, "dov_d3_stay_emp", "stay_pass", "stay_fail", { w: 1 }),
+        K(`[Charm] Make him laugh. Make it a deal: he runs the platform, you owe him one.`, "charm", 10, "dov_d3_stay_charm", "stay_pass", "stay_fail", { w: 1 }),
+        K(`[Solidarity] 'We'll be there. Everybody on that list. We won't leave you holding it.'`, "solidarity", 11, "dov_d3_stay_solid", "stay_pass", "stay_fail", { w: 1 }),
+        C(`'Never mind.'`, "hub")
+      ]
+    }),
+
+    stay_pass: N("dov", `He stares at the footlocker for a long moment. Then he laughs again, quite differently, a cracked unhappy delighted noise, and puts a hand over his eyes.\n\n"Damn you," he says. "I had a lovely cowardice." He takes his hand away. "All right. All right. I'll be on the platform at eight-twenty. I'll hand them out myself, name by name, with my own ugly hands, and I'll stay till Nadia pulls the bell. And you'll owe me a favour, a very big one, and I'll collect it in a year when you least expect it." He pushes the first parcel into your arms. "Here. A forged pass. For you. On the house. Don't read anything into it."`, {
+      onEnter: [{ set: "dov_ally", val: true }, { set: "dov_ready", val: true }, { give: "forged_pass" }, { set: "dov_free_pass", val: true }, { task: "task_dov", state: "done" }, { xp: 4 }, { morale: 3 }, { thought: "th_chosen_family" },
+        { note: "task_dov", text: "Dov will be on the tram platform at 20:20, handing out sixteen free passes to the children on his list, and staying until Nadia rings the bell. He gave me a forged pass, on the house." }],
+      interjections: [
+        I("charm", 4, `A dealer, given a reason to be a hero, is a very rare creature. Enjoy him.`),
+        I("solidarity", 4, `We are not leaving the little ones. We never were.`)
+      ],
+      choices: [C(`'Thank you, Dov.'`, "ready_again")]
+    }),
+
+    stay_fail: N("dov", `"No." He picks up the parcel and puts it back in the box with great gentleness, as if it might break. "No. I'm sorry. I'd like to. I really would. But I've been saved by being early for nineteen years and I don't know how to be late." His smile is a poor, bright thing. "I'll leave the sixteen at the platform with Nadia. She knows the faces. I won't wait."\n\nHe closes the lid.`, {
+      onEnter: [{ set: "dov_leaving", val: true }, { morale: -1 }],
+      choices: [X(`Leave him to it.`)]
+    }),
+
+    let_go: N("dov", `"Go." He looks stung. Then, honestly relieved, then, ashamed of being relieved. "Right. Well. Good. I'll, ah, leave the sixteen at the platform with Nadia. She'll know the faces." He picks up a roll of shirts and puts it down again. "You're a very decent person. I always did think that. It's a rotten trait in a revolutionary."\n\nHe presses something into your hand: a brass tram-token, warm from his pocket. "For the road. In case."`, {
+      onEnter: [{ set: "dov_leaving", val: true }, { give: "tram_token" }, { xp: 1 }],
+      choices: [X(`'Take care, Dov.'`)]
+    }),
+
+    leaving_again: N("dov", `Dov's footlocker is shut and strapped. He sits on it in his good coat with a cap pulled down over his eyes, and a paper bag of boiled sweets. He does not meet your eye.\n\n"Don't," he says. "I know the face. It's the look people give a man at a station." He shakes the bag. "Have a sweet. They're no good, but they're free."`, {
+      choices: [
+        C(`[Take a sweet.]`, "leaving_again", { effects: [{ morale: 1 }, { toast: "A boiled sweet. Nerve +1." }], once: true }),
+        X(`'Good luck, Dov.'`)
+      ]
+    }),
+
+    ready_again: N("dov", `Dov is in the middle of the dormitory floor with a lamp and a magnifying glass, putting the last touches to a rubber stamp. He does it with the dexterity of a watchmaker, breathing through his nose. The parcels are stacked by the door with the list on top.\n\n"Twenty past eight," he says, without looking up. "Platform. Don't be late. I'll be the one in the very obvious cap." He blows on the stamp. "I've never been so nervous. I've never been so busy. I think I'm in love with the administration."`, {
+      interjections: [
+        I("sleight", 4, `Watch the thumb on the stamp. A clean impression, a quarter-turn. It's like watching someone play the piano.`)
+      ],
+      choices: [X(`'See you on the platform.'`)]
+    })
+  }
+},
+
+// =====================================================================
+wren_d3: {
+  title: "Wren",
+  start: [
+    { cond: "flag.wren_ready", node: "ready_again" },
+    { cond: "flag.wren_caught", node: "caught" },
+    { node: "open" }
+  ],
+  nodes: {
+    open: N("wren", `A small figure is sitting cross-legged on top of the wardrobe, ten feet up, eating a jam sandwich. A satchel hangs from a nail. She is about twelve. She has the haircut of somebody who cut it herself in a mirror in a hurry, and the unnervingly steady gaze of a creature who has seen the inside of every cupboard in the building.\n\n"Hello," says Wren, with her mouth full. "You're late. I've had the whole morning to be bored and I did a lot of crimes." She pats the satchel. "It's the Jubilee. Nobody notices a kid on a Jubilee. I've had nineteen offers of work since breakfast and I've said yes to all of them. Do you want in? I've got a big one."`, {
+      interjections: [
+        I("instinct", 3, `A very small, very dangerous creature. She's quick, and she's honest in the way that cannot be taught.`),
+        I("empathy", 4, `Under the grin she is waiting for you to say no. She's heard it from everyone else.`),
+        I("charm", 3, `Be nice. Don't be patronising. She'd smell it and charge you for it.`)
+      ],
+      choices: [C(`'What's the big one?'`, "hub")]
+    }),
+
+    hub: N("wren", `"Sit." She doesn't come down. She doesn't need to. "I'll tell you what I know, and then you'll tell me whether I'm allowed to do it. I'm going to do it anyway, but it is polite to ask."`, {
+      choices: [
+        C(`'Tell me about the big job.'`, "job", { cond: "!flag.wren_job" }),
+        C(`'The man in the black car. Your note.'`, "car", { cond: "(has('wren_note') || flag.wren_ally) && !flag.wren_car" }),
+        C(`'How old are you, Wren?'`, "age", { cond: "!flag.wren_age" }),
+        C(`[Accept.] 'All right. You carry for us tonight.'`, "accept", { cond: "flag.wren_job && !flag.wren_ready && !flag.wren_caught" }),
+        C(`[Refuse.] 'It's too dangerous. You're a child.'`, "refuse", { cond: "flag.wren_job && !flag.wren_ready && !flag.wren_refused" }),
+        X(`'Later.'`)
+      ]
+    }),
+
+    job: N("wren", `"A run." She lowers her voice to the volume of a hot rumour. "Five messages, five people, between seven and eight. When the first stroke comes, they've all got to know. You can't tell them aloud. There are poles with ears. So I carry a word to each, in my head, and I run: the Cook, the cellar, the girl with the radio, the choir, the old man at the kiosk. Four minutes between each. I've timed it. I take the stair behind the Library and the pipe-gap behind the Hall."\n\nShe leans forward. "I'll be a little late for the last one. It's the Relay. Somebody has to go through the Vanguard cordon on the avenue. I've got a plan for that." She grins. "It involves a rabbit."`, {
+      onEnter: [{ set: "wren_job", val: true }, { xp: 2 }],
+      interjections: [
+        I("deduction", 4, `Five stops, four minutes each, and a stair nobody uses. It's a very good route. It will fail only if one person on it is in the wrong place at the wrong time.`),
+        I("volition", 4, `She is twelve. She has a plan that involves a rabbit. Do not talk yourself into thinking that is safe.`),
+        I("authority", 3, `A courier line is exactly what the cell needs. The children are the only people in the Union who can walk through a barrier carrying a secret.`)
+      ],
+      choices: [C(`'A rabbit?'`, "rabbit"), C(`Go on.`, "hub")]
+    }),
+
+    rabbit: N("wren", `"His name's Colonel," says Wren, and lifts the lid of the satchel. Inside, on a nest of newspaper, a very large grey rabbit regards you with deep, contemptuous calm. "He's got a pass. It's a real one, from the Vanguard, for a Pet of Merit. He's been on the roll for two years. Nobody checks a rabbit. If I'm stopped I say I'm taking Colonel to the Jubilee to be honoured, and I cry a bit, and they let me through." She strokes his ear. "He has never once been arrested."`, {
+      onEnter: [{ set: "wren_rabbit", val: true }, { xp: 1 }, { morale: 1 }],
+      interjections: [
+        I("charm", 4, `Pet of Merit. It's the best forged document in the Union and it's real.`),
+        I("archive", 3, `Vanguard Pet of Merit, Class Two. The regulation exists. It has been used four times in history. Three of them were Wren.`)
+      ],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    car: N("wren", `"Oh, that." Her face changes, and for a moment she is the age she is. "I climbed in. Yesterday, on the avenue. The black car. The door was open and the man was asleep in the back with his coat over his face, and I thought, I'll take his pen. I got as far as the pen." She picks at the sandwich. "He was crying. Not loud. In his sleep, like a baby. He said a name. A girl's name, I think, just the one word, over and over, like something you say so as not to lose the shape of it."\n\nShe looks at you. "I put the pen back. I put a boiled sweet on his chest. I don't know why. He's the man who's going to make everyone forget, and he was crying in his sleep, and I gave him a sweet." She shrugs, very hard. "I'm not sorry."`, {
+      onEnter: [{ set: "wren_car", val: true }, { set: "wren_saw_voss_cry", val: true }, { xp: 3 }, { thought: "th_inspector_charm" }],
+      interjections: [
+        I("empathy", 5, `A girl's name, said over and over in his sleep. The girl he forgot, or the girl who forgot him. Whichever way it goes, he keeps saying it so as not to lose the shape.`),
+        I("instinct", 4, `Wren gave him a sweet. That's what a child would do. He'll find it in his pocket tonight and not know why he's moved.`),
+        I("solidarity", 4, `We are not so different from him. That's the most dangerous thought we have ever had.`)
+      ],
+      choices: [C(`'You did the right thing.'`, "hub", { effects: [{ morale: 1 }] })]
+    }),
+
+    age: N("wren", `"Eleven. And three-quarters. I'm not telling people twelve any more, because they nod, and at eleven they don't." She finishes the sandwich with great seriousness. "I was in the Home before I was here, the Vanguard one. They taught me to count. I can count anything. I've counted every step in this building: three hundred and forty-two to the tower, ninety-one to the cellar, nineteen to the kitchen. I count so I don't get lost."\n\nShe looks at her crusts. "My mum used to say that. 'Count, so you don't get lost.' I don't remember the rest of her. Just that."`, {
+      onEnter: [{ set: "wren_age", val: true }, { xp: 2 }, { morale: -1 }],
+      interjections: [
+        I("empathy", 5, `Eleven and three-quarters. She is counting so as not to disappear. You are listening to the quietest sentence in the dormitory.`),
+        I("archive", 3, `Wren, ward of the Vanguard Home, Cinder Street. Admitted at age six. Mother: not recorded. Father: not recorded. Everything else: counted.`, { cond: "flag.rhea_homes || flag.rhea_turned" })
+      ],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    accept: N("wren", `"Right." She slides down the wardrobe as though it were a banister, lands like a cat, and shoulders the satchel. Colonel makes a noise like a small disapproving engine. "Five messages. I need the words." She looks up at you with total attention. "Say them once. I'll remember. I always do."\n\nYou choose five short sentences. She says them back, perfect, each one in the right voice. Then she holds out her hand, small, ink-stained, ferociously clean. "Deal," says Wren. "If I get caught I'll tell them I was only taking Colonel to be honoured."`, {
+      onEnter: [{ set: "wren_ready", val: true }, { set: "wren_ally", val: true }, { task: "task_wren", state: "done" }, { xp: 4 }, { morale: 2 }, { thought: "th_chosen_family" },
+        { note: "task_wren", text: "Wren will carry five messages between seven and eight: the Cook, the cellar, Ilsabet, the choir, and Gregor. She will go through the Vanguard cordon with a rabbit named Colonel." }],
+      interjections: [
+        I("volition", 4, `You've said yes to an eleven-year-old. You'll want to be the one to see her home.`),
+        I("solidarity", 4, `A courier. A rabbit. We have never had a better line of communication.`),
+        I("reflex", 3, `Run, then. Keep running. Nobody catches a kid who knows the pipe-gap.`)
+      ],
+      choices: [C(`Shake her hand.`, "ready_again")]
+    }),
+
+    refuse: N("wren", `The grin goes out like a light. "I'm not a child." She puts the satchel on very slowly. "I've never been one. I was a number in a Home and then a thief in a dormitory. Nobody asked if I was too young for that." She looks at you with an old, level, wounded look. "You're not going to stop me. You know that. You're only going to make me do it without anybody knowing where I am."\n\nShe shoulders the satchel.`, {
+      onEnter: [{ set: "wren_refused", val: true }, { morale: -1 }],
+      interjections: [
+        I("empathy", 5, `She's right. You are only choosing whether someone knows where she is.`),
+        I("volition", 5, `Say yes, or say you'll go with her. Don't let her go alone.`)
+      ],
+      choices: [
+        C(`'...All right. But I go with you to the first stop.'`, "accept", { effects: [{ ideo: "undercurrent", n: 1 }] }),
+        C(`'Do as you like, then.'`, "caught_fall")
+      ]
+    }),
+
+    caught_fall: N("narrator", `She slides off the wardrobe, shoulders the satchel and goes, without a word, through the door and down the stairs, small boots drumming. You hear her all the way to the courtyard. Then you don't.\n\nAt the window, a half-hour later, you see the Vanguard cordon at the avenue's end, a small figure with a rabbit in her arms, and a hand coming down on her collar.`, {
+      onEnter: [{ set: "wren_caught", val: true }, { task: "task_wren", state: "failed" }, { surv: 5 }, { morale: -3 }],
+      interjections: [
+        I("volition", 5, `You said "as you like." She did. That is the whole of it.`),
+        I("empathy", 5, `Look away from the window. Not because it isn't yours. Because you will need your eyes for the evening.`)
+      ],
+      choices: [X(`Go.`)]
+    }),
+
+    caught: N("wren", `The top of the wardrobe is empty. The nail where the satchel hung is empty. The dormitory has the clean, still, wrong silence of a room with one fewer person in it than the Bell would have you believe.\n\nOn your pillow someone has left a boiled sweet, and a folded square the size of a matchbox. On the front, in a child's capital letters: SORRY. I TOOK COLONEL.`, {
+      interjections: [
+        I("empathy", 5, `She's in a cell with a rabbit. She's not afraid. She will be, later.`),
+        I("authority", 4, `If you want her back, the price is the Inspector. He's the only one with the authority to release a child from a cordon.`, { cond: "flag.voss_met" })
+      ],
+      choices: [X(`Go.`)]
+    }),
+
+    ready_again: N("wren", `Wren is lying on her back on the dormitory floor with her feet up on the bed and Colonel on her stomach, reciting under her breath: "Cook, cellar, Lamp, choir, kiosk. Cook, cellar, Lamp, choir, kiosk." Colonel looks at the ceiling as if it had insulted him.\n\n"I'm resting," she says, without opening her eyes. "A courier has to be rested. It's in the Rules." She lifts one hand. "Don't worry about me. I've counted every step. I always come home."`, {
+      interjections: [
+        I("empathy", 4, `"I always come home." She's saying it for the room. She's saying it to the part of herself that counts.`)
+      ],
+      choices: [
+        C(`[Give her a sweet roll or a biscuit.]`, "ready_again", { cond: "has('sweet_roll')", effects: [{ take: "sweet_roll" }, { morale: 2 }, { toast: "Wren eats the roll in two bites. Colonel gets the crumbs." }], once: true }),
+        X(`'Run safe, Wren.'`)
+      ]
+    })
+  }
+},
+
+// =====================================================================
+ysolde_d3: {
+  title: "Librarian Crane",
+  start: [
+    { cond: "flag.ysolde_ready", node: "ready_again" },
+    { cond: "flag.library_stacks_open", node: "open_hub" },
+    { node: "closed_open" }
+  ],
+  nodes: {
+    closed_open: N("ysolde", `"The reading room is open to readers," says Ysolde Crane, without raising her eyes from the catalogue card she is correcting. "The back stacks are open to Authorised Readers. You are, I regret, a reader." She slots the card into its drawer with the click of a small door closing. "It is the Jubilee. Nobody will read today. Yet I have never seen the Library so full of people pretending not to need a book."\n\nThe rope across the back stacks says AUTHORISED READERS in the font of someone who is not worried. Behind it, in the dimness, shelves rise to the ceiling like the ribs of something that is breathing very quietly.`, {
+      interjections: [
+        I("archive", 3, `Ah. A true librarian. Nothing so thrilling as a woman with a catalogue and a rope. Ask her the right question, in the right classmark. It's a password disguised as a cataloguing error.`),
+        I("senses", 3, `Dust, vellum, glue, old tea. Something faintly electrical from the back stacks: a lamp left on, a long way in.`),
+        I("empathy", 4, `She is waiting for you to ask. She has been waiting two days. It's why she hasn't looked up.`)
+      ],
+      choices: [
+        K(`[Archive] 'I'd like to consult Classmark 000: Facts, Reclassified.'`, "archive", 9, "ysolde_d3_classmark", "stacks_open", "stacks_fail", { w: 1 }),
+        C(`[The Quiet Hours.] Show her the plain brown book.`, "stacks_open", { cond: "has('banned_book') || flag.quill_book_read" }),
+        C(`'Just browsing.'`, "closed_hub")
+      ]
+    }),
+
+    closed_hub: N("ysolde", `"Browsing." She says it with delicate scepticism. "In a library, on the Jubilee. Well. Everything is permitted in moderation, except of course what isn't." She sets her pencil down at precisely the right angle. "Is there anything I can find you?"`, {
+      choices: [
+        K(`[Archive] 'Classmark 000: Facts, Reclassified.'`, "archive", 9, "ysolde_d3_classmark2", "stacks_open", "stacks_fail", { w: 1, cond: "!flag.ysolde_classmark_tried" }),
+        C(`[The Quiet Hours.] Show her the plain brown book.`, "stacks_open", { cond: "has('banned_book') || flag.quill_book_read" }),
+        X(`'No. Thank you.'`)
+      ]
+    }),
+
+    stacks_fail: N("ysolde", `"I'm afraid that classmark does not exist," says Ysolde, pleasantly. "You will find it is a mistake, probably yours." She resumes the card. "Do come back when you have the correct form of words. I'm told it is a lovely word. Nobody has said it to me for years."\n\nIt was not the right wording. It was, you realise, close. She is not offended. She is, in a dry way, disappointed for you.`, {
+      onEnter: [{ set: "ysolde_classmark_tried", val: true }],
+      choices: [X(`Go.`)]
+    }),
+
+    stacks_open: N("ysolde", `The pencil stops. She lifts her head, and for the first time looks at you properly through her round glasses, and her face is entirely different: bright, dry, delighted.\n\n"Well," she says. "There it is." She unhooks the rope from its post with a tiny, ceremonious flick, and the AUTHORISED READERS sign swings and turns its blank back. "I have been waiting for somebody to ask for three years. Do mind the step. It's a very old step and it has seen worse than you."\n\nThe back stacks open before you in the lamplight like the nave of a church built by people who preferred accuracy to God.`, {
+      onEnter: [{ set: "library_stacks_open", val: true }, { xp: 3 }, { morale: 2 }, { thought: "th_forbidden_page" }, { task: "task_stacks", state: "done" }],
+      interjections: [
+        I("archive", 4, `The shelves are labelled in four hands. FICTION is on the upper level. FACTS are on the lower level, and have been reclassified as fiction. Quite the neatest piece of dissidence I have ever seen.`),
+        I("senses", 4, `Warm. Not cold, as a forbidden room should be. Somebody has been airing these books for years, in secret, one shelf at a time.`),
+        I("solidarity", 4, `We would like to live here. We would like to put a small bed between Geography and Revolt.`)
+      ],
+      choices: [C(`Walk in.`, "open_hub")]
+    }),
+
+    open_hub: N("ysolde", `"Welcome to the sort of library a library should be." Ysolde Crane stands with her hands clasped at her waist, between rows of shelves bowed under the weight of everything the Ministry has been trying to lose. "Fiction is upstairs. Facts are down here. I have catalogued forty thousand, one hundred and twelve items and read eleven. A librarian who reads is a deviant. A librarian who doesn't is a clerk. I chose a middle path."`, {
+      interjections: [
+        I("archive", 3, `Forty thousand, one hundred and twelve. Eleven read. The ratio is a quiet scandal. I am so happy for her.`),
+        I("empathy", 4, `She says it as a joke. It's a confession. She has spent a lifetime walking past the things she most wanted to read.`)
+      ],
+      choices: [
+        C(`'What's in the Index? The one you keep in the drawer.'`, "index", { cond: "!flag.ysolde_index" }),
+        C(`'The stair to the tower. Could you open it?'`, "tower", { cond: "!flag.tower_open && !flag.ysolde_tower" }),
+        C(`'Why did you become a librarian?'`, "why", { cond: "!flag.ysolde_why" }),
+        C(`'If the Vanguard comes for the Index, what happens?'`, "raid", { cond: "flag.ysolde_index && !flag.ysolde_raid" }),
+        C(`'Where should the Index be tonight?'`, "hide", { cond: "flag.ysolde_index && !flag.ysolde_hidden" }),
+        C(`'At eight, will you help?'`, "ready", { cond: "flag.ysolde_index && !flag.ysolde_ready" }),
+        X(`'Thank you, Miss Crane.'`)
+      ]
+    }),
+
+    index: N("ysolde", `She opens the drawer of the oak catalogue and lifts out a card, one of thousands, in black ink. A small neat hand: HUNGER WINTER, DAY 1. CITY-WIDE. SEE ALSO: NOT HAPPENED. The next: REEDMARSH PASS, 9 TO 14 MARCH. SEE ALSO: GLORIOUS. The next: TOBAR PRESCH, TENOR, ENROLMENT 11 YEARS, WITHDRAWN. SEE ALSO: CORRECTIVE COURSE.\n\n"The Counter-Catalogue," she says. "Everything the Ministry took out of the record, indexed by date, in the order it was removed. I add a card every morning, from the fragments people bring me: a name, a street, a smell. I started it the day I noticed I'd forgotten to be sad about something. I didn't know what. I simply noticed the gap."\n\n"It is the only history of this district that is not a lie, and it's on three-by-five cards."`, {
+      onEnter: [{ set: "ysolde_index", val: true }, { xp: 3 }, { thought: "th_forbidden_page" }],
+      interjections: [
+        I("archive", 5, `Indexed by date of removal. That is a work of staggering genius. No one has ever indexed what was lost. You can read the shape of the forgetting.`, { effects: [{ xp: 1 }], once: true }),
+        I("rote", 3, `SEE ALSO: GLORIOUS. SEE ALSO: NOT HAPPENED. (SEE ALSO: ME. ME. ME. I'M ON A CARD. SOMEWHERE I'M ON A CARD.)`),
+        I("empathy", 5, `She began it because she noticed she'd forgotten to be sad. That's the whole of the Undercurrent in a card-index drawer.`)
+      ],
+      choices: [C(`Look for a card with your name.`, "your_card", { cond: "!flag.ysolde_yours" }), C(`Go on.`, "open_hub")]
+    }),
+
+    your_card: N("ysolde", `She nods, quite gravely, and with one finger draws a card from a drawer near the back. It is newer than the rest, in the same small hand: THE ONE WITH THE RINGING. TUESDAY, 23:10 TO 02:10. SEE ALSO: THE LEDGER. SEE ALSO: HOB'S KNOT. SEE ALSO: MATRON'S GREEN. SEE ALSO: FORGIVENESS (UNSPECIFIED).\n\n"I began it Wednesday," she says. "From the people who'd seen you. I don't know what you did. Everybody who saw you has the same hole in the same place, and the same warm feeling. It's the strangest card I own." She turns it over. "In the morning, if the Bell takes it, you'll want to read it. Please do. It's a very decent card."`, {
+      onEnter: [{ set: "ysolde_yours", val: true }, { xp: 3 }, { morale: 2 }, { thought: "th_ghost_of_yesterday" }],
+      interjections: [
+        I("empathy", 5, `Forgiveness (unspecified). She's catalogued a thing she doesn't understand and filed it under the only word she could find.`),
+        I("volition", 4, `You were somebody. It is on a card. Nobody can take a card away from a librarian.`)
+      ],
+      choices: [C(`Go on.`, "open_hub")]
+    }),
+
+    tower: N("ysolde", `"The stair." She goes to a bookcase that is not, strictly, a bookcase, and takes down a very large atlas of the Eastern Provinces. A key hangs behind it on a hook. A plain iron key, polished by fingers. "Spiral staircase, a hundred and twelve steps, a bolt with an oil can on a string. The Ministry thinks it was bricked up after the Jubilee of '78. It was, in a sense. We bricked it up with a book."\n\nShe presses it into your palm. "There's a bellringer at the top. He doesn't speak. Bring him something warm."`, {
+      onEnter: [{ set: "ysolde_tower", val: true }, { set: "tower_open", val: true }, { xp: 3 }, { note: "task_hob", text: "Ysolde gave me the key to the tower stair, hidden behind an atlas of the Eastern Provinces. 'Bring him something warm.'" }],
+      interjections: [
+        I("archive", 3, `"Bricked up with a book." The most accurate description of Ministry architecture I have encountered.`),
+        I("appetite", 3, `Something warm. Yes. Yes. I have a thermos situation. It can be resolved.`, { cond: "has('thermos') || has('ration_tea')" })
+      ],
+      choices: [C(`Take the key.`, "open_hub")]
+    }),
+
+    why: N("ysolde", `"Why." She smiles at the shelf rather than at you. "My mother kept a library in a cupboard. A cupboard under the stairs. It had thirty-one books. She called it the Reading Room. When I was seven, men came and took the cupboard door off its hinges and the books out of the cupboard and my mother out of the house, and she didn't come back. I remember the door. I remember it as the best door we had."\n\nShe straightens a spine that did not need it. "I thought: someone ought to keep the cupboard. I just made it larger."`, {
+      onEnter: [{ set: "ysolde_why", val: true }, { xp: 2 }, { morale: 1 }],
+      interjections: [
+        I("empathy", 5, `She built a library out of a cupboard. It's the only reason anyone builds one.`),
+        I("the_grey", 4, `A door taken off its hinges. I remember the sound. It went through the whole street and I was a street.`)
+      ],
+      choices: [C(`Go on.`, "open_hub")]
+    }),
+
+    raid: N("ysolde", `"The Vanguard." She glances at the door. "Corvin Hale, among others, has taken to the stacks of late with a notebook and a face like a hungry hen. If he reads the right card he will understand it. If he understands it he'll tell. It is, ah, a matter of degree." She taps the oak. "I've a procedure. The Index is on cards. Cards can be moved. A librarian is, in the last resort, a professional mover of paper."\n\nShe lowers her voice. "At five past seven, the Inspector's people will come for a 'routine inspection'. They'll find a very dull library."`, {
+      onEnter: [{ set: "ysolde_raid", val: true }, { xp: 2 }],
+      interjections: [
+        I("deduction", 4, `If Corvin informs, the raid is at seven. If he doesn't, it may never come. Either way, move the cards.`, { cond: "flag.corvin_informs || flag.corvin_ally === undefined" }),
+        I("sleight", 4, `Forty thousand cards. A small satchel. A coat with a lining. It can be done in an hour with two pairs of hands.`)
+      ],
+      choices: [C(`'Where do they go?'`, "hide")]
+    }),
+
+    hide: N("ysolde", `"Three places," she says, ticking them off on the long thin fingers. "The tower: up among the bellringer's cords, a thousand names on a wall, and a card-index would look like a very tidy rope. The Boiler: Mother Anka's cellar, where it's warm and dry and nobody looks. Or the stove." She doesn't look at the stove. "I don't want to burn it. I'd do it. I'd do it if I had to. But it would be the end of a very small, very stubborn thing."`, {
+      onEnter: [{ xp: 1 }],
+      interjections: [
+        I("volition", 4, `Whichever you choose, someone else will have to know where. It has to be a person who can be trusted not to forget.`),
+        I("empathy", 4, `She does not want to burn it. Don't make her say so.`)
+      ],
+      choices: [
+        C(`'The tower. Give them to Hob.'`, "hidden_tower", { cond: "flag.tower_open" }),
+        C(`'The boiler. Anka will keep them.'`, "hidden_boiler"),
+        C(`'Burn them. Keep them in your head.'`, "hidden_burn"),
+        C(`Think about it.`, "open_hub")
+      ]
+    }),
+
+    hidden_tower: N("ysolde", `"The tower." Her eyes shine. "Among the cords. A bellringer who doesn't speak and a wall of names he's already begun, and now a drawer of cards beside it." She takes down the first drawer, six hundred cards in a long dark tray, and puts her hand on the lid. "I'll carry the first load now. In my coat. It's a hundred and twelve steps and I've not been up them in thirty years."\n\nShe is crying, a little, and very quietly. "Do you know it was always meant for a tower? The whole history of the Union, on a wall, seen from a long way off."`, {
+      onEnter: [{ set: "ysolde_hidden", val: true }, { set: "ysolde_index_tower", val: true }, { xp: 3 }, { morale: 2 }, { thought: "th_hob_bell" }],
+      interjections: [
+        I("solidarity", 4, `A wall of names and a drawer of cards: the two halves of the same memory, in the same place. It's what we are. A tower with an index.`),
+        I("archive", 4, `Hob's cords, one thousand, one hundred and ninety-one. Her cards: forty thousand. Together, a census of the dead and a chronology of the forgetting.`)
+      ],
+      choices: [C(`Help her carry the first tray.`, "open_hub")]
+    }),
+
+    hidden_boiler: N("ysolde", `"The boiler. Of course." She nods briskly, with a slightly rueful smile. "A drawer in the cellar. It's warm there. The paper will curl a little at the edges but it'll keep." She fetches a flat leather satchel and begins to lay the cards in it, layer by layer, with the delicate tenderness of someone loading a coffin. "Anka will have forty thousand cards to look after. She'll hate me for a week."`, {
+      onEnter: [{ set: "ysolde_hidden", val: true }, { set: "ysolde_index_boiler", val: true }, { xp: 2 }, { morale: 1 }],
+      choices: [C(`Help her load the satchel.`, "open_hub")]
+    }),
+
+    hidden_burn: N("ysolde", `She does not say anything for a very long time. She puts both hands on the oak catalogue. Then, in the small voice of a person asked to cut down a tree she planted, she says: "Yes. All right." She walks to the stove. She opens the iron door. She takes out the first card, and reads it, and puts it in.\n\nIt takes an hour. She reads every one. By the end, she is sitting on the floor with a pile of ash in front of her and a very straight back. "I have them in my head," she says. "I think. I'll know in the morning."`, {
+      onEnter: [{ set: "ysolde_hidden", val: true }, { set: "ysolde_index_burned", val: true }, { set: "burned_something", val: true }, { xp: 1 }, { morale: -3 }, { time: 40 }, { thought: "th_burned_paper" }],
+      interjections: [
+        I("empathy", 5, `Forty thousand cards. You asked her to burn forty thousand cards. She did it.`),
+        I("volition", 4, `That was necessary, perhaps. It was not nothing. Remember that you asked.`)
+      ],
+      choices: [C(`Sit with her on the floor.`, "open_hub")]
+    }),
+
+    ready: N("ysolde", `"At eight." She considers the Library with its long shelves and its lamp-lit stacks. "I'm told the Library's reading-room speaker is one of the few in the building not on the district feed. It was put in for the reading hour, in the Warden's father's time. I can read into it, from the desk." She takes a card from her sleeve. HUNGER WINTER, DAY 1. SEE ALSO: NOT HAPPENED.\n\n"I shall read the dates. The ones that were removed. In order. It'll go out over the Library and the courtyard, to anyone who is near enough to hear. It won't reach the district. But it will reach the ones who need to be reminded that it's possible." She squares the card. "A roll-call. Of everything we were told we hadn't done."`, {
+      onEnter: [{ set: "ysolde_ready", val: true }, { xp: 4 }, { morale: 3 }, { thought: "th_chosen_family" },
+        { note: "task_jubilee", text: "Ysolde will read the Counter-Catalogue aloud over the Library speaker at eight: a roll-call of every removed date." }],
+      interjections: [
+        I("rhetoric", 4, `A roll-call of what was lost. It is a very old form, and it has never once failed to move a room.`),
+        I("archive", 4, `Ordered by date of removal. Hunger Winter first. Reedmarsh next. Osk's wife. Tobar. Ostrov. A litany.`)
+      ],
+      choices: [C(`'Thank you, Miss Crane.'`, "ready_again")]
+    }),
+
+    ready_again: N("ysolde", `Ysolde is at the desk with a card in each hand, reading each in turn under her breath in a soft, level, practising voice. Date. Place. See also. The lamp makes a gold circle on the blotter. The back stacks are open behind her, and a few readers have crept in, one at a time, to stand among the shelves with the stunned look of people entering a church they were told did not exist.\n\n"Mm?" she says, not looking up. "Yes. It's very hard to do it well. One has to mean each one."`, {
+      choices: [X(`'See you at eight.'`)]
+    })
+  }
+},
+
+// =====================================================================
+quill_d3: {
+  title: "Ambrose Quill",
+  start: [
+    { cond: "flag.quill_ready", node: "ready_again" },
+    { cond: "flag.quill_lectured", node: "after_lecture" },
+    { node: "open" }
+  ],
+  nodes: {
+    open: N("quill", `"Ah. An audience. How very unexpected." Ambrose Quill has been arranged in the reading room's biggest armchair like a coat on a hook, with a rug over his knees, a cough in his chest and a stack of forty index cards tied in a bootlace on the table at his elbow. Two first-years sit cross-legged by the radiator, a girl with a plait and a boy with a runny nose, pretending to read.\n\n"I am told the reading room closes for the Jubilee at three," he says, "and I am told that a retired historian of no fixed department may not give instruction on a day of national gladness. It is a pity. I was about to give my last lecture." He folds his hands. "I have never given a last one before. I understand one gets to say anything. Do sit."`, {
+      interjections: [
+        I("rote", 3, `DR AMBROSE QUILL: LECTURER IN THE MODERN HISTORY OF THE UNION, RETIRED. REASON FOR RETIREMENT: NOT AVAILABLE. REASON FOR RETIREMENT: SEE ALSO, ME, BEING FIRED.`),
+        I("empathy", 4, `He is dying, or he thinks he is. He's chosen to be funny about it, and he's doing it for two children and a radiator.`),
+        I("senses", 3, `The cough has a wet little rattle at the bottom. Camphor, tobacco, ink. The rug has a scorch mark in the shape of a small continent.`)
+      ],
+      choices: [C(`Sit with the first-years.`, "hub")]
+    }),
+
+    hub: N("quill", `"Now," says Quill. He rubs his hands. "There are three things a lecturer may do: begin, continue, or beg. I propose to do the first two and, if the coughing gets out of hand, the third." He looks over his half-moon glasses. "Would you care to hear about the Bell?"`, {
+      interjections: [
+        I("archive", 3, `A man who has been waiting two years to deliver this exact lecture. He's drafted it, and redrafted it, and sat with it in his lap.`)
+      ],
+      choices: [
+        C(`'Yes. Begin.'`, "lecture_1", { cond: "!flag.quill_l1" }),
+        C(`'Go on to the second part.'`, "lecture_2", { cond: "flag.quill_l1 && !flag.quill_l2" }),
+        C(`'The last part. Please.'`, "lecture_3", { cond: "flag.quill_l2 && !flag.quill_l3" }),
+        C(`'Dr Quill, you said "I wish I had written it." About the book.'`, "author", { cond: "(has('banned_book') || flag.quill_book_read) && !flag.quill_author" }),
+        C(`'Could I borrow the cards?'`, "cards", { cond: "!has('quill_notes') && flag.quill_l3" }),
+        X(`'Thank you, Doctor. Another time.'`)
+      ]
+    }),
+
+    lecture_1: N("quill", `"The Bell was a kindness." He lets that sit. "I know. I see the faces. The girl has stopped doodling, which is a record. It was a kindness. After the Hunger Winter, in the first spring, there were two hundred thousand people in the district who could not sleep. They could not sleep because they could not stop eating the glue in their heads, if you follow me. They were unwell. Not in the stomach. In the night."\n\n"A physician at the Tarnov sanatorium devised a tone. A very gentle tone, with a beat folded into it, played softly in the wards at nine. They slept. For the first time in four months, whole wards slept. It was, my dears, one of the most humane inventions of the century. I cannot say it enough. It was for them."`, {
+      onEnter: [{ set: "quill_l1", val: true }, { xp: 2 }, { thought: "th_quiet_hours" }],
+      interjections: [
+        I("archive", 4, `The Convalescent Tone, Tarnov Sanatorium, spring of the First Thaw. That part is true. The Ministry's pamphlets cite it constantly, with a photograph of a sleeping child.`),
+        I("empathy", 5, `Rhea's mother and the glue. They were not liars. They were people who did a kind thing and then could not stop.`, { cond: "flag.rhea_homes || flag.rhea_turned" }),
+        I("dialectics", 4, `A kindness. Not a crime in origin. A crime in duration. The deepest sort of tyranny starts as a lullaby.`)
+      ],
+      choices: [C(`'And then?'`, "hub")]
+    }),
+
+    lecture_2: N("quill", `"And then it was adopted." He coughs. "A ministry was formed to administer it, the Ministry of Quiet Hours, whose original brief was entirely clear: the tone was to be played 'for the duration of national grief'. I have the Act." He taps the cards. "Article Nine. It is a very short Article. 'The Quiet Hours shall be broadcast nightly so long as the public grief requires, to be reviewed at each Jubilee of the Warden, and shall lapse upon the day on which the public memorial of the Winter is restored to the people.'"\n\nHe takes off his spectacles. "Restored. Not 'completed'. Restored. It is a law that requires itself to end, if anyone had the nerve to read it aloud."`, {
+      onEnter: [{ set: "quill_l2", val: true }, { set: "quill_clause_known", val: true }, { xp: 3 }, { thought: "th_grand_harmony" }, { note: "task_jubilee", text: "Quill: Article Nine of the Quiet Hours Act says the broadcasts lapse on 'the day on which the public memorial of the Winter is restored to the people'. Reviewed each Jubilee. Tonight's Grand Harmony is the renewal." }],
+      interjections: [
+        I("archive", 5, `Article Nine, quiet-hours sunset clause. It is real. I have a copy in my head, which is a rotten place to keep a law. It is, however, in perfect order.`, { effects: [{ xp: 1 }], once: true }),
+        I("rhetoric", 5, `A law that requires itself to end if the public memorial is restored. Say it aloud in a hall with the lights on and the Warden's Ministry is, by its own statute, a corpse.`),
+        I("dialectics", 5, `Tonight's Grand Harmony is the "review at each Jubilee". Seventy-two hours of forgetting is the renewal ceremony. Which means the Ministry must erase the memorial, every time, so as not to lapse. That is the whole machine in a sentence.`)
+      ],
+      choices: [C(`'That's why they erase the Winter.'`, "hub")]
+    }),
+
+    lecture_3: N("quill", `"Now," says Quill, "a question. Hands up." The first-years look at each other. "No? Then I shall pick on the visitor." He fixes you with an eye like a tired owl. "What is the one thing a bell cannot do?"\n\nThe radiator ticks. The boy with the runny nose has stopped sniffing. It is, you realise, a very good question. There is a right answer. It has been waiting two years for somebody to give it.`, {
+      interjections: [
+        I("rote", 3, `A BELL CANNOT BE UNRUNG. (This is in the Orthodoxy. It is the proverb of a nation that would like it to be true.)`),
+        I("rhetoric", 4, `Don't give the first answer. Give the one that surprises him.`),
+        I("the_grey", 4, `A bell cannot choose who hears it. I think. I'm a city. We've been hit by a great many bells.`)
+      ],
+      choices: [
+        K(`[Rhetoric] 'It cannot be rung quietly. A bell that tries is a bell that isn't.'`, "rhetoric", 10, "quill_d3_quiz_rhet", "quiz_pass", "quiz_fail", { w: 1 }),
+        K(`[Dialectics] 'It cannot say what it was rung for. Only that it was rung.'`, "dialectics", 10, "quill_d3_quiz_dial", "quiz_pass", "quiz_fail", { w: 1 }),
+        K(`[Rote] 'It cannot be unrung.' (The proverb.)`, "rote", 8, "quill_d3_quiz_rote", "quiz_pass", "quiz_fail", { w: 1 })
+      ]
+    }),
+
+    quiz_pass: N("quill", `A smile spreads across his face like a slow sunrise on a bad lake. He taps the arm of the chair, three times, with a very small and very proud hand.\n\n"Gold star," he says. "Gold star, and I do not give them. A bell cannot be rung quietly. Quite so. A silence is a thing that happens between bells. A Bell that is meant to produce silence is an instrument of the opposite principle." He coughs for some time, and wipes his mouth, and beams. "Girl with the plait. Did you hear? That's what a mind does. It rings."\n\nHe presses the stack of forty cards, bound in a bootlace, into your hands. "My notes. You'll find them accurate. You'll find them, I'm afraid, funny."`, {
+      onEnter: [{ set: "quill_l3", val: true }, { set: "quill_lectured", val: true }, { give: "quill_notes" }, { xp: 4 }, { morale: 3 }, { thought: "th_forbidden_page" }],
+      interjections: [
+        I("charm", 4, `He gave you a gold star. In front of children. It's the most beautiful thing he's ever done.`),
+        I("solidarity", 4, `We would like to say it was all of us who answered. We would like to say we are not alone in the classroom.`)
+      ],
+      choices: [C(`Take the cards.`, "hub")]
+    }),
+
+    quiz_fail: N("quill", `"Ah. Not quite." He is not disappointed. He lifts a hand, gentle, like a man correcting a child's grip on a pencil. "Close. Very close. A good first attempt. You'll be right by Friday, if there is a Friday." He coughs; the girl with the plait brings him water. "A bell cannot be unrung, they say, and it is a very good answer, and a very wrong one. Because the whole of this district has been unrung nightly for thirty years, and it is rung again every morning. The whole point of the Bell is that it can."\n\nHe squeezes your hand, once. "It's the answer of a person who is tired. I recognise it. I have given it myself."`, {
+      onEnter: [{ set: "quill_l3", val: true }, { set: "quill_lectured", val: true }, { give: "quill_notes" }, { xp: 2 }, { morale: 1 }],
+      interjections: [
+        I("empathy", 4, `He isn't scolding. He's reassuring. A good teacher is someone who can fail you and make it feel like a hand on the shoulder.`)
+      ],
+      choices: [C(`Take the cards, and go on.`, "hub")]
+    }),
+
+    author: N("quill", `He goes quiet. The first-years look from one of you to the other. He picks up the brown-covered book from the table, turns it over, and runs a thumb along the spine, quite slowly.\n\n"I did say that." His voice is a thread. "Every time I read it. 'I wish I had written it.' It's such a good book, you see. It has a voice I recognise: the little rhetorical cough before a joke, the way the footnotes get angrier as they go. I've always thought it was written by someone who was very like me. Only braver."\n\nHe looks at it. "I have a very odd feeling in my chest that is not the cough. 'See also: me, being fired.' I wrote that on the cards. I wrote it in a hand that is the same as the hand on the flyleaf."`, {
+      onEnter: [{ set: "quill_author", val: true }, { xp: 3 }, { morale: 1 }, { thought: "th_borrowed_memory" }],
+      interjections: [
+        I("deduction", 5, `He wrote it. A Ministry clerk who was wiped for writing it, and then, evidently, unwiped by someone who thought it funny. He is the clerk. He has been reading his own book for two years and admiring the author.`, { effects: [{ xp: 1 }], once: true }),
+        I("empathy", 5, `Don't tell him. Or do. He has already told himself, in a hand he recognises. It's the loneliest piece of detective work in the school.`),
+        I("archive", 4, `Ministry clerk, Third Grade. Struck from the roll. Wiped. Unwiped. The Undercurrent has a very particular sense of humour about its recruits.`)
+      ],
+      choices: [
+        C(`'You did write it, Doctor. It's yours.'`, "author_yes"),
+        C(`'It's a very good book. That's all.'`, "hub")
+      ]
+    }),
+
+    author_yes: N("quill", `He looks at you for a long time. Then he laughs, a wet, helpless, wheezing laugh that sets off the cough, and the girl with the plait pats his back, and the boy with the runny nose goes to find a handkerchief.\n\n"Well," he says, at last, wiping his eyes. "Well. How extremely vain." He puts the book to his chest. "I had thought myself so modest. I find I am the author of a bestseller that no one has read." He holds it out. "Would you like it signed?"\n\nHe does it with a fountain pen, in an old man's hand. To the student who told me. From the author, who forgot.`, {
+      onEnter: [{ set: "quill_author_told", val: true }, { xp: 3 }, { morale: 3 }, { thought: "th_chosen_family" }],
+      interjections: [
+        I("charm", 4, `A signed copy. From a man who found out he was the author three minutes ago. It will be worth a fortune on Friday, or nothing at all.`),
+        I("solidarity", 4, `We love him. We would like it known.`)
+      ],
+      choices: [C(`Take it.`, "hub")]
+    }),
+
+    cards: N("quill", `"Of course, my dear." He lifts the stack by its bootlace and presses it into your palm. "Forty cards. First test broadcast to the eve of the Jubilee. Dates, call-signs, a footnote or two. Rigorous, funny, almost completely illegal." He hesitates. "If you're caught with them, say you found them in a book. It's the only defence a historian has ever had."`, {
+      onEnter: [{ give: "quill_notes" }, { xp: 1 }],
+      choices: [C(`Thank him.`, "hub")]
+    }),
+
+    after_lecture: N("quill", `The first-years have gone. The reading room is quiet, gold, dusty. Quill is in his armchair with his eyes closed and a rug up to his chin, listening, you think, to the radiator. When your shadow crosses the book-stack he opens one eye.\n\n"I have decided," he says, "that I should like to read Article Nine aloud. Tonight. Somewhere with a microphone, in a hall, with the lights on. I am told it is the only thing I have left to say, and I have been told that by myself."`, {
+      interjections: [
+        I("empathy", 4, `He's smiling. The cough is bad today. He's telling you he can do this, and that it will cost him.`),
+        I("rhetoric", 3, `Article Nine, read aloud into a live mic by a dying man with a rug. It is the best closing argument in the history of the district.`)
+      ],
+      choices: [
+        C(`'Would you, Doctor? In the Hall, at eight?'`, "ready", { cond: "flag.quill_clause_known" }),
+        C(`'Rest. Think about it.'`, "hub")
+      ]
+    }),
+
+    ready: N("quill", `"The Hall." He opens both eyes. "There will be a chair? A small one, with a back to it? I can stand for about four minutes. I can read for six if I'm sitting. It is a very short Article. I can read it in forty seconds." He coughs. "I'd like to read it very slowly."\n\nHe holds out a trembling hand, and you shake it. It is cold and dry and weightless as a leaf. "At eight, then. If I'm late, someone should check the radiator. I may have fallen asleep."`, {
+      onEnter: [{ set: "quill_ready", val: true }, { xp: 4 }, { morale: 3 }, { thought: "th_last_assembly" },
+        { note: "task_jubilee", text: "Quill will read Article Nine of the Quiet Hours Act aloud in the Ration Hall at eight, slowly, from a chair. He needs a small chair with a back to it." }],
+      interjections: [
+        I("authority", 4, `A lawful argument, in an old man's voice, in a lit hall. Voss will know he has lost the minute it's read.`),
+        I("empathy", 5, `Find him a chair. Find him the best chair in the school.`)
+      ],
+      choices: [C(`'I'll find you a chair.'`, "ready_again")]
+    }),
+
+    ready_again: N("quill", `Quill is practising. He has the Act in his lap, the page held very close, and he is reading it to himself under his breath, in a voice nothing like his own: slower, rounder, an actor's voice for a very small stage. "Shall lapse." A pause. "Shall lapse. Shall lapse."\n\n"There is a great deal in a verb," he says, without looking up. "Particularly one that has been waiting thirty years to be read."`, {
+      choices: [X(`'See you at eight, Doctor.'`)]
+    })
+  }
+},
+
+// =====================================================================
+corvin_d3: {
+  title: "Corvin Hale",
+  start: [
+    { cond: "flag.corvin_ready", node: "ready_again" },
+    { cond: "flag.corvin_informs", node: "informed_again" },
+    { cond: "flag.corvin_ally", node: "ally_prev" },
+    { node: "open" }
+  ],
+  nodes: {
+    ally_prev: N("corvin", `"Ah. My benefactor." Corvin is on a library chair with a sheet of paper held out at arm's length, but the paper is not the old speech; it is a crumpled draft with half the lines crossed out. "I have, ah, a new speech. I have been thinking about what I owe you. I think what I owe you is a first line." He clears his throat. "'I was told to be a loyal and grateful child of the Warden. I would like instead to be a person.'" He stops. "I haven't got a second line. I'll pin at eight, in front of the Inspector and everyone, and I will say it. Even if my voice goes."`, {
+      onEnter: [{ set: "corvin_ready", val: true }, { xp: 3 }, { morale: 2 }, { thought: "th_chosen_family" },
+        { note: "task_corvin", text: "Corvin will say a different speech when he is pinned at eight: 'I would like instead to be a person.'" }],
+      interjections: [
+        I("rhetoric", 4, `A first line is the hardest. He's got it. Give him a second, one day.`),
+        I("empathy", 4, `He's repaying a debt by being braver than he is. That is how all courage begins.`)
+      ],
+      choices: [C(`'That's a good first line.'`, "ready_again")]
+    }),
+
+    open: N("corvin", `"Citizen-student! Observe!" Corvin Hale is standing on a library chair, one hand on his heart, the other holding a sheet of paper at arm's length, reciting to a row of encyclopaedias. He has a red-brown armband that is a size too large and a haircut that was done in the dark by someone who loved him. "'I am, in the whole of my being, a loyal and grateful child of the Warden.' Is that too much? It feels like a great deal. Should I weep at the word 'child'?"\n\nHe looks down at you. "Tonight is my Initiation. The Vanguard pins me at the Jubilee, in front of the whole district. I will be the youngest Pioneer in the Hall to be pinned in a decade." He swallows. "I have a speech. I have also a, ah, a dilemma."`, {
+      interjections: [
+        I("empathy", 3, `He wants so badly to be loved that he has memorised the shape of what the Union will love. It's an exhausting way to live.`),
+        I("rhetoric", 3, `The speech is bad. Not in grammar. In sincerity. He has put in every gesture he's seen and none he's felt.`),
+        I("instinct", 4, `A dilemma. Under his sleeve, tucked into his armband, a folded paper. Not his speech. Something stolen.`, { effects: [{ set: "corvin_paper_seen", val: true }] })
+      ],
+      choices: [C(`'What dilemma?'`, "hub")]
+    }),
+
+    hub: N("corvin", `He climbs down off the chair with enormous dignity, and almost falls off it. "A dilemma of conscience. Of civic duty. Of... of appetite." He sits on the table, and the paper crackles under his sleeve. "Ask me what you came to ask, and then I will ask you what to do."`, {
+      interjections: [
+        I("doublethink", 3, `A dilemma. A beautiful word. There is, of course, only one correct answer, and it is whatever the biggest person in the room says.`)
+      ],
+      choices: [
+        C(`'What's under your sleeve?'`, "paper", { cond: "!flag.corvin_paper" }),
+        C(`'Read me the speech. I'll tell you honestly.'`, "speech", { cond: "!flag.corvin_speech" }),
+        C(`'You've got a list. Whose names are on it?'`, "list", { cond: "flag.corvin_paper && !flag.corvin_list" }),
+        C(`'What do you actually want, Corvin?'`, "want", { cond: "flag.corvin_list && !flag.corvin_want" }),
+        C(`'Choose, then. Tell me what you'll do.'`, "choice", { cond: "flag.corvin_want && !flag.corvin_ready && !flag.corvin_informs" }),
+        X(`'Nothing, Corvin. Practise your weeping.'`)
+      ]
+    }),
+
+    paper: N("corvin", `He goes pink, pale, then pink again, and slowly removes the folded sheet from his sleeve. "I took it from Miss Crane's drawer. The Index, a page of it. I only meant to look. I read, ah, three lines. I read, ah, 'Reedmarsh Pass, 9 to 14 March, see also glorious.'" His voice drops. "There was a boy on that list. A corporal. Marek Ollin. He was my father's friend."\n\nCorvin stares at the page. "My father says he died gloriously. In a ravine, firing, with a smile. He told it at my sixth birthday. And here is a card that says, 'see also glorious', as though glory was a footnote."`, {
+      onEnter: [{ set: "corvin_paper", val: true }, { xp: 2 }, { thought: "th_borrowed_memory" }],
+      interjections: [
+        I("empathy", 4, `Marek Ollin, a baker's son. Vasha has his name in the back of her notebook. A friend of a Vanguard hopeful's father. It's a very small district.`, { cond: "flag.vasha_names || flag.vasha_ledger_page" }),
+        I("deduction", 4, `He took the page for reasons of ambition and read it for reasons of grief. He doesn't know which is which, and neither does his armband.`)
+      ],
+      choices: [C(`'What does it say?'`, "hub")]
+    }),
+
+    speech: N("corvin", `He climbs back onto the chair and delivers it again, full voice, with both arms spread, and it is dreadful: all clauses and gestures and capitalised nouns, a statue of Loyalty in a size too large. At the climax he places a hand on his heart and a tear actually does, with great precision, slide down his cheek.\n\nHe looks at you, shining, quivering. "Well?"`, {
+      onEnter: [{ set: "corvin_speech", val: true }, { xp: 1 }],
+      interjections: [
+        I("charm", 4, `Be kind. He rehearsed the tear. That's an act of love.`),
+        I("rhetoric", 4, `Technically, it's accomplished. Spiritually, it's a man doing an impression of a loudspeaker.`),
+        I("authority", 3, `Honest feedback is what an officer owes a cadet. Do not flinch.`)
+      ],
+      choices: [
+        C(`'It's very moving. Don't change a word.'`, "hub", { effects: [{ ideo: "vanguard", n: 1 }, { surv: -2 }] }),
+        C(`'It's dreadful. You don't mean a word of it.'`, "speech_hurt"),
+        C(`'The tear was good. The rest isn't you.'`, "speech_kind", { effects: [{ xp: 1 }] })
+      ]
+    }),
+
+    speech_hurt: N("corvin", `He deflates in stages, like a bouncy castle in a wind. The arms come down. The shoulders come down. "I do not," he says, and stops, quite appalled, "I do not mean a word of it. I've never meant a word of it. I was told, at eight, that if one said it often enough, one would."\n\nHe sits down on the chair, which is the right way up for once. "How did you know?"`, {
+      onEnter: [{ xp: 2 }, { morale: -1 }, { set: "corvin_honest", val: true }],
+      choices: [C(`'Because you checked if you should weep.'`, "hub")]
+    }),
+
+    speech_kind: N("corvin", `"The tear was good," he says, hopefully. "I practised the tear." He looks at the speech, a long bureaucratic document crumpled in his fist. "And the rest isn't me. Is that, ah, allowed? Is there, ah, a rest that is me?" He looks, suddenly, like a very young boy in a very large armband. "I don't know what it would say."`, {
+      onEnter: [{ xp: 2 }, { set: "corvin_honest", val: true }, { morale: 1 }],
+      interjections: [
+        I("empathy", 5, `That's the question. He's never been asked what the rest would say.`)
+      ],
+      choices: [C(`'We'll find out.'`, "hub")]
+    }),
+
+    list: N("corvin", `"A list." He winces. "Of the persons of interest, in order. I had the grey coat's man ask me, quite nicely, whether I'd seen anyone in the Library who 'hummed'. I had to say I hadn't. It was a lie. It was my first. I felt it go down like a swallowed key." He holds the page out. "And I've got these. From the card index. Eleven names that appear on both lists. The Inspector's and Miss Crane's. I could, ah, I could write the matches on one side of the paper and hand it in at the Jubilee, and be pinned a Pioneer First Class."\n\nHe looks up. "I could. I'm not saying I would."`, {
+      onEnter: [{ set: "corvin_list", val: true }, { xp: 2 }, { surv: 2 }],
+      interjections: [
+        I("deduction", 4, `Eleven names on both lists. He has done the matching. He is, whatever else, an excellent clerk. Voss would have loved him.`),
+        I("empathy", 4, `He isn't threatening you. He's telling you what he's tempted by, because nobody has ever listened to a temptation.`),
+        I("instinct", 4, `The paper in his hand is shaking. He wants somebody to take it away from him.`)
+      ],
+      choices: [C(`'What do you actually want?'`, "want")]
+    }),
+
+    want: N("corvin", `"I want," he says, and for a moment he is just a boy, "to be on a list that is a good one. I have been on the waiting list for the Vanguard since I was nine. I have been on the list for a good conduct certificate. I've been a first reserve for the debating team. I should like to be, once, on a list because someone wanted me. Not because I'd done the thing that would get me on it."\n\nHe looks at the page. "The Vanguard wants me for what I'll say. I don't think the Undercurrent has ever been asked. It's a dreadful thing to say, but the other lot did ask first."`, {
+      onEnter: [{ set: "corvin_want", val: true }, { xp: 3 }],
+      interjections: [
+        I("empathy", 5, `He wants to be wanted. It's the whole of him. The Vanguard asked first. The Undercurrent never did.`),
+        I("solidarity", 4, `We would like to ask him now. We would like him very much on our list.`),
+        I("rhetoric", 5, `A person who wants to be asked can be asked. It is the oldest pitch in history, and the only one that is not a lie, if you mean it.`)
+      ],
+      choices: [C(`Go on.`, "hub")]
+    }),
+
+    choice: N("corvin", `"So." He folds the page along its creases, once, twice, and holds it between thumb and forefinger as if it were a very small, very hot coal. "It's quarter to two. I pin at eight. I could put this in an envelope for the grey coat's man at six, or into the stove, or in the, ah, the pocket of the person who asked me what I'd like." He swallows. "It's your move. I'm told it's customary to bribe a boy at this point. Please don't. I'd rather be, ah, persuaded."`, {
+      interjections: [
+        I("authority", 4, `He's offering you the move. Any answer that sounds like an order will lose him.`),
+        I("charm", 4, `Be honest. He is the first person all week who has asked to be persuaded rather than managed.`),
+        I("solidarity", 4, `Ask him. Ask him as we would. Ask him to come.`)
+      ],
+      choices: [
+        K(`[Solidarity] 'Come with us. Be on our list. We'd like you. We'd ask you properly.'`, "solidarity", 10, "corvin_d3_choice_solid", "ally", "inform", { w: 1 }),
+        K(`[Rhetoric] 'Give a different speech. Make the Union listen to the one you don't mean.'`, "rhetoric", 11, "corvin_d3_choice_rhet", "ally", "inform", { w: 1 }),
+        K(`[Dialectics] Show him the contradiction in "loyal child" and "I read it and was sad".`, "dialectics", 11, "corvin_d3_choice_dial", "ally", "inform", { w: 1 }),
+        C(`'It's your decision. I won't ask.'`, "inform")
+      ]
+    }),
+
+    ally: N("corvin", `He tears the page across. Once, twice, four times, with the stiff solemnity of a Pioneer disposing of a flag. The pieces go into his pocket, not the stove: "evidence," he explains, "of my moral development."\n\n"I'll give the speech," he says. "But I'll give a different one. I wrote the first line on the way here." He clears his throat. "'I was told to be a loyal and grateful child of the Warden. I would like instead to be a person.' I haven't got a second line." He grins, like a boy who has jumped off a roof and found out about landing. "I'll be on the dais, in front of the Inspector and everybody. I think I'll be sick. But I think they'll listen. They always listen to the one in the armband."`, {
+      onEnter: [{ set: "corvin_ally", val: true }, { set: "corvin_ready", val: true }, { task: "task_corvin", state: "done" }, { xp: 4 }, { morale: 3 }, { thought: "th_chosen_family" },
+        { note: "task_corvin", text: "Corvin tore up the list. At eight, pinned in the Hall before the Inspector, he'll give a different speech: 'I would like instead to be a person.'" }],
+      interjections: [
+        I("rhetoric", 4, `The most dangerous orator in the district is a boy who has just been told it's allowed. He will say the first line in a voice that hasn't broken yet.`),
+        I("solidarity", 4, `He's on the list. He's on ours. He doesn't have a second line. We'll write him one.`)
+      ],
+      choices: [C(`'Thank you, Corvin.'`, "ready_again")]
+    }),
+
+    inform: N("corvin", `He stands there a long moment with the page between his fingers. His face does one thing, and then, regretfully, another. "I see," he says. "Well. It's, ah, a decision. One must be decisive." He folds the page into his armband and straightens it. "I'm sorry. I like you. I like you more than anyone I've met this year. It's only that I've never been liked by the other side."\n\nHe holds out his hand, and you shake it, and the whole length of his arm is shaking. "I'll put it in the envelope at six. I hope you've got somewhere to be."`, {
+      onEnter: [{ set: "corvin_informs", val: true }, { task: "task_corvin", state: "failed" }, { surv: 10 }, { morale: -2 },
+        { note: "task_corvin", text: "Corvin will hand the list to the Inspector's man at six. Eleven names. I don't blame him; I didn't give him a reason not to." }],
+      interjections: [
+        I("empathy", 5, `He is going to do the thing he hates, with a handshake, because nobody gave him a page to be brave on.`),
+        I("volition", 4, `Eleven names. You have until six. Tell them.`)
+      ],
+      choices: [X(`Go.`)]
+    }),
+
+    informed_again: N("corvin", `Corvin is polishing his armband pin on his sleeve, and does not look up. He has the red-faced concentration of a boy at a recital who has been told the audience is not watching.\n\n"I put it in the envelope," he says to the pin. "I'd, ah, rather not discuss it. I'm told one doesn't, with an envelope." He breathes on the metal. "I'll be pinned at eight. I'm told it is the best day of a Pioneer's life. I'd, ah, I'd like you not to be there. If it's not too much."`, {
+      interjections: [
+        I("empathy", 5, `He is a very small boy in a very large mistake.`),
+        I("authority", 3, `The names are with the grey coat. You have, perhaps, hours.`)
+      ],
+      choices: [X(`Go.`)]
+    }),
+
+    ready_again: N("corvin", `Corvin is on the chair again, reciting to the encyclopaedias, but the speech is different. He's doing it quietly this time, under his breath, trying phrases out like new shoes. "I would like to be a person. I would like to be, ah, a person. I would like to be a person *on purpose*." He stops. "Is that better? Is it worse? It feels dreadful. I think it's good."\n\nHe looks down at you with hopeful, terrified, glowing eyes. "I haven't got a second line."`, {
+      interjections: [
+        I("rhetoric", 4, `Give him a second line. "And I would like everyone else to be one too." It's not good. It's perfect.`),
+        I("charm", 3, `Tell him it's good. He needs to hear it from somebody who isn't an encyclopaedia.`)
+      ],
+      choices: [
+        C(`'Try: "And I'd like everyone else to be one, too."'`, "ready_again", { effects: [{ xp: 1 }, { morale: 1 }, { set: "corvin_second_line", val: true }], once: true }),
+        X(`'See you at eight, Corvin.'`)
+      ]
     })
   }
 },
