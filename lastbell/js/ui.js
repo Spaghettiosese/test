@@ -130,11 +130,14 @@
   document.addEventListener('dblclick', (e) => e.preventDefault());
 
   // ---------- toasts ----------
-  G.on('toast', (t) => {
+  const toastQ = []; let toastBusy = false;
+  function showToast(t) {
     const box = $('#toasts'), d = document.createElement('div'); d.className = 'toast ' + (t.kind || ''); d.textContent = t.text; box.appendChild(d);
     setTimeout(() => d.remove(), 5200);
     const tk = { good: 'good', xp: 'xp', bad: 'bad', warn: 'warn', item: 'pickup', thought: 'thought', task: 'paper', info: 'toast' }[t.kind]; if (tk) snd(tk);
-  });
+  }
+  function pumpToasts() { if (toastBusy) return; toastBusy = true; const go = () => { const t = toastQ.shift(); if (!t) { toastBusy = false; return; } showToast(t); setTimeout(go, 900); }; go(); }
+  G.on('toast', (t) => { toastQ.push(t); pumpToasts(); });
   G.on('sfx', (n) => snd(n));
   G.on('step', () => window.Sound && Sound.step((G.loc() || {}).floor));
   document.addEventListener('pointerdown', () => { if (window.Sound) { Sound.init(); } }, { once: false });
@@ -181,8 +184,9 @@
       + '<span class="die">' + (resolved ? r.d1 : '?') + '</span><span class="die">' + (resolved ? r.d2 : '?') + '</span>'
       + '<span>+ ' + r.level + ' = <b>' + (resolved ? r.total : '…') + '</b> vs ' + r.diff + ' (' + r.word + ')</span><span class="res">' + (resolved ? res : '') + '</span></div>';
   }
+  let staggerN = 0;
   function renderDialogue(D) {
-    const log = $('#dlg-log');
+    const log = $('#dlg-log'); staggerN = 0;
     // newly added blocks
     for (let i = renderedCount; i < D.history.length; i++) {
       const b = D.history[i]; const wrap = document.createElement('div');
@@ -191,7 +195,11 @@
         snd('dice');
         $('#dlg-choices').innerHTML = '';
         rollTimer = setTimeout(() => { rollTimer = null; b.resolved = true; wrap.innerHTML = rollHtml(b.roll, true); snd(b.roll.crit ? 'crit' : b.roll.fumble ? 'fumble' : b.roll.success ? 'good' : 'bad'); showRollContinue(); log.scrollTop = log.scrollHeight; }, 1100);
-      } else { wrap.innerHTML = lineHtml(b); log.appendChild(wrap); if (b.kind === 'line') snd(b.voice ? 'whisper' : 'line'); }
+      } else {
+        wrap.innerHTML = lineHtml(b); log.appendChild(wrap);
+        if (b.voice) { wrap.style.opacity = 0; const dly = 500 + (staggerN++) * 900; setTimeout(() => { wrap.style.transition = 'opacity .5s'; wrap.style.opacity = 1; snd('whisper'); log.scrollTop = log.scrollHeight; }, dly); }
+        else if (b.kind === 'line') snd('line');
+      }
     }
     renderedCount = D.history.length;
     if (!D.roll) renderChoices(D);

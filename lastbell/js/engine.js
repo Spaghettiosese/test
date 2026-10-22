@@ -253,10 +253,16 @@
     D.nodeId = nodeId; D.roll = null;
     runEffects(node.onEnter);
     D.history.push({ kind: 'line', speaker: speakerInfo(node.speaker), text: sub(pick(node.text)) });
+    // Passive voices: only the strongest few speak per node; the rest wait for a later beat instead of all piling in at once.
+    const cap = node.voices || 2;
+    const elig = [];
     (node.interjections || []).forEach((j, i) => {
       if (skill(j.skill) < j.min || !evalCond(j.cond)) return;
       const key = D.id + ':' + nodeId + ':j' + i;
       if (!j.repeat && S.seen[key]) return;
+      elig.push({ j, key, margin: skill(j.skill) - j.min + (j.effects && j.effects.length ? 0.5 : 0) });
+    });
+    elig.sort((a, b) => b.margin - a.margin).slice(0, cap).forEach(({ j, key }) => {
       S.seen[key] = true;
       D.history.push({ kind: 'line', voice: true, speaker: speakerInfo(j.skill), text: sub(j.text), passive: true });
       runEffects(j.effects);

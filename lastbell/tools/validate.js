@@ -4,7 +4,7 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 const root = path.join(__dirname, '..');
 const ctx = { window: {}, console };
 ctx.window = ctx; ctx.GD = undefined; vm.createContext(ctx);
-const files = ['world','skills','items','tasks','thoughts','barks','rules','dialogue_a','dialogue_b'];
+const files = ['world','world_ext','skills','items','items_ext','tasks','tasks_ext','thoughts','thoughts_ext','barks','barks_ext','rules','dialogue_a','dialogue_b','dialogue_c','dialogue_d','dialogue_e','dialogue_f'];
 const errors = [], warns = [];
 const err = (m) => errors.push(m), warn = (m) => warns.push(m);
 for (const f of files) {
@@ -14,12 +14,12 @@ for (const f of files) {
   catch (e) { err(`data/${f}.js failed to load: ${e.message}`); }
 }
 const GD = ctx.GD || {};
-const dialogues = Object.assign({}, GD.dialoguesA || {}, GD.dialoguesB || {});
+const dialogues = Object.assign({}, GD.dialoguesA || {}, GD.dialoguesB || {}, GD.dialoguesC || {}, GD.dialoguesD || {}, GD.dialoguesE || {}, GD.dialoguesF || {});
 const SKILLS = ['dialectics','rote','deduction','rhetoric','doublethink','archive','empathy','volition','authority','instinct','charm','solidarity','stamina','grit','brawn','appetite','adrenaline','the_grey','aim','reflex','composure','slip','sleight','senses'];
-const ITEMS = ['boiler_key','chalk_stub','torn_page','ration_coupon','cigarettes','ledger','rhea_pin','note_yesterday_1','note_yesterday_2','note_yesterday_3','radio_tube','bread_note','vanguard_armband','pocket_mirror','warden_badge','sweet_roll','ration_tea','exam_booklet','vasha_notebook','staged_rope','mic_cable','school_cap','bent_spoon'];
-const TASKS = ['task_case','task_yesterday','task_ledger','task_rhea','task_exam','task_choir','task_radio','task_coupons','task_osk','task_anka','task_broadcast'];
-const THOUGHTS = ['th_quiet_hands','th_good_citizen','th_unsanctioned','th_ghost_of_yesterday','th_bell_tolls','th_portrait_eyes','th_ration_math','th_marching_feet','th_chalk_dust','th_wheel_and_chair','th_hungry_ghost','th_informer_in_me','th_perfect_attendance','th_big_sister_state','th_anthem_earworm','th_collective_pulse','th_paper_heart','th_closed_window'];
-const ENDINGS = ['end_good_student','end_ledger','end_static','end_quiet','end_arrested','end_curfew'];
+const ITEMS = Object.keys(GD.items || {});
+const TASKS = Object.keys(GD.tasks || {});
+const THOUGHTS = Object.keys(GD.thoughts || {});
+const ENDINGS = ['end_good_student','end_ledger','end_static','end_quiet','end_arrested','end_curfew','end_wake','end_wardens_eye','end_martyr','end_silenced','end_exodus'];
 const FIXED_FLAGS = new Set('met_vasha body_examined portrait_examined clue_boots clue_chalk clue_rope clue_mic read_note_1 read_note_2 read_note_3 knows_static knows_rhea rhea_confronted rhea_exposed osk_seen_you osk_scapegoat ilsabet_decoded bronka_trust marr_audience boiler_unlocked found_ledger ledger_with_anka exam_done exam_passed broadcast_ready fenwick_choir_ready vasha_ally vasha_report_read'.split(' '));
 const NPCS = Object.keys(GD.npcs || {});
 const OBJECTS = []; Object.values(GD.locations || {}).forEach(l => (l.objects || []).forEach(o => OBJECTS.push(o.id)));
@@ -34,7 +34,7 @@ for (const [id, l] of Object.entries(GD.locations || {})) {
 // ---- skills/items/tasks/thoughts coverage
 const need = (obj, ids, label) => { if (!obj) return; ids.forEach(i => { if (!obj[i]) err(`${label}: missing ${i}`); }); };
 need(GD.skills, SKILLS, 'GD.skills'); need(GD.items, ITEMS, 'GD.items'); need(GD.tasks, TASKS, 'GD.tasks'); need(GD.thoughts, THOUGHTS, 'GD.thoughts');
-const scope = { flag:{}, has:()=>false, skill:()=>0, attr:()=>0, ideo:{vanguard:0,undercurrent:0,quiet:0}, surv:0, hp:10, morale:10, time:0, task:()=>'none', thought:()=>'none', visited:()=>false, talked:()=>0 };
+const scope = { day:1, flag:{}, has:()=>false, skill:()=>0, attr:()=>0, ideo:{vanguard:0,undercurrent:0,quiet:0}, surv:0, hp:10, morale:10, time:0, task:()=>'none', thought:()=>'none', visited:()=>false, talked:()=>0 };
 function checkCond(c, where) {
   if (c == null) return;
   try { new Function(...Object.keys(scope), `return (${c});`); } catch (e) { err(`${where}: bad cond "${c}" (${e.message})`); return; }
@@ -68,7 +68,8 @@ function checkEffects(list, where) {
 }
 // ---- dialogues
 const checkIds = new Map(); let nodeCount = 0, words = 0;
-const REQUIRED = ['intro','enter_canteen','enter_gym','enter_courtyard','enter_office','enter_boiler','boiler_door','gate','accuse','exam',...ENDINGS.map(e => 'ending_' + e), ...NPCS, ...OBJECTS];
+const REQUIRED = ['intro','enter_canteen','enter_gym','enter_courtyard','enter_office','enter_boiler','enter_dorm','enter_library','enter_street','enter_relay','enter_tower','enter_day2','enter_day3','jubilee_call','tower_door','relay_door','boiler_door','gate','accuse','exam',...ENDINGS.map(e => 'ending_' + e), ...NPCS, ...OBJECTS];
+for (const v of ['good_student','ledger','static','quiet','curfew']) { REQUIRED.push('daybreak_' + v); REQUIRED.push('daybreak_' + v + '_d2'); }
 for (const r of REQUIRED) if (!dialogues[r]) (Object.keys(dialogues).length ? warn : () => {})(`missing dialogue: ${r}`);
 for (const [did, d] of Object.entries(dialogues)) {
   const W = (n, extra='') => `${did}${n ? '.' + n : ''}${extra}`;
