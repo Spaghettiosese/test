@@ -323,7 +323,7 @@
     if (!D) return;
     const was = D; D = null;
     emit('dialogueEnd', was);
-    if (!silent) { save(); flushPending(was); }
+    if (!silent) { save(); flushPending(was); runAuto(); }
   }
   function flushPending(was) {
     const p = pending; pending = null;
@@ -339,6 +339,20 @@
     addTime(120);
     emit('toast', { text: msg + ' Two hours later you come to on the Old Theatre stage.', kind: 'bad' });
     if (!S.ending) teleport('theatre');
+  }
+
+  // ---------- auto rules ----------
+  function runAuto() {
+    if (!S || S.ending || D) return;
+    for (const r of GD.auto || []) {
+      const k = 'auto:' + r.id;
+      if (!S.seen[k] && evalCond(r.cond)) { S.seen[k] = true; runEffects(r.effects); }
+    }
+    for (const [id, t] of Object.entries(GD.thoughts || {})) {
+      if (S.thoughts[id]) continue;
+      const c = t.cond || (GD.thoughtAuto && GD.thoughtAuto[id]);
+      if (c && evalCond(c)) { discoverThought(id); break; }   // one at a time
+    }
   }
 
   // ---------- endings ----------
@@ -419,6 +433,7 @@
     const first = !S.visited[locId];
     S.visited[locId] = true;
     emit('location', locId, first);
+    runAuto();
     if (first && dialogues()['enter_' + locId] && !D) startDialogue('enter_' + locId);
     save();
   }
@@ -486,7 +501,7 @@
       let step = speed * dt;
       while (step > 0 && S.path.length) {
         const t = S.path[0], dx = t.x - S.px, dy = t.y - S.py, dist = Math.hypot(dx, dy);
-        if (dist <= step) { S.px = t.x; S.py = t.y; S.path.shift(); step -= dist; S.trail.push({ x: t.x, y: t.y }); if (S.trail.length > 12) S.trail.shift(); emit('step'); S.stepAcc = (S.stepAcc || 0) + 1; if (S.stepAcc % 2 === 0) addTime(1); }
+        if (dist <= step) { S.px = t.x; S.py = t.y; S.path.shift(); step -= dist; S.trail.push({ x: t.x, y: t.y }); if (S.trail.length > 12) S.trail.shift(); emit('step'); S.flags.steps = (S.flags.steps || 0) + 1; if (S.flags.steps % 20 === 0) runAuto(); S.stepAcc = (S.stepAcc || 0) + 1; if (S.stepAcc % 2 === 0) addTime(1); }
         else { S.px += dx / dist * step; S.py += dy / dist * step; S.facing = facingFrom(dx, dy); step = 0; }
       }
       if (!S.path.length) { S.walking = false; const f = S.then; S.then = null; if (f) f(); }
@@ -560,7 +575,7 @@
     startDialogue, choose, continueRoll, closeDialogue, runEffects, addTime,
     hotspots, npcsHere, interact, moveTo, update, teleport, loc, findPath, blockedSet,
     spendPoint, useItem, startThought, forgetThought, usedSlots, facingFrom,
-    startEnding, queueEnding, dialogues,
+    startEnding, queueEnding, dialogues, runAuto,
     _setState(s) { S = s; }
   };
   root.Game = Game;

@@ -119,7 +119,7 @@
     if (e.target.tagName === 'INPUT') return;
     if (e.key === 'Tab') { e.preventDefault(); highlightAll = true; }
     if (!started) return;
-    if (G.D) { const n = parseInt(e.key, 10); if (n >= 1 && n <= 9) pickChoice(n - 1); if ((e.key === ' ' || e.key === 'Enter') && G.D.roll && !rollTimer) { G.continueRoll(); } return; }
+    if (G.D) { const n = parseInt(e.key, 10); if (n >= 1 && n <= 9) pickChoice(n - 1); if ((e.key === ' ' || e.key === 'Enter') && !rollTimer) { if (G.D.roll) G.continueRoll(); else if (G.D.choices.length === 1) pickChoice(0); } return; }
     const k = e.key.toLowerCase();
     if (k === 'i') togglePanel('inventory'); else if (k === 'j') togglePanel('journal'); else if (k === 't') togglePanel('thoughts'); else if (k === 'c') togglePanel('character'); else if (k === 'escape') togglePanel('menu');
   });
@@ -214,6 +214,11 @@
   }
   function pickChoice(idx) { if (rollTimer) return; snd('click'); G.choose(idx); }
 
+  // ---------- settings ----------
+  let textSize = 0; try { textSize = parseInt(localStorage.getItem('lastbell_text') || '0', 10) || 0; } catch (e) {}
+  function applyTextSize() { document.body.classList.toggle('bigtext', textSize === 1); document.body.classList.toggle('xbigtext', textSize === 2); }
+  applyTextSize();
+
   // ---------- panels ----------
   let panelKind = null, selItem = null, selSkill = null;
   function togglePanel(k) { if (panelKind === k && !$('#panel').classList.contains('hidden')) closePanel(); else { panelKind = k; $('#panel').classList.remove('hidden'); renderPanel(); snd('open'); } }
@@ -273,9 +278,9 @@
       body.querySelectorAll('[data-think]').forEach((b) => (b.onclick = () => G.startThought(b.dataset.think)));
       body.querySelectorAll('[data-forget]').forEach((b) => (b.onclick = () => G.forgetThought(b.dataset.forget)));
     } else if (panelKind === 'menu') {
-      body.innerHTML = '<h2 class="ptitle">Menu</h2><div class="menu-btns"><button class="pbtn" id="mn-res">Resume</button><button class="pbtn" id="mn-save">Save now</button><button class="pbtn" id="mn-snd">Sound: ' + (Sound.muted ? 'Off' : 'On') + '</button>' + ['music:Music', 'sfx:Effects', 'amb:Ambience'].map((x) => { const [k, n] = x.split(':'); return '<label style="font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center">' + n + '<input type="range" min="0" max="1" step="0.05" value="' + Sound.vol[k] + '" data-vol="' + k + '" style="flex:1"></label>'; }).join('') + '<button class="pbtn" id="mn-res2" style="display:none"></button><button class="pbtn" id="mn-help">How to play</button><button class="pbtn" id="mn-title">Quit to title</button></div><p class="psub" style="margin-top:20px">The game autosaves after every conversation and every move between rooms.</p>';
+      body.innerHTML = '<h2 class="ptitle">Menu</h2><div class="menu-btns"><button class="pbtn" id="mn-res">Resume</button><button class="pbtn" id="mn-save">Save now</button><button class="pbtn" id="mn-snd">Sound: ' + (Sound.muted ? 'Off' : 'On') + '</button>' + ['music:Music', 'sfx:Effects', 'amb:Ambience'].map((x) => { const [k, n] = x.split(':'); return '<label style="font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center">' + n + '<input type="range" min="0" max="1" step="0.05" value="' + Sound.vol[k] + '" data-vol="' + k + '" style="flex:1"></label>'; }).join('') + '<button class="pbtn" id="mn-res2" style="display:none"></button><button class="pbtn" id="mn-text">Text size: ' + ['Normal', 'Large', 'Extra large'][textSize] + '</button><button class="pbtn" id="mn-grain">Film grain: ' + ((A.quality && A.quality.grain === false) ? 'Off' : 'On') + '</button><button class="pbtn" id="mn-help">How to play</button><button class="pbtn" id="mn-title">Quit to title</button></div><p class="psub" style="margin-top:20px">The game autosaves after every conversation and every move between rooms.</p>';
       $('#mn-res').onclick = closePanel; $('#mn-save').onclick = () => { G.save(); closePanel(); G.emit('toast', { text: 'Saved.', kind: 'info' }); };
-      $('#mn-snd').onclick = () => { Sound.toggle(); renderPanel(); }; document.querySelectorAll('[data-vol]').forEach((r) => (r.oninput = () => { Sound.set(r.dataset.vol, parseFloat(r.value)); })); $('#mn-help').onclick = showHelp; $('#mn-title').onclick = () => { G.save(); location.reload(); };
+      $('#mn-snd').onclick = () => { Sound.toggle(); renderPanel(); }; document.querySelectorAll('[data-vol]').forEach((r) => (r.oninput = () => { Sound.set(r.dataset.vol, parseFloat(r.value)); })); $('#mn-text').onclick = () => { textSize = (textSize + 1) % 3; try { localStorage.setItem('lastbell_text', String(textSize)); } catch (e) {} applyTextSize(); renderPanel(); }; $('#mn-grain').onclick = () => { if (A.quality) A.quality.grain = A.quality.grain === false; renderPanel(); }; $('#mn-help').onclick = showHelp; $('#mn-title').onclick = () => { G.save(); location.reload(); };
     }
   }
   function modText(d) { const m = d.mods || {}; return Object.entries(m).map(([k, v]) => (GD.skills[k] ? GD.skills[k].name : k) + ' ' + (v > 0 ? '+' : '') + v).join(' · '); }
@@ -303,7 +308,13 @@
   $('#btn-sound').onclick = () => { Sound.init(); Sound.toggle(); refreshTitle(); };
   $('#btn-continue').onclick = () => { Sound.init(); if (G.load()) beginPlay(); };
   $('#btn-new').onclick = () => { Sound.init(); showCreate(); };
-  function beginPlay() { started = true; document.body.classList.add('playing'); $('#title').classList.add('hidden'); $('#create').classList.add('hidden'); $('#hud').classList.remove('hidden'); $('#hint').style.display = 'block'; setTimeout(() => ($('#hint').style.display = 'none'), 9000); refreshHud(); rendererLoc = null; cam.x = cam.y = 0; snapCamera(); }
+  function maybeTutorial(isNew) {
+    let seen = false; try { seen = !!localStorage.getItem('lastbell_tut'); } catch (e) {}
+    if (!isNew || seen) return;
+    $('#tutorial').classList.remove('hidden');
+    $('#tut-ok').onclick = () => { $('#tutorial').classList.add('hidden'); try { localStorage.setItem('lastbell_tut', '1'); } catch (e) {} };
+  }
+  function beginPlay(isNew) { started = true; document.body.classList.add('playing'); $('#title').classList.add('hidden'); $('#create').classList.add('hidden'); $('#hud').classList.remove('hidden'); $('#hint').style.display = 'block'; setTimeout(() => ($('#hint').style.display = 'none'), 9000); refreshHud(); rendererLoc = null; cam.x = cam.y = 0; snapCamera(); maybeTutorial(isNew); applyTextSize(); }
   function snapCamera() { const l = G.loc(), p = A.project(l, G.S.px, G.S.py); cam.x = p.sx; cam.y = p.sy - 30; }
   function showCreate() {
     $('#title').classList.add('hidden'); const box = $('#create'); box.classList.remove('hidden');
@@ -333,7 +344,7 @@
       $('#cgo').onclick = () => {
         const ar = archs.find((x) => x.id === sel); box.classList.add('hidden');
         G.newGame({ name: (name || GD.meta.defaultName).trim(), look, attrs, archetype: sel, learned: ar && ar.signature ? Object.assign({}, ar.signature) : ar && ar.learned ? Object.assign({}, ar.learned) : {} });
-        beginPlay();
+        beginPlay(true);
       };
     }
     render();
@@ -346,7 +357,7 @@
   G.on('dialogueEnd', (D) => { if (D.isEnding) setTimeout(() => showSummary(G.S.ending), 300); });
   function showSummary(id) {
     const S = G.S, el = $('#ending-summary'); document.body.classList.remove('endmode');
-    el.innerHTML = '<h2>' + (ENDNAMES[id] || 'THE END') + '</h2><p>' + esc(S.name) + ' · ' + fmtTime(S.time) + ' · checks passed ' + S.stats.passed + ' / failed ' + S.stats.failed + ' · thoughts internalized ' + Object.values(S.thoughts).filter((t) => t.state === 'internalized').length + ' · Watched ' + S.surv + '%</p><p style="color:var(--dim)">Endings found: ' + G.endingsSeen().length + ' of 6. There is more than one way to get through a Tuesday.</p><button class="cbtn" id="again">Return to title</button>';
+    el.innerHTML = '<h2>' + (ENDNAMES[id] || 'THE END') + '</h2><p>' + esc(S.name) + ' · ' + fmtTime(S.time) + ' · checks passed ' + S.stats.passed + ' / failed ' + S.stats.failed + ' · thoughts internalized ' + Object.values(S.thoughts).filter((t) => t.state === 'internalized').length + ' · Watched ' + S.surv + '%</p><p style="color:var(--dim)">Endings found: ' + G.endingsSeen().length + ' of 6. There is more than one way to get through a Tuesday.</p><div class="eg">' + Object.entries(GD.endingInfo || {}).map(([k, v]) => G.endingsSeen().includes(k) ? '<b>✔ ' + esc(v.name) + '</b>' : '<span>? ' + esc(v.hint) + '</span>').join('<br>') + '</div><button class="cbtn" id="again">Return to title</button>';
     el.classList.remove('hidden'); $('#again').onclick = () => location.reload();
   }
 

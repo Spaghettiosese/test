@@ -2,7 +2,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 global.window = global; global.localStorage = { _d: {}, getItem(k) { return this._d[k] || null; }, setItem(k, v) { this._d[k] = String(v); }, removeItem(k) { delete this._d[k]; } };
 const root = path.join(__dirname, '..');
-for (const f of ['world', 'skills', 'items', 'tasks', 'thoughts', 'barks', 'dialogue_a', 'dialogue_b']) { const p = path.join(root, 'data', f + '.js'); if (fs.existsSync(p)) vm.runInThisContext(fs.readFileSync(p, 'utf8'), { filename: p }); }
+for (const f of ['world', 'skills', 'items', 'tasks', 'thoughts', 'barks', 'rules', 'dialogue_a', 'dialogue_b']) { const p = path.join(root, 'data', f + '.js'); if (fs.existsSync(p)) vm.runInThisContext(fs.readFileSync(p, 'utf8'), { filename: p }); }
 const G = require(path.join(root, 'js/engine.js')); const GD = global.GD;
 let bad = 0; const fail = (m) => { bad++; console.log('FAIL ' + m); };
 G.newGame({ name: 'Test' }); while (G.D) G.closeDialogue();

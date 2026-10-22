@@ -167,3 +167,12 @@ body.portrait.playing #rotate:not(.hidden){display:flex}
   #title-buttons{flex-direction:row;flex-wrap:wrap;width:auto;max-width:420px}
   #title-box small,#endings-seen{display:none}
 }
+
+#tutorial{position:absolute;inset:0;z-index:35;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:16px}
+#tut-card{max-width:560px;max-height:96vh;overflow:auto;background:var(--panel);border:1px solid #7a6a3a;padding:22px 26px;border-radius:6px;box-shadow:0 10px 50px #000}
+#tut-card h3{margin:0 0 10px;color:var(--orange);letter-spacing:.14em;text-transform:uppercase;font-size:16px}
+#tut-card ul{padding-left:18px;margin:0 0 16px;line-height:1.55;font-size:14px} #tut-card li{margin-bottom:7px}
+#ending-summary .eg{font-size:13px;color:var(--dim);max-width:640px;line-height:1.6;text-align:left}
+#ending-summary .eg b{color:#cfc8ac}
+body.bigtext .line{font-size:20px}body.bigtext .choice{font-size:19px}
+body.xbigtext .line{font-size:24px}body.xbigtext .choice{font-size:22px}

@@ -4,7 +4,7 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 const root = path.join(__dirname, '..');
 const ctx = { window: {}, console };
 ctx.window = ctx; ctx.GD = undefined; vm.createContext(ctx);
-const files = ['world','skills','items','tasks','thoughts','barks','dialogue_a','dialogue_b'];
+const files = ['world','skills','items','tasks','thoughts','barks','rules','dialogue_a','dialogue_b'];
 const errors = [], warns = [];
 const err = (m) => errors.push(m), warn = (m) => warns.push(m);
 for (const f of files) {
