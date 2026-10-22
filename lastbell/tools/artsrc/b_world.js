@@ -133,8 +133,8 @@ function paintFloor(ctx, S) {
     for (let i = 0; i < 26; i++) { ctx.fillStyle = css(r() < .5 ? [14, 10, 12] : [230, 200, 150], .08 + r() * .06); ctx.beginPath(); ctx.ellipse(r() * W, r() * H, r.r(14, 50), r.r(10, 30), r() * 3, 0, 7); ctx.fill(); }
   } else if (type === 'asphalt') {
     const night = loc.mood === 'neon', PV = loc.pave === undefined ? 4.6 : loc.pave, rail = loc.rails === undefined ? (loc.id === 'street' ? 11.4 : -1) : loc.rails;
-    paintRect(ctx, 0, 0, W, H, gr([66, 68, 76]), r, { n: W * H / 40, sw: 7, sl: 60, ang: .05, aj: 1.4, alt: gr([40, 42, 54]), jv: .14, edge: false });
-    for (let i = 0; i < W * H / 90; i++) { const x = r() * W, y = r() * H; ctx.fillStyle = css(r() < .5 ? [24, 24, 32] : [150, 150, 160], .12 + r() * .12); ctx.fillRect(x, y, r.r(1, 2.6), r.r(1, 2.2)); }
+    paintRect(ctx, 0, 0, W, H, gr([66, 68, 76]), r, { n: W * H / 420, sw: 14, sl: 90, ang: .05, aj: 1.4, alt: gr([40, 42, 54]), jv: .14, edge: false });
+    for (let i = 0; i < W * H / 400; i++) { const x = r() * W, y = r() * H; ctx.fillStyle = css(r() < .5 ? [24, 24, 32] : [150, 150, 160], .12 + r() * .12); ctx.fillRect(x, y, r.r(1, 3), r.r(1, 2.6)); }
     for (let i = 0; i < 7; i++) paintRect(ctx, r() * W * .9, r.r(PV * 64 + 40, H - 80), r.r(60, 150), r.r(30, 70), jit(gr([52, 54, 62]), r, .08), r, { n: 20, sw: 5, ang: .1, aj: 1, ink: false, edge: false, alpha: .8 });   // patches
     // lane markings (faded)
     ctx.fillStyle = css([214, 200, 150], .5); const ly = (rail > 0 ? rail - 2.4 : H / 64 - 2.2) * 64; for (let x = 40; x < W - 40; x += 120) { ctx.fillRect(x, ly - 2.5, 64, 5); }
@@ -159,8 +159,8 @@ function paintFloor(ctx, S) {
     const sk = S.mood.sky || SKY[S.bucket];
     for (let i = 0; i < 9; i++) {
       const x = r.r(80, W - 80), y = r.r(PV * 64 + 60, H - 50), rx = r.r(34, 80), ry = rx * r.r(.4, .6);
-      const g2 = ctx.createLinearGradient(x - rx, y, x + rx, y); g2.addColorStop(0, css(night ? [20, 24, 56] : mix(sk[0], [30, 50, 70], .3), .85)); g2.addColorStop(.35, css(night ? [220, 70, 130] : sk[1], .7)); g2.addColorStop(.7, css(night ? [60, 190, 210] : sk[1], .6)); g2.addColorStop(1, css(sk[0], .85));
-      ctx.fillStyle = g2; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, r() * .3, 0, 7); ctx.fill(); ctx.strokeStyle = css([8, 8, 14], .7); ctx.lineWidth = 1.6; ctx.stroke();
+      const g2 = ctx.createLinearGradient(x - rx, y, x + rx, y); g2.addColorStop(0, css(night ? [18, 22, 50] : mix(sk[0], [30, 50, 70], .3), .7)); g2.addColorStop(.35, css(night ? [150, 60, 110] : sk[1], .38)); g2.addColorStop(.7, css(night ? [50, 140, 170] : sk[1], .34)); g2.addColorStop(1, css(sk[0], .7));
+      ctx.fillStyle = g2; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, r() * .3, 0, 7); ctx.fill(); ctx.strokeStyle = css([8, 8, 14], .55); ctx.lineWidth = 1.6; ctx.stroke();
       ctx.strokeStyle = css([255, 255, 255], .25); ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(x - rx * .2, y - ry * .15, rx * .5, ry * .4, 0, 3.4, 5.8); ctx.stroke();
     }
   } else if (type === 'metal') {

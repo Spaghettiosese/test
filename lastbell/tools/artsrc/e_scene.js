@@ -37,7 +37,7 @@ function buildScene(loc, bucket) {
   if (S.mood.storm) S.lightK = .55; else if (S.mood.neon) S.lightK = .5;
   S.rain = loc.rain !== undefined ? !!loc.rain : (S.mood.storm && (loc.id === 'tower' || loc.floor === 'asphalt'));
   const base = mk(ws.w * BS, ws.h * BS), g = ctx2(base); g.scale(BS, BS);
-  let props = (loc.props || []).slice();
+  let props = (loc.props || []).slice().map(p => (p && p.t === 'stairs' && (p.v | 0) === 1 && !p.side) ? Object.assign({}, p, { t: 'spiral' }) : p);
   const objects = loc.objects || [];
   const injected = [];
   for (const o of objects) {
@@ -326,7 +326,7 @@ function drawPost(ctx, S, p, t) {
   }
 }
 function drawDust(ctx, t, vx0, vy0, vw, vh, S, bucket) {
-  const n = 46, col = bucket === 4 ? [160, 190, 255] : DAPPLE[bucket];
+  const n = S.mood.storm ? 30 : 46, col = S.mood.dapple || (bucket === 4 ? [160, 190, 255] : DAPPLE[bucket]);
   ctx.fillStyle = css(col, 1);
   for (let i = 0; i < n; i++) {
     const a = lat(i, 1, 5), b = lat(i, 2, 5), sp = .00002 + lat(i, 3, 5) * .00005;

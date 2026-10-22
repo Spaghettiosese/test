@@ -20,6 +20,7 @@ function locDyn(id, t, o) {
 function renderLoc(id, o) {
   o = o || {}; const loc = GD.locations[id], c = mkCanvas(1280, 720), ctx = c.getContext('2d');
   const R = Art.getRenderer(loc), ctr = Art.project(loc, loc.w / 2 - .5, loc.h / 2 - .5);
+  if (o.ax !== undefined) { const q = Art.project(loc, o.ax, o.ay); o.dx = q.sx - ctr.sx; o.dy = q.sy - ctr.sy + 20 - 30; }
   const view = { camX: ctr.sx + (o.dx || 0), camY: ctr.sy - 20 + (o.dy || 0), zoom: o.zoom || 1, w: 1280, h: 720 };
   const t0 = performance.now(); R.draw(ctx, view, locDyn(id, o.t === undefined ? 1000 : o.t, o)); const t1 = performance.now();
   window.__first = t1 - t0; return { c, R, ctx, view, loc, o };
