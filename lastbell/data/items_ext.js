@@ -67,7 +67,7 @@ GD.items = Object.assign(GD.items || {}, {
     mods:{ empathy:1, composure:-1 } },
 
   fake_bell_schedule: { id:"fake_bell_schedule", name:"Doctored Bell Schedule", type:"clue", usable:false, color:"#c7b98a", icon:"Fs",
-    desc:"The Ministry's nightly schedule, altered in three places by someone who learned forgery from a master and manners from nobody. If it reaches the right desk it will make the relay's operator ring the Bell an hour early, or an hour late, or possibly in Mandarin.",
+    desc:"The Ministry's nightly schedule, altered in three places by someone who learned forgery from a master and manners from nobody. If it reaches the right desk it will make the relay's operator ring the Bell an hour early, or an hour late, or possibly in the wrong key.",
     mods:{ sleight:1, archive:1 } },
 
   gregor_tubes: { id:"gregor_tubes", name:"Gregor's Spare Tubes", type:"clue", usable:false, color:"#7fb7b0", icon:"Gt",

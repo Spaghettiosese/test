@@ -388,7 +388,10 @@
     const S = G.S; let pickB = null;
     const sit = GD.situationBarks || {};
     const pool = S.hp <= 3 ? sit.lowHp : S.morale <= 3 ? sit.lowMorale : S.surv >= 66 ? sit.highSurv : GD.meta.curfew - S.time < 90 ? sit.curfewSoon : Math.random() < 0.3 ? sit.idle : null;
+    const lb = (GD.locBarks || {})[S.loc], db = (GD.dayBarks || {})[S.day || 1], r = Math.random();
     if (pool && pool.length) { const b = pool[Math.floor(Math.random() * pool.length)]; pickB = { skill: b.skill, text: b.text }; }
+    else if (lb && lb.length && r < 0.35) { const b = lb[Math.floor(Math.random() * lb.length)]; pickB = { skill: b.skill, text: b.text }; }
+    else if (db && db.length && r < 0.6) { const b = db[Math.floor(Math.random() * db.length)]; pickB = { skill: b.skill, text: b.text }; }
     else { const ids = Object.keys(GD.barks || {}).filter((k) => G.skill(k) >= 3 && GD.skills[k]); if (!ids.length) return; const k = ids[Math.floor(Math.random() * ids.length)], arr = GD.barks[k]; pickB = { skill: k, text: arr[Math.floor(Math.random() * arr.length)] }; }
     if (!pickB || !GD.skills[pickB.skill]) return;
     const box = $('#toasts'), d = document.createElement('div'); d.className = 'toast'; d.style.borderColor = GD.skills[pickB.skill].color; d.innerHTML = '<b style="color:' + GD.skills[pickB.skill].color + ';font-size:11px;letter-spacing:.15em">' + esc(GD.skills[pickB.skill].name.toUpperCase()) + '</b><br><i>' + esc(G.sub(pickB.text)) + '</i>'; box.appendChild(d); setTimeout(() => d.remove(), 5200);

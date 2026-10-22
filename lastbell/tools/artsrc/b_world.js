@@ -6,7 +6,11 @@ const MOODS = {
   cold:  { amb: [.76, .88, .95], bake: [.88, .96, 1.0], glow: [255, 190, 120], floorMix: [60, 100, 110] },
   dusk:  { amb: [.82, .88, .96], bake: [.90, .96, 1.0], glow: [255, 140, 70], floorMix: [60, 80, 90] },
   sick:  { amb: [.80, .94, .72], bake: [.92, 1.0, .88], glow: [220, 230, 130], floorMix: [80, 110, 70] },
-  ember: { amb: [.62, .53, .50], bake: [.9, .82, .78], glow: [255, 120, 40], floorMix: [90, 40, 20] }
+  ember: { amb: [.62, .53, .50], bake: [.9, .82, .78], glow: [255, 120, 40], floorMix: [90, 40, 20] },
+  // --- art2 moods. grade = how much the time-of-day tint is allowed through (they are self-lit looks)
+  lamp:  { amb: [1.0, .84, .60], bake: [1.0, .91, .74], glow: [255, 188, 84], floorMix: [150, 100, 40], grade: .45, lamp: true, wash: [255, 170, 60, .07] },
+  neon:  { amb: [.66, .74, 1.0], bake: [.84, .90, 1.04], glow: [255, 96, 150], floorMix: [60, 60, 110], grade: .35, sky: [[18, 20, 54], [196, 74, 112]], dapple: [255, 120, 170], neon: true, wash: [40, 140, 190, .07] },
+  storm: { amb: [.66, .78, .93], bake: [.82, .92, 1.02], glow: [150, 196, 255], floorMix: [60, 80, 100], grade: .3, sky: [[40, 50, 66], [118, 130, 146]], dapple: [170, 204, 255], storm: true, wash: [90, 130, 190, .07] }
 };
 const TIMEKEYS = [
   [0,    [.36, .43, .72], [20, 40, 120, .08]],
@@ -116,6 +120,81 @@ function paintFloor(ctx, S) {
     }
     ctx.strokeStyle = css(gr([40, 50, 40]), .65); ctx.lineWidth = 1.2; ctx.beginPath();
     for (let i = 0; i <= lw(loc) * 2; i++) { ctx.moveTo(i * 32, 0); ctx.lineTo(i * 32, H); } for (let j = 0; j <= lh(loc) * 2; j++) { ctx.moveTo(0, j * 32); ctx.lineTo(W, j * 32); } ctx.stroke();
+  } else if (type === 'carpet') {
+    const lamp = loc.mood === 'lamp', P = lamp ? { a: [124, 48, 46], b: [152, 66, 52], c: [220, 176, 100], d: [44, 66, 68] } : { a: [84, 62, 74], b: [110, 72, 78], c: [196, 164, 110], d: [40, 58, 70] };
+    paintRect(ctx, 0, 0, W, H, gr(P.a), r, { n: W * H / 60, sw: 5, sl: 30, ang: 0, aj: .12, alt: gr(P.b), jv: .1, edge: false });
+    for (let j = 0; j < H / 64; j++) for (let i = 0; i < W / 64; i++) {      // woven lozenge pattern
+      const cx = i * 64 + 32, cy = j * 64 + 32, k = ((i + j) & 1) ? 1 : .7;
+      paintPoly(ctx, [[cx, cy - 26 * k], [cx + 26 * k, cy], [cx, cy + 26 * k], [cx - 26 * k, cy]], jit(gr(P.b), r, .08), r, { n: 5, sw: 3, sl: 14, ang: .8, ink: false, edge: false, alt: gr(P.c), jv: .1, alpha: .85 });
+      ctx.strokeStyle = css(gr(P.c), .5); ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(cx, cy - 20 * k); ctx.lineTo(cx + 20 * k, cy); ctx.lineTo(cx, cy + 20 * k); ctx.lineTo(cx - 20 * k, cy); ctx.closePath(); ctx.stroke();
+      ctx.fillStyle = css(gr(P.d), .8); ctx.beginPath(); ctx.arc(cx, cy, 3.4 * k, 0, 7); ctx.fill();
+    }
+    ctx.strokeStyle = css(gr(P.c), .85); ctx.lineWidth = 4; ctx.strokeRect(14, 14, W - 28, H - 28); ctx.strokeStyle = css(gr(P.d), .9); ctx.lineWidth = 3; ctx.strokeRect(24, 24, W - 48, H - 48);
+    for (let i = 0; i < 26; i++) { ctx.fillStyle = css(r() < .5 ? [14, 10, 12] : [230, 200, 150], .08 + r() * .06); ctx.beginPath(); ctx.ellipse(r() * W, r() * H, r.r(14, 50), r.r(10, 30), r() * 3, 0, 7); ctx.fill(); }
+  } else if (type === 'asphalt') {
+    const night = loc.mood === 'neon', PV = loc.pave === undefined ? 4.6 : loc.pave, rail = loc.rails === undefined ? (loc.id === 'street' ? 11.4 : -1) : loc.rails;
+    paintRect(ctx, 0, 0, W, H, gr([66, 68, 76]), r, { n: W * H / 40, sw: 7, sl: 60, ang: .05, aj: 1.4, alt: gr([40, 42, 54]), jv: .14, edge: false });
+    for (let i = 0; i < W * H / 90; i++) { const x = r() * W, y = r() * H; ctx.fillStyle = css(r() < .5 ? [24, 24, 32] : [150, 150, 160], .12 + r() * .12); ctx.fillRect(x, y, r.r(1, 2.6), r.r(1, 2.2)); }
+    for (let i = 0; i < 7; i++) paintRect(ctx, r() * W * .9, r.r(PV * 64 + 40, H - 80), r.r(60, 150), r.r(30, 70), jit(gr([52, 54, 62]), r, .08), r, { n: 20, sw: 5, ang: .1, aj: 1, ink: false, edge: false, alpha: .8 });   // patches
+    // lane markings (faded)
+    ctx.fillStyle = css([214, 200, 150], .5); const ly = (rail > 0 ? rail - 2.4 : H / 64 - 2.2) * 64; for (let x = 40; x < W - 40; x += 120) { ctx.fillRect(x, ly - 2.5, 64, 5); }
+    for (let k = 0; k < 7; k++) { ctx.fillStyle = css([220, 214, 190], .42); ctx.fillRect(2.2 * 64 + k * 14, (PV + .35) * 64, 7, 70); }   // zebra
+    // pavement slabs + curb
+    if (PV > 0) {
+      for (let j = 0; j < PV * 2; j++) for (let i = 0; i < W / 64; i++) { const c = jit(gr([118, 114, 108]), r, .1); paintRect(ctx, i * 64 + .8, j * 32 + .8, 62.4, Math.min(30.4, PV * 64 - j * 32 - 1.6), c, r, { n: 9, sw: 4, sl: 20, ang: r() * 3, alt: gr([84, 92, 96]), jv: .1, ha: .5, ew: 1.2 }); }
+      ctx.strokeStyle = css(gr([30, 28, 30]), .7); ctx.lineWidth = 1.3; ctx.beginPath(); for (let i = 0; i <= W / 64; i++) { ctx.moveTo(i * 64, 0); ctx.lineTo(i * 64, PV * 64); } for (let j = 0; j <= PV * 2; j++) { ctx.moveTo(0, j * 32); ctx.lineTo(W, j * 32); } ctx.stroke();
+      paintRect(ctx, 0, PV * 64, W, 11, gr([164, 158, 148]), r, { n: W / 5, sw: 3, ang: 0, ink: true, ew: 1.6, ha: .9, light: [0, -1] });
+      ctx.fillStyle = css([6, 4, 14], .35); ctx.fillRect(0, PV * 64 + 11, W, 8);
+    }
+    // tram rails in setts
+    if (rail > 0) {
+      const ry = rail * 64;
+      for (let x = 0; x < W; x += 21) for (let k = 0; k < 4; k++) paintEll(ctx, x + r.r(-2, 2) + 10, ry - 6 + k * 18 + r.r(-2, 2), r.r(8, 10.5), r.r(7, 9), jit(gr([96, 98, 104]), r, .12), r, { n: 3, pn: 8, sw: 3, ink: false, ew: 1, alt: gr([70, 80, 96]) });
+      for (const off of [8, 52]) { ctx.fillStyle = css([18, 16, 20], .9); ctx.fillRect(0, ry + off - 3, W, 6.4); ctx.fillStyle = css(night ? [170, 190, 220] : [190, 190, 190], .75); ctx.fillRect(0, ry + off - 2.2, W, 1.8); }
+    }
+    for (let i = 0; i < 16; i++) { let x = r() * W, y = r() * H; ctx.strokeStyle = css([14, 14, 20], .55); ctx.lineWidth = r.r(.8, 1.8); ctx.beginPath(); ctx.moveTo(x, y); for (let k = 0; k < 7; k++) { x += r.r(-16, 16); y += r.r(-14, 14); ctx.lineTo(x, y); } ctx.stroke(); }
+    // manhole covers
+    for (const [mx, my] of [[W * .42, (PV + 2.4) * 64], [W * .78, (PV + 3.6) * 64]]) { if (my > H - 40) continue; paintEll(ctx, mx, my, 21, 21, [58, 56, 60], r, { n: 12, ink: true, ew: 1.4 }); ctx.strokeStyle = css([20, 20, 22], .8); ctx.lineWidth = 1.5; for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(mx - 15, my + k * 6); ctx.lineTo(mx + 15, my + k * 6); ctx.stroke(); } }
+    // wet puddles holding the sky / neon
+    const sk = S.mood.sky || SKY[S.bucket];
+    for (let i = 0; i < 9; i++) {
+      const x = r.r(80, W - 80), y = r.r(PV * 64 + 60, H - 50), rx = r.r(34, 80), ry = rx * r.r(.4, .6);
+      const g2 = ctx.createLinearGradient(x - rx, y, x + rx, y); g2.addColorStop(0, css(night ? [20, 24, 56] : mix(sk[0], [30, 50, 70], .3), .85)); g2.addColorStop(.35, css(night ? [220, 70, 130] : sk[1], .7)); g2.addColorStop(.7, css(night ? [60, 190, 210] : sk[1], .6)); g2.addColorStop(1, css(sk[0], .85));
+      ctx.fillStyle = g2; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, r() * .3, 0, 7); ctx.fill(); ctx.strokeStyle = css([8, 8, 14], .7); ctx.lineWidth = 1.6; ctx.stroke();
+      ctx.strokeStyle = css([255, 255, 255], .25); ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(x - rx * .2, y - ry * .15, rx * .5, ry * .4, 0, 3.4, 5.8); ctx.stroke();
+    }
+  } else if (type === 'metal') {
+    const storm = loc.mood === 'storm';
+    for (let j = 0; j < lh(loc); j++) for (let i = 0; i < lw(loc); i++) {
+      const grate = lat(i, j, S.seed + 4) > .86, c = jit(gr(storm ? [98, 108, 114] : [110, 108, 100]), r, .08);
+      const x0 = i * 64, y0 = j * 64;
+      if (grate) {
+        paintRect(ctx, x0 + 1, y0 + 1, 62, 62, [18, 18, 22], r, { n: 6, ink: true, ew: 1.4 });
+        ctx.strokeStyle = css(gr([108, 112, 112]), .9); ctx.lineWidth = 2.2; ctx.beginPath(); for (let k = 1; k < 8; k++) { ctx.moveTo(x0 + k * 8, y0 + 3); ctx.lineTo(x0 + k * 8, y0 + 61); } ctx.stroke();
+        ctx.strokeStyle = css(gr([70, 74, 78]), .9); ctx.lineWidth = 1.4; ctx.beginPath(); for (let k = 1; k < 4; k++) { ctx.moveTo(x0 + 3, y0 + k * 16); ctx.lineTo(x0 + 61, y0 + k * 16); } ctx.stroke();
+        S.lights.push((function () { const q = gp(S, (x0 + 32) / 64, (y0 + 32) / 64, 0); return { x: q[0], y: q[1], r: 70, col: [255, 120, 50], a: .1, fl: .25, ph: r() * 6, kind: 'heat' }; })());
+        continue;
+      }
+      paintRect(ctx, x0 + 1, y0 + 1, 62, 62, c, r, { n: 18, sw: 5, sl: 34, ang: r() * 3, alt: gr([160, 160, 150]), jv: .09, ha: .5, ew: 1.4 });
+      ctx.save(); ctx.beginPath(); ctx.rect(x0 + 3, y0 + 3, 58, 58); ctx.clip();       // diamond tread
+      ctx.strokeStyle = css(gr([44, 46, 50]), .55); ctx.lineWidth = 2.2; ctx.beginPath();
+      for (let a = -64; a < 128; a += 12) { ctx.moveTo(x0 + a, y0); ctx.lineTo(x0 + a + 14, y0 + 14); ctx.moveTo(x0 + a, y0 + 14); ctx.lineTo(x0 + a + 14, y0); }
+      for (let b = 0; b < 4; b++) for (let a = -64; a < 128; a += 24) { ctx.moveTo(x0 + a + 6, y0 + 14 + b * 14 + 3); ctx.lineTo(x0 + a + 17, y0 + 14 + b * 14 + 12); }
+      ctx.stroke(); ctx.strokeStyle = css([230, 230, 220], .22); ctx.lineWidth = 1; ctx.beginPath(); for (let k = 0; k < 14; k++) { const a = r.r(-10, 60), b = r.r(0, 58); ctx.moveTo(x0 + a, y0 + b); ctx.lineTo(x0 + a + 7, y0 + b + 6); } ctx.stroke();
+      ctx.restore();
+      for (const [dx, dy] of [[5, 5], [59, 5], [5, 59], [59, 59]]) { ctx.fillStyle = css([40, 40, 44], .9); ctx.beginPath(); ctx.arc(x0 + dx, y0 + dy, 2.1, 0, 7); ctx.fill(); ctx.fillStyle = css([220, 220, 210], .5); ctx.fillRect(x0 + dx - 1, y0 + dy - 1.4, 1.6, 1); }
+    }
+    ctx.strokeStyle = css([12, 12, 16], .85); ctx.lineWidth = 1.8; ctx.beginPath(); for (let i = 0; i <= lw(loc); i++) { ctx.moveTo(i * 64, 0); ctx.lineTo(i * 64, H); } for (let j = 0; j <= lh(loc); j++) { ctx.moveTo(0, j * 64); ctx.lineTo(W, j * 64); } ctx.stroke();
+    // hazard-stripe borders round heavy machinery, cable runs, oil
+    for (const p of (loc.props || [])) if ((p.t === 'generator' || p.t === 'console') && !p.side) {
+      const x0 = (p.x - .28) * 64, y0 = (p.y - .28) * 64, w = ((p.w || 1) + .56) * 64, h = ((p.h || 1) + .56) * 64;
+      ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, w, h); ctx.rect(x0 + 9, y0 + 9, w - 18, h - 18); ctx.clip('evenodd');
+      ctx.fillStyle = css([34, 30, 26], .95); ctx.fillRect(x0, y0, w, h); ctx.fillStyle = css(gr([214, 176, 50]), .92);
+      for (let a = -h; a < w + h; a += 22) { ctx.beginPath(); ctx.moveTo(x0 + a, y0); ctx.lineTo(x0 + a + 11, y0); ctx.lineTo(x0 + a + 11 - h, y0 + h); ctx.lineTo(x0 + a - h, y0 + h); ctx.fill(); }
+      ctx.restore();
+    }
+    for (let k = 0; k < 3; k++) { let x = r() * W * .6 + W * .2, y = r() * H * .6 + H * .2; ctx.strokeStyle = css([12, 12, 14], .92); ctx.lineWidth = r.r(4, 6.5); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x, y); for (let q = 0; q < 4; q++) { ctx.quadraticCurveTo(x + r.r(-90, 90), y + r.r(-90, 90), x += r.r(-130, 130), y += r.r(-130, 130)); } ctx.stroke(); ctx.strokeStyle = css([120, 130, 150], .28); ctx.lineWidth = 1.4; ctx.stroke(); }
+    for (let i = 0; i < 12; i++) { ctx.fillStyle = css([10, 8, 8], .2 + r() * .15); ctx.beginPath(); ctx.ellipse(r() * W, r() * H, r.r(10, 40), r.r(7, 24), r() * 3, 0, 7); ctx.fill(); }
   } else { // concrete
     for (let j = 0; j < Math.ceil(lh(loc) / 2); j++) for (let i = 0; i < Math.ceil(lw(loc) / 2); i++) {
       const c = jit(gr([104, 104, 108]), r, .1);
@@ -171,6 +250,11 @@ function paintFloorEdge(ctx, S) {
 /* ------------------------------------------------------------------- walls */
 function wallPal(S) {
   const t = S.loc.wall || 'plaster', m = S.loc.mood;
+  if (t === 'tiled') return m === 'storm' ? { b: [176, 192, 184], g: [58, 96, 92], m: [60, 70, 70] } : { b: [212, 206, 176], g: [78, 120, 96], m: [70, 66, 54] };
+  if (t === 'corrugated') return m === 'storm' ? { b: [112, 128, 134], m: [44, 52, 58], rust: [140, 78, 44] } : { b: [136, 130, 112], m: [50, 46, 40], rust: [150, 80, 40] };
+  if (t === 'brick' && m === 'neon') return { b: [112, 70, 74], m: [44, 40, 52] };
+  if (t === 'brick' && m === 'storm') return { b: [104, 92, 90], m: [46, 48, 56] };
+  if (m === 'lamp') return { top: [200, 164, 104], dado: [112, 76, 58] };
   if (t === 'brick') return m === 'warm' ? { b: [176, 84, 48], m: [74, 54, 44] } : m === 'ember' ? { b: [120, 56, 40], m: [40, 28, 28] } : { b: [136, 78, 58], m: [64, 52, 48] };
   if (m === 'sick') return { top: [196, 206, 160], dado: [74, 120, 84] };
   if (m === 'cold') return { top: [170, 184, 168], dado: [58, 100, 92] };
@@ -181,7 +265,29 @@ function paintWall(ctx, S, side) {
   const loc = S.loc, r = S.r, len = (side === 'l' ? lh(loc) : lw(loc)) * 64, P = wallPal(S), brick = loc.wall === 'brick';
   const gr = (c) => mul(C(c), S.mood.bake) , dark = side === 'l' ? .72 : 1.0;
   ctx.save(); wallFrame(ctx, S, side); ctx.beginPath(); ctx.rect(0, 0, len, WALLH); ctx.clip();
-  if (brick) {
+  if (loc.wall === 'tiled') {
+    const th = 11, tw = 18, dado = WALLH * .6;
+    ctx.fillStyle = css(gr(P.m)); ctx.fillRect(0, 0, len, WALLH);
+    for (let v = 0, row = 0; v < WALLH; v += th, row++) for (let u = 0; u < len; u += tw) {
+      const low = v >= dado, base = low ? P.g : P.b, c = mul(jit(gr(base), r, .07), dark * (.88 + .12 * noise(u / 70, v / 50, S.seed)));
+      paintRect(ctx, u + .7, v + .7, tw - 1.4, th - 1.4, c, r, { n: 2, sw: 4, sl: 14, ang: .3 + r() * .4, aj: .3, alt: low ? [140, 190, 150] : [250, 244, 214], jv: .05, ew: .9, ha: .8, la: .5, light: [.4, -.9] });
+      if (r() < .06) { ctx.fillStyle = css([20, 14, 10], .55); ctx.beginPath(); ctx.moveTo(u + 3, v + 2); ctx.lineTo(u + tw - 3, v + 3); ctx.lineTo(u + tw / 2, v + th - 2); ctx.fill(); }
+    }
+    ctx.fillStyle = css(gr([20, 30, 26]), .9); ctx.fillRect(0, dado - 3, len, 5); ctx.fillStyle = css([230, 236, 214], .45); ctx.fillRect(0, dado - 3.6, len, 1.6);
+    for (let i = 0; i < len / 50; i++) { const x = r() * len; ctx.fillStyle = css([40, 30, 14], .14 + r() * .1); ctx.fillRect(x, r.r(0, 40), r.r(1.5, 4), r.r(30, 100)); }
+  } else if (loc.wall === 'corrugated') {
+    ctx.fillStyle = css(gr(P.m)); ctx.fillRect(0, 0, len, WALLH);
+    for (let u = 0; u < len; u += 12) {
+      const c = jit(gr(P.b), r, .06), g2 = ctx.createLinearGradient(u, 0, u + 12, 0);
+      g2.addColorStop(0, css(mul(c, .62 * dark))); g2.addColorStop(.45, css(mul(c, 1.16 * dark))); g2.addColorStop(1, css(mul(c, .7 * dark)));
+      ctx.fillStyle = g2; ctx.fillRect(u, 0, 12, WALLH);
+      for (let k = 0; k < 2; k++) bristle(ctx, u + 4 + r() * 4, r() * WALLH, 1.57 + r.g() * .05, r.r(30, 90), r.r(2, 4), mul(c, 1 + r.g() * .12), .35, r);
+    }
+    for (let i = 0; i < len / 22; i++) { const x = r() * len, y = r.r(20, WALLH), s = r.r(10, 34); ctx.globalAlpha = .45; ctx.drawImage(glowSprite(mul(P.rust, dark), 128), x - s / 2, y - s, s, s * 3); }
+    ctx.globalAlpha = 1;
+    for (let u = 0; u < len; u += 64) { ctx.fillStyle = css([14, 12, 14], .6); ctx.fillRect(u - 1, 0, 2.4, WALLH); for (let y = 10; y < WALLH; y += 36) { ctx.fillStyle = css([36, 34, 36]); ctx.beginPath(); ctx.arc(u + 6, y, 1.8, 0, 7); ctx.fill(); ctx.fillStyle = css([210, 200, 180], .4); ctx.fillRect(u + 5, y - 1.6, 1.4, 1); } }
+    ctx.fillStyle = css([14, 12, 14], .5); ctx.fillRect(0, WALLH * .55, len, 3);
+  } else if (brick) {
     ctx.fillStyle = css(gr(P.m)); ctx.fillRect(0, 0, len, WALLH);
     const bh = 10, bw = 30;
     for (let row = 0, v = 0; v < WALLH; row++, v += bh) {
@@ -225,7 +331,7 @@ function paintWall(ctx, S, side) {
 
 /* floor light shafts from windows/doors, dapples, dust stains: baked */
 function paintLightFloor(ctx, S) {
-  const loc = S.loc, r = S.r, b = S.bucket, col = DAPPLE[b], ka = DAPPLE_A[b] * S.lightK;
+  const loc = S.loc, r = S.r, b = S.bucket, col = S.mood.dapple || DAPPLE[b], ka = (S.mood.dapple ? .8 : DAPPLE_A[b]) * S.lightK;
   ctx.save(); floorFrame(ctx, S); ctx.beginPath(); ctx.rect(0, 0, lw(loc) * 64, lh(loc) * 64); ctx.clip();
   ctx.globalCompositeOperation = 'lighter';
   for (const p of (loc.props || [])) {
