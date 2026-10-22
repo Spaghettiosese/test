@@ -2,14 +2,16 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 global.window = global; global.localStorage = { _d: {}, getItem(k) { return this._d[k] || null; }, setItem(k, v) { this._d[k] = String(v); }, removeItem(k) { delete this._d[k]; } };
 const root = path.join(__dirname, '..');
-for (const f of ['world','world_ext','skills','items','items_ext','tasks','tasks_ext','thoughts','thoughts_ext','barks','barks_ext','rules','dialogue_a','dialogue_b','dialogue_c','dialogue_d','dialogue_e','dialogue_f']) { const p = path.join(root, 'data', f + '.js'); if (fs.existsSync(p)) vm.runInThisContext(fs.readFileSync(p, 'utf8'), { filename: p }); }
+for (const f of ['world','world_ext','skills','items','items_ext','tasks','tasks_ext','thoughts','thoughts_ext','barks','barks_ext','rules','rules_ext','dialogue_a','dialogue_b','dialogue_c','dialogue_d','dialogue_e','dialogue_f']) { const p = path.join(root, 'data', f + '.js'); if (fs.existsSync(p)) vm.runInThisContext(fs.readFileSync(p, 'utf8'), { filename: p }); }
 const G = require(path.join(root, 'js/engine.js')); const GD = global.GD;
 let bad = 0; const fail = (m) => { bad++; console.log('FAIL ' + m); };
+G.on('daybreak', () => { G.beginDay(); });
 G.newGame({ name: 'Test' }); while (G.D) G.closeDialogue();
-// reachability
-for (const l of Object.values(GD.locations)) {
+// reachability (all three days)
+for (const day of [1, 2, 3]) for (const l of Object.values(GD.locations)) {
+  G.S.day = day;
   G.S.loc = l.id; const b = G.blockedSet(l);
-  const sp = l.spawn; if (b.has(sp.x + ',' + sp.y)) fail(`${l.id}: spawn blocked`);
+  const sp = l.spawn; if (b.has(sp.x + ',' + sp.y)) fail(`d${day} ${l.id}: spawn blocked`);
   for (const h of G.hotspots ? (G.S.loc = l.id, G.hotspots()) : []) {
     let ok = false;
     for (let dx = -1; dx <= 1 && !ok; dx++) for (let dy = -1; dy <= 1 && !ok; dy++) {
@@ -18,10 +20,11 @@ for (const l of Object.values(GD.locations)) {
       if (x < 0 || y < 0 || x >= l.w || y >= l.h) continue;
       const bb = G.blockedSet(l, h.id); if (!bb.has(x + ',' + y) && G.findPath(l, sp.x, sp.y, x, y, bb)) ok = true;
     }
-    if (!ok) fail(`${l.id}: hotspot ${h.id} unreachable`);
+    if (!ok) fail(`d${day} ${l.id}: hotspot ${h.id} unreachable`);
   }
   for (const e of l.exits || []) if (e.to) { const t = GD.locations[e.to]; if (G.blockedSet(t).has(e.toX + ',' + e.toY)) fail(`${l.id}->${e.to}: arrival tile blocked`); }
 }
+G.S.day = 1;
 // random playthroughs
 let runs = 0;
 for (let r = 0; r < 60; r++) {
@@ -40,6 +43,8 @@ for (let r = 0; r < 60; r++) {
       let n = 0; while (G.D && n++ < 80) { if (G.D.roll) { G.continueRoll(); continue; } const ch = G.D.choices.filter((c) => !c.locked); if (!ch.length) { G.closeDialogue(); break; } const c = ch[Math.floor(Math.random() * ch.length)]; G.choose(G.D.choices.indexOf(c)); }
       if (G.D) G.closeDialogue();
       if (guard % 7 === 0) G.addTime(30);
+      if (guard % 90 === 0) G.addTime(300);
+      while (G.D && G.D.daybreak) G.closeDialogue();
     }
     runs++;
   } catch (e) { fail('run ' + r + ': ' + e.stack.split('\n').slice(0, 3).join(' | ')); break; }

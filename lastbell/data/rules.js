@@ -29,6 +29,11 @@ GD.endingInfo = {
   end_static:       { name: "Static", hint: "A stage, a microphone, and a school full of loudspeakers." },
   end_quiet:        { name: "The Quiet Way", hint: "The school gate is always open to those who can stand to forget." },
   end_arrested:     { name: "Arrested", hint: "The State notices what you do, eventually." },
-  end_curfew:       { name: "Curfew", hint: "The Bell is patient. Let the day run out." }
+  end_curfew:       { name: "Curfew", hint: "The Bell is patient. Let the third day run out." },
+  end_wake:         { name: "The Wake Tone", hint: "What if the Bell rang the other way?" },
+  end_wardens_eye:  { name: "The Warden's Eye", hint: "A good coat, a quiet office, and a very kind inspector." },
+  end_martyr:       { name: "The Unsigned Statement", hint: "Someone has to be guilty of everything." },
+  end_silenced:     { name: "Blackout", hint: "Some towers are easier to topple than to fix." },
+  end_exodus:       { name: "The Night Tram", hint: "There is a tram that does not stop at the school." }
 };
 })();

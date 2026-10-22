@@ -24,7 +24,7 @@
       <button data-panel="menu" title="Menu (Esc)"><b>⋯</b><em>Menu</em></button>
     </div>
     <div id="topright">
-      <div id="clock">07:30</div>
+      <div id="dayname">DAY 1</div><div id="clock">07:30</div>
       <div id="surv" title="Surveillance — how closely the State is watching you. At 100 you are arrested."><span>WATCHED</span><div class="bar"><i id="m-surv"></i></div></div>
       <div id="curfew">Curfew 21:00</div>
     </div>
@@ -69,18 +69,29 @@
 <li><b>Mind the clock.</b> Exam at 17:00. Curfew at 21:00. Defiance raises <b>Watched</b>; at 100 you are arrested. There are six endings.</li></ul>
 <button class="cbtn" id="tut-ok">Wake up</button></div></div>
 <div id="rotate"><div><b>↻</b><p>Landscape works best.<br>Rotate your phone for the full scene.</p><button class="cbtn" id="rot-ok">Continue anyway</button></div></div>
+  <div id="daycard" class="hidden"><canvas id="dc-canvas"></canvas><div id="dc-box"><h2 id="dc-title"></h2><p id="dc-sub"></p><button class="cbtn" id="dc-go">Wake up</button></div></div>
   <div id="create" class="hidden"><div id="create-inner"></div></div>
   <div id="ending" class="hidden"><canvas id="ending-canvas"></canvas><div id="ending-summary" class="hidden"></div></div>
 </div>
 <script src="data/world.js"></script>
+<script src="data/world_ext.js"></script>
 <script src="data/skills.js"></script>
 <script src="data/items.js"></script>
+<script src="data/items_ext.js"></script>
 <script src="data/tasks.js"></script>
+<script src="data/tasks_ext.js"></script>
 <script src="data/thoughts.js"></script>
+<script src="data/thoughts_ext.js"></script>
 <script src="data/barks.js"></script>
+<script src="data/barks_ext.js"></script>
 <script src="data/rules.js"></script>
+<script src="data/rules_ext.js"></script>
 <script src="data/dialogue_a.js"></script>
 <script src="data/dialogue_b.js"></script>
+<script src="data/dialogue_c.js"></script>
+<script src="data/dialogue_d.js"></script>
+<script src="data/dialogue_e.js"></script>
+<script src="data/dialogue_f.js"></script>
 <script src="js/art.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/engine.js"></script>

@@ -147,7 +147,7 @@
   function refreshHud() {
     const S = G.S; if (!S) return;
     $('#m-hp').style.width = S.hp * 10 + '%'; $('#m-morale').style.width = S.morale * 10 + '%'; $('#m-surv').style.width = S.surv + '%';
-    $('#clock').textContent = fmtTime(S.time); if (window.Sound) Sound.tension(S.surv, S.hp, S.morale);
+    $('#clock').textContent = fmtTime(S.time); const dn = (GD.meta.days[S.day || 1] || {}); $('#dayname').textContent = 'DAY ' + (S.day || 1) + ' · ' + (dn.name || '').toUpperCase(); if (window.Sound) Sound.tension(S.surv, S.hp, S.morale);
     const rem = GD.meta.curfew - S.time; $('#curfew').textContent = rem > 0 ? 'Curfew in ' + Math.floor(rem / 60) + 'h ' + String(rem % 60).padStart(2, '0') + 'm' : 'CURFEW';
     $('#locname').textContent = G.loc().name;
     $('#pt-dot').classList.toggle('hidden', S.points <= 0);
@@ -286,8 +286,8 @@
       body.querySelectorAll('[data-think]').forEach((b) => (b.onclick = () => G.startThought(b.dataset.think)));
       body.querySelectorAll('[data-forget]').forEach((b) => (b.onclick = () => G.forgetThought(b.dataset.forget)));
     } else if (panelKind === 'menu') {
-      body.innerHTML = '<h2 class="ptitle">Menu</h2><div class="menu-btns"><button class="pbtn" id="mn-res">Resume</button><button class="pbtn" id="mn-save">Save now</button><button class="pbtn" id="mn-snd">Sound: ' + (Sound.muted ? 'Off' : 'On') + '</button>' + ['music:Music', 'sfx:Effects', 'amb:Ambience'].map((x) => { const [k, n] = x.split(':'); return '<label style="font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center">' + n + '<input type="range" min="0" max="1" step="0.05" value="' + Sound.vol[k] + '" data-vol="' + k + '" style="flex:1"></label>'; }).join('') + '<button class="pbtn" id="mn-res2" style="display:none"></button><button class="pbtn" id="mn-text">Text size: ' + ['Normal', 'Large', 'Extra large'][textSize] + '</button><button class="pbtn" id="mn-grain">Film grain: ' + ((A.quality && A.quality.grain === false) ? 'Off' : 'On') + '</button><button class="pbtn" id="mn-help">How to play</button><button class="pbtn" id="mn-title">Quit to title</button></div><p class="psub" style="margin-top:20px">The game autosaves after every conversation and every move between rooms.</p>';
-      $('#mn-res').onclick = closePanel; $('#mn-save').onclick = () => { G.save(); closePanel(); G.emit('toast', { text: 'Saved.', kind: 'info' }); };
+      body.innerHTML = '<h2 class="ptitle">Menu</h2><div class="menu-btns"><button class="pbtn" id="mn-res">Resume</button><button class="pbtn" id="mn-save">Save now</button>' + ((S.loc === 'dorm' && S.time >= 1020 && (S.day || 1) < 3) ? '<button class="pbtn" id="mn-sleep">Go to sleep (end the day)</button>' : '') + '<button class="pbtn" id="mn-snd">Sound: ' + (Sound.muted ? 'Off' : 'On') + '</button>' + ['music:Music', 'sfx:Effects', 'amb:Ambience'].map((x) => { const [k, n] = x.split(':'); return '<label style="font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center">' + n + '<input type="range" min="0" max="1" step="0.05" value="' + Sound.vol[k] + '" data-vol="' + k + '" style="flex:1"></label>'; }).join('') + '<button class="pbtn" id="mn-res2" style="display:none"></button><button class="pbtn" id="mn-text">Text size: ' + ['Normal', 'Large', 'Extra large'][textSize] + '</button><button class="pbtn" id="mn-grain">Film grain: ' + ((A.quality && A.quality.grain === false) ? 'Off' : 'On') + '</button><button class="pbtn" id="mn-help">How to play</button><button class="pbtn" id="mn-title">Quit to title</button></div><p class="psub" style="margin-top:20px">The game autosaves after every conversation and every move between rooms.</p>';
+      $('#mn-res').onclick = closePanel; if ($('#mn-sleep')) $('#mn-sleep').onclick = () => { closePanel(); G.queueEnding('end_curfew'); }; $('#mn-save').onclick = () => { G.save(); closePanel(); G.emit('toast', { text: 'Saved.', kind: 'info' }); };
       $('#mn-snd').onclick = () => { Sound.toggle(); renderPanel(); }; document.querySelectorAll('[data-vol]').forEach((r) => (r.oninput = () => { Sound.set(r.dataset.vol, parseFloat(r.value)); })); $('#mn-text').onclick = () => { textSize = (textSize + 1) % 3; try { localStorage.setItem('lastbell_text', String(textSize)); } catch (e) {} applyTextSize(); renderPanel(); }; $('#mn-grain').onclick = () => { if (A.quality) A.quality.grain = A.quality.grain === false; renderPanel(); }; $('#mn-help').onclick = showHelp; $('#mn-title').onclick = () => { G.save(); location.reload(); };
     }
   }
@@ -309,7 +309,7 @@
   function refreshTitle() {
     $('#btn-continue').disabled = !G.hasSave();
     const seen = G.endingsSeen(), names = { end_good_student: 'The Good Student', end_ledger: 'The Ledger', end_static: 'Static', end_quiet: 'The Quiet Way', end_arrested: 'Arrested', end_curfew: 'Curfew' };
-    $('#endings-seen').textContent = 'Endings found: ' + seen.length + ' / 6' + (seen.length ? ' — ' + seen.map((e) => names[e]).join(', ') : '');
+    $('#endings-seen').textContent = 'Endings found: ' + seen.length + ' / ' + Object.keys(GD.endingInfo || {}).length + (seen.length ? ' — ' + seen.map((e) => (GD.endingInfo[e] || {}).name || e).join(', ') : '');
     $('#btn-sound').textContent = 'Sound: ' + (Sound.muted ? 'Off' : 'On');
   }
   refreshTitle();
@@ -358,14 +358,27 @@
     render();
   }
 
+  // ---------- days & nights ----------
+  G.on('night', () => { document.body.classList.add('nightscene'); });
+  G.on('dialogueEnd', (D) => { if (D.daybreak) document.body.classList.remove('nightscene'); });
+  G.on('daybreak', (d) => {
+    const el = $('#daycard'); el.classList.remove('hidden'); $('#dc-title').textContent = 'DAY ' + d.day + ' — ' + d.name.toUpperCase();
+    $('#dc-sub').textContent = d.hangover ? 'Static hangover: ' + d.hangover + ' −1 until tomorrow' : 'You remember more than you should.';
+    document.body.classList.remove('nightscene'); window.Sound && Sound.scene('title');
+    const cv = $('#dc-canvas'), t0 = performance.now(); cv.width = Math.floor(W * dpr); cv.height = Math.floor(H * dpr);
+    const dc = cv.getContext('2d'); const loop = (now) => { if (el.classList.contains('hidden')) return; dc.setTransform(dpr, 0, 0, dpr, 0, 0); (A.drawDayCard || ((c, w, h) => { c.fillStyle = '#10140f'; c.fillRect(0, 0, w, h); }))(dc, W, H, now - t0, d.day); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+    $('#dc-go').onclick = () => { el.classList.add('hidden'); G.S && window.Sound && Sound.mood(G.loc().mood); G.beginDay(); };
+  });
+
   // ---------- endings ----------
-  const ENDNAMES = { end_good_student: 'THE GOOD STUDENT', end_ledger: 'THE LEDGER', end_static: 'STATIC', end_quiet: 'THE QUIET WAY', end_arrested: 'ARRESTED', end_curfew: 'CURFEW' };
+  const ENDNAMES = new Proxy({}, { get: (_, k) => ((GD.endingInfo || {})[k] || {}).name ? GD.endingInfo[k].name.toUpperCase() : undefined });
   G.on('ending', (id) => { $('#ending').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#ending-summary').classList.add('hidden'); window.Sound && (Sound.play('bell'), Sound.ending(id)); });
   G.on('endingDone', (id) => showSummary(id));
   G.on('dialogueEnd', (D) => { if (D.isEnding) setTimeout(() => showSummary(G.S.ending), 300); });
   function showSummary(id) {
     const S = G.S, el = $('#ending-summary'); document.body.classList.remove('endmode');
-    el.innerHTML = '<h2>' + (ENDNAMES[id] || 'THE END') + '</h2><p>' + esc(S.name) + ' · ' + fmtTime(S.time) + ' · checks passed ' + S.stats.passed + ' / failed ' + S.stats.failed + ' · thoughts internalized ' + Object.values(S.thoughts).filter((t) => t.state === 'internalized').length + ' · Watched ' + S.surv + '%</p><p style="color:var(--dim)">Endings found: ' + G.endingsSeen().length + ' of 6. There is more than one way to get through a Tuesday.</p><div class="eg">' + Object.entries(GD.endingInfo || {}).map(([k, v]) => G.endingsSeen().includes(k) ? '<b>✔ ' + esc(v.name) + '</b>' : '<span>? ' + esc(v.hint) + '</span>').join('<br>') + '</div><button class="cbtn" id="again">Return to title</button>';
+    el.innerHTML = '<h2>' + (ENDNAMES[id] || 'THE END') + '</h2><p>' + esc(S.name) + ' · ' + fmtTime(S.time) + ' · checks passed ' + S.stats.passed + ' / failed ' + S.stats.failed + ' · thoughts internalized ' + Object.values(S.thoughts).filter((t) => t.state === 'internalized').length + ' · Watched ' + S.surv + '%</p><p style="color:var(--dim)">Endings found: ' + G.endingsSeen().length + ' of ' + Object.keys(GD.endingInfo || {}).length + '. There is more than one way to get through a Tuesday.</p><div class="eg">' + Object.entries(GD.endingInfo || {}).map(([k, v]) => G.endingsSeen().includes(k) ? '<b>✔ ' + esc(v.name) + '</b>' : '<span>? ' + esc(v.hint) + '</span>').join('<br>') + '</div><button class="cbtn" id="again">Return to title</button>';
     el.classList.remove('hidden'); $('#again').onclick = () => location.reload();
   }
 

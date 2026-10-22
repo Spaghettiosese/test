@@ -176,3 +176,10 @@ body.portrait.playing #rotate:not(.hidden){display:flex}
 #ending-summary .eg b{color:#cfc8ac}
 body.bigtext .line{font-size:20px}body.bigtext .choice{font-size:19px}
 body.xbigtext .line{font-size:24px}body.xbigtext .choice{font-size:22px}
+
+#dayname{font-size:10px;letter-spacing:.2em;color:var(--dim);margin-bottom:-2px}
+#daycard{position:absolute;inset:0;z-index:36;background:#000}
+#dc-canvas{position:absolute;inset:0;width:100%;height:100%}
+#dc-box{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);text-align:center;text-shadow:0 2px 14px #000;width:min(680px,92vw)}
+#dc-box h2{font-size:min(9vw,56px);letter-spacing:.14em;margin:0 0 10px;color:#e9dcae} #dc-box p{color:#cfc8ac;font-style:italic;margin:0 0 22px}
+body.nightscene #scene{filter:brightness(.45) saturate(.7) hue-rotate(10deg)}
