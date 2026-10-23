@@ -156,8 +156,9 @@
     const d = GD.meta.days[S.day] || GD.meta.days[3];
     S.time = d.start; S.hp = Math.min(10, S.hp + 4); S.morale = Math.min(10, S.morale + 4); S.surv = Math.max(0, S.surv - 15);
     S.flags.hangover_skill = null;
-    const th = S.thoughts.th_ghost_of_yesterday;
-    if (!(th && th.state === 'internalized')) { const ids = SKILL_IDS(); S.flags.hangover_skill = ids[Math.floor(Math.random() * ids.length)]; S.flags.hangover_day = S.day; }
+    const th = S.thoughts.th_ghost_of_yesterday, sheltered = S.flags['day' + (S.day - 1) + '_sheltered'];
+    if (sheltered) emit('toast', { text: 'You slept in the Stacks, where the Bell does not reach. Your head is clear.', kind: 'good' });
+    if (!(th && th.state === 'internalized') && !sheltered) { const ids = SKILL_IDS(); S.flags.hangover_skill = ids[Math.floor(Math.random() * ids.length)]; S.flags.hangover_day = S.day; }
     S.path = null; S.then = null;
     teleport('dorm', undefined, undefined, true);
     emit('daybreak', { day: S.day, name: d.name, hangover: S.flags.hangover_skill ? GD.skills[S.flags.hangover_skill].name : null });
