@@ -6,7 +6,9 @@ Greater Union of Karsovia. You wake on a stage with no memory, a Youth Commissar
 **Play:** open `index.html` (works from `file://`, no build, no dependencies). Mobile supported (landscape best).
 
 - 24 skills that talk back, 2d6 checks (red = once, white = retry on level-up), Thought Cabinet, inventory, journal
-- 6 locations, 11 characters, ~500 dialogue nodes (~55k words), 6 endings, original generative music and ambience
+- Three days (Tuesday to the Thursday Jubilee), 11 locations, 22 characters, ~1,940 dialogue nodes (~290k words incl. choices), 11 endings
+- Day verdicts carry over: what you do on Day 1 and 2 reshapes the next morning; nights bring a Static hangover
+- Original generative music, ambience and sound effects
 - Spin: Surveillance meter, Yesterday-You notes, the Bell/Static memory loop, the Orthodoxy Exam, the PA broadcast finale
 
 ## Layout

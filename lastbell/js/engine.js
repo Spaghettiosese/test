@@ -397,6 +397,7 @@
   function runAuto() {
     if (!S || S.ending || D) return;
     if (S.day === 3 && S.time >= (GD.meta.jubileeTime || 1170) && !S.flags.jubilee_started && dialogues().jubilee_call) { S.flags.jubilee_started = true; startDialogue('jubilee_call'); return; }
+    if (S.day === 3 && S.time >= 1215 && S.flags.finale_open && !S.flags.finale_late_shown && S.loc !== 'tower' && dialogues().finale_fallback) { S.flags.finale_late_shown = true; startDialogue('finale_fallback'); return; }
     for (const r of GD.auto || []) {
       const k = 'auto:' + r.id;
       if (!S.seen[k] && evalCond(r.cond)) { S.seen[k] = true; runEffects(r.effects); }
@@ -412,6 +413,8 @@
   function startEnding(id) {
     if (S.ending) return;
     S.ending = id;
+    if (S.day >= 3 && S.tasks.task_jubilee && S.tasks.task_jubilee.state === 'active') S.tasks.task_jubilee.state = 'done';
+    if (id === 'end_exodus' && S.tasks.task_exodus) S.tasks.task_exodus.state = 'done';
     try {
       const got = JSON.parse(localStorage.getItem(END_KEY) || '[]');
       if (!got.includes(id)) { got.push(id); localStorage.setItem(END_KEY, JSON.stringify(got)); }

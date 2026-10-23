@@ -75,7 +75,7 @@ jubilee_call: {
         { skill: "the_grey", min: 3, text: `The relay hums in its box on Karsov Avenue, pitched for the teeth. Inside it a tired man in a lab coat is walking from console to vault and back, adding small, deliberate delays, the way a man delays a train he is secretly on the side of.`, cond: "((flag.tomas_ready || flag.tomas_ally) && !flag.tomas_arrested)" },
         { skill: "the_grey", min: 3, text: `The Great Bell, above you, with an old man's hand flat against it like a doctor's. Hob does not look at the crowd. He looks at the tower door, and then at the sky, and then, very briefly, at the place in the air where you will arrive.`, cond: "(flag.hob_ready || flag.hob_trust || flag.hob_signal)" },
         { skill: "empathy", min: 3, text: `Rhea Vantage stands at the head of the Vanguard guard of honour, perfectly straight, and for one second, as the Warden's voice says "it was not worth the carrying", her mouth moves with it and her eyes do not. Something in her has started to read ahead.`, cond: "(flag.rhea_ready || flag.rhea_turned)" },
-        { skill: "empathy", min: 3, text: `Principal Marr, on the dais with a folded speech, looking at nothing. Her pearl earrings are very still. You have the idea she has been practising a different speech, privately, for days.`, cond: "flag.marr_turned" },
+        { skill: "empathy", min: 3, text: `Principal Marr, on the dais with a folded speech, looking at nothing. Her pearl earrings are very still. You have the idea she has been practising a different speech, privately, for days.`, cond: "flag.marr_turned || flag.marr_ready" },
         { skill: "solidarity", min: 3, text: `Somewhere in all this hum there's a girl with a note in her fist, a boy with a ticket, an old man with a key. We are not an army. We are an inconvenience with good shoes.`, cond: "(((flag.wren_ready || flag.wren_ally) && !flag.wren_caught)) || ((flag.nadia_ready || flag.nadia_ally)) || (((flag.tomas_ready || flag.tomas_ally) && !flag.tomas_arrested)) || ((flag.hob_ready || flag.hob_trust || flag.hob_signal))" },
         { skill: "volition", min: 3, text: `Nobody is coming to save you, and nobody is coming to stop you either. That is the whole of the situation. It is oddly freeing. Pick the thing you can bear to have done.`, cond: "!(((flag.wren_ready || flag.wren_ally) && !flag.wren_caught)) && !((flag.nadia_ready || flag.nadia_ally)) && !(((flag.tomas_ready || flag.tomas_ally) && !flag.tomas_arrested)) && !((flag.hob_ready || flag.hob_trust || flag.hob_signal)) && !((flag.rhea_ready || flag.rhea_turned))" }
       ],
@@ -136,6 +136,7 @@ jubilee_call: {
         { skill: "authority", min: 3, text: `TWO YOUTH VANGUARD AT THE CORNER. THEY HAVE BEEN THERE FOR TEN MINUTES. THEY HAVE NOT STOPPED WATCHING THE COURTYARD GATE. YOU ARE WATCHED. ACT LIKE SOMEONE WHO NEEDS NO ONE'S PERMISSION.`, cond: "surv >= 40 && surv < 60" },
         { skill: "the_grey", min: 3, text: `You can feel the eyes in the lamp-posts. I can too. Every one of my ten thousand windows has your name on a sticky note. The portraits on the school wall turn, in the draught, a degree toward the tower.`, cond: "surv >= 60 && surv < 80" },
         { skill: "doublethink", min: 3, text: `Wanted, friend. Wanted! Is there anything more wonderful than being wanted? They have put your face on a sheet. You are in the district's heart. You are almost loved.`, cond: "surv >= 80" },
+        { skill: "slip", min: 2, text: `They are hunting you. Not loudly: a man at each corner of the Courtyard, one at the library door, one by the tram. Keep to the shadow of the banners.`, cond: "flag.day3_hunted" },
         { skill: "volition", min: 3, text: `You do not have long, however much time they let you think you have. Every minute of this evening is borrowed against the file. Spend each one as though someone is counting.`, cond: "surv >= 60" }
       ],
       choices: [{ text: "Go up to the tower.", goto: "ascend" }]
@@ -275,7 +276,7 @@ finale_hub: {
         { skill: "solidarity", min: 1, repeat: true, text: `Tomas, in the Relay, with his lab coat and his small deliberate delays. He has been the district's ears for nine years. He would like, once, to be its voice.`, cond: "((flag.tomas_ready || flag.tomas_ally) && !flag.tomas_arrested)" },
         { skill: "solidarity", min: 1, repeat: true, text: `Hob. We do not know what Hob wants. We know he wants it. He has been ringing in our ears our whole lives.`, cond: "(flag.hob_ready || flag.hob_trust || flag.hob_signal)" },
         { skill: "solidarity", min: 1, repeat: true, text: `Rhea. Yes, her. We did not think we would say it. She has been looking at the Ledger, and at her own hands, and at a very old gap in her memory. We are keeping a place. We do not know if she will take it.`, cond: "(flag.rhea_ready || flag.rhea_turned)" },
-        { skill: "solidarity", min: 1, repeat: true, text: `And Marr, who is no friend of ours, but who has folded her speech into a paper boat and set it on the water.`, cond: "flag.marr_turned" },
+        { skill: "solidarity", min: 1, repeat: true, text: `And Marr, who is no friend of ours, but who has folded her speech into a paper boat and set it on the water.`, cond: "flag.marr_turned || flag.marr_ready" },
         { skill: "solidarity", min: 1, repeat: true, text: `Nobody else. We are, tonight, a very small we. It is still a we. It still counts.`, cond: "!((flag.vasha_ready && !flag.vasha_betrays)) && !(flag.ilsabet_ready) && !(flag.fenwick_ready) && !(flag.anka_ready) && !(((flag.osk_ready || flag.osk_keys) && !flag.osk_scapegoat)) && !(((flag.wren_ready || flag.wren_ally) && !flag.wren_caught)) && !((flag.nadia_ready || flag.nadia_ally)) && !(((flag.tomas_ready || flag.tomas_ally) && !flag.tomas_arrested)) && !((flag.hob_ready || flag.hob_trust || flag.hob_signal)) && !((flag.rhea_ready || flag.rhea_turned))" }
       ],
       choices: [{ text: "Back to the array.", goto: "hub" }]
@@ -688,6 +689,7 @@ finale_hub: {
       onEnter: [{ xp: 3 }, { morale: 3 }, { set: "wake_choir_carried", val: true }],
       interjections: [
         { skill: "solidarity", min: 3, text: `We sing. All of us. In the right key, in the wrong voices, on the one night it matters. A choir is how a crowd tells itself it is not alone.` },
+        { skill: "senses", min: 3, text: `And there, rising out of the tenors, a voice you know: Fenwick's own, cracked and free, singing along with his choir for the first time in years.`, cond: "flag.fenwick_voice_freed" },
         { skill: "rhetoric", min: 4, text: `And there it is: the pause before the applause. For once it is not mine. I would give the pause away to anyone. I would give them the podium.` }
       ],
       choices: [{ text: "Hold the line.", goto: "wake_hold" }]
@@ -721,6 +723,7 @@ finale_hub: {
         { skill: "volition", min: 3, text: `Hold. Hold the lever, hold the line, hold the one thought you have been carrying for three days. The Bell wants it. Do not give it. It is not a heavy thing. It is only a name, and a date, and a promise. Hold it.` },
         { skill: "solidarity", min: 3, text: `We are holding it too. Look around you: every one of us has the same thought and it is the same weight and it is shared out, so that no one carries it alone. Lean on us. We will take your side of the lever.` },
         { skill: "the_grey", min: 4, text: `Let me hold it. I am concrete and I am very slow. I do not forget. Press your back against my stone and I will hold your back up while you hold the district's.` },
+        { skill: "the_grey", min: 2, text: `Knock. Knock-knock. Under the Courtyard, every radiator in the boiler room is being struck with a spanner in the same rhythm: Anka's cell, telling the pipes of the whole school that you are not alone up here. I carry it to your feet.`, cond: "flag.anka_pipes" },
         { skill: "grit", min: 3, text: `It's only a headache. It's only a tooth. It's only the end of the world, which is a small thing compared to what you have already carried up a hundred and twelve steps.` }
       ],
       choices: [
@@ -754,7 +757,8 @@ finale_hub: {
         { skill: "solidarity", min: 3, text: `We remember. All of us, at once, the same three days, the whole district's quilt of hours stitched back into one piece. We are a quilt. We are so many colours. We had forgotten we were so many colours.` },
         { skill: "empathy", min: 3, text: `It is not a happy sound. It is something stranger and better. The sound of eleven thousand people discovering how much they were afraid, and how long, and then discovering they are standing next to each other.` },
         { skill: "the_grey", min: 3, text: `I felt it in my foundations. The whole quarter exhaled. Thank you. Thank you. Whatever happens next, I would like it recorded in the cornice: tonight was not forgotten.` },
-        { skill: "volition", min: 3, text: `You held. You can put it down now. You can put it all down.` }
+        { skill: "volition", min: 3, text: `You held. You can put it down now. You can put it all down.` },
+        { skill: "archive", min: 2, text: `And note, per Article Nine of the Quiet Hours Act: the broadcasts lapse on the day the public memorial of the Winter is restored. Eleven thousand people have just remembered everything, the Winter included. The Ministry's licence, as of this minute, has expired. Nobody has told them.`, cond: "flag.quill_clause_known" }
       ],
       choices: [{ text: "Look down at the Avenue.", goto: "wake_win2" }]
     },
@@ -833,7 +837,7 @@ finale_hub: {
     voss_open_ally: {
       speaker: "voss",
       voices: 3,
-      text: `He holds out the cup with both hands, like a communion. "I won't ask you to trust me. We are past that. I will only ask you to listen to a man who has been honest this week, which is not a habit of mine and has been exhausting." He leans back in the little chair and the chair complains. "There is a car at the bottom of the stairs, and three men in grey coats who work for people who do not know my name. They would prefer that I bring you in at the cue. I would prefer a number of other things."\n\nHe looks at the tower, the roofs, the little ruled lines of the Avenue. "Ask. I'll answer. I've found, lately, that I'm good at answering."`,
+      text: `He holds out the cup with both hands, like a communion. "I won't ask you to trust me. We are past that. I will only ask you to listen to a man who has been honest this week, which is not a habit of mine and has been exhausting." He leans back in the little chair and the chair complains. "There is a car at the bottom of the stairs, and three men in grey coats who work for a man called Ames, who arrived on the early train and does not drink tea. They would prefer that I bring you in at the cue. I would prefer a number of other things."\n\nHe looks at the tower, the roofs, the little ruled lines of the Avenue. "Ask. I'll answer. I've found, lately, that I'm good at answering."`,
       interjections: [
         { skill: "empathy", min: 3, text: `He means it. He is a man standing at the edge of a decision with his coat buttoned wrong. It is the most honest thing about him: the buttons.` },
         { skill: "charm", min: 4, text: `He likes you. You like him. Neither of you has found a polite way to say how dangerous that is.` }
@@ -843,7 +847,7 @@ finale_hub: {
     voss_open_exposed: {
       speaker: "voss",
       voices: 3,
-      text: `The Inspector's hat is on his knee and the thermos is unopened at his feet. He does not look up when you arrive. "I am, as of about six this evening, a man whose letters of reference have been revised." His voice is as dry as chalk. "The men in the grey coats have been very civil. They have suggested a quiet retirement after the Jubilee. In the Ministry, retire is a transitive verb."\n\nA small ruined smile. "I would like to be told what I am by the person who found out. You may go first. I would very much like it to be somebody who isn't paid."`,
+      text: `The Inspector's hat is on his knee and the thermos is unopened at his feet. He does not look up when you arrive. "I am, as of about six this evening, a man whose letters of reference have been revised." His voice is as dry as chalk. "The men in the grey coats have been very civil. Mr Ames, from the Chancellery, has suggested a quiet retirement after the Jubilee. In the Ministry, retire is a transitive verb."\n\nA small ruined smile. "I would like to be told what I am by the person who found out. You may go first. I would very much like it to be somebody who isn't paid."`,
       interjections: [
         { skill: "empathy", min: 3, text: `You took the coat off him in public with a page and a sentence. He is not angry. It is the loneliness that you would not be able to look at, if you let yourself look.` },
         { skill: "dialectics", min: 3, text: `An exposed officer is a thing the system has not got a procedure for. He has twenty minutes in which he is not yet disposed of. That is a window, not a kindness.` }
@@ -868,12 +872,14 @@ finale_hub: {
       interjections: [
         { skill: "instinct", min: 3, repeat: true, text: `He is afraid of your next sentence. Not for himself: for it. As if it were a bird that might fly into the glass.` },
         { skill: "archive", min: 3, repeat: true, text: `Actually, he has not yet mentioned the cue. He has not once looked at his watch. A man who does not look at his watch is a man who has already decided what time it is.` },
+        { skill: "archive", min: 2, repeat: true, text: `He has the Ledger already. You gave it to him. It is in the car, on the passenger seat, under a folded newspaper, where a man puts a thing he has not decided whether to read.`, cond: "flag.ledger_with_voss" },
+        { skill: "instinct", min: 3, repeat: true, text: `Ames. Somewhere below, a man from the Chancellery who does not drink tea is watching this conversation through a car window. Voss knows it. Every kindness he offers you tonight, he offers in front of Ames.`, cond: "flag.voss_ames_named" },
         { skill: "volition", min: 4, repeat: true, text: `Whatever you want from this man, do not mistake the pleasantness for time. Every sentence you spend here comes out of the same hour you need elsewhere.` }
       ],
       choices: [
         { text: "\"What exactly are you, Inspector?\"", goto: "voss_job" },
         { text: "\"What happens at the cue?\"", goto: "voss_harmony" },
-        { text: "\"Tell me about your daughter.\"", goto: "voss_daughter", cond: "flag.voss_job_asked" },
+        { text: "\"Tell me about Mira.\"", goto: "voss_daughter", cond: "flag.voss_job_asked || flag.voss_daughter_known" },
         { text: "\"Tell me about the Vanguard Homes.\"", goto: "voss_rhea", cond: "flag.voss_daughter_asked" },
         { text: "Show him what you are carrying.", goto: "voss_evidence", cond: "has('ledger') || has('relay_log')" },
         { text: "Try to change his mind.", goto: "voss_turn", cond: "!flag.voss_turned" },
@@ -909,44 +915,43 @@ finale_hub: {
     voss_daughter: {
       speaker: "voss",
       voices: 3,
-      text: `He does not answer at once. He puts down the lid and takes from the inside of his good coat a wallet, soft as a glove, and from behind its lining a photograph the size of a stamp. A little girl of about five on a swing, caught at the top of the arc, mouth wide open, one front tooth missing. On the back, in blue ink, in a hand you recognise as his, one word: LINNET.\n\n"I found it eight years ago, the week they gave me the coat. Behind the lining. I do not remember writing the name. I do not remember the swing, or the tooth, or any child. I have looked at it every night for eight years and I feel what you feel looking at a stranger's photograph at a station: an enormous, kindly curiosity." He turns it over, to the word. "Either I had a daughter and I was Harmonised, for hygiene, so that I should be a better officer. Or I had a daughter and she was Harmonised, so that she should be a better citizen, and she has been walking round a district I run for I do not know how long without knowing me. I have never been able to decide which is worse. I have a good brain for most things."`,
+      text: `He does not answer at once. He puts down the lid, and from the pocket of his good coat takes a child's red mitten, worn at the thumb, and turns it over in his gloved hands as if it might have writing on it. "Mira," he says. "You know about Mira. Everybody I like seems to, this week." A small, ruined smile. "Seventeen. Her mother's chin. My handwriting. I see her on Sundays through two panes of glass and she has never once looked at the window."\n\n"This morning, at six, I left a piece of blank paper on her doormat. I could not think of a single word that would survive being read. She opened the door. She picked it up. She looked at the landing for about as long as it takes to say a name." He puts the mitten away. "At a quarter past eight, {name}, the Grand Harmony will take the last seventy-two hours out of her head. It will take this morning. It will take the only time in nine years that my daughter has looked for me."`,
       onEnter: [{ set: "voss_daughter_asked", val: true }, { xp: 3 }, { thought: "th_borrowed_memory" }],
       interjections: [
-        { skill: "empathy", min: 3, text: `Eight years of looking at a stranger on a swing. It is the most loving act you have ever witnessed, and he does not know it is love. He thinks it is a hobby.` },
-        { skill: "archive", min: 4, text: `File H. VOSS: Dependants: see Annex [REDACTED]. A redaction is the only honest document in the whole file. It admits that there was something.` },
-        { skill: "senses", min: 4, text: `A faint pencilled mark on the swing's chain, hardly a smudge: a corner of a gate. A painted letter on the gate, V-something, almost gone.` }
+        { skill: "empathy", min: 3, text: `He has just told you what the Jubilee costs him, personally, in a voice so level that you could rest a cup on it. He is not asking for anything. He has forgotten how.` },
+        { skill: "archive", min: 4, text: `The card, "Papa, you forgot again," arrives on the last Thursday of September. Today is the last Thursday of September. Whoever writes it, the Ministry has scheduled the Jubilee on the one day of the year a man named Voss might be expected to remember.` },
+        { skill: "dialectics", min: 3, text: `Premise: he runs the Static. Premise: the Static will take his daughter's one glance. Therefore he is about to rob himself, by his own hand, at his own cue. The contradiction is not in his argument. It is in his coat.` }
       ],
       choices: [
-        { text: "\"Do you want to find her?\"", goto: "voss_daughter2" },
-        { text: "Say nothing. Let him put the photograph away.", goto: "voss_hub" }
+        { text: "\"Then don't let it.\"", goto: "voss_daughter2" },
+        { text: "Say nothing. Let him put the mitten away.", goto: "voss_hub" }
       ]
     },
     voss_daughter2: {
       speaker: "voss",
-      text: `"I think," says Hale Voss, "I am afraid that I already have."\n\nHe does not say anything else. He folds the photograph into the wallet and the wallet into the coat. He looks down at the Courtyard, where, very small, very straight, in the red-brown of the Youth Vanguard, a girl with slicked hair is checking the cuffs of a cadet three times her size. It is only for a moment. Then he looks at the thermos.\n\n"I'll tell you the thing about being Static-wiped, {name}. It doesn't take the facts. It takes the weight of them. I have all the facts. I just can't lift any of them."`,
+      text: `"Don't let it." He repeats it as one repeats a phrase in a language one used to speak. "You say that as though it were a decision available to a man in my position." He looks down at the Courtyard, at the choir, at the long ruled lines of the Avenue. "It is, I suppose. That is the unbearable part. It has always been a decision. Every night, at nine. I simply never once made it differently."\n\n"I'll tell you the thing about being Harmonised, {name}. It does not take the facts. It takes the weight of them. I have all the facts. I have just never been able to lift any of them. Tonight one of them weighs exactly as much as a sheet of blank paper, and I cannot put it down."`,
       interjections: [
-        { skill: "deduction", min: 3, text: `It had been established, by a small gap in a front tooth, a half-smile, and the rate at which a certain man looked away from a certain cadet, that an inference lay on the table. I deduced it. I wish, now, that I had not. Please do not say it aloud.` },
-        { skill: "volition", min: 4, text: `You have been given something very delicate. Do not drop it. Do not use it as a lever unless you have first decided you can live with having used it.` }
+        { skill: "volition", min: 4, text: `You have been given something very delicate. Do not use it as a lever unless you have first decided you can live with having used it.` }
       ],
       choices: [{ text: "Leave it there.", goto: "voss_hub" }]
     },
     voss_rhea: {
       speaker: "voss",
       voices: 3,
-      text: `"Don't." He holds up one hand. "Whatever you are about to say. Please. If you say it I shall have to know you have thought it, and I have spent eight years carefully not thinking it." A breath. "The Vanguard Homes. The Hunger Winter intake, children of seven, eight, nine, parents unrecorded. They were Harmonised nightly for eleven years: Pedagogic Harmony, the heavy dose. I signed the schedule on two of those years myself, without reading it. Rhea Vantage's file has a blank where a father should be. So does mine, under 'dependants'. A blank is not evidence. It is only a house style."\n\nHe stares at the Courtyard. "She smiles with half her mouth. I noticed it the first day I saw her, and then I noticed that I had noticed, and I went and sat in my car for twenty minutes."\n\n"I will not tell her. If I am right, she would have to forgive a stranger for the offence of being her father. If I am wrong, she would have to forgive me for hoping. I do not think a person can be asked to do either."`,
+      text: `"The Vanguard Homes." He closes his eyes. "The Hunger Winter intake: children of seven, eight, nine, parents unrecorded. Pedagogic Harmony, the heavy dose, nightly, for eleven years. I signed the schedule on two of those years myself, in a hurry, at the bottom of a pile, without reading it." He opens them. "You are going to ask me about Rhea Vantage. Her file is in my car. Block C. Attachment interference. She asked, every night for forty-one nights, for a woman who sang, and every night we answered her with the Bell."\n\n"You will forgive me if I find I cannot look at her for very long. I keep thinking that somewhere there is a man like me who has a mitten that belonged to her. And that he is in a good coat. And that he signed."`,
       onEnter: [{ set: "voss_rhea_hint", val: true }, { xp: 3 }],
       interjections: [
-        { skill: "empathy", min: 3, text: `He is not asking for permission. He is asking for you not to take it away. It is not the same. You can hear the difference in the pause.` },
-        { skill: "doublethink", min: 3, text: `Isn't it lovely? A father who may not be one, a daughter who may not be anyone's, and a Ministry that signs for the blanks. Everything has been so tidily arranged. You could cry. You may. It is also on the schedule.` }
+        { skill: "empathy", min: 3, text: `He has just put his own daughter and another man's on the same page, and it has nearly broken him. It is the first time he has let the two columns touch.` },
+        { skill: "doublethink", min: 3, text: `Isn't it tidy? A schedule, a signature, a child. Everything filed. You could cry. You may. It is also on the schedule.` }
       ],
       choices: [
-        { text: "\"I won't say it.\"", goto: "voss_hub" },
-        { text: "\"She has a right to know.\"", goto: "voss_rhea2" }
+        { text: "\"She should know whose name is on it.\"", goto: "voss_rhea2" },
+        { text: "Let it rest.", goto: "voss_hub" }
       ]
     },
     voss_rhea2: {
       speaker: "voss",
-      text: `"Perhaps." It is very quiet. "Perhaps she has. After. If there is an after, and if I am still a man whom someone could be told about." He closes his eyes. "If you decide to, I would ask one thing. Do not tell her I am her father. Tell her there is a photograph. Let her decide whether it has anything to do with her."\n\nHe does not ask you to promise. He is not that sort of fool. He only picks up the thermos and finds that it is empty and holds it anyway, for something to hold.`,
+      text: `"Yes." It is very quiet. "Yes, she should. Tell her, if you see her before I do. Tell her the schedule had my signature on it in two of the years, and that I did not read it, and that this is not an excuse but a description." He looks at his gloves. "I should like her to hate somebody specific. It is so much more restful than hating the weather."\n\nHe does not ask you to promise. He only picks up the thermos, finds it empty, and holds it anyway, for something to hold.`,
       onEnter: [{ set: "voss_rhea_may_be_told", val: true }, { xp: 1 }],
       choices: [{ text: "Nod.", goto: "voss_hub" }]
     },
@@ -965,15 +970,14 @@ finale_hub: {
     voss_show_log: {
       speaker: "voss",
       voices: 3,
-      text: `He takes the logbook in both hands, like a hymnal, and turns without being told to the stitched section near the back that no one reads. A column of dates. A column of initials. A column headed REASON. He reads for a long time, and the long time is a thing you can see, like weather crossing a field.\n\n"SPECIAL APPLICATION. Subject: VOSS, H., Q.O. Reason: dependant interference. Operator: T. Wend." His finger follows the dates. "Eleven. One a spring, each year since I was given the coat." The finger stops at a date. "The sixth of April." His voice is almost conversational. "That is her birthday. I know that. I know that, don't I. Where do I know that from?"\n\nHe closes the book very gently, as one closes the door of a room in which someone is asleep.`,
+      text: `He takes the logbook in both hands, like a hymnal, and turns without being told to the stitched section near the back that nobody reads. A column of dates. A column of initials. A column headed REASON. He reads for a long time, and the long time is a thing you can see, like weather crossing a field.\n\n"SPECIAL APPLICATION. Subject: VOSS, H., Q.O. Reason: dependant interference. Operator: T. Wend." His finger follows the dates. "Nine. One a year." The finger stops. "The last Thursday of September. Every year. The day the card comes." His voice is almost conversational. "They have been taking her card out of my head, {name}. Every year, the night it arrives. I thought I was simply a forgetful man."\n\nHe closes the book very gently, as one closes the door of a room in which someone is asleep.`,
       onEnter: [{ add: "voss_turn_pts", n: 2 }, { set: "voss_saw_log", val: true }, { xp: 3 }],
       interjections: [
-        { skill: "empathy", min: 3, text: `He has just read the date of his own forgetting, in a stranger's handwriting, in a column, in ink, in a book. There is no cruelty greater and no gentler way of delivering it.` },
-        { skill: "archive", min: 4, text: `Eleven applications, April sixth, annually. The Ministry did not even trouble to disguise the schedule. Why bother? The only person who might have noticed was the one it was done to.` }
+        { skill: "empathy", min: 3, text: `He has just read the date of his own forgetting, in a stranger's handwriting, in a column, in ink. There is no cruelty greater and no gentler way of delivering it.` },
+        { skill: "archive", min: 4, text: `"Papa, you forgot again." He did. On schedule. The Ministry did not even trouble to vary the date. Why bother? The only person who might notice was the one it was done to.` }
       ],
       choices: [{ text: "Wait, quietly.", goto: "voss_hub" }]
     },
-
     voss_turn: {
       speaker: "narrator",
       voices: 2,
@@ -984,7 +988,7 @@ finale_hub: {
       choices: [
         { text: "\"You sell forgetting as mercy. Mercy needs consent. Nobody asked a single person in this district.\"", check: { skill: "dialectics", diff: 12, id: "finale_hub_voss_turn_dial", white: true, pass: "voss_turn_dial", fail: "voss_turn_fail" } },
         { text: "Quote the Charter of Quiet Hours at him. Article 3(a): suspension pending review.", check: { skill: "archive", diff: 12, id: "finale_hub_voss_turn_arch", white: true, pass: "voss_turn_arch", fail: "voss_turn_fail" } },
-        { text: "\"Linnet. Say her name out loud, just once, to somebody who is listening.\"", cond: "flag.voss_daughter_asked", check: { skill: "empathy", diff: 12, id: "finale_hub_voss_turn_emp", pass: "voss_turn_emp", fail: "voss_turn_fail_hard" } },
+        { text: "\"Mira looked for you this morning. Let her keep it.\"", cond: "flag.voss_daughter_asked || flag.voss_daughter_known", check: { skill: "empathy", diff: 12, id: "finale_hub_voss_turn_emp", pass: "voss_turn_emp", fail: "voss_turn_fail_hard" } },
         { text: "\"They did it to you too, Inspector. You are one of us. You have always been in the same queue.\"", check: { skill: "solidarity", diff: 12, id: "finale_hub_voss_turn_sol", white: true, pass: "voss_turn_sol", fail: "voss_turn_fail" } },
         { text: "Stand up and make the speech you have been rehearsing since Tuesday.", check: { skill: "rhetoric", diff: 13, id: "finale_hub_voss_turn_rhet", white: true, pass: "voss_turn_rhet", fail: "voss_turn_fail" } },
         { text: "Ask him the question.", goto: "voss_turn_final", cond: "((flag.voss_turn_pts || 0) + (flag.voss_ally ? 1 : 0) + (flag.voss_exposed ? 1 : 0)) >= 3" },
@@ -1009,11 +1013,11 @@ finale_hub: {
     voss_turn_emp: {
       speaker: "empathy",
       voices: 3,
-      text: `You say it softly, as you would say it to a sleeping person you did not want to startle. "Linnet."\n\nIt works the way a key works in the wrong lock that happens to be the right one. Hale Voss does not speak. His hand goes to the breast of his good coat, where the wallet is, and stays there. His face does something it has not done in eleven years: it forgets to be arranged. For a long while he is only a man on a folding chair with the evening on his shoulders. "Say it again," he says. "Please. I'd like to hear it from outside my own head."\n\nYou say it again. He weeps without noise, with great dignity, like a man who has been told it is permitted.`,
+      text: `You say it softly, as you would say it to a sleeping person you did not want to startle. "Mira looked at the landing this morning. If the cue goes out, she will never have looked."\n\nIt works the way a key works in the wrong lock that happens to be the right one. Hale Voss does not speak. His hand goes to the pocket where the mitten is, and stays there. His face does something it has not done in nine years: it forgets to be arranged. "Say her name again," he says. "Please. I'd like to hear it from outside my own head."\n\nYou say it again. He weeps without noise, with great dignity, like a man who has been told it is permitted.`,
       onEnter: [{ add: "voss_turn_pts", n: 2 }, { xp: 4 }, { morale: 1 }],
       interjections: [
-        { skill: "solidarity", min: 3, text: `We hold him. We have held the others. We know how, and we are good at it, and we have never once been paid.` },
-        { skill: "the_grey", min: 3, text: `I will not say a word. I am the stone beside the chair. A stone is a thing a man can weep beside without being observed.` }
+        { skill: "solidarity", min: 3, text: `We hold him. We have held the others. We know how, and we have never once been paid.` },
+        { skill: "the_grey", min: 3, text: `I will not say a word. A stone is a thing a man can weep beside without being observed.` }
       ],
       choices: [{ text: "Wait with him.", goto: "voss_turn" }]
     },
@@ -1047,7 +1051,7 @@ finale_hub: {
     voss_turn_final: {
       speaker: "voss",
       voices: 3,
-      text: `He puts the thermos down on the boards beside the chair. Not as one puts down a thing one means to pick up again.\n\n"If you ask me whether I'll help you," says Hale Voss, "I should like you to understand what you are asking. There are three men on the stair with orders in their pockets that were not written by me. There is a Captain in the Relay who believes I am a loyal man. There is an entire Ministry whose idea of a retirement party is a van. If I help you, there is no coat afterwards. There is no pension. There is, for all I know, no daughter either way." He looks at you, and for once it is perfectly plain, a tired man's face, without a single reserve. "Go on. Ask. I would very much like to have been asked."`,
+      text: `He puts the thermos down on the boards beside the chair. Not as one puts down a thing one means to pick up again.\n\n"If you ask me whether I'll help you," says Hale Voss, "I should like you to understand what you are asking. There are three men on the stair with orders in their pockets that were not written by me. There is a Captain in the Relay who believes I am a loyal man. There is an entire Ministry whose idea of a retirement party is a van. If I help you, there is no coat afterwards. There is no pension. There is, quite possibly, no Sunday." He looks at you, and for once it is perfectly plain, a tired man's face, without a single reserve. "Go on. Ask. I would very much like to have been asked."`,
       interjections: [
         { skill: "volition", min: 3, text: `Say it properly. Do not ask for the thing you need. Ask for the thing he is.` },
         { skill: "charm", min: 4, text: `This is the moment where a smile would be a cheat. Don't use it. Let him see your face as it is.` }
@@ -1059,7 +1063,7 @@ finale_hub: {
     voss_turned_scene: {
       speaker: "voss",
       voices: 3,
-      text: `"Yes," says Hale Voss.\n\nIt is such a small word that for a moment neither of you recognises it. He stands. He takes off the hat, looks into it as if it contained a speech, and puts it back on at a very slightly different angle. "I shall need to make some telephone calls that will end my career. And one that will begin something I do not have a name for." He holds out his hand, and when you take it his grip is dry and firm and a little too long. "I was a reasonable young man, once. I find I should like to be an unreasonable old one."\n\nHe looks, for one moment, like a person in a photograph on a swing. Then he sits again, opens the thermos, and says, to the roofs, to the sky, to the long grey slopes of a district that has never been asked: "Right. Where is the stair?"`,
+      text: `"Yes," says Hale Voss.\n\nIt is such a small word that for a moment neither of you recognises it. He stands. He takes off the hat, looks into it as if it contained a speech, and puts it back on at a very slightly different angle. "I shall need to make some telephone calls that will end my career. And one that will begin something I do not have a name for." He holds out his hand, and when you take it his grip is dry and firm and a little too long. "I was a reasonable young man, once. I find I should like to be an unreasonable old one."\n\nHe looks, for one moment, like a man at the end of a landing who has decided to knock. Then he sits again, opens the thermos, and says, to the roofs, to the sky, to the long grey slopes of a district that has never been asked: "Right. Where is the stair?"`,
       onEnter: [{ set: "voss_turned", val: true }, { set: "finale_voss_turned_now", val: true }, { surv: -10 }, { xp: 5 }, { morale: 3 }, { thought: "th_double_agent" }],
       interjections: [
         { skill: "solidarity", min: 3, text: `One more chair. We have run out of short-legged ones. We will manage.` },
@@ -1079,7 +1083,7 @@ finale_hub: {
       ],
       choices: [
         { text: "\"Stay with me, at the cue.\"", goto: "voss_t_stay" },
-        { text: "\"The photograph. You'll let me do something about that, after.\"", goto: "voss_t_daughter", cond: "flag.voss_daughter_asked" },
+        { text: "\"Mira. What happens tomorrow?\"", goto: "voss_t_daughter", cond: "flag.voss_daughter_asked || flag.voss_daughter_known" },
         { text: "\"Go. Make the calls.\"", goto: "voss_leave" }
       ]
     },
@@ -1092,14 +1096,13 @@ finale_hub: {
     voss_t_daughter: {
       speaker: "voss",
       voices: 2,
-      text: `He takes out the photograph again and lays it on his knee, face up, in the last of the light. "If we should come out of this," he says, "and if there is, afterwards, a girl in a Vanguard uniform who has just learned a good deal about the Hunger Winter, I would like it very much if somebody told her there is a swing in a photograph. And that it is not a trick." He turns the picture over to the word. "I will not ask more than that. I am an inspector. I know exactly how much one is entitled to ask."\n\nA pause. "Her birthday is the sixth of April. I am not certain where I know it from. I have decided I do not need to be."`,
-      onEnter: [{ set: "voss_rhea_may_be_told", val: true }, { xp: 2 }],
+      text: `He takes out the red mitten again and lays it on his knee, in the last of the light. "If it works," he says, "she will wake tomorrow and remember a piece of blank paper on her mat, and a man at the end of the landing. She will not know what it meant. Neither do I." He turns the mitten over. "I should like, next Sunday, to knock. I have no idea what I shall say. I am an inspector. I am extremely good at the first sentence and hopeless at the second."\n\nA pause. "If I am not in a position to knock, I should be grateful if someone else did. Just once. To say that the paper was from me."`,
+      onEnter: [{ set: "voss_mira_ask", val: true }, { xp: 2 }],
       interjections: [
-        { skill: "empathy", min: 3, text: `I do not know whether he is her father. I do not know whether it matters. A photograph is a thing that has been kept for someone. Whoever that someone was, he has kept it eight years, which is its own sort of paternity.` }
+        { skill: "empathy", min: 3, text: `A blank page, a landing, a mitten. Nine years of a father who could not lift the facts. Tonight he is asking you to carry one of them for him, if he cannot.` }
       ],
       choices: [{ text: "Promise nothing. Nod.", goto: "voss_t_hub" }]
     },
-
     voss_offer: {
       speaker: "voss",
       voices: 3,
@@ -1220,6 +1223,7 @@ finale_hub: {
       text: `You meet her on the last landing before the roof, where the spiral narrows to a throat and the rope-rail turns black with sixty years of one old man's hand. Behind her, three, four, six cadets in the red-brown of the Vanguard stand on the stairs below in perfect order, each with a baton hung at the hip like a rolled umbrella. One of them has Bronka's jaw. He will not meet your eye.\n\nRhea Vantage stands one step above the rest, with her back to a window that has gone the colour of an old bruise. She is very straight. She has put on a clean armband for the Jubilee. She is, you realise, nervous. She has dressed for it.`,
       onEnter: [{ add: "rhea_pts", n: 0 }],
       interjections: [
+        { skill: "senses", min: 3, text: `Jorik Presch. Bronka's boy. The one who helped carry the Commissar down from the hoop on Tuesday night, because he was told to and because he was strong. His hands remember the weight. You can see them remembering.`, cond: "flag.bronka_ready || flag.bronka_trust" },
         { skill: "empathy", min: 3, text: `The cadet with Bronka's jaw is trying to be six inches taller than he is. He's fifteen. His mother does not know he is on this stair. You cannot decide if that makes it better or worse.`, cond: "flag.bronka_trust" },
         { skill: "instinct", min: 4, text: `The baton is on her left hip. She is right-handed. She has deliberately given herself the further reach. She does not want to use it. She will, if she has to, and then she will sit in a quiet room for a very long time.` }
       ],
@@ -1270,7 +1274,7 @@ finale_hub: {
         { text: "\"You killed Ostrov Dane.\"", goto: "rhea_ostrov" },
         { text: "Show her the page.", goto: "rhea_ledger", cond: "has('ledger') || has('relay_log')" },
         { text: "\"What do you remember, Rhea? From before the Homes?\"", goto: "rhea_origin" },
-        { text: "\"There is a photograph. A girl on a swing.\"", goto: "rhea_swing", cond: "flag.voss_rhea_may_be_told" },
+        { text: "\"Inspector Voss asked me to tell you something. About the Homes schedule.\"", goto: "rhea_swing", cond: "flag.voss_rhea_may_be_told" },
         { text: "\"Stand aside. This is not yours to hold.\"", check: { skill: "authority", diff: 13, id: "finale_hub_rhea_aside", white: true, pass: "rhea_aside", fail: "rhea_block" } },
         { text: "\"Ask me to stand aside, Rhea. Then watch yourself not do it.\"", goto: "rhea_turns", cond: "(flag.rhea_pts || 0) >= 3" },
         { text: "Go through her.", goto: "rhea_fight" },
@@ -1325,11 +1329,10 @@ finale_hub: {
     rhea_swing: {
       speaker: "rhea",
       voices: 2,
-      text: `"A photograph." She repeats it with a faint, polite frown, as if you had offered her a foreign coin. "Of a girl on a swing." A very long pause. "There was a swing. In the courtyard of the Homes. They took it down the winter I was eight. I used to hate it, and I could never say why." She stops. Her left hand has gone to the corner of her mouth, where the half-smile lives, and found it with its fingers like a thing she had dropped. "That is not a photograph of me."\n\n"No," you say. "I don't think it is. I think it's a photograph of a swing."\n\n"Yes," says Rhea Vantage. "Good. That's all it is." But she does not take her hand from her mouth.`,
-      onEnter: [{ add: "rhea_pts", n: 1 }, { set: "rhea_told_of_swing", val: true }, { xp: 3 }],
+      text: `"Voss." She repeats the name with a faint, polite frown, as if you had offered her a foreign coin. "The Inspector signed the Homes schedule." A very long pause. "Two of the years." Her left hand has gone to the corner of her mouth, where the half-smile lives, and found it with its fingers like a thing she had dropped. "He asked you to tell me."\n\n"Yes."\n\n"So that I should have somebody to hate who was not the weather." She is quite still. "That is the first considerate thing anyone in a good coat has done for me." She lets her hand fall. "I should like to hate him very much. I find I am too busy wanting to know the name of the woman who sang."`,
+      onEnter: [{ add: "rhea_pts", n: 1 }, { set: "rhea_told_of_voss", val: true }, { xp: 3 }],
       interjections: [
-        { skill: "empathy", min: 3, text: `You have given her a swing. You have not said whose. She will have to carry it up and down for the rest of her life without knowing how heavy it is. It was either a very great kindness or a very great crime. You cannot tell. Nobody could.` },
-        { skill: "volition", min: 4, text: `You chose not to say it. That was correct. Not because the truth would hurt. Because it was not yet hers.` }
+        { skill: "empathy", min: 3, text: `You have given her a name. It is the wrong name, and the right one: not the person she wants, but the person responsible. It is a strange gift. She is holding it as one holds a hot coal, to see how long she can.` }
       ],
       choices: [{ text: "Say nothing more.", goto: "rhea_hub" }]
     },
@@ -1443,6 +1446,7 @@ finale_hub: {
       ],
       choices: [
         { text: "Plug in the cable. (You have the decode.)", goto: "bc_rig_ok", cond: "flag.ilsabet_decoded" },
+        { text: "Use the hidden patch jack you laid this afternoon, behind the changeover switch. It bypasses the carrier's own line.", goto: "bc_rig_ok", cond: "flag.w_array_patched && !flag.ilsabet_decoded" },
         { text: "Ilsabet takes the headphones off her neck and slides them over yours.", goto: "bc_rig_ils", cond: "flag.ilsabet_ready" },
         { text: "Work it out on the fly. Rig a filter from what is lying about.", check: { skill: "sleight", diff: 12, id: "finale_hub_bc_rig", white: true, pass: "bc_rig_ok", fail: "bc_rig_bad" } },
         { text: "Plug in and speak. Whatever it takes.", goto: "bc_rig_bad" }
@@ -1483,9 +1487,9 @@ finale_hub: {
         { skill: "instinct", min: 3, text: `Somebody's hand is on a lever six floors below you. You can feel it the way you feel somebody at the other end of a rope.` }
       ],
       choices: [
-        { text: "Lemmy Tarsk comes up the stair, white-faced, with the cellar key in his fist.", goto: "bc_c1_lemmy", cond: "flag.lemmy_redeemed", once: true },
+        { text: "Lemmy Tarsk comes up the stair, white-faced, with the cellar key in his fist.", goto: "bc_c1_lemmy", cond: "flag.lemmy_redeemed || flag.lemmy_ready", once: true },
         { text: "Osk's keys turn the cellar bolt from the outside, twice, and are removed.", goto: "bc_c1_osk", cond: "((flag.osk_ready || flag.osk_keys) && !flag.osk_scapegoat)", once: true },
-        { text: "The speaking-tube by the stair whistles. It is the Principal.", goto: "bc_c1_marr", cond: "flag.marr_turned", once: true },
+        { text: "The speaking-tube by the stair whistles. It is the Principal.", goto: "bc_c1_marr", cond: "flag.marr_turned || flag.marr_ready", once: true },
         { text: "Wren, with the bent spoon from the Ration Hall tray, appears from nowhere.", goto: "bc_c1_spoon", cond: "((flag.wren_ready || flag.wren_ally) && !flag.wren_caught) && has('bent_spoon')", once: true },
         { text: "Speak and take your chances with the cellar.", goto: "bc_c1_gamble", cond: "!flag.bc_c1_clear" },
         { text: "Go on to the speech.", goto: "bc_draft", cond: "flag.bc_c1_clear" }
@@ -1748,6 +1752,7 @@ finale_hub: {
       choices: [
         { text: "\"Write it down. On your hands, on the walls, on each other. In your own writing. DO NOT TRUST THE BELL.\"", goto: "bc_note_write" },
         { text: "Say the names one more time, and then your own.", goto: "bc_note_name" },
+        { text: "Invoke Article Nine. Say the Winter out loud, to everyone, so that it is publicly remembered.", goto: "bc_note_winter", cond: "flag.quill_clause_known" },
         { text: "Say nothing. Hold the microphone out to the roof, to the people beside you, and let them speak.", goto: "bc_note_pass", cond: "flag.bc_c2_clear" }
       ]
     },
@@ -1757,6 +1762,22 @@ finale_hub: {
       onEnter: [{ set: "bc_notes_called", val: true }, { xp: 4 }, { morale: 3 }],
       interjections: [
         { skill: "solidarity", min: 3, text: `We did not know we could do it. We did not know a hand was a place you could keep a country.` }
+      ],
+      choices: [{ text: "Put the microphone down.", goto: "bc_end" }]
+    },
+    bc_note_winter: {
+      speaker: "narrator",
+      voices: 3,
+      text: `"There is a law," you say, "and nobody reads it, because it was written to be reviewed once a year by people who do not read. Article Nine of the Quiet Hours Act. The broadcasts lapse on the day on which the public memorial of the Winter is restored to the people." You take a breath. "So. The Hunger Winter. The Requisitions. The grain the District took, the soup made of nothing, the queues, the children put into the Homes and sung to sleep every night so they would stop asking for the singing woman. I remember it. You remember it. Say it with me."
+
+And from the Avenue, raggedly, then in a great slow wave, eleven thousand people say a word they have not been permitted to say in public for a decade. It is not a slogan. It is a season. It is the Winter.
+
+Somewhere in the library below, an old historian who wrote a banned book has put his face in his hands.`,
+      onEnter: [{ set: "bc_article_nine", val: true }, { xp: 5 }, { morale: 3 }, { surv: 8 }],
+      interjections: [
+        { skill: "archive", min: 2, text: `Actually, per Article Nine, the lapse is automatic. It requires no signature. It is the only clause in the Act that the Ministry did not write. Quill did, forty years ago, as a junior clerk with a sense of humour. Tonight it has been triggered by a crowd.` },
+        { skill: "the_grey", min: 3, text: `I remember the Winter. I was colder than I have ever been. Thank you for saying it in my streets.` },
+        { skill: "doublethink", min: 3, text: `This is quite irregular, friend. The Winter was a period of collective fortitude. The Winter was... the Winter was very cold. I am... I find I have no further comment.` }
       ],
       choices: [{ text: "Put the microphone down.", goto: "bc_end" }]
     },
@@ -2137,11 +2158,11 @@ finale_hub: {
         { skill: "instinct", min: 3, text: `She is holding the lectern with her whole right hand. It is not for authority. It is because she is not sure of her knees.` }
       ],
       choices: [
-        { text: "\"Principal. I have something to say to the district.\"", goto: "mar_marr_turned", cond: "flag.marr_turned" },
-        { text: "Climb the steps. Do not stop.", check: { skill: "authority", diff: 13, id: "finale_hub_mar_steps_auth", white: true, pass: "mar_steps_pass", fail: "mar_steps_fail" }, cond: "!flag.marr_turned" },
-        { text: "Smile at her. Hold out both hands. \"A very short announcement, ma'am. I'll be done in a minute.\"", check: { skill: "charm", diff: 13, id: "finale_hub_mar_steps_charm", white: true, pass: "mar_steps_pass", fail: "mar_steps_fail" }, cond: "!flag.marr_turned" },
-        { text: "Go up the steps like a thrown stone.", check: { skill: "adrenaline", diff: 12, id: "finale_hub_mar_steps_adr", pass: "mar_steps_pass", fail: "mar_steps_fail" }, cond: "!flag.marr_turned" },
-        { text: "Hob's bell rings out the hour early. Every head tilts toward the tower, and the Principal's with them.", goto: "mar_steps_hob", cond: "(flag.hob_ready || flag.hob_trust || flag.hob_signal) && !flag.marr_turned" },
+        { text: "\"Principal. I have something to say to the district.\"", goto: "mar_marr_turned", cond: "flag.marr_turned || flag.marr_ready" },
+        { text: "Climb the steps. Do not stop.", check: { skill: "authority", diff: 13, id: "finale_hub_mar_steps_auth", white: true, pass: "mar_steps_pass", fail: "mar_steps_fail" }, cond: "!(flag.marr_turned || flag.marr_ready)" },
+        { text: "Smile at her. Hold out both hands. \"A very short announcement, ma'am. I'll be done in a minute.\"", check: { skill: "charm", diff: 13, id: "finale_hub_mar_steps_charm", white: true, pass: "mar_steps_pass", fail: "mar_steps_fail" }, cond: "!(flag.marr_turned || flag.marr_ready)" },
+        { text: "Go up the steps like a thrown stone.", check: { skill: "adrenaline", diff: 12, id: "finale_hub_mar_steps_adr", pass: "mar_steps_pass", fail: "mar_steps_fail" }, cond: "!(flag.marr_turned || flag.marr_ready)" },
+        { text: "Hob's bell rings out the hour early. Every head tilts toward the tower, and the Principal's with them.", goto: "mar_steps_hob", cond: "(flag.hob_ready || flag.hob_trust || flag.hob_signal) && !(flag.marr_turned || flag.marr_ready)" },
         { text: "Turn around. Not like this.", goto: "hub" }
       ]
     },
@@ -2497,9 +2518,9 @@ finale_hub: {
       choices: [
         { text: "Wren is at the rail with a satchel and a cap and a very large grin. \"Is it a real tram? Can I ring the bell?\"", goto: "exo_wren", cond: "((flag.wren_ready || flag.wren_ally) && !flag.wren_caught)", once: true },
         { text: "Ilsabet's chair rolls up the ramp that Nadia lowers without being asked. She has her set on her knee and her chin up.", goto: "exo_ils", cond: "flag.ilsabet_ready", once: true },
-        { text: "Dov Kessel steps onto the platform with a suitcase full of forged passes and a deeply insincere expression.", goto: "exo_dov", cond: "flag.dov_ally", once: true },
-        { text: "Lemmy Tarsk is standing at the very edge of the platform, with his armband off, looking at his shoes.", goto: "exo_lemmy", cond: "flag.lemmy_redeemed", once: true },
-        { text: "Corvin Hale, a suitcase in one hand, a pamphlet entitled MY DEPARTURE in the other, arrives breathless at the rail.", goto: "exo_corvin", cond: "flag.corvin_ally", once: true },
+        { text: "Dov Kessel steps onto the platform with a suitcase full of forged passes and a deeply insincere expression.", goto: "exo_dov", cond: "flag.dov_ally || flag.dov_ready", once: true },
+        { text: "Lemmy Tarsk is standing at the very edge of the platform, with his armband off, looking at his shoes.", goto: "exo_lemmy", cond: "flag.lemmy_redeemed || flag.lemmy_ready", once: true },
+        { text: "Corvin Hale, a suitcase in one hand, a pamphlet entitled MY DEPARTURE in the other, arrives breathless at the rail.", goto: "exo_corvin", cond: "flag.corvin_ally || flag.corvin_ready", once: true },
         { text: "Say your goodbyes. To the ones who are not coming.", goto: "exo_goodbyes" },
         { text: "That is all. Tell Nadia to go.", goto: "exo_stop_voss" }
       ]
@@ -2709,7 +2730,7 @@ finale_hub: {
     led_start: {
       speaker: "narrator",
       voices: 3,
-      text: `The least dramatic plan is the one that has been working the longest. It does not need a tower. It does not even need the evening. It needs a cellar, a stove, a woman who smells of ammonia, and a very long view.\n\nYou go down the spiral, past the library, out through the Courtyard, where the choir is lining up in rows and the Jubilee is gathering itself like a great animal. You cross the cobbles to the corner by the Statue of the Warden's Father, where a rusted iron grating lies flat in the paving with a scrap of warm air coming through it. You knock. Twice, then once. The grating, after a decent interval, moves aside.`,
+      text: `The least dramatic plan is the one that has been working the longest. It does not need a tower. It does not even need the evening. It needs a cellar, a stove, a woman who smells of ammonia, and a very long view.\n\nYou go down the spiral, past the library, out through the Courtyard, where the choir is lining up in rows and the Jubilee is gathering itself like a great animal. You cross the cobbles to the corner by the Statue of the Warden's Father, where a rusted iron grating lies flat in the paving with a scrap of warm air coming through it. You knock. Twice, then once. "The lamp is lit," you say, to the iron. The grating, after a decent interval, moves aside.`,
       onEnter: [{ set: "finale_route", val: "led" }],
       interjections: [
         { skill: "solidarity", min: 3, text: `Oh, it is the best of them. It is the slowest, and the least glorious, and the only one that has ever, in the history of anything, worked. We are very fond of it. We have been doing it for sixty years.` },
@@ -3010,7 +3031,7 @@ finale_hub: {
       speaker: "narrator",
       voices: 3,
       text: `Nobody shouts. That is what you will find strangest. Two men in grey coats come for you quite politely, as if fetching you to a dentist, and one of them even holds a door. There is a van, with a thermos in it, and a paper cup, and a small card on the seat that reads: THE UNION REGRETS THE INCONVENIENCE. Behind you, on the roof of the school, the Address is still going. It is a long Address. You will not hear the end of it.\n\nThe cuffs are cold. Down the Avenue, a district is lifting its flags. At the cue, as the van pulls out onto the cobbles with a long, discreet sigh, you feel the Grand Harmony begin to arrive, sweet and enormous, a hand on every shoulder in the country but yours.`,
-      onEnter: [{ surv: 100 }],
+      onEnter: [{ surv: 100 }, { ending: "end_arrested" }],
       interjections: [
         { skill: "doublethink", min: 3, text: `It is quite all right, friend. Nobody is cross. It is only that someone has to be taken, and it was convenient that it was you.` },
         { skill: "volition", min: 3, text: `They have you. They do not have what you carried. A person is a thing that can be taken. An act is not.` }
@@ -3054,6 +3075,559 @@ finale_hub: {
       choices: [{ text: "Feel it come.", goto: "fail_forgotten" }]
     },
 
+  }
+},
+
+// ===================== EPILOGUES (override dialogue_b's Day-1 versions) =====================
+ending_end_wake: {
+  title: "The Wake",
+  start: [
+    { cond: "flag.finale_wake_costly", node: "a_costly" },
+    { cond: "flag.wake_path === 'live'", node: "a_live" },
+    { cond: "true", node: "a" }
+  ],
+  nodes: {
+    a: {
+      speaker: "narrator",
+      voices: 3,
+      text: `On Friday morning District 9 wakes up and remembers Thursday. It is the strangest morning in the history of the Union. Nobody goes to work on time. People stand in doorways in their coats, talking to neighbours they have nodded at for twenty years, and the talk is all of the same thing: Tuesday, Wednesday, Thursday, a hanged man, a boiler room, a tower, a tone. A woman on Cinder Street takes her son to the clinic she has been forgetting to take him to since the spring. A man on the Avenue knocks at a door he has walked past every night for nine years and says, "I think I knew your brother."`,
+      interjections: [
+        { skill: "solidarity", min: 1, text: `We remember. All of us, the same three days, in the same order. It is the first thing the whole district has ever owned in common.` }
+      ],
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_costly: {
+      speaker: "narrator",
+      voices: 3,
+      text: `On Friday morning District 9 wakes up and remembers Thursday, nearly all of it. There is a smudge in the middle, the exact minute when the tone and the beat fought over the Courtyard, and nobody, afterwards, can say what happened in it: a few seconds of a crowd standing with its mouth open. You have the smudge too. You will have it for the rest of your life, like a thumbprint on the inside of a lens. It is the price of the thing, and you paid it, and most mornings you do not mind. People stand in doorways talking. A woman takes her son to the clinic. A man knocks on a door he has walked past for nine years.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_live: {
+      speaker: "narrator",
+      voices: 3,
+      text: `On Friday morning two-thirds of District 9 wakes up and remembers Thursday, and one-third does not. The wired poles carried the Wake tone; the air carried the old song to the Harmony sets in the good flats, the Party houses, the black cars. By noon the difference is visible in the street. The people who remember stand in doorways and talk. The people who do not walk among them, pleasant and puzzled, and are told, kindly, slowly, by their neighbours, what happened to them. It is, someone says, like a country where the rich have been struck deaf. It is the first time in your life that forgetting has been a mark of privilege, and the joke goes round the queues by lunchtime.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    b: {
+      speaker: "narrator",
+      voices: 4,
+      text: `On Friday night at nine the Bell rings, as it always has. The Ministry has sent a new tape, from the capital, by car. And eleven thousand people, standing at their windows, hum back at it in E-flat. Nobody organised it. It simply happened, the way a choir happens: a lot of people agreeing to breathe at the same time. The beat finds nothing to hold. By Saturday the Ministry has stopped sending tapes. By Sunday a man from the Chancellery arrives with a briefcase to explain that there has been a technical fault, and is listened to, very politely, by a district that remembers every word he says.`,
+      interjections: [
+        { skill: "empathy", min: 1, text: `Fenwick Alder is removed from his post on Monday and reinstated by Thursday, because the choir refuses to sing for anyone else. He conducts the Anthem in E-flat for the rest of his life. He never once mentions the key. He does not have to.`, cond: "flag.fenwick_ready" },
+        { skill: "empathy", min: 1, text: `Lieutenant Kell's knee never quite recovers from the stair. She says it was worth it in a tone that forbids further discussion, and on the first Sunday of every month she meets a few old soldiers from the Reedmarsh Pass in a café, and they compare what they remember, which is, at last, everything.`, cond: "(flag.vasha_ready && !flag.vasha_betrays)" },
+        { skill: "empathy", min: 1, text: `Rhea Vantage walks into the District Prosecutor's office on Saturday morning in a pressed uniform and gives a statement eleven pages long. She asks, at the end, whether there are any records of a woman who sang. There are. They are incomplete. She reads them every week.`, cond: "(flag.rhea_ready || flag.rhea_turned)" },
+        { skill: "empathy", min: 1, text: `Hale Voss files a single form on Friday: Charter of Quiet Hours, Article 3(a), suspension pending review. It is the last form he signs. On Sunday he knocks at a door across a landing, with a red mitten in his pocket. It is opened. What is said is nobody's business, and the girl who opened it remembers every word.`, cond: "flag.voss_turned" },
+        { skill: "empathy", min: 1, text: `Osk Brannic is cleared on Saturday, publicly, by name, by eleven thousand people who all remember who framed him and when. He does not say anything. He sweeps the Courtyard as usual. There is a queue to shake his hand, and he finds it very inconvenient.`, cond: "flag.osk_scapegoat" }
+      ],
+      choices: [{ text: "Continue.", goto: "c" }]
+    },
+    c: {
+      speaker: "narrator",
+      voices: 4,
+      text: `In the autumn the auditors come from the capital, and find what the Chancellery was most afraid of: a district that can testify. The first witness is a caretaker. The second is a girl in a wheelchair with a wax cylinder. The third is a boy who used to be a hall monitor. You are the twentieth. By the time they reach you there is nothing left to say, so you tell them about the ringing in your ears, and the auditor, a tired woman with a good pen, writes it down, and stops, and asks whether you still have it.\n\nYou do. You always will. But on certain evenings, at about nine, standing at your window with the city humming in E-flat below, you understand that you are no longer the only one who cannot be made to forget. It is a very small change. It is the largest thing that has ever happened to you.`,
+      interjections: [
+        { skill: "the_grey", min: 1, text: `In the bell tower, an old deaf man ties a new knot into the long wall of cords where he has kept forty years of the evenings nobody else could. It is a big knot. It has three loops. He does not tie any more after it. He does not need to.`, cond: "(flag.hob_ready || flag.hob_trust || flag.hob_signal)" },
+        { skill: "the_grey", min: 1, text: `A first-year in a cap too big for her gives a talk at the school assembly called WHAT I DID IN THE JUBILEE, and is given a prize for it, and then a detention for the parts about the chute.`, cond: "((flag.wren_ready || flag.wren_ally) && !flag.wren_caught)" },
+        { skill: "the_grey", min: 1, text: `Ilsabet Orrin's tone is given a name by the newspapers. She objects to the name. She calls it the Wake, like everyone else, and refuses to be photographed with it.`, cond: "flag.ilsabet_ready" },
+        { skill: "the_grey", min: 1, text: `Ambrose Quill is invited to read Article Nine aloud on the radio. He reads it twice, very slowly, and then admits on air that he wrote it, forty years ago, as a joke. The joke has outlived the Ministry.`, cond: "flag.quill_clause_known" },
+        { skill: "the_grey", min: 1, text: `I remember. I am concrete. I always did. But now I am not the only one, and the whole district has started, at long last, to talk back to its walls.` }
+      ]
+    }
+  }
+},
+
+ending_end_static: {
+  title: "The Broadcast",
+  start: [
+    { cond: "flag.bc_article_nine", node: "a_nine" },
+    { cond: "true", node: "a" }
+  ],
+  nodes: {
+    a: {
+      speaker: "narrator",
+      voices: 3,
+      text: `They hold you for nine days in a room with a radiator and a window painted over in a colour called Civic Cream. Nobody hits you. A woman in a cardigan brings biscuits and asks you, every morning, to describe the broadcast, and every morning you describe it, and every morning she writes it down and thanks you, and you understand on the fourth day that she is not interrogating you: she is trying, with real diligence, to find out whether you have forgotten. You have not. You have a ringing in your ears.\n\nThe Grand Harmony played at twenty-five past eight, after they took the line back. It did what it was built to do. By Friday morning District 9 had forgotten a student on a tower, reading from a green book.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_nine: {
+      speaker: "narrator",
+      voices: 3,
+      text: `They hold you for nine days in a room with a radiator and a window painted Civic Cream, and on the tenth day a man from the Chancellery comes in with a briefcase and a face like a wet envelope and lets you go. There has been, he explains, a legal difficulty. A clause. Article Nine of the Quiet Hours Act provides that the broadcasts lapse upon the public memorial of the Winter being restored to the people, and a crowd of eleven thousand people, in the hearing of a recorded line, restored it. The Ministry's lawyers have spent a week trying to find a way round a sentence written as a joke. There isn't one. The Grand Harmony played anyway, at twenty-five past eight. But it was, technically, unlicensed. And the Bell has not rung since.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    b: {
+      speaker: "narrator",
+      voices: 4,
+      text: `But not entirely. On Friday morning, in a district that remembers nothing, three thousand people wake with writing on their hands. They do not know why. It is their own handwriting, in pencil, in ink, in lipstick and in coal: I WAS ROBBED. THE BELL IS A MACHINE. ASK THE ONES WHO COULD NOT SLEEP. They believe it, because it is theirs. By Saturday the phrase is on the toilet doors of the school. By Sunday a man on the Avenue has painted WHAT THEY TOOK across the Warden's face on the poster wall, and nobody can say who he is, because everybody is.`,
+      interjections: [
+        { skill: "solidarity", min: 1, text: `We wrote it down. We did not know a hand was a place you could keep a country.`, cond: "flag.bc_notes_called" },
+        { skill: "empathy", min: 1, text: `Lieutenant Kell is dismissed for reading her notebook aloud. She does not remember reading it. But a dozen people do, the ones who had it on their palms, and they come to her flat, one by one, and tell her. She listens to her own confession from strangers, and for the first time in eleven years she sleeps through the night.`, cond: "flag.vasha_confession" },
+        { skill: "empathy", min: 1, text: `In a biscuit tin in a library, behind the Forbidden Stacks, a wax cylinder sits in a nest of cotton wool. Ilsabet plays it once a month, to whoever comes. The room is always full.`, cond: "flag.bc_ils_recording" },
+        { skill: "empathy", min: 1, text: `Your name goes round the district, not as a slogan but as a question: who was it? Nobody knows. Everybody has heard it. It is said in queues, in a whisper, like the name of a saint nobody is sure existed.`, cond: "flag.bc_named" },
+        { skill: "empathy", min: 1, text: `It is the second time. You did it on a stage once before, in a week you do not quite remember. Somebody on the Avenue says, "It's that one again," with real affection, as of a stubborn weather.`, cond: "flag.verdict_static" }
+      ],
+      choices: [{ text: "Continue.", goto: "c" }]
+    },
+    c: {
+      speaker: "narrator",
+      voices: 3,
+      text: `You go back to school, because there is nowhere else to go. Your file is very thick now, and very boring, and full of a word the Ministry uses for things it would rather not explain: incident. You sit at the back of the class. You are watched, and you are, increasingly, waved at. On some evenings, in the dormitory, after the Bell, a first-year asks you what was in the book, and you tell her, page by page, and she writes it down on her arm in her own small furious hand.\n\nIt was loud. It was costly. It did not save anyone, exactly. It only made a great many people unable, ever again, to be entirely sure that nothing had happened. That is not a revolution. It is something slower, and harder to arrest.`,
+      interjections: [
+        { skill: "the_grey", min: 1, text: `I hold the sound of it. Concrete is the best listener in the world. Every word you said on that roof is still in the cornice of the tower, waiting for a tap on the stone.` },
+        { skill: "volition", min: 1, text: `You said it. Nobody can send a cleaner into a sentence that has already been spoken.` }
+      ]
+    }
+  }
+},
+
+ending_end_silenced: {
+  title: "The Silence",
+  start: [
+    { cond: "flag.sab_surgical", node: "a_surg" },
+    { cond: "true", node: "a" }
+  ],
+  nodes: {
+    a: {
+      speaker: "narrator",
+      voices: 3,
+      text: `District 9 is dark for eleven hours. There is no Grand Harmony, no Bell, no light, no tram. The whole quarter sits in its kitchens with candles and listens to the strange enormous sound of nothing coming out of the poles. Nobody forgets. It is the first night in forty years that nobody forgets anything, and they spend it, in the dark, remembering out loud.\n\nAt the clinic on Cinder Street a nurse named Hedda pumps an iron lung by hand for eleven hours, in shifts with a porter and two neighbours, and the girl inside it lives. Hedda's arms will never be right again. She does not know your name. If she did, she would not know whether to kiss you or report you, and she would probably do both.`,
+      interjections: [
+        { skill: "empathy", min: 1, text: `That was the price. A nurse's arms, a long night, and a great deal of fear in the dark. It was paid by people who were not consulted. Hold it. Do not set it down because it is heavy.` }
+      ],
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_surg: {
+      speaker: "narrator",
+      voices: 3,
+      text: `At twenty-five past eight the Grand Harmony plays across District 9 exactly as scheduled, and nothing happens. The tune is lovely. The choir sings. The lights stay on, the trams run, the clinic on Cinder Street hums along on its wire. Only the thing under the song is missing, a little glass switch lying on an iron grating, and eleven thousand people stand on Karsov Avenue with their paper flags, listening to a very beautiful piece of music, and remembering every word of the last three days.\n\nIt takes the Ministry nineteen hours to find the switch. It takes them a further four days to admit, in a circular, that they cannot find another.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    b: {
+      speaker: "narrator",
+      voices: 4,
+      text: `Then the State answers, the way the State answers: loudly, and in triplicate. The Quiet Hours Emergency Act is read out on Saturday from a lorry with a megaphone. There is a curfew at eight. There are checkpoints on the Avenue. Men in grey coats go from door to door asking a single question, politely: where were you when the lights went out? And everybody, all eleven thousand of them, remembers exactly where they were, and tells them, at length, with feeling, until the men in grey coats begin to look very tired.\n\nThey rebuild Relay No. 4 in six weeks. It is bigger. It has a fence. It plays the Bell again in December, to a district that has had six weeks of remembering, and a great many people now sleep with cotton wool in their ears.`,
+      interjections: [
+        { skill: "empathy", min: 1, text: `Tomas Wend is arrested on the generator-shed step, still sitting where he sat down. He confesses to everything, including several things he did not do, with an expression of the deepest peace. He is sent to a facility in the north to maintain someone else's machines. He writes to you once, in an engineer's tidy hand: "It was the best day of my working life."`, cond: "flag.sab_tomas_stays || ((flag.tomas_ready || flag.tomas_ally) && !flag.tomas_arrested)" },
+        { skill: "empathy", min: 1, text: `Captain Brune is reprimanded, demoted, and transferred to a post office. He is, by all accounts, much happier. His dog Ministry has put on weight.`, cond: "flag.brune_down || flag.brune_bribed || flag.brune_talked" },
+        { skill: "empathy", min: 1, text: `The Inspector you knocked down on the roof gives a description of his assailant that matches nobody in the district. He is retired, quietly, in the spring.`, cond: "flag.voss_ko" },
+        { skill: "empathy", min: 1, text: `Inspector Voss signs the Emergency Act's district schedules with his own pen, and then, on the last page, a single extra form: Article 3(a). It delays the rebuild by a month. It is the last month of his career.`, cond: "flag.voss_turned" }
+      ],
+      choices: [{ text: "Continue.", goto: "c" }]
+    },
+    c: {
+      speaker: "narrator",
+      voices: 3,
+      text: `You are not caught. That is the strangest part. You live for the winter in the boiler room under the Courtyard, and then in an attic on Cinder Street, and then in a succession of rooms lent by people who do not ask your name, because they remember that night, and they remember that nobody knew who did it, and they would like, on the whole, to keep it that way. On the wall of the dye-works someone paints a single picture: a bell with its rope cut. It is painted over. It is painted again. By spring it is on every third wall in the district.\n\nIt was loud. It was costly. It did not end anything. It only proved that the Bell was a thing in a box, and that a box can be broken, and once a district has learned that, it is very hard to make it unlearn.`,
+      interjections: [
+        { skill: "the_grey", min: 1, text: `I went dark for you. I remembered how. I still go dark, a little, every night at nine, in your honour, in the places where they have not yet fixed the lamps.` }
+      ]
+    }
+  }
+},
+
+ending_end_wardens_eye: {
+  title: "The Warden's Eye",
+  start: [
+    { cond: "flag.finale_double_agent && !flag.finale_voss_knows", node: "a_agent" },
+    { cond: "flag.finale_voss_knows", node: "a_knows" },
+    { cond: "true", node: "a" }
+  ],
+  nodes: {
+    a: {
+      speaker: "narrator",
+      voices: 3,
+      text: `The coat arrives in a box at the end of the month. It is grey, and warm, and it has a lining, and it fits as though it had been waiting for you. In the inside pocket, sewn into the seam where no tailor would think of looking, a small embroidered legend: NOTHING HAPPENED HERE. You put it on in the dormitory mirror. You look, you think, very like a person to whom things are about to be explained.\n\nThe Grand Harmony played on schedule. District 9 forgot three days. It forgot a Commissar, a cell, a book, a student on a roof. You did not forget. You will never forget anything again. That is the job.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_agent: {
+      speaker: "narrator",
+      voices: 3,
+      text: `The coat arrives in a box at the end of the month: grey, warm, lined, with NOTHING HAPPENED HERE embroidered in the inside seam. You put it on in the dormitory mirror, and you say, quietly, to the person in the glass, "I am only pretending." You will say it every night for the rest of your career. Some nights it will sound like a prayer. Some nights it will sound like a lie. You will not always be able to tell which.\n\nOnce a month, in a violet-stained boiler room, you leave a list on the table: tomorrow's schedule, tomorrow's dosage, tomorrow's special applications. An old woman reads it, and burns it, and puts the kettle on.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_knows: {
+      speaker: "narrator",
+      voices: 3,
+      text: `The coat arrives in a box at the end of the month, and with it a note in a tidy hand: "It will be cold in the mornings. I knew you would want the lining. H.V." You put it on. You go to work. He knows what you are, and you know he knows, and for forty years the two of you are extraordinarily polite about it, in corridors, in cars, over thermoses, across desks: two people pretending, with great skill and great love, that the other is not pretending. It is the closest friendship of your life.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    b: {
+      speaker: "narrator",
+      voices: 4,
+      text: `You are very good at it. Of course you are: you have the ear. Within three years you run the Static in District 9. Every night at nine you are the reason the Bell rings. You sit in a small warm room above the Relay with a cup of tea and a schedule, and you choose, with the exquisite care of the one person who will remember, which hours the district will be allowed to keep. You keep more than they used to. You are known, in the Ministry, as a soft touch, and in the district, if anyone could remember, as a mercy.\n\nYou are not sure, some nights, which of those you would prefer.`,
+      interjections: [
+        { skill: "doublethink", min: 1, text: `Isn't it lovely, friend? You belong. You are inside the wall and the wall is warm, and you are, at last, the one who decides how warm.` },
+        { skill: "empathy", min: 1, text: `The cell in the boiler room is never raided. The paper you made him write sits in a drawer in the Inspectorate, under the Ministry's crest: "of no operational interest." It is the most useful lie anyone ever told on your behalf.`, cond: "flag.finale_voss_terms" },
+        { skill: "empathy", min: 1, text: `Hale Voss retires in your fifth year. On the day he leaves, he gives you his thermos and a child's red mitten. "On the last Thursday of September," he says, "a card will come. Please remember it for me." You do. Every year. It is the only Special Application you ever refuse to sign.`, cond: "flag.voss_daughter_asked" },
+        { skill: "empathy", min: 1, text: `In your second year, a sheet crosses your desk: SPECIAL APPLICATION. VANTAGE, R. Reason: attachment interference. You sign it. You sign it because the alternative is a van. You go and sit in your car for twenty minutes afterwards, and you understand, at last, exactly how a reasonable young man is made.`, cond: "!flag.finale_double_agent" }
+      ],
+      choices: [{ text: "Continue.", goto: "c" }]
+    },
+    c: {
+      speaker: "narrator",
+      voices: 3,
+      text: `Years later a student is brought to your office: seventeen, torn uniform, a persistent ringing in the ears. Static-resistant. A nice hand with a note. You look at the file, and you look at the child, and you unscrew your thermos and pour a second cup without asking whether they want it.\n\n"Please," you say. "Ask me anything. In the Ministry's experience, nothing disarms like an answered question."\n\nThe child looks at you with a face like a window in winter. You find that you very much want them to say no. You do not know, until the moment they open their mouth, which answer you have been waiting forty years to hear.`,
+      interjections: [
+        { skill: "the_grey", min: 1, text: `I held you, when you went in. I hold you still, every night, in the small warm room above the Relay. I do not judge. I only notice that you have never once, in all these years, let anybody else ring the Bell.` }
+      ]
+    }
+  }
+},
+
+ending_end_martyr: {
+  title: "The Confession",
+  start: [
+    { cond: "flag.mar_rhea_confessed", node: "a_rhea" },
+    { cond: "flag.mar_rhea_together", node: "a_together" },
+    { cond: "true", node: "a" }
+  ],
+  nodes: {
+    a: {
+      speaker: "narrator",
+      voices: 3,
+      text: `The Ministry is delighted with you. That is the first and worst surprise. Your confession is typed in triplicate on good paper and read aloud, in part, on the Friday wireless, between a weather report and a recipe for turnip soup. A troubled student of School No. 9, acting alone. A solitary fantasist, a lonely boy, a forged conspiracy of one. The case of the Youth Commissar is closed. The file on the so-called Undercurrent is closed. The file on you is opened, and is found to be extremely thick and extremely satisfying.\n\nThe Grand Harmony played at twenty-five past eight. By Friday morning District 9 has forgotten you stood on the dais. It remembers, instead, the Ministry's version, which is tidier, and which it hears on the wireless with a kind of absent-minded pity.`,
+      interjections: [
+        { skill: "doublethink", min: 1, text: `You see, friend? Everyone is so pleased. You have never been so useful in your life.` }
+      ],
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_rhea: {
+      speaker: "narrator",
+      voices: 3,
+      text: `The Ministry is extremely embarrassed by Rhea Vantage. A Vanguard sergeant confessing to murder on a state occasion is not a thing for which a form exists. They solve it the way they solve everything: they find a word. Overwrought. She is taken to a rest home in the hills where the windows do not open, and the case of the Youth Commissar is closed under the heading of a tragedy within the Vanguard family, regrettable, private.\n\nYou are tried for the book. It takes eleven minutes. The Grand Harmony played at twenty-five past eight, and by Friday District 9 has forgotten two young people on a dais who could not agree whose turn it was to be brave.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_together: {
+      speaker: "narrator",
+      voices: 3,
+      text: `They take you both. The Ministry cannot decide which of you to believe, so it believes you both, in separate rooms, at great length. Two seventeen-year-olds, a student and a sergeant, each insisting on the other's innocence and their own guilt, in exactly the same words: it was me. The interrogators begin, by the third day, to look rather ill. One of them asks for a transfer.\n\nThe Grand Harmony played at twenty-five past eight, and by Friday District 9 has forgotten the two of you standing at one microphone. But the files have not, and files, in the Union, outlive everybody.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    b: {
+      speaker: "narrator",
+      voices: 5,
+      text: `Nobody goes down to the boiler room. Nobody asks for a woman with a stove, or a caretaker with keys, or a girl with a radio set. There is nothing to ask for: the conspiracy was one person, and the person is in a room with a radiator. For a whole winter the chairs under the Courtyard are put out every Tuesday and Thursday, and nobody comes to take them away.`,
+      interjections: [
+        { skill: "solidarity", min: 1, text: `Eleven chairs went up the coal chute on Jubilee night and came back down by Christmas. We are still there. We have kept a chair for you, the one with the short leg.`, cond: "flag.mar_anka_leaves || flag.anka_ready" },
+        { skill: "empathy", min: 1, text: `Osk Brannic is released on Saturday with an apology in writing and a new broom. He keeps the apology in his locker. He keeps the broom in the Courtyard, by the statue, with its bristles to the wall, which is how he puts it down when he means to come back.`, cond: "flag.osk_scapegoat || flag.mar_osk_witness" },
+        { skill: "empathy", min: 1, text: `Lieutenant Kell is commended for producing the rope. She wears the commendation to work every day, on her tracksuit, where she can see it in the gym mirror. It is the cruellest thing she owns, and she will not take it off.`, cond: "flag.mar_vasha_rope" },
+        { skill: "empathy", min: 1, text: `In the spring, a gardener re-setting the third stone from the left on the plinth of the Warden's Father finds a first-year's cap stuffed with violet pages, and, being a gardener, puts it back.`, cond: "flag.mar_wren_pages" },
+        { skill: "empathy", min: 1, text: `The night tram left at ten to eight with eleven passengers and no tickets. The conductor's report gives the reason for the delay as "a cat on the line." There was no cat.`, cond: "flag.mar_nadia_tram" },
+        { skill: "empathy", min: 1, text: `But the man with the form did not believe you, quite. In March a car comes to the Courtyard and a man called Ames asks the caretaker, very politely, who helped. The caretaker is deaf in the left ear, and has always been.`, cond: "flag.mar_doubted" }
+      ],
+      choices: [{ text: "Continue.", goto: "c" }]
+    },
+    c: {
+      speaker: "narrator",
+      voices: 3,
+      text: `They do not hang children in the Union. It would be unkind. They send you north, to an institution for the re-education of the unsound, where the Bell is rung twice a night, at nine and at three, for the good of the patients. It does not work on you. It never did. You have a ringing in your ears.\n\nSo you are the only one there who remembers. You remember the stair, the dais, the paper roses, the faces at the foot of the steps. You write it on the wall of your room in pencil, small, in a corner, and every week it is painted over, and every week you write it again, and in the seventh year a new orderly, a boy with a district accent and a pencil stub behind his ear, stops at your door, reads the wall, and says, very quietly: "I know. My mother had it on her hand."`,
+      interjections: [
+        { skill: "the_grey", min: 1, text: `I hold the cobbles where you stood. I hold the shape of your shoes. They wiped a district's mind. They could not wipe a wet stone.` },
+        { skill: "volition", min: 1, text: `You chose it. You have said so every morning for seven years. It has not become a slogan. It is still a sentence.` }
+      ]
+    }
+  }
+},
+
+ending_end_exodus: {
+  title: "The Night Tram",
+  start: [
+    { cond: "flag.exo_lost_some", node: "a_lost" },
+    { cond: "true", node: "a" }
+  ],
+  nodes: {
+    a: {
+      speaker: "narrator",
+      voices: 3,
+      text: `The terminus café does pastries. Dov was right, which he finds deeply suspicious. You sit at a zinc table at four in the morning with your coat still on, and a woman in an apron puts down a plate of something with apricots, and asks where you've come from, and you tell her: District 9. She has never heard of it. She asks what it's like. You open your mouth, and find that you can tell her. Every hour of it. Tuesday, Wednesday, Thursday. A hanged man. A boiler room. A tower. A tone.\n\nShe listens, wiping a glass, the way people listen to a story about a country they will never visit. At the end she says, "And they all forgot?" You say yes. She says, "And you didn't?" and you say, "No," and it is the first time in your life that saying it has not been dangerous.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_lost: {
+      speaker: "narrator",
+      voices: 3,
+      text: `The terminus café does pastries. You sit at a zinc table at four in the morning, and a woman in an apron brings a plate of something with apricots, and across from you one of the others is looking at the plate with a pleasant, puzzled smile, and asking, politely, which one of you is paying. They lost the evening on the bridge. They lost a little more than that. You tell them again, slowly, what happened, and they listen with the grave courtesy of someone hearing about a stranger, and say, "That sounds very brave," and you agree that it does.\n\nYou will tell them again tomorrow. You will tell them for years. Some of it will take. You have become, without wanting to, the memory of a tram.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    b: {
+      speaker: "narrator",
+      voices: 5,
+      text: `There are no Bells beyond the bridge. There are other things, worse and better: border guards, ration offices, a different flag with a different face on it, landladies who want papers. But at nine o'clock at night the radios play dance music, and nobody's evening is taken, and the first week you sit up past midnight every night, simply to feel the hours stay.`,
+      interjections: [
+        { skill: "empathy", min: 1, text: `Wren rings every tram bell she can reach for a month. She goes to a school with no loudspeakers. On her wrist, long after the pencil has worn away, she redraws the little bell with the cross through it, every morning, in ink.`, cond: "flag.exo_with_wren" },
+        { skill: "empathy", min: 1, text: `Ilsabet finds a shortwave set in a junk shop in the second week, and on the last Thursday of the month, with headphones on, she tunes in faintly to District 9 at nine o'clock and listens to the Bell from outside, with an expression you will never be able to describe, and takes notes.`, cond: "flag.exo_with_ils" },
+        { skill: "empathy", min: 1, text: `Dov sells all forty-one forged passes in a fortnight, at a substantial profit, to people who did not need them, and uses the money to rent a room above a bakery for anyone who comes over the bridge after you.`, cond: "flag.exo_with_dov" },
+        { skill: "empathy", min: 1, text: `Lemmy Tarsk becomes a tram conductor. He is very good at it. He tells people to mind the step with a terrible tenderness.`, cond: "flag.exo_with_lemmy" },
+        { skill: "empathy", min: 1, text: `Corvin Hale's A PERSONAL ACCOUNT OF A DEPARTURE is printed by a small press in a run of two hundred copies, with the appendix. It is reviewed in one newspaper, unfavourably, for its length. He frames the review.`, cond: "flag.exo_with_corvin" }
+      ],
+      choices: [{ text: "Continue.", goto: "c" }]
+    },
+    c: {
+      speaker: "narrator",
+      voices: 4,
+      text: `You write letters back. Most of them are never answered, because the people they are addressed to do not remember you. Some are. A woman in a boiler room writes, in violet ink, on the back of a ration slip: I DON'T KNOW WHO YOU ARE. MY SLEEVE SAYS YOU ARE OURS. HAVE YOU EATEN? You keep it in a drawer, with a pickle you will never eat.\n\nYou left. You remember everything. It is a very lonely thing, to be the one who remembers a district for a district that cannot. But on certain nights, on the last Thursday of September, you stand at a window in a country with no Bells, and hum a long sweet descending pair of pitches, in E-flat, and somewhere across a river eleven thousand people who have never heard of you are, without knowing why, humming back.`,
+      interjections: [
+        { skill: "empathy", min: 1, text: `A caretaker kept a front-door key for you. A lieutenant is putting the paper right. A choirmaster is conducting in the wrong key on purpose. Somebody stayed, for every one who left. That is how a lifeboat works.`, cond: "flag.exo_osk_stays || flag.exo_vasha_stays || flag.exo_fen_stays" },
+        { skill: "the_grey", min: 1, text: `I am only a track now, to you. A thin cold rail. But rails run both ways. Remember that, when you are old.` }
+      ]
+    }
+  }
+},
+
+ending_end_ledger: {
+  title: "The Ledger",
+  start: [
+    { cond: "flag.led_copied || flag.led_copied_some", node: "a_copies" },
+    { cond: "true", node: "a" }
+  ],
+  nodes: {
+    a: {
+      speaker: "narrator",
+      voices: 3,
+      text: `On Friday morning District 9 wakes up lighter, as it always does, and remembers nothing of the last three days, as it always doesn't. In the boiler room under the Courtyard twelve people wake on hard chairs in a violet-smelling dark, with their sleeves rolled up and their own handwriting on their arms, and a student sitting among them who is the only one in the room who knows why.\n\nThey read their arms. They believe them. It is their own writing. By seven the stove is lit, and the kettle is on, and an old woman is asking you, again, with real interest, whether you have eaten.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_copies: {
+      speaker: "narrator",
+      voices: 3,
+      text: `On Friday morning District 9 wakes lighter and remembers nothing, and in forty places it will not look, a slim violet copy of the Ledger is waiting for it. In a hymnal in the school chapel. In a drawer of the clinic on Cinder Street. In the lining of a seat on the number 9 tram. In a tin in a Vanguard locker, behind a pair of boots. In the hollow plinth of the Statue of the Warden's Father, which has held it before. None of them are found that week. Some of them are not found for years. That is the point. A thing hidden in forty places is not hidden. It is planted.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    b: {
+      speaker: "narrator",
+      voices: 5,
+      text: `It is slow. It is so slow. The Bell rings every night at nine, as it always has, and the cell writes its notes before nine, every night, as it now always does, and in the morning reads them, and believes them, and carries on. Every month one more person learns the method. Every year a few more sleeves are rolled up before the Bell. You teach it in a classroom under the floor, with chalk, like the Catechism, except that the first rule is: write something only you could have written.`,
+      interjections: [
+        { skill: "solidarity", min: 1, text: `Four thousand. Anka said four thousand. In the eleventh year we stop counting, because there are too many of us to count without a Ledger, and we will not keep one of those again.` },
+        { skill: "empathy", min: 1, text: `It was the second time you brought it down the iron stair. The first was in a week you do not entirely remember. Anka says you had the same face both times: like a window in winter.`, cond: "flag.verdict_ledger" },
+        { skill: "empathy", min: 1, text: `Somebody had given the cell's address to a man in a good coat. The raid comes in the spring. It finds a cold stove and twelve empty chairs. They had written it on their arms: MOVE ON THURSDAY.`, cond: "flag.cell_betrayed || flag.voss_names_given" },
+        { skill: "empathy", min: 1, text: `Ostrov sat in the chair with the cracked rung. Nobody sits in it now, except, once a year, on the last Thursday of September, you.`, cond: "flag.led_ostrov_told" }
+      ],
+      choices: [{ text: "Continue.", goto: "c" }]
+    },
+    c: {
+      speaker: "narrator",
+      voices: 3,
+      text: `Mother Anka dies in her sleep in the ninth winter, at a great age, in the boiler room, in a chair, with a cup of tea going cold beside her and, on her forearm, in a spidery firm hand, a note she wrote the night before: DO NOT BE SAD. IT WAS VERY INTERESTING. EAT SOMETHING.\n\nIn the twentieth year a girl of fifteen, dusting the hymnals in the chapel of School No. 9, finds a slim sheaf of violet pages pressed between the Anthem and the Eleven Thanks. She reads it standing up. She reads it twice. Then, without knowing quite why, she pushes up her sleeve, and finds a pencil, and begins, in her own small furious hand, to write.`,
+      interjections: [
+        { skill: "the_grey", min: 1, text: `It was the quietest of the endings. It is the only one that is still going on.` }
+      ]
+    }
+  }
+},
+
+ending_end_good_student: {
+  title: "The Good Student",
+  start: [
+    { cond: "flag.gs_betrayed_cell", node: "a_cell" },
+    { cond: "flag.osk_scapegoat", node: "a_osk" },
+    { cond: "true", node: "a" }
+  ],
+  nodes: {
+    a: {
+      speaker: "narrator",
+      voices: 3,
+      text: `The photograph is printed in the Friday paper, on page three, under a headline about the harvest. A student in a clean uniform with a brass face on the lapel, smiling, beside a Principal in a grey suit. The caption calls you an example. The Grand Harmony played at twenty-five past eight and took three days out of eleven thousand heads, and somewhere in those three days was a name, chosen by somebody else on your behalf, which you never asked to hear. You never hear it. That was the arrangement. That was, the Principal said, the best part of being good.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_osk: {
+      speaker: "narrator",
+      voices: 3,
+      text: `The photograph is printed in the Friday paper, on page three, under a headline about the harvest: a student in a clean uniform with a brass face on the lapel, smiling. Below it, smaller, a paragraph. The caretaker, Osk Brannic, aged sixty-one, thirty-one years of faithful service, has confessed in full to the unfortunate death of the Youth Commissar. He did so with real remorse. He asked only that someone remember he had offered. The Grand Harmony played at twenty-five past eight, and by Friday nobody does.`,
+      interjections: [
+        { skill: "empathy", min: 1, text: `A broom is leaning against the stairwell door with its bristles to the wall, which is how he puts it down when he means to come back. Nobody moves it for a month. Then somebody does.` }
+      ],
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_cell: {
+      speaker: "narrator",
+      voices: 3,
+      text: `They go down the iron stair under the Courtyard at a quarter to nine, while the choir is singing, very gently, with torches and a form. They find a stove, a duplicating machine with a plum-coloured drum, twelve chairs, an old woman in a labcoat, and a girl with a radio set. Nobody resists. The old woman asks the men in grey coats whether they have eaten. The Grand Harmony played at twenty-five past eight, and by Friday District 9 has forgotten there was ever a room under the Courtyard with chairs in it. The photograph in the paper is of you, smiling, with a brass face on your chest.`,
+      interjections: [
+        { skill: "solidarity", min: 1, text: `We are not angry. We are not anything. We are a list of names in a drawer, and you put us there, and you did it so politely.` }
+      ],
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    b: {
+      speaker: "narrator",
+      voices: 4,
+      text: `You do very well. Vanguard Sergeant at eighteen. A scholarship to the Academy in the capital. A desk in the Chancellery at twenty-four, with a window and a portrait that listens. You are known for your courtesy, your excellent memory, and your complete lack of curiosity about the Static, which you have, you will tell anyone who asks, never found to be a problem. You do not have a ringing in your ears any more. A doctor treated it, in your second year, with a small procedure. He said it was a mercy. You agreed.`,
+      interjections: [
+        { skill: "doublethink", min: 1, text: `Look at you, friend. Look how warm. You are inside the wall, and the wall is warm, and you never once have to wonder what it is made of.` },
+        { skill: "empathy", min: 1, text: `Rhea Vantage is promoted the same week you are. You stand side by side in the photograph. She does not look at you. She looks at a point over your head, and stays there, for the rest of her career.`, cond: "!flag.rhea_turned" },
+        { skill: "empathy", min: 1, text: `In the bell tower, an old deaf man ties a small, tight knot in the long wall of cords, and, beside it, after some thought, a second, looser one. It is the only knot on the wall that he never touches again.`, cond: "(flag.hob_ready || flag.hob_trust || flag.hob_signal)" }
+      ],
+      choices: [{ text: "Continue.", goto: "c" }]
+    },
+    c: {
+      speaker: "narrator",
+      voices: 3,
+      text: `Thirty years later, at a reception in the capital, a waiter with a District 9 accent offers you a glass of something and, as he does, glances at your hands. There is nothing on them. He seems, for a moment, disappointed, as if he had expected writing. Then he moves on.\n\nYou think about it all evening. You cannot say why. On the way home you stop the car outside a school you do not recognise, and stand at the railing, and listen to the Bell, and feel nothing at all, a great warm featureless nothing, the exact shape of a door that has been closed very quietly by someone who did not want to be thanked.`,
+      interjections: [
+        { skill: "the_grey", min: 1, text: `I do not judge. I only hold the place where you stood with the badge, on the dais, and the place, six feet away, where somebody else would have stood, if you had not.` }
+      ]
+    }
+  }
+},
+
+ending_end_quiet: {
+  title: "Ration Tea",
+  start: [
+    { cond: "flag.verdict_quiet", node: "a_again" },
+    { cond: "true", node: "a" }
+  ],
+  nodes: {
+    a: {
+      speaker: "narrator",
+      voices: 3,
+      text: `The tea is warm. It tastes of cloves and orange peel and a sweetness under the sweetness, and by the time you reach the bus the three days are going out of you like a long pleasant breath: the Commissar, the boiler room, the tower, the tone, a girl in a cap who looked at you as you went. At home there is soup. You say the day was fine. At a quarter past eight the little speaker in the kitchen clears its throat and sings, and you hear it as you have always heard it: as a sort of tender weather.\n\nOn Friday the district wakes lighter, and so do you, and it is, for the first time in your life, no different.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_again: {
+      speaker: "narrator",
+      voices: 3,
+      text: `The tea is warm, and you have drunk it before. Not this cup: another, on another evening that you do not remember, in a week that has gone the way of all weeks. Your body remembers, though. It knows the cloves, the peel, the sweetness under the sweetness. It knows exactly how far it is from the gate to the bus. You walk it a little faster than you need to, like someone who has rehearsed.\n\nAt home there is soup. At a quarter past eight the kitchen speaker sings. You stand at the window with your hand on the glass. It is, you think, a very familiar feeling, like the second time you hear a song you did not like the first time and now cannot do without.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    b: {
+      speaker: "narrator",
+      voices: 4,
+      text: `You grow up. You become a clerk at the Relay Office on Cinder Street, where the work is quiet and the pension is good. You are known for your courtesy and your excellent hearing. You marry; you have a child; you teach her the Eleven Thanks. You are, by every measure the Union keeps, a success: a person to whom nothing has ever happened.\n\nOn certain evenings, at about nine, you find yourself standing at the kitchen window with your hand against the glass and a faint tone in your ears you cannot place, and an unexplained heaviness, as if you had left a sentence unsaid in some far-off room.`,
+      interjections: [
+        { skill: "empathy", min: 1, text: `Somewhere in District 9 an old woman in a boiler room asks a stranger whether they have eaten. Somewhere a caretaker leans his broom against a wall. None of them think of you. That was, after all, the point.` },
+        { skill: "volition", min: 1, text: `You chose this. Not because you will remember choosing it. Because someone ought to have the record that you did.` }
+      ],
+      choices: [{ text: "Continue.", goto: "c" }]
+    },
+    c: {
+      speaker: "narrator",
+      voices: 3,
+      text: `One autumn evening your daughter comes home from School No. 9 with ink on her arm. It says, in her own handwriting, in capitals, DO NOT TRUST THE BELL. She does not know why it is there. Neither do you. You tell her to wash it off before supper, quite gently, and she does, and you watch the letters go down the drain in a thin blue ribbon, and something in your chest turns over once, like a sleeper, and lies still.\n\nYou put it down to the weather. The tea, it turns out, is excellent. It always was.`,
+      interjections: [
+        { skill: "the_grey", min: 1, text: `I did not hold it against you. You were seventeen. You were tired. A great many people have taken the tea. It is the kindest thing in the country. That is why it is the cruellest.` }
+      ]
+    }
+  }
+},
+
+ending_end_arrested: {
+  title: "Resolved",
+  start: [
+    { cond: "flag.finale_open", node: "a_finale" },
+    { cond: "true", node: "a" }
+  ],
+  nodes: {
+    a: {
+      speaker: "narrator",
+      voices: 3,
+      text: `Nobody shouts. Two men in grey coats come for you quite politely in a corridor, as if fetching you to a dentist, and one of them holds the door. In the van there is a thermos, a paper cup, and a small card on the seat that reads THE UNION REGRETS THE INCONVENIENCE. The room they take you to is warm and smells of floor-polish and weak soup. The interrogator is a woman in a cardigan, with a face you might trust at a bus stop. She introduces herself as Miss Pell. She offers you biscuits. Your file is open on the desk, and it is very, very thick: you have been watched, it turns out, a great deal more carefully than you watched anything.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_finale: {
+      speaker: "narrator",
+      voices: 3,
+      text: `They take you on the night of the Jubilee, while the choir is still singing, and the van is warm, and on the seat there is a small card: THE UNION REGRETS THE INCONVENIENCE. Behind you, through the van's little back window, you watch the tower of School No. 9 grow smaller, its horns black against the sky, and at twenty-five past eight you feel the Grand Harmony go out over the roofs, sweet and enormous, a hand on every shoulder in the district. Not yours. You have a ringing in your ears. You are the only person in the van who remembers why you are in it.\n\nThe interrogator is a woman in a cardigan named Miss Pell. She offers you biscuits. Your file is very thick.`,
+      interjections: [
+        { skill: "empathy", min: 1, text: `Somewhere behind you, on a roof, an old deaf man has his hand flat on a bell, feeling the van go down the Avenue through the stone.`, cond: "(flag.hob_ready || flag.hob_trust || flag.hob_signal)" }
+      ],
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    b: {
+      speaker: "narrator",
+      voices: 4,
+      text: `Miss Pell is very kind. She asks you to describe the last three days, and you describe them, and she writes it all down and thanks you. She asks again the next morning, and the next, and you understand by the fourth that she is not interested in what you did. She is interested in whether you still remember it. On the fifth day a sheet comes across her desk, and she reads it, and looks at you over her glasses with real regret. SPECIAL APPLICATION. Reason: retention. "It is only a precaution," she says. "It is really very gentle."`,
+      interjections: [
+        { skill: "empathy", min: 1, text: `A man in a good coat comes to the door of the room on the fourth day, and stands there a long time, and says to Miss Pell, very quietly, "Not this one." He is overruled by a man called Ames, who does not drink tea. He stays anyway, at the back, for the whole of it.`, cond: "flag.voss_turned || flag.voss_ally" },
+        { skill: "doublethink", min: 1, text: `It's quite all right, friend. Nobody is cross. It is only that someone has to be taken, and you were so very visible.` },
+        { skill: "volition", min: 1, text: `They have you. They do not have what you did. An act is not a thing that can be taken. It can only be forgotten, and then it is still an act.` }
+      ],
+      choices: [{ text: "Continue.", goto: "c" }]
+    },
+    c: {
+      speaker: "narrator",
+      voices: 3,
+      text: `They apply it nine times. On the tenth day you are released into the care of the School, with a clean uniform and a short, pleasant gap where a week should be, and a ringing in your ears that has not, despite everybody's best efforts, gone away. You go back to class. You sit at the back. You are very quiet, and very polite, and nobody asks you anything, and you do not know why the caretaker, sweeping the Courtyard, stops every morning when you pass and takes off his cap.\n\nOn the inside of your wrist, where the cuff covers it, there is a faint mark, as though somebody, a long time ago, had written something there in pencil and it had nearly washed away. You can make out two letters. You look at them every night before the Bell.`,
+      interjections: [
+        { skill: "the_grey", min: 1, text: `I remember. Concrete always does. When you are ready to ask, put your hand on my wall.` }
+      ]
+    }
+  }
+},
+
+ending_end_curfew: {
+  title: "The Bell",
+  start: [
+    { cond: "flag.finale_wrote_note", node: "a_note" },
+    { cond: "flag.finale_open", node: "a_finale" },
+    { cond: "true", node: "a" }
+  ],
+  nodes: {
+    a: {
+      speaker: "narrator",
+      voices: 3,
+      text: `The Bell rings at nine, as it always does, and on the last night of the Jubilee week it rings longer, and sweeter, and deeper in the second note, and you are standing in the wrong place when it reaches you, with nothing done and a great deal undone. It comes in behind the eyes like warm water. Your own old ringing holds it off for a while, a thin high note against a choir, and then, very gently, gives way.\n\nIt does not hurt. It is the gentlest thing that has happened to you in three days. It takes Thursday, and then Wednesday, and then, with the same unhurried courtesy, Tuesday.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_finale: {
+      speaker: "narrator",
+      voices: 3,
+      text: `The Grand Harmony comes down out of the horns over the school like a quilt over a sleeper, and you are on the roof when it arrives, with an old deaf man's hand on your shoulder and a district below you holding its paper flags. It comes in behind the eyes like warm water. Your old ringing holds it off for a while, a thin high note against a choir, and then, quite gently, gives way.\n\nIt takes Thursday. It takes Wednesday. It takes, with the same unhurried courtesy, Tuesday, and a dead man in a gym, and an old woman with a stove, and everything you did and nearly did and were going to do.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    a_note: {
+      speaker: "narrator",
+      voices: 3,
+      text: `The Grand Harmony comes down out of the horns over the school like a quilt over a sleeper, and takes everything. Thursday. Wednesday. Tuesday. A dead man in a gym, an old woman with a stove, a tower, a tone. It takes it all, with an unhurried courtesy, the way a nurse takes away a tray.\n\nIt does not take the pencil marks on the inside of your forearm. It cannot. They are not in your head. They are on your skin, in your own handwriting, pressed so hard they left grooves, and the Ministry of Quiet Hours has never, in forty years, found a tone that works on graphite.`,
+      choices: [{ text: "Continue.", goto: "b" }]
+    },
+    b: {
+      speaker: "narrator",
+      voices: 3,
+      text: `A note. One note, high and thin, held so long it has stopped being a sound and become a place. You are lying in it. Boards against your cheek. A smell of dust and old greasepaint. A cold that has got into your uniform through the places where the uniform is no longer attached to itself.\n\nYou are on the stage of the Old Theatre. It is Friday. You do not know it is Friday. You have no idea where you are, or what day it was yesterday, or why your hands are covered in chalk. This is, by itself, a kind of peace.`,
+      interjections: [
+        { skill: "the_grey", min: 1, text: `Damp. Seventeen degrees and falling in the lungs of the building. I am the plaster behind you, and I am so very patient. You have been here before. You will be here again. Lie down a little longer; everyone does.` }
+      ],
+      choices: [{ text: "Continue.", goto: "c" }]
+    },
+    c: {
+      speaker: "narrator",
+      voices: 3,
+      text: `Somewhere, a very long way off, a woman's voice is calling a name in a gymnasium, and a cigarette is being lit, and a pair of boots is coming down a corridor. Somewhere a girl with a radio set is listening to a carrier tone and frowning. Somewhere a man in a good coat is getting out of a black car with a thermos, a little more tired than he was a week ago, and does not know why.\n\nYou open your eyes. The ceiling is very far away. Behind your hearing, like a lit window in a house you have never entered, the old ringing goes on, and goes on, and does not stop.`,
+      interjections: [
+        { skill: "volition", min: 1, text: `Your sleeve. Look at your sleeve. There is writing on your arm, in your own hand, and it says DO NOT TRUST THE BELL. You do not know who wrote it. You believe it at once.`, cond: "flag.finale_wrote_note" },
+        { skill: "volition", min: 1, text: `Slowly. You are alive and horizontal. Those are two good facts. Build from them. You have done it before. You do not remember that you have. That is the joke, and it is a long one.`, cond: "!flag.finale_wrote_note" }
+      ]
+    }
+  }
+},
+
+finale_fallback: {
+  title: "The Jubilee",
+  start: [
+    { cond: "day >= 3 && time >= 1215", node: "late" },
+    { cond: "true", node: "early" }
+  ],
+  nodes: {
+    early: {
+      speaker: "narrator",
+      text: `Whatever is going to happen tonight is going to happen at the top of the school, in a small room with a very big bell in it, where eleven black horns face out over the district. It is not yet time. You can feel it coming the way you feel weather: a pressure in the fillings, a hum in the poles, a district quietly putting on its good coat.`,
+      interjections: [
+        { skill: "volition", min: 2, text: `Get ready. Whatever ready means for you. Find the people. Find the things. Find out which of them you can bear to have done.` }
+      ]
+    },
+    late: {
+      speaker: "narrator",
+      voices: 3,
+      text: `You are not on the roof. You are not anywhere that matters: a corridor, a doorway, a patch of cobbles with a puddle in it. The Address ends somewhere above you. A pause falls over the district, eleven thousand people holding their breath, and then the cue, and the Grand Harmony begins, sweet and long and enormous, and finds you standing exactly where you were when you stopped deciding.\n\nIt comes in behind the eyes like warm water.`,
+      interjections: [
+        { skill: "doublethink", min: 1, text: `Rest, friend. It is only the Hour. You did so very well, whatever it was.` }
+      ],
+      choices: [{ text: "Let it come.", goto: "late2" }]
+    },
+    late2: {
+      speaker: "narrator",
+      text: `It does not hurt. It takes Thursday, and Wednesday, and Tuesday, one after another, with the unhurried courtesy of a nurse clearing a tray, and the last thing you hear is your own old ringing, thin and stubborn, going on alone in the dark like a lit window in an empty street.`,
+      onEnter: [{ ending: "end_curfew" }]
+    }
   }
 },
 

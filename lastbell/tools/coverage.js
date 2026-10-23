@@ -6,7 +6,7 @@ for(const f of ['world','world_ext','skills','items','items_ext','tasks','tasks_
 const GD=global.GD,dl=Object.assign({},GD.dialoguesA,GD.dialoguesB,GD.dialoguesC,GD.dialoguesD,GD.dialoguesE,GD.dialoguesF);
 const given=new Set(),thoughts=new Set(),tasksA=new Set(),tasksD=new Set(),ends=new Set(),setF=new Set(),readF=new Set();
 const walk=(o)=>{if(Array.isArray(o))return o.forEach(walk);if(o&&typeof o==='object'){if(o.give)given.add(o.give);if(o.thought&&typeof o.thought==='string')thoughts.add(o.thought);if(o.task&&o.state==='active')tasksA.add(o.task);if(o.note)tasksA.add(o.note);if(o.task&&o.state==='done')tasksD.add(o.task);if(o.ending)ends.add(o.ending);if(o.set)setF.add(o.set);if(o.add)setF.add(o.add);if(typeof o.cond==='string')for(const m of o.cond.matchAll(/flag\.(\w+)/g))readF.add(m[1]);Object.values(o).forEach(walk)}};
-walk(dl);
+walk(dl);walk(GD.auto||[]);
 for(const i of Object.values(GD.items))if(i.use)walk(i.use);
 Object.values(GD.thoughts).forEach(t=>{if(t.effects)walk(t.effects)});
 const miss=(label,all,have)=>{const m=all.filter(x=>!have.has(x));console.log(label,m.length?'MISSING: '+m.join(', '):'all covered')};
