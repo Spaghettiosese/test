@@ -264,6 +264,8 @@
   // ---------- dialogue ----------
   function variantId(id) { const d = S.day || 1; return d > 1 && dialogues()[id + '_d' + d] ? id + '_d' + d : id; }
   function startDialogue(id, nodeId, opts) {
+    const rd = (GD.redirects || {})[id];
+    if (rd && !(opts && opts.noRedirect) && dialogues()[rd.to] && evalCond(rd.cond)) id = rd.to;
     const base = id; id = variantId(id);
     const d = dialogues()[id];
     if (!d) { console.warn('no dialogue', id); return false; }

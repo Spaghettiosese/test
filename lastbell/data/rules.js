@@ -22,6 +22,11 @@ GD.thoughtAuto = {
   th_collective_pulse: "ideo.undercurrent >= 3 || flag.fenwick_choir_ready",
   th_paper_heart: "has('bread_note') || has('note_yesterday_1')"
 };
+// Object dialogues that open another scene once a condition holds (e.g. the tower objects during the finale).
+GD.redirects = {
+  w_bell:  { cond: "flag.finale_open && !flag.finale_done", to: "finale_hub" },
+  w_array: { cond: "flag.finale_open && !flag.finale_done", to: "finale_hub" }
+};
 // Hints for endings you haven't found (shown on the results screen).
 GD.endingInfo = {
   end_good_student: { name: "The Good Student", hint: "Somebody always has to take the blame. It is easier when they are cheap." },
