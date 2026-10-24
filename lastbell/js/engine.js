@@ -26,7 +26,7 @@
   let D = null;       // active dialogue
   let pending = null; // things queued for when the dialogue closes
   let condCache = {};
-  const dialogues = () => (GD._dialogues || (GD._dialogues = Object.assign({}, GD.dialoguesA || {}, GD.dialoguesB || {})));
+  const dialogues = () => (GD._dialogues || (GD._dialogues = Object.assign({}, GD.dialoguesA || {}, GD.dialoguesB || {}, GD.dialoguesC || {}, GD.dialoguesD || {}, GD.dialoguesE || {}, GD.dialoguesF || {})));
 
   // ---------- state ----------
   function newState(opts) {
@@ -40,7 +40,7 @@
       flags: {}, items: {}, equipped: {}, tasks: {}, thoughts: {}, thoughtSlots: (GD.thoughtSlots && GD.thoughtSlots.start) || 3,
       ideo: { vanguard: 0, undercurrent: 0, quiet: 0 },
       talked: {}, visited: {}, checks: {}, seen: {}, taken: {}, log: [], stats: { passed: 0, failed: 0, days: 0 },
-      ending: null, started: Date.now(), trail: [],
+      day: 1, ending: null, started: Date.now(), trail: [],
       npcHome: {}
     };
     return s;
@@ -61,6 +61,7 @@
       if (it.type === 'apparel' && !S.equipped[iid]) continue;
       mods.push({ label: it.name, n: it.mods[id] });
     }
+    if (S.flags.hangover_skill === id && S.flags.hangover_day === S.day) mods.push({ label: 'Static hangover', n: -1 });
     const sk = GD.skills[id];
     if (sk) {
       if (S.morale <= 2 && sk.attribute === 'psyche') mods.push({ label: 'Broken nerve', n: -1 });
@@ -79,7 +80,7 @@
   const learnedCap = () => R().skillCap || 10;
 
   // ---------- conditions ----------
-  const SCOPE_KEYS = ['flag', 'has', 'skill', 'attr', 'ideo', 'surv', 'hp', 'morale', 'time', 'task', 'thought', 'visited', 'talked'];
+  const SCOPE_KEYS = ['day', 'flag', 'has', 'skill', 'attr', 'ideo', 'surv', 'hp', 'morale', 'time', 'task', 'thought', 'visited', 'talked'];
   function evalCond(c) {
     if (c == null || c === '') return true;
     let fn = condCache[c];
@@ -88,7 +89,7 @@
       catch (e) { console.warn('bad cond', c, e); fn = condCache[c] = () => false; }
     }
     try {
-      return !!fn(S.flags, (i) => !!S.items[i], skill, attr, S.ideo, S.surv, S.hp, S.morale, S.time,
+      return !!fn(S.day || 1, S.flags, (i) => !!S.items[i], skill, attr, S.ideo, S.surv, S.hp, S.morale, S.time,
         (t) => (S.tasks[t] ? S.tasks[t].state : 'none'), (t) => (S.thoughts[t] ? (S.thoughts[t].state === 'internalized' ? 'internalized' : 'researching') : 'none'),
         (l) => !!S.visited[l], (d) => S.talked[d] || 0);
     } catch (e) { return false; }
@@ -120,6 +121,7 @@
     if (S.time >= GD.meta.curfew - 60 && before < GD.meta.curfew - 60) emit('toast', { text: 'One hour to curfew.', kind: 'warn' });
     if (S.time >= GD.meta.curfew && !S.ending) queueEnding('end_curfew');
     emit('time', S.time);
+    if (!D && !S.ending && !pending) runAuto();
   }
   function changeSurv(n) {
     const before = S.surv;
@@ -130,7 +132,45 @@
     }
     if (S.surv >= 100 && !S.ending) queueEnding('end_arrested');
   }
-  function queueEnding(id) { if (S.ending || (pending && pending.ending)) return; pending = pending || {}; pending.ending = id; if (!D) flushPending(); }
+  const VERDICTS = { end_good_student: 'good_student', end_ledger: 'ledger', end_static: 'static', end_quiet: 'quiet' };
+  function queueEnding(id) {
+    if (S.ending || (pending && (pending.ending || pending.verdict))) return;
+    pending = pending || {};
+    if ((S.day || 1) < 3 && !S.flags.finale_open && id !== 'end_arrested') {
+      if (VERDICTS[id]) pending.verdict = VERDICTS[id];
+      else if (id === 'end_curfew') pending.verdict = 'curfew';
+      else pending.ending = id;
+    } else pending.ending = id;
+    if (!D) flushPending();
+  }
+  // ----- days & nights -----
+  function startDaybreak(name) {
+    if (name !== 'curfew') S.flags['verdict_' + name] = true;
+    S.lastVerdict = name;
+    const id = 'daybreak_' + name;
+    if (dialogues()[variantId(id)]) { emit('night', name); startDialogue(id, null, { daybreak: true }); }
+    else nextDay();
+  }
+  function nextDay() {
+    S.day = (S.day || 1) + 1;
+    const d = GD.meta.days[S.day] || GD.meta.days[3];
+    S.time = d.start; S.hp = Math.min(10, S.hp + 4); S.morale = Math.min(10, S.morale + 4); S.surv = Math.max(0, S.surv - 15);
+    S.flags.hangover_skill = null;
+    const th = S.thoughts.th_ghost_of_yesterday, sheltered = S.flags['day' + (S.day - 1) + '_sheltered'];
+    if (sheltered) emit('toast', { text: 'You slept in the Stacks, where the Bell does not reach. Your head is clear.', kind: 'good' });
+    if (!(th && th.state === 'internalized') && !sheltered) { const ids = SKILL_IDS(); S.flags.hangover_skill = ids[Math.floor(Math.random() * ids.length)]; S.flags.hangover_day = S.day; }
+    S.path = null; S.then = null;
+    teleport('dorm', undefined, undefined, true);
+    emit('daybreak', { day: S.day, name: d.name, hangover: S.flags.hangover_skill ? GD.skills[S.flags.hangover_skill].name : null });
+    emit('state'); save();
+  }
+  function beginDay() {
+    const n = S.day;
+    if (!S.visited.dorm && dialogues().enter_dorm) { S.visited.dorm = true; pending = pending || {}; pending.dialogue = { id: 'enter_dorm' }; }
+    S.visited.dorm = true;
+    if (dialogues()['enter_day' + n]) startDialogue('enter_day' + n);
+    else flushPending();
+  }
   function setTask(id, state) {
     const t = S.tasks[id] || (S.tasks[id] = { state: 'none', notes: [] });
     if (t.state === state) return;
@@ -223,12 +263,17 @@
   }
 
   // ---------- dialogue ----------
+  function variantId(id) { const d = S.day || 1; return d > 1 && dialogues()[id + '_d' + d] ? id + '_d' + d : id; }
   function startDialogue(id, nodeId, opts) {
+    const rd = (GD.redirects || {})[id];
+    if (rd && !(opts && opts.noRedirect) && dialogues()[rd.to] && evalCond(rd.cond)) id = rd.to;
+    const base = id; id = variantId(id);
     const d = dialogues()[id];
     if (!d) { console.warn('no dialogue', id); return false; }
     if (D) closeDialogue(true);
-    D = { id, def: d, title: sub(d.title || (GD.npcs[id] && GD.npcs[id].name) || ''), history: [], choices: [], nodeId: null, roll: null, isEnding: !!(opts && opts.isEnding) };
-    S.talked[id] = (S.talked[id] || 0) + 1;
+    D = { id, base, def: d, title: sub(d.title || (GD.npcs[id] && GD.npcs[id].name) || ''), history: [], choices: [], nodeId: null, roll: null, isEnding: !!(opts && opts.isEnding) };
+    S.talked[id] = (S.talked[id] || 0) + 1; if (base !== id) S.talked[base] = (S.talked[base] || 0) + 1;
+    D.daybreak = !!(opts && opts.daybreak);
     let start = nodeId;
     if (!start) {
       const alts = Array.isArray(d.start) ? d.start : [d.start];
@@ -253,10 +298,16 @@
     D.nodeId = nodeId; D.roll = null;
     runEffects(node.onEnter);
     D.history.push({ kind: 'line', speaker: speakerInfo(node.speaker), text: sub(pick(node.text)) });
+    // Passive voices: only the strongest few speak per node; the rest wait for a later beat instead of all piling in at once.
+    const cap = node.voices || 2;
+    const elig = [];
     (node.interjections || []).forEach((j, i) => {
       if (skill(j.skill) < j.min || !evalCond(j.cond)) return;
       const key = D.id + ':' + nodeId + ':j' + i;
       if (!j.repeat && S.seen[key]) return;
+      elig.push({ j, key, margin: skill(j.skill) - j.min + (j.effects && j.effects.length ? 0.5 : 0) });
+    });
+    elig.sort((a, b) => b.margin - a.margin).slice(0, cap).forEach(({ j, key }) => {
       S.seen[key] = true;
       D.history.push({ kind: 'line', voice: true, speaker: speakerInfo(j.skill), text: sub(j.text), passive: true });
       runEffects(j.effects);
@@ -323,12 +374,13 @@
     if (!D) return;
     const was = D; D = null;
     emit('dialogueEnd', was);
-    if (!silent) { save(); flushPending(was); }
+    if (!silent) { save(); if (was.daybreak) { pending = null; nextDay(); return; } flushPending(was); runAuto(); }
   }
   function flushPending(was) {
     const p = pending; pending = null;
     if (!p) { emit('state'); return; }
     if (p.collapse && !p.ending) { doCollapse(p.collapse); }
+    if (p.verdict) { startDaybreak(p.verdict); return; }
     if (p.ending) { startEnding(p.ending); return; }
     if (p.move) teleport(p.move.loc, p.move.x, p.move.y);
     if (p.dialogue) startDialogue(p.dialogue.id, p.dialogue.node);
@@ -341,10 +393,28 @@
     if (!S.ending) teleport('theatre');
   }
 
+  // ---------- auto rules ----------
+  function runAuto() {
+    if (!S || S.ending || D) return;
+    if (S.day === 3 && S.time >= (GD.meta.jubileeTime || 1170) && !S.flags.jubilee_started && dialogues().jubilee_call) { S.flags.jubilee_started = true; startDialogue('jubilee_call'); return; }
+    if (S.day === 3 && S.time >= 1215 && S.flags.finale_open && !S.flags.finale_late_shown && S.loc !== 'tower' && dialogues().finale_fallback) { S.flags.finale_late_shown = true; startDialogue('finale_fallback'); return; }
+    for (const r of GD.auto || []) {
+      const k = 'auto:' + r.id;
+      if (!S.seen[k] && evalCond(r.cond)) { S.seen[k] = true; runEffects(r.effects); }
+    }
+    for (const [id, t] of Object.entries(GD.thoughts || {})) {
+      if (S.thoughts[id]) continue;
+      const c = t.cond || (GD.thoughtAuto && GD.thoughtAuto[id]);
+      if (c && evalCond(c)) { discoverThought(id); break; }   // one at a time
+    }
+  }
+
   // ---------- endings ----------
   function startEnding(id) {
     if (S.ending) return;
     S.ending = id;
+    if (S.day >= 3 && S.tasks.task_jubilee && S.tasks.task_jubilee.state === 'active') S.tasks.task_jubilee.state = 'done';
+    if (id === 'end_exodus' && S.tasks.task_exodus) S.tasks.task_exodus.state = 'done';
     try {
       const got = JSON.parse(localStorage.getItem(END_KEY) || '[]');
       if (!got.includes(id)) { got.push(id); localStorage.setItem(END_KEY, JSON.stringify(got)); }
@@ -390,12 +460,18 @@
     }
     return null;
   }
+  function npcState(n) {
+    const o = Object.assign({}, n, (n.days && n.days[S.day || 1]) || {});
+    if (o.loc === null) return null;
+    if (n.hideIf && evalCond(n.hideIf)) return null;
+    return o;
+  }
   function npcsHere() {
     const out = [];
     for (const n of Object.values(GD.npcs)) {
-      if (n.follower && S.flags.met_vasha) { if (n._followerHere) out.push(S.fpos ? Object.assign({}, n, S.fpos) : n); continue; }
-      if (n.loc !== S.loc) continue;
-      out.push(Object.assign({}, n, S.npcHome[n.id] || {}));
+      if (n.follower && S.flags.met_vasha && !S.flags.vasha_away) { if (n._followerHere) out.push(S.fpos ? Object.assign({}, n, S.fpos) : n); continue; }
+      const o = npcState(n); if (!o || o.loc !== S.loc) continue;
+      out.push(o);
     }
     return out;
   }
@@ -403,10 +479,10 @@
     const l = loc(), hs = [];
     for (const n of npcsHere()) hs.push({ id: n.id, kind: 'npc', x: n.x, y: n.y, label: n.name, sub: n.role, dialogue: n.id, color: n.color });
     for (const o of l.objects || []) hs.push({ id: o.id, kind: 'object', x: o.x, y: o.y, label: o.label, dialogue: o.id, done: (S.talked[o.id] || 0) > 0 });
-    for (const e of l.exits || []) hs.push({ id: 'exit:' + e.id, kind: 'exit', x: e.x, y: e.y, label: e.label, exit: e });
+    for (const e of l.exits || []) if (!e.showIf || evalCond(e.showIf)) hs.push({ id: 'exit:' + e.id, kind: 'exit', x: e.x, y: e.y, label: e.label, exit: e });
     return hs;
   }
-  function teleport(locId, x, y) {
+  function teleport(locId, x, y, silent) {
     const l = GD.locations[locId]; if (!l) return;
     S.loc = locId;
     const sp = l.spawn || { x: 1, y: 1 };
@@ -417,9 +493,10 @@
     const v = GD.npcs.vasha;
     if (v && S.flags.met_vasha) { v._followerHere = true; placeFollower(); }
     const first = !S.visited[locId];
-    S.visited[locId] = true;
+    if (!silent) S.visited[locId] = true;
     emit('location', locId, first);
-    if (first && dialogues()['enter_' + locId] && !D) startDialogue('enter_' + locId);
+    if (!silent) runAuto();
+    if (first && !silent && dialogues()['enter_' + locId] && !D) startDialogue('enter_' + locId);
     save();
   }
   function placeFollower() {
@@ -486,7 +563,7 @@
       let step = speed * dt;
       while (step > 0 && S.path.length) {
         const t = S.path[0], dx = t.x - S.px, dy = t.y - S.py, dist = Math.hypot(dx, dy);
-        if (dist <= step) { S.px = t.x; S.py = t.y; S.path.shift(); step -= dist; S.trail.push({ x: t.x, y: t.y }); if (S.trail.length > 12) S.trail.shift(); emit('step'); S.stepAcc = (S.stepAcc || 0) + 1; if (S.stepAcc % 2 === 0) addTime(1); }
+        if (dist <= step) { S.px = t.x; S.py = t.y; S.path.shift(); step -= dist; S.trail.push({ x: t.x, y: t.y }); if (S.trail.length > 12) S.trail.shift(); emit('step'); S.flags.steps = (S.flags.steps || 0) + 1; if (S.flags.steps % 20 === 0) runAuto(); S.stepAcc = (S.stepAcc || 0) + 1; if (S.stepAcc % 2 === 0) addTime(1); }
         else { S.px += dx / dist * step; S.py += dy / dist * step; S.facing = facingFrom(dx, dy); step = 0; }
       }
       if (!S.path.length) { S.walking = false; const f = S.then; S.then = null; if (f) f(); }
@@ -511,7 +588,7 @@
   function load() {
     try {
       const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (!s) return false;
-      S = s; D = null; pending = null; S.path = null; S.then = null;
+      S = s; D = null; pending = null; S.path = null; S.then = null; if (!S.day) S.day = 1;
       if (GD.npcs.vasha) { GD.npcs.vasha._followerHere = !!S.flags.met_vasha; }
       emit('location', S.loc, false); emit('state'); return true;
     } catch (e) { return false; }
@@ -560,7 +637,7 @@
     startDialogue, choose, continueRoll, closeDialogue, runEffects, addTime,
     hotspots, npcsHere, interact, moveTo, update, teleport, loc, findPath, blockedSet,
     spendPoint, useItem, startThought, forgetThought, usedSlots, facingFrom,
-    startEnding, queueEnding, dialogues,
+    startEnding, queueEnding, dialogues, runAuto, beginDay, nextDay, variantId,
     _setState(s) { S = s; }
   };
   root.Game = Game;

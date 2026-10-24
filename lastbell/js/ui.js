@@ -119,7 +119,7 @@
     if (e.target.tagName === 'INPUT') return;
     if (e.key === 'Tab') { e.preventDefault(); highlightAll = true; }
     if (!started) return;
-    if (G.D) { const n = parseInt(e.key, 10); if (n >= 1 && n <= 9) pickChoice(n - 1); if ((e.key === ' ' || e.key === 'Enter') && G.D.roll && !rollTimer) { G.continueRoll(); } return; }
+    if (G.D) { const n = parseInt(e.key, 10); if (n >= 1 && n <= 9) pickChoice(n - 1); if ((e.key === ' ' || e.key === 'Enter') && !rollTimer) { if (G.D.roll) G.continueRoll(); else if (G.D.choices.length === 1) pickChoice(0); } return; }
     const k = e.key.toLowerCase();
     if (k === 'i') togglePanel('inventory'); else if (k === 'j') togglePanel('journal'); else if (k === 't') togglePanel('thoughts'); else if (k === 'c') togglePanel('character'); else if (k === 'escape') togglePanel('menu');
   });
@@ -130,11 +130,14 @@
   document.addEventListener('dblclick', (e) => e.preventDefault());
 
   // ---------- toasts ----------
-  G.on('toast', (t) => {
+  const toastQ = []; let toastBusy = false;
+  function showToast(t) {
     const box = $('#toasts'), d = document.createElement('div'); d.className = 'toast ' + (t.kind || ''); d.textContent = t.text; box.appendChild(d);
     setTimeout(() => d.remove(), 5200);
     const tk = { good: 'good', xp: 'xp', bad: 'bad', warn: 'warn', item: 'pickup', thought: 'thought', task: 'paper', info: 'toast' }[t.kind]; if (tk) snd(tk);
-  });
+  }
+  function pumpToasts() { if (toastBusy) return; toastBusy = true; const go = () => { const t = toastQ.shift(); if (!t) { toastBusy = false; return; } showToast(t); setTimeout(go, 900); }; go(); }
+  G.on('toast', (t) => { toastQ.push(t); pumpToasts(); });
   G.on('sfx', (n) => snd(n));
   G.on('step', () => window.Sound && Sound.step((G.loc() || {}).floor));
   document.addEventListener('pointerdown', () => { if (window.Sound) { Sound.init(); } }, { once: false });
@@ -144,7 +147,7 @@
   function refreshHud() {
     const S = G.S; if (!S) return;
     $('#m-hp').style.width = S.hp * 10 + '%'; $('#m-morale').style.width = S.morale * 10 + '%'; $('#m-surv').style.width = S.surv + '%';
-    $('#clock').textContent = fmtTime(S.time); if (window.Sound) Sound.tension(S.surv, S.hp, S.morale);
+    $('#clock').textContent = fmtTime(S.time); const dn = (GD.meta.days[S.day || 1] || {}); $('#dayname').textContent = 'DAY ' + (S.day || 1) + ' · ' + (dn.name || '').toUpperCase(); if (window.Sound) Sound.tension(S.surv, S.hp, S.morale);
     const rem = GD.meta.curfew - S.time; $('#curfew').textContent = rem > 0 ? 'Curfew in ' + Math.floor(rem / 60) + 'h ' + String(rem % 60).padStart(2, '0') + 'm' : 'CURFEW';
     $('#locname').textContent = G.loc().name;
     $('#pt-dot').classList.toggle('hidden', S.points <= 0);
@@ -181,8 +184,9 @@
       + '<span class="die">' + (resolved ? r.d1 : '?') + '</span><span class="die">' + (resolved ? r.d2 : '?') + '</span>'
       + '<span>+ ' + r.level + ' = <b>' + (resolved ? r.total : '…') + '</b> vs ' + r.diff + ' (' + r.word + ')</span><span class="res">' + (resolved ? res : '') + '</span></div>';
   }
+  let staggerN = 0;
   function renderDialogue(D) {
-    const log = $('#dlg-log');
+    const log = $('#dlg-log'); staggerN = 0;
     // newly added blocks
     for (let i = renderedCount; i < D.history.length; i++) {
       const b = D.history[i]; const wrap = document.createElement('div');
@@ -191,7 +195,11 @@
         snd('dice');
         $('#dlg-choices').innerHTML = '';
         rollTimer = setTimeout(() => { rollTimer = null; b.resolved = true; wrap.innerHTML = rollHtml(b.roll, true); snd(b.roll.crit ? 'crit' : b.roll.fumble ? 'fumble' : b.roll.success ? 'good' : 'bad'); showRollContinue(); log.scrollTop = log.scrollHeight; }, 1100);
-      } else { wrap.innerHTML = lineHtml(b); log.appendChild(wrap); if (b.kind === 'line') snd(b.voice ? 'whisper' : 'line'); }
+      } else {
+        wrap.innerHTML = lineHtml(b); log.appendChild(wrap);
+        if (b.voice) { wrap.style.opacity = 0; const dly = 500 + (staggerN++) * 900; setTimeout(() => { wrap.style.transition = 'opacity .5s'; wrap.style.opacity = 1; snd('whisper'); log.scrollTop = log.scrollHeight; }, dly); }
+        else if (b.kind === 'line') snd('line');
+      }
     }
     renderedCount = D.history.length;
     if (!D.roll) renderChoices(D);
@@ -213,6 +221,11 @@
     });
   }
   function pickChoice(idx) { if (rollTimer) return; snd('click'); G.choose(idx); }
+
+  // ---------- settings ----------
+  let textSize = 0; try { textSize = parseInt(localStorage.getItem('lastbell_text') || '0', 10) || 0; } catch (e) {}
+  function applyTextSize() { document.body.classList.toggle('bigtext', textSize === 1); document.body.classList.toggle('xbigtext', textSize === 2); }
+  applyTextSize();
 
   // ---------- panels ----------
   let panelKind = null, selItem = null, selSkill = null;
@@ -273,9 +286,9 @@
       body.querySelectorAll('[data-think]').forEach((b) => (b.onclick = () => G.startThought(b.dataset.think)));
       body.querySelectorAll('[data-forget]').forEach((b) => (b.onclick = () => G.forgetThought(b.dataset.forget)));
     } else if (panelKind === 'menu') {
-      body.innerHTML = '<h2 class="ptitle">Menu</h2><div class="menu-btns"><button class="pbtn" id="mn-res">Resume</button><button class="pbtn" id="mn-save">Save now</button><button class="pbtn" id="mn-snd">Sound: ' + (Sound.muted ? 'Off' : 'On') + '</button>' + ['music:Music', 'sfx:Effects', 'amb:Ambience'].map((x) => { const [k, n] = x.split(':'); return '<label style="font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center">' + n + '<input type="range" min="0" max="1" step="0.05" value="' + Sound.vol[k] + '" data-vol="' + k + '" style="flex:1"></label>'; }).join('') + '<button class="pbtn" id="mn-res2" style="display:none"></button><button class="pbtn" id="mn-help">How to play</button><button class="pbtn" id="mn-title">Quit to title</button></div><p class="psub" style="margin-top:20px">The game autosaves after every conversation and every move between rooms.</p>';
-      $('#mn-res').onclick = closePanel; $('#mn-save').onclick = () => { G.save(); closePanel(); G.emit('toast', { text: 'Saved.', kind: 'info' }); };
-      $('#mn-snd').onclick = () => { Sound.toggle(); renderPanel(); }; document.querySelectorAll('[data-vol]').forEach((r) => (r.oninput = () => { Sound.set(r.dataset.vol, parseFloat(r.value)); })); $('#mn-help').onclick = showHelp; $('#mn-title').onclick = () => { G.save(); location.reload(); };
+      body.innerHTML = '<h2 class="ptitle">Menu</h2><div class="menu-btns"><button class="pbtn" id="mn-res">Resume</button><button class="pbtn" id="mn-save">Save now</button>' + ((S.loc === 'dorm' && S.time >= 1020 && (S.day || 1) < 3) ? '<button class="pbtn" id="mn-sleep">Go to sleep (end the day)</button>' : '') + '<button class="pbtn" id="mn-snd">Sound: ' + (Sound.muted ? 'Off' : 'On') + '</button>' + ['music:Music', 'sfx:Effects', 'amb:Ambience'].map((x) => { const [k, n] = x.split(':'); return '<label style="font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center">' + n + '<input type="range" min="0" max="1" step="0.05" value="' + Sound.vol[k] + '" data-vol="' + k + '" style="flex:1"></label>'; }).join('') + '<button class="pbtn" id="mn-res2" style="display:none"></button><button class="pbtn" id="mn-text">Text size: ' + ['Normal', 'Large', 'Extra large'][textSize] + '</button><button class="pbtn" id="mn-grain">Film grain: ' + ((A.quality && A.quality.grain === false) ? 'Off' : 'On') + '</button><button class="pbtn" id="mn-help">How to play</button><button class="pbtn" id="mn-title">Quit to title</button></div><p class="psub" style="margin-top:20px">The game autosaves after every conversation and every move between rooms.</p>';
+      $('#mn-res').onclick = closePanel; if ($('#mn-sleep')) $('#mn-sleep').onclick = () => { closePanel(); G.queueEnding('end_curfew'); }; $('#mn-save').onclick = () => { G.save(); closePanel(); G.emit('toast', { text: 'Saved.', kind: 'info' }); };
+      $('#mn-snd').onclick = () => { Sound.toggle(); renderPanel(); }; document.querySelectorAll('[data-vol]').forEach((r) => (r.oninput = () => { Sound.set(r.dataset.vol, parseFloat(r.value)); })); $('#mn-text').onclick = () => { textSize = (textSize + 1) % 3; try { localStorage.setItem('lastbell_text', String(textSize)); } catch (e) {} applyTextSize(); renderPanel(); }; $('#mn-grain').onclick = () => { if (A.quality) A.quality.grain = A.quality.grain === false; renderPanel(); }; $('#mn-help').onclick = showHelp; $('#mn-title').onclick = () => { G.save(); location.reload(); };
     }
   }
   function modText(d) { const m = d.mods || {}; return Object.entries(m).map(([k, v]) => (GD.skills[k] ? GD.skills[k].name : k) + ' ' + (v > 0 ? '+' : '') + v).join(' · '); }
@@ -296,14 +309,20 @@
   function refreshTitle() {
     $('#btn-continue').disabled = !G.hasSave();
     const seen = G.endingsSeen(), names = { end_good_student: 'The Good Student', end_ledger: 'The Ledger', end_static: 'Static', end_quiet: 'The Quiet Way', end_arrested: 'Arrested', end_curfew: 'Curfew' };
-    $('#endings-seen').textContent = 'Endings found: ' + seen.length + ' / 6' + (seen.length ? ' — ' + seen.map((e) => names[e]).join(', ') : '');
+    $('#endings-seen').textContent = 'Endings found: ' + seen.length + ' / ' + Object.keys(GD.endingInfo || {}).length + (seen.length ? ' — ' + seen.map((e) => (GD.endingInfo[e] || {}).name || e).join(', ') : '');
     $('#btn-sound').textContent = 'Sound: ' + (Sound.muted ? 'Off' : 'On');
   }
   refreshTitle();
   $('#btn-sound').onclick = () => { Sound.init(); Sound.toggle(); refreshTitle(); };
   $('#btn-continue').onclick = () => { Sound.init(); if (G.load()) beginPlay(); };
   $('#btn-new').onclick = () => { Sound.init(); showCreate(); };
-  function beginPlay() { started = true; document.body.classList.add('playing'); $('#title').classList.add('hidden'); $('#create').classList.add('hidden'); $('#hud').classList.remove('hidden'); $('#hint').style.display = 'block'; setTimeout(() => ($('#hint').style.display = 'none'), 9000); refreshHud(); rendererLoc = null; cam.x = cam.y = 0; snapCamera(); }
+  function maybeTutorial(isNew) {
+    let seen = false; try { seen = !!localStorage.getItem('lastbell_tut'); } catch (e) {}
+    if (!isNew || seen) return;
+    $('#tutorial').classList.remove('hidden');
+    $('#tut-ok').onclick = () => { $('#tutorial').classList.add('hidden'); try { localStorage.setItem('lastbell_tut', '1'); } catch (e) {} };
+  }
+  function beginPlay(isNew) { started = true; document.body.classList.add('playing'); $('#title').classList.add('hidden'); $('#create').classList.add('hidden'); $('#hud').classList.remove('hidden'); $('#hint').style.display = 'block'; setTimeout(() => ($('#hint').style.display = 'none'), 9000); refreshHud(); rendererLoc = null; cam.x = cam.y = 0; snapCamera(); maybeTutorial(isNew); applyTextSize(); }
   function snapCamera() { const l = G.loc(), p = A.project(l, G.S.px, G.S.py); cam.x = p.sx; cam.y = p.sy - 30; }
   function showCreate() {
     $('#title').classList.add('hidden'); const box = $('#create'); box.classList.remove('hidden');
@@ -333,20 +352,33 @@
       $('#cgo').onclick = () => {
         const ar = archs.find((x) => x.id === sel); box.classList.add('hidden');
         G.newGame({ name: (name || GD.meta.defaultName).trim(), look, attrs, archetype: sel, learned: ar && ar.signature ? Object.assign({}, ar.signature) : ar && ar.learned ? Object.assign({}, ar.learned) : {} });
-        beginPlay();
+        beginPlay(true);
       };
     }
     render();
   }
 
+  // ---------- days & nights ----------
+  G.on('night', () => { document.body.classList.add('nightscene'); });
+  G.on('dialogueEnd', (D) => { if (D.daybreak) document.body.classList.remove('nightscene'); });
+  G.on('daybreak', (d) => {
+    const el = $('#daycard'); el.classList.remove('hidden'); $('#dc-title').textContent = 'DAY ' + d.day + ' — ' + d.name.toUpperCase();
+    $('#dc-sub').textContent = d.hangover ? 'Static hangover: ' + d.hangover + ' −1 until tomorrow' : 'You remember more than you should.';
+    document.body.classList.remove('nightscene'); window.Sound && Sound.scene('title');
+    const cv = $('#dc-canvas'), t0 = performance.now(); cv.width = Math.floor(W * dpr); cv.height = Math.floor(H * dpr);
+    const dc = cv.getContext('2d'); const loop = (now) => { if (el.classList.contains('hidden')) return; dc.setTransform(dpr, 0, 0, dpr, 0, 0); (A.drawDayCard || ((c, w, h) => { c.fillStyle = '#10140f'; c.fillRect(0, 0, w, h); }))(dc, W, H, now - t0, d.day); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+    $('#dc-go').onclick = () => { el.classList.add('hidden'); G.S && window.Sound && Sound.mood(G.loc().mood); G.beginDay(); };
+  });
+
   // ---------- endings ----------
-  const ENDNAMES = { end_good_student: 'THE GOOD STUDENT', end_ledger: 'THE LEDGER', end_static: 'STATIC', end_quiet: 'THE QUIET WAY', end_arrested: 'ARRESTED', end_curfew: 'CURFEW' };
+  const ENDNAMES = new Proxy({}, { get: (_, k) => ((GD.endingInfo || {})[k] || {}).name ? GD.endingInfo[k].name.toUpperCase() : undefined });
   G.on('ending', (id) => { $('#ending').classList.remove('hidden'); $('#hud').classList.add('hidden'); $('#ending-summary').classList.add('hidden'); window.Sound && (Sound.play('bell'), Sound.ending(id)); });
   G.on('endingDone', (id) => showSummary(id));
   G.on('dialogueEnd', (D) => { if (D.isEnding) setTimeout(() => showSummary(G.S.ending), 300); });
   function showSummary(id) {
     const S = G.S, el = $('#ending-summary'); document.body.classList.remove('endmode');
-    el.innerHTML = '<h2>' + (ENDNAMES[id] || 'THE END') + '</h2><p>' + esc(S.name) + ' · ' + fmtTime(S.time) + ' · checks passed ' + S.stats.passed + ' / failed ' + S.stats.failed + ' · thoughts internalized ' + Object.values(S.thoughts).filter((t) => t.state === 'internalized').length + ' · Watched ' + S.surv + '%</p><p style="color:var(--dim)">Endings found: ' + G.endingsSeen().length + ' of 6. There is more than one way to get through a Tuesday.</p><button class="cbtn" id="again">Return to title</button>';
+    el.innerHTML = '<h2>' + (ENDNAMES[id] || 'THE END') + '</h2><p>' + esc(S.name) + ' · ' + fmtTime(S.time) + ' · checks passed ' + S.stats.passed + ' / failed ' + S.stats.failed + ' · thoughts internalized ' + Object.values(S.thoughts).filter((t) => t.state === 'internalized').length + ' · Watched ' + S.surv + '%</p><p style="color:var(--dim)">Endings found: ' + G.endingsSeen().length + ' of ' + Object.keys(GD.endingInfo || {}).length + '. There is more than one way to get through a Tuesday.</p><div class="eg">' + Object.entries(GD.endingInfo || {}).map(([k, v]) => G.endingsSeen().includes(k) ? '<b>✔ ' + esc(v.name) + '</b>' : '<span>? ' + esc(v.hint) + '</span>').join('<br>') + '</div><button class="cbtn" id="again">Return to title</button>';
     el.classList.remove('hidden'); $('#again').onclick = () => location.reload();
   }
 
@@ -356,7 +388,10 @@
     const S = G.S; let pickB = null;
     const sit = GD.situationBarks || {};
     const pool = S.hp <= 3 ? sit.lowHp : S.morale <= 3 ? sit.lowMorale : S.surv >= 66 ? sit.highSurv : GD.meta.curfew - S.time < 90 ? sit.curfewSoon : Math.random() < 0.3 ? sit.idle : null;
+    const lb = (GD.locBarks || {})[S.loc], db = (GD.dayBarks || {})[S.day || 1], r = Math.random();
     if (pool && pool.length) { const b = pool[Math.floor(Math.random() * pool.length)]; pickB = { skill: b.skill, text: b.text }; }
+    else if (lb && lb.length && r < 0.35) { const b = lb[Math.floor(Math.random() * lb.length)]; pickB = { skill: b.skill, text: b.text }; }
+    else if (db && db.length && r < 0.6) { const b = db[Math.floor(Math.random() * db.length)]; pickB = { skill: b.skill, text: b.text }; }
     else { const ids = Object.keys(GD.barks || {}).filter((k) => G.skill(k) >= 3 && GD.skills[k]); if (!ids.length) return; const k = ids[Math.floor(Math.random() * ids.length)], arr = GD.barks[k]; pickB = { skill: k, text: arr[Math.floor(Math.random() * arr.length)] }; }
     if (!pickB || !GD.skills[pickB.skill]) return;
     const box = $('#toasts'), d = document.createElement('div'); d.className = 'toast'; d.style.borderColor = GD.skills[pickB.skill].color; d.innerHTML = '<b style="color:' + GD.skills[pickB.skill].color + ';font-size:11px;letter-spacing:.15em">' + esc(GD.skills[pickB.skill].name.toUpperCase()) + '</b><br><i>' + esc(G.sub(pickB.text)) + '</i>'; box.appendChild(d); setTimeout(() => d.remove(), 5200);

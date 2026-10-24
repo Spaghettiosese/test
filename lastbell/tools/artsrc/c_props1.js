@@ -131,7 +131,7 @@ WALLPROPS.door = function (g, S, p, I) {
 WALLPROPS.window = function (g, S, p, I) {
   const { r, u0, len, Y, v } = I, ww = Math.min(len - 22, v === 3 ? 56 : 82), cx = u0 + len / 2, x0 = cx - ww / 2, x1 = cx + ww / 2, wh = v === 3 ? 56 : 74, z0 = v === 3 ? 62 : 52, top = Y(z0 + wh), bot = Y(z0);
   wallShadow(g, x0 - 4, x1 + 4, top - 4, bot + 8, .3);
-  const sk = SKY[S.bucket];
+  const sk = S.mood.sky || SKY[S.bucket];
   const frame = v === 2 ? [70, 64, 60] : [196, 188, 160];
   let shape = v === 1 ? function () { g.beginPath(); g.moveTo(x0, bot); g.lineTo(x0, top + ww / 2); g.arc(cx, top + ww / 2, ww / 2, Math.PI, 0); g.lineTo(x1, bot); g.closePath(); } : v === 3 ? function () { g.beginPath(); g.ellipse(cx, (top + bot) / 2, ww / 2, wh / 2, 0, 0, 7); } : function () { g.beginPath(); g.rect(x0, top, ww, wh); };
   g.save(); shape(); g.strokeStyle = css(mul(frame, .5)); g.lineWidth = 10; g.stroke(); g.clip();
@@ -152,7 +152,7 @@ WALLPROPS.window = function (g, S, p, I) {
     paintPoly(g, [[x0 - 4, top - 4], [x0 + 12, top - 4], [x0 + 6, bot], [x0 - 4, bot]], cc, r, { n: 14, ang: 1.57, ink: true, sw: 3 });
     paintPoly(g, [[x1 + 4, top - 4], [x1 - 12, top - 4], [x1 - 6, bot], [x1 + 4, bot]], cc, r, { n: 14, ang: 1.57, ink: true, sw: 3 });
   }
-  if (S.bucket !== 4) { const wp = gp(S, p.side === 'l' ? 0 : wallStart(p) + wallLen(p) / 2, p.side === 'l' ? wallStart(p) + wallLen(p) / 2 : 0, z0 + wh / 2); S.lights.push({ x: wp[0], y: wp[1], r: 70, col: DAPPLE[S.bucket], a: .17 * S.lightK, fl: .03, ph: r() * 6, kind: 'window' }); }
+  if (S.bucket !== 4) { const wp = gp(S, p.side === 'l' ? 0 : wallStart(p) + wallLen(p) / 2, p.side === 'l' ? wallStart(p) + wallLen(p) / 2 : 0, z0 + wh / 2); S.lights.push({ x: wp[0], y: wp[1], r: 70, col: S.mood.dapple || DAPPLE[S.bucket], a: .17 * S.lightK, fl: .03, ph: r() * 6, kind: 'window' }); }
 };
 WALLPROPS.lockers = function (g, S, p, I) {
   const { r, u0, len, Y, v } = I, n = Math.max(2, Math.round(len / 34)), w = len / n, top = Y(88);

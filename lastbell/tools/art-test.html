@@ -4,6 +4,7 @@
 <body>
 <div id="root"></div>
 <script src="../data/world.js"></script>
+<script src="../data/world_ext.js"></script>
 <script src="../js/art.js"></script>
 <script>
 const Q = new URLSearchParams(location.search), GD = window.GD;
@@ -19,6 +20,7 @@ function locDyn(id, t, o) {
 function renderLoc(id, o) {
   o = o || {}; const loc = GD.locations[id], c = mkCanvas(1280, 720), ctx = c.getContext('2d');
   const R = Art.getRenderer(loc), ctr = Art.project(loc, loc.w / 2 - .5, loc.h / 2 - .5);
+  if (o.ax !== undefined) { const q = Art.project(loc, o.ax, o.ay); o.dx = q.sx - ctr.sx; o.dy = q.sy - ctr.sy + 20 - 30; }
   const view = { camX: ctr.sx + (o.dx || 0), camY: ctr.sy - 20 + (o.dy || 0), zoom: o.zoom || 1, w: 1280, h: 720 };
   const t0 = performance.now(); R.draw(ctx, view, locDyn(id, o.t === undefined ? 1000 : o.t, o)); const t1 = performance.now();
   window.__first = t1 - t0; return { c, R, ctx, view, loc, o };
@@ -50,10 +52,11 @@ function items() {
   ids.forEach((id, i) => Art.drawItemIcon(ctx, 10 + (i % 12) * 82, 10 + Math.floor(i / 12) * 90, 72, id));
 }
 function endings(t) {
-  const ids = ['title', 'end_good_student', 'end_ledger', 'end_static', 'end_quiet', 'end_arrested', 'end_curfew'];
+  const ids = ['title', 'end_good_student', 'end_ledger', 'end_static', 'end_quiet', 'end_arrested', 'end_curfew', 'end_wake', 'end_wardens_eye', 'end_martyr', 'end_silenced', 'end_exodus'];
   const id = Q.get('e'); const list = id ? [id] : ids;
   list.forEach(e => { const c = mkCanvas(1280, 720), ctx = c.getContext('2d'); if (e === 'title') Art.drawTitle(ctx, 1280, 720, t || 3000); else Art.drawEnding(ctx, 1280, 720, t || 3000, e); });
 }
+function daycards(t) { [2, 3].forEach(n => { const c = mkCanvas(1280, 720), ctx = c.getContext('2d'); Art.drawDayCard(ctx, 1280, 720, t || 3000, n); }); }
 const v = Q.get('v') || 'loc';
 window.__ready = false;
 try {
@@ -61,6 +64,7 @@ try {
   else if (v === 'portraits') portraits();
   else if (v === 'figures') figures();
   else if (v === 'items') items();
+  else if (v === 'daycards') daycards(+Q.get('t') || 3000);
   else if (v === 'endings') endings(+Q.get('t') || 3000);
   else if (v === 'robust') {
     const loc = { id: 'rb', floor: 'cobble', wall: 'brick', props: [{ t: 'zzz', x: 2, y: 2 }, { t: 'door' }, { t: 'banner' }, { t: 'portrait', x: 1, y: 0, side: 'r' }, { t: 'window', side: 'l', y: 3 }, { t: 'stage', x: 5, y: 5 }, null].filter(Boolean) };

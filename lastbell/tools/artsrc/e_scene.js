@@ -1,7 +1,11 @@
 
 /* ===================================================== SCENE BAKING */
 const _scenes = new Map();
-const HINTS = { menu: 'chalkboard', mirror: 'mirror', notices: 'notice', notice: 'notice', speaker: 'loudspeaker', loudspeaker: 'loudspeaker', portrait: 'portrait', mat: 'mat', rope: 'rope', lockers: 'lockers', bench: 'bench', tray: 'tray', desk: 'desk', cabinet: 'vault', window: 'window', boiler: 'boiler', table: 'table', statue: 'statue', bell: 'bell', mic: 'mic', horn: 'loudspeaker', poster: 'banner', trunk: 'crate', door: 'door' };
+const HINTS = { menu: 'chalkboard', mirror: 'mirror', notices: 'notice', notice: 'notice', speaker: 'loudspeaker', loudspeaker: 'loudspeaker', portrait: 'portrait', mat: 'mat', rope: 'rope', lockers: 'lockers', bench: 'bench', tray: 'tray', desk: 'desk', cabinet: 'vault', window: 'window', boiler: 'boiler', table: 'table', statue: 'statue', mic: 'mic', horn: 'loudspeaker', poster: 'banner', trunk: 'crate', door: 'door',
+  // art2
+  posters: ['banner', 'poster_wall'], poster_wall: 'poster_wall', queue: ['barrier', 'rope'], kiosk: 'kiosk', tram: 'tram_stop', gate: ['vault_door', 'fence'], relaygate: 'vault_door', car: 'car',
+  console: 'console', generator: 'generator', aerial: ['antenna', 'ladder'], ropes: 'ropes', array: 'loudspeaker', view: ['window', 'railing'], vault: ['vault', 'vault_door'], bell: ['bell', 'bigbell'],
+  bunk: 'bunk', hotplate: 'hotplate', footlocker: 'crate', catalog: 'catalog', globe: 'globe', stacks: ['bookshelf', 'curtain'], logbook: 'desk', stall: 'stall' };
 function propRect(p) {
   const w = p.w || 1, h = p.h || 1;
   if (p.side === 'l') return { u0: 0, v0: p.y || 0, u1: 1, v1: (p.y || 0) + (p.side === 'l' ? h : w) };
@@ -10,7 +14,7 @@ function propRect(p) {
 }
 function matchProp(props, o) {
   const words = ((o.id || '').toLowerCase().split('_').slice(1).join(' ') + ' ' + (o.label || '').toLowerCase()).split(/[^a-z]+/).filter(Boolean);
-  const hint = new Set(); for (const w of words) if (HINTS[w]) hint.add(HINTS[w]);
+  const hint = new Set(); for (const w of words) { const h = HINTS[w]; if (h) (Array.isArray(h) ? h : [h]).forEach(x => hint.add(x)); }
   let best = null, bs = 1e9; const ox = o.x + .5, oy = o.y + .5;
   props.forEach((p, i) => {
     if (p.t === 'rug' || p.t === 'plant' && !hint.has('plant')) return;
@@ -29,9 +33,11 @@ function matchProp(props, o) {
 function buildScene(loc, bucket) {
   const t0 = (typeof performance !== 'undefined') ? performance.now() : 0;
   const ws = worldSize(loc), seed = hashStr(loc.id || 'x');
-  const S = { loc, seed, r: RNG(seed), tx: originX(loc), ty: originY(), W: ws.w, H: ws.h, bucket, mood: MOODS[loc.mood] || MOODS.warm, lights: [], exitLights: [], steam: [], dapples: [], lightK: [.9, 1, 1, .8, .32][bucket] };
+  const S = { loc, seed, r: RNG(seed), tx: originX(loc), ty: originY(), W: ws.w, H: ws.h, bucket, mood: MOODS[loc.mood] || MOODS.warm, lights: [], exitLights: [], steam: [], dapples: [], neons: [], lightK: [.9, 1, 1, .8, .32][bucket] };
+  if (S.mood.storm) S.lightK = .55; else if (S.mood.neon) S.lightK = .5;
+  S.rain = loc.rain !== undefined ? !!loc.rain : (S.mood.storm && (loc.id === 'tower' || loc.floor === 'asphalt'));
   const base = mk(ws.w * BS, ws.h * BS), g = ctx2(base); g.scale(BS, BS);
-  let props = (loc.props || []).slice();
+  let props = (loc.props || []).slice().map(p => (p && p.t === 'stairs' && (p.v | 0) === 1 && !p.side) ? Object.assign({}, p, { t: 'spiral' }) : p);
   const objects = loc.objects || [];
   const injected = [];
   for (const o of objects) {
@@ -59,7 +65,7 @@ function buildScene(loc, bucket) {
   props.forEach((p, idx) => {
     if (p.side && WALLPROPS[p.t]) { S.items.push({ p, idx, kind: 'wall', rect: propRect(p) }); return; }
     if (!p.side && FLAT[p.t]) { S.items.push({ p, idx, kind: 'flat', rect: propRect(p) }); return; }
-    const type = PROPS[p.t] ? p.t : 'crate', q = propRect(p), fn = PROPS[type];
+    const type = PROPS[p.t] ? p.t : 'crate', q = propRect(p), fn = PROPS[type], unk = !PROPS[p.t];
     const cu = (q.u0 + q.u1) / 2, cv = (q.v0 + q.v1) / 2;
     let zoff = 0;
     for (const st of S.stages) if (cu > st.u0 && cu < st.u1 && cv > st.v0 && cv < st.v1) zoff = Math.max(zoff, STAGE_H);
@@ -70,7 +76,7 @@ function buildScene(loc, bucket) {
     const top = Math.floor(gp(Sx, q.u0, q.v0, H)[1] - 12), bottom = Math.ceil(gp(Sx, q.u1, q.v1, 0)[1] + 16);
     const c = mk((right - left) * BS, (bottom - top) * BS), sg = ctx2(c);
     sg.scale(BS, BS); sg.translate(-left, -top);
-    const I = { r: RNG(seed + hashStr(p.t + p.x + ',' + p.y + 'z')), v: (p.v | 0) % 4, u0: q.u0, v0: q.v0, u1: q.u1, v1: q.v1, w: p.w || 1, h: p.h || 1 };
+    const I = { r: RNG(seed + hashStr(p.t + p.x + ',' + p.y + 'z')), v: unk ? hashStr(String(p.t)) % 3 : (p.v | 0) % 4, u0: q.u0, v0: q.v0, u1: q.u1, v1: q.v1, w: p.w || 1, h: p.h || 1 };
     try { fn(sg, Sx, Object.assign({}, p, { t: type }), I); } catch (e) { if (typeof console !== 'undefined') console.warn('Art prop failed', p.t, e); }
     S.items.push({ p, idx, kind: 'sprite', rect: q, spr: { c, x: left, y: top }, cu, cv, zoff });
   });
@@ -219,17 +225,20 @@ function makeRenderer(loc) {
     // ---- lighting / tint in screen space
     ctx.restore();
     ctx.save();
-    const tt = timeTint(minute), interior = (l.mood !== 'dusk'), kk = interior ? .8 : 1, am = S.mood.amb;
+    const tt = timeTint(minute), mg = S.mood.grade, interior = (l.mood !== 'dusk'), kk = mg !== undefined ? mg : (interior ? .8 : 1), am = S.mood.amb;
     const mulc = [am[0] * lerp(1, tt.mul[0], kk), am[1] * lerp(1, tt.mul[1], kk), am[2] * lerp(1, tt.mul[2], kk)];
     ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = css(mulc.map(v => v * 255)); ctx.fillRect(0, 0, w, h);
     ctx.globalCompositeOperation = 'source-over';
     // world-space additive layer
     ctx.translate(w / 2, h / 2); ctx.scale(zoom, zoom); ctx.translate(-camX, -camY);
     ctx.globalCompositeOperation = 'lighter';
-    const boost = 1 + (1 - lum(tt.mul)) * 1.6 * (interior ? .6 : 1);
+    const boost = 1 + (1 - lum(tt.mul)) * 1.6 * (interior ? .6 : 1) * (mg !== undefined ? .5 : 1);
+    const flash = S.mood.storm ? lightning(t) : 0;
     for (const Lg of S.lights) {
       if (Lg.x + Lg.r < vx0 || Lg.x - Lg.r > vx0 + vw || Lg.y + Lg.r < vy0 || Lg.y - Lg.r > vy0 + vh) continue;
-      const fl = 1 + Lg.fl * (Math.sin(t * .013 + Lg.ph) * .6 + Math.sin(t * .031 + Lg.ph * 2.3) * .4);
+      let fl = 1 + Lg.fl * (Math.sin(t * .013 + Lg.ph) * .6 + Math.sin(t * .031 + Lg.ph * 2.3) * .4);
+      if (Lg.kind === 'neon') fl = neonFlicker(t, Lg.ph);
+      else if (Lg.kind === 'window' && S.mood.storm) fl *= 1 + flash * 1.6;
       let a = Lg.a * fl * (Lg.kind === 'window' ? 1 : boost);
       if (Lg.kind === 'fire' || Lg.kind === 'lamp') a *= 1;
       ctx.globalAlpha = Math.min(1, a); const rr = Lg.r * (Lg.kind === 'window' ? 1 : 1);
@@ -241,6 +250,11 @@ function makeRenderer(loc) {
       ctx.globalAlpha = (.05 + .05 * Math.sin(t * .0016 + d.ph)) * S.lightK * (bucket === 4 ? .5 : 1);
       const s = d.s * 1.4; ctx.drawImage(glowSprite(d.col, 128), d.x - s / 2, d.y - s / 4, s, s / 2);
     }
+    // neon signs (tubes flicker on their own phase)
+    for (const ns of S.neons) {
+      if (ns.x + ns.w < vx0 || ns.x > vx0 + vw || ns.y + ns.h < vy0 || ns.y > vy0 + vh) continue;
+      ctx.globalAlpha = neonFlicker(t, ns.ph); ctx.drawImage(ns.c, ns.x, ns.y, ns.w, ns.h);
+    }
     // steam
     for (const st of S.steam) {
       for (let k = 0; k < 4; k++) { const ph = ((t * .00035 + k / 4) % 1), y = st.y - ph * 60, x = st.x + Math.sin(ph * 5 + k) * 8 + ph * 8; ctx.globalAlpha = (1 - ph) * .1; ctx.drawImage(glowSprite([210, 220, 230], 128), x - 14 - ph * 14, y - 14 - ph * 14, 28 + ph * 28, 28 + ph * 28); }
@@ -249,12 +263,20 @@ function makeRenderer(loc) {
     // dust motes
     drawDust(ctx, t, vx0, vy0, vw, vh, S, bucket);
     ctx.globalCompositeOperation = 'source-over';
+    if (S.rain) drawRain(ctx, t, vx0, vy0, vw, vh, zoom);
     // highlight outlines (bright green, unaffected by tint)
     for (const p of post) drawPost(ctx, S, p, t);
     ctx.restore();
     // colour wash, vignette, grain (screen space)
     ctx.save();
-    if (tt.add[3] > 0) { ctx.globalCompositeOperation = 'screen'; ctx.fillStyle = css(tt.add, tt.add[3] * (interior ? .6 : 1)); ctx.fillRect(0, 0, w, h); }
+    if (tt.add[3] > 0) { ctx.globalCompositeOperation = 'screen'; ctx.fillStyle = css(tt.add, tt.add[3] * (interior ? .6 : 1) * (mg !== undefined ? .5 : 1)); ctx.fillRect(0, 0, w, h); }
+    if (S.mood.wash) {   // mood colour wash: neon = teal above / magenta below, storm = cold blue, lamp = amber glow
+      const wsh = S.mood.wash; ctx.globalCompositeOperation = 'screen';
+      if (S.mood.neon) { const gg = ctx.createLinearGradient(0, 0, 0, h); gg.addColorStop(0, 'rgba(30,150,200,.10)'); gg.addColorStop(.55, 'rgba(60,40,120,.03)'); gg.addColorStop(1, 'rgba(230,50,130,.11)'); ctx.fillStyle = gg; ctx.fillRect(0, 0, w, h); }
+      else { ctx.fillStyle = css(wsh, wsh[3] * (S.mood.storm ? 1 + flash * 5 : 1)); ctx.fillRect(0, 0, w, h); }
+      if (S.mood.storm && flash > .02) { ctx.fillStyle = css([210, 225, 255], flash * .22); ctx.fillRect(0, 0, w, h); }
+      ctx.globalCompositeOperation = 'source-over';
+    }
     ctx.globalCompositeOperation = 'source-over';
     ctx.drawImage(vignette(Math.round(w), Math.round(h)), 0, 0);
     if (Art.quality.grain) {
@@ -304,7 +326,7 @@ function drawPost(ctx, S, p, t) {
   }
 }
 function drawDust(ctx, t, vx0, vy0, vw, vh, S, bucket) {
-  const n = 46, col = bucket === 4 ? [160, 190, 255] : DAPPLE[bucket];
+  const n = S.mood.storm ? 30 : 46, col = S.mood.dapple || (bucket === 4 ? [160, 190, 255] : DAPPLE[bucket]);
   ctx.fillStyle = css(col, 1);
   for (let i = 0; i < n; i++) {
     const a = lat(i, 1, 5), b = lat(i, 2, 5), sp = .00002 + lat(i, 3, 5) * .00005;
@@ -315,4 +337,32 @@ function drawDust(ctx, t, vx0, vy0, vw, vh, S, bucket) {
     ctx.beginPath(); ctx.arc(x, y, s, 0, 6.3); ctx.fill();
   }
   ctx.globalAlpha = 1;
+}
+
+/* ---- art2 animation helpers ---- */
+function neonFlicker(t, ph) {        // tube mostly steady with brown-outs and stutters
+  const slot = Math.floor(t / 70), a = lat(slot, Math.floor(ph * 100), 41), b = lat(Math.floor(t / 1900), Math.floor(ph * 100), 42);
+  let v = .92 + .08 * Math.sin(t * .02 + ph);
+  if (b < .12) v *= a < .5 ? .15 : .9;       // occasional stutter burst
+  else if (a < .018) v *= .3;
+  return v;
+}
+function lightning(t) {              // returns 0..1 flash intensity, a few times a minute
+  const cyc = 11000, k = Math.floor(t / cyc), ph = t - k * cyc, at = 2000 + lat(k, 1, 51) * 6000;
+  const d = ph - at; if (d < 0 || d > 700) return 0;
+  return d < 90 ? 1 - d / 140 : d < 200 ? .15 : d < 300 ? .75 * (1 - (d - 200) / 100) : d < 700 ? .1 * (1 - (d - 300) / 400) : 0;
+}
+function drawRain(ctx, t, vx0, vy0, vw, vh, zoom) {
+  const n = 110; ctx.save(); ctx.lineCap = 'round';
+  for (let layer = 0; layer < 2; layer++) {
+    ctx.strokeStyle = layer ? 'rgba(190,215,255,.22)' : 'rgba(170,200,240,.12)'; ctx.lineWidth = layer ? 1.3 : .9;
+    ctx.beginPath();
+    for (let i = 0; i < n >> (1 - layer) ; i++) {
+      const sp = (layer ? .0016 : .0011) * (.8 + lat(i, layer, 61) * .5), a = lat(i, 7 + layer, 61), b = lat(i, 9 + layer, 61);
+      const k = (b + t * sp) % 1, x = vx0 + (((a + k * .22) % 1) * vw), y = vy0 + k * vh * 1.1 - 20, L = layer ? 26 : 16;
+      ctx.moveTo(x, y); ctx.lineTo(x - L * .22, y + L);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
 }
