@@ -53,7 +53,7 @@ function ch_ik(A, T, L1, L2, hint) {
 const ch_tc = new Map();
 function ch_tones(c) {
   c = C(c); const k = (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0); let t = ch_tc.get(k); if (t) return t;
-  const sh = mix(mul(c, .42), [30, 40, 72], .3), lt = mix(mul(c, 1.16), [255, 210, 156], .26);
+  const sh = mix(mul(c, .38), [28, 38, 72], .32), lt = mix(mul(c, 1.24), [255, 206, 150], .3);
   t = { base: c, sh, core: mix(sh, [12, 10, 22], .28), ref: mix(sh, [84, 124, 138], .3), mid: mix(c, sh, .3), lt, hi: mix(lt, [255, 240, 214], .4) };
   ch_tc.set(k, t); return t;
 }
@@ -313,7 +313,7 @@ function ch_model(L, id, yawDeg, pose, frame, idleB) {
     case 'hang': for (const s of [1, -1]) { const sh = shoulder(s); A(s, [sh[0] + s * 1.5, sh[1] - (B.upL + B.foreL) * .98, sh[2] + 2], [s * .2, 0, -1], 'open'); } break;
     case 'lie': for (const s of [1, -1]) A(s, [pel[0] + s * (B.hipW + 11), hipY - H * .02, 0], [s * .5, 0, -1], 'open'); break;
     case 'smoke': {   // classic smoker: right hand raised by the mouth, left forearm across under the elbow
-      const hc = head.c; A(1, [hc[0] + B.headH * .45, hc[1] - B.headH * .42, hc[2] + B.headH * .55], [1, -1, .1], 'pinch', { up: 1, bias: 1 });
+      const hc = head.c; A(1, [hc[0] + B.headH * .95, hc[1] - B.headH * .72, hc[2] + B.headH * .3], [1, -1, .1], 'pinch', { up: 1, bias: 1 });
       A(-1, [pel[0] + B.shW * .35, shY - H * .145, chestF + 4.5], [-1, -.5, .1], 'fist'); item = 'cig'; break; }
     case 'smokeLow': relax(-1); A(-1, [pel[0] - B.hipW * .82, hipY - H * .012, B.hipD * .55], [-1, 0, -.7], 'hidden'); A(1, [pel[0] + B.hipW + 3, hipY - H * .015, 7], [1, 0, -1], 'pinch'); item = 'cig'; break;
     case 'smokeSit': A(1, [pel[0] + B.shW * .75, shY - H * .03, pel[2] + 16], [1, -1, -.2], 'pinch', { up: 1, bias: 1 }); A(-1, [pel[0] - B.hipW * .5, pel[1] + H * .06, pel[2] + B.thighL * .62], [-.5, 0, -1], 'open'); item = 'cig'; break;
@@ -603,7 +603,7 @@ function ch_render(L, id, yawDeg, pose, frame, idleB) {
       // skirt part of the apron: spans front of skirt
       const ks = kneeSpread(), pts = [];
       const L0 = PS(-1.0, H * .08, 1.2), R0 = PS(1.0, H * .08, 1.2);
-      const c = P([pel[0] + ks.ca, pel[1] + bottom, pel[2] + ks.cf + B.hipD * 1.25 + 1.5]), wB = (B.hipW * 1.3 + 2);
+      const c = P([pel[0] + ks.ca, pel[1] + bottom, pel[2] + ks.cf + B.hipD * 1.25 + 1.5]), wB = (B.hipW * 1.08 + 1);
       const Rx = -Math.cos(yaw), Fx = Math.sin(yaw), half = Math.abs(wB * Rx) + Math.abs(2 * Fx);
       const lower = [[L0[0], L0[1]], [R0[0], R0[1]], [c[0] + half * (R0[0] > L0[0] ? 1 : -1) * .95, c[1]], [c[0] - half * (R0[0] > L0[0] ? 1 : -1) * .95, c[1] + .5]];
       if (visible(0, H * .05)) {
@@ -762,14 +762,12 @@ function ch_render(L, id, yawDeg, pose, frame, idleB) {
       const b = PE(base, 1), t = PE(tip, 1);
       ch_stroke(g, [[b[0], b[1]], [t[0], t[1]]], 1.25, [238, 232, 216], 1); ch_stroke(g, [[b[0], b[1]], [lerp(b[0], t[0], .3), lerp(b[1], t[1], .3)]], 1.25, [200, 150, 90], 1);
       ch_dot(g, t[0], t[1], .9, [255, 120, 40], 1); ch_dot(g, t[0], t[1], 2.4, [255, 140, 60], .18);
-      // smoke wisp
-      let x = t[0], y = t[1] - 1; const rs = RNG(M.hsh + 5); g.lineCap = 'round';
-      for (let k = 0; k < 3; k++) {
-        const pts = [[x, y]]; let px = x, py = y; const ph0 = rs() * 6;
-        for (let i = 1; i <= 9; i++) { py -= 3.2 + i * .25; px += Math.sin(ph0 + i * .75 + k) * (1 + i * .35) + .3; pts.push(ext([px, py])); }
-        g.strokeStyle = css([200, 206, 214], .1 + .06 * (2 - k)); g.lineWidth = 2.8 - k * .7; ch_curve(g, pts); g.stroke();
-        g.strokeStyle = css([236, 238, 240], .18); g.lineWidth = .6; ch_curve(g, pts.slice(0, 6)); g.stroke();
-      }
+      // smoke wisp: one soft curling ribbon, thinning as it rises
+      const rs = RNG(M.hsh + 5), ph0 = rs() * 6, pts = [[t[0], t[1] - .8]]; let px = t[0], py = t[1] - .8;
+      for (let i = 1; i <= 10; i++) { py -= 2.6 + i * .3; px += Math.sin(ph0 + i * .62) * (.5 + i * .22) + .25; pts.push(ext([px, py])); }
+      g.lineCap = 'round';
+      for (let k = 0; k < 3; k++) { const seg = pts.slice(Math.floor(k * 3), Math.min(pts.length, Math.floor(k * 3) + 5)); if (seg.length < 2) continue; g.strokeStyle = css([214, 220, 228], .16 - k * .04); g.lineWidth = 2.2 + k * 1.2; ch_curve(g, seg); g.stroke(); }
+      g.strokeStyle = css([238, 240, 244], .28); g.lineWidth = .5; ch_curve(g, pts.slice(0, 7)); g.stroke();
     } else if ((it === 'clip' && !R) || (it === 'clipLap' && R)) {
       const c = it === 'clip' ? vAdd(hd.grip, [a.s * -1, 6 * sc, 3]) : [pel[0], pel[1] + H * .075, pel[2] + B.thighL * .6];
       const ux = [1, 0, 0], vy = it === 'clip' ? vNorm([0, 1, -.35]) : vNorm([0, .25, -1]);
@@ -805,9 +803,9 @@ function ch_render(L, id, yawDeg, pose, frame, idleB) {
       for (const s of [-1, 1]) { pts.push(PE(vAdd(hd0, vMul(sd, s * 3.2)), 1), PE(vAdd(vAdd(foot, [0, -4, 0]), vMul(sd, s * 9)), 1), PE(vAdd(vAdd(foot, vMul(dir, -12)), vMul(sd, s * 2.4)), 1)); }
       ch_fill(g, r, ch_hull(pts), [188, 156, 88], { n: 8, ax: [f[0] - t[0], f[1] - t[1]], inka: .8, fx: (g2) => { const b = P(vAdd(foot, vMul(dir, -9))); ch_stroke(g2, [[b[0] - 4, b[1]], [b[0] + 4, b[1] + .5]], .9, [90, 60, 30], .9); for (let k = -4; k <= 4; k++) { const q = P(vAdd(vAdd(foot, [0, -4, 0]), vMul(sd, k * 2))); ch_stroke(g2, [[b[0] + k * .5, b[1] + 1], [q[0], q[1]]], .35, [110, 80, 40], .5); } } });
     } else if (it === 'ladle' && R) {
-      const top = vAdd(hd.grip, [-1, 30 * sc, 3]), b = PE(hd.grip, 2), t = PE(top, 7);
-      ch_stroke(g, [[b[0], b[1] + 3], [t[0], t[1]]], 1.5, INK, .8); ch_stroke(g, [[b[0], b[1] + 3], [t[0], t[1]]], 1, [176, 178, 176], 1);
-      ch_fill(g, r, ellPts(t[0] + .8, t[1] - 2.6, 4.4, 3.2, 12), [158, 162, 160], { n: 2, inka: .85, fx: (g2) => { ch_dot(g2, t[0] + 2.2, t[1] - 3.8, 1.1, [250, 250, 246], .8); g2.fillStyle = 'rgba(40,40,50,.5)'; g2.beginPath(); g2.ellipse(t[0] + .8, t[1] - 4.2, 3.4, 1.3, 0, 0, 7); g2.fill(); } });
+      const top = vAdd(hd.grip, [-1, 40 * sc, 4]), b = PE(hd.grip, 2), t = PE(top, 9);
+      ch_stroke(g, [[b[0], b[1] + 3], [t[0], t[1]]], 2, INK, .8); ch_stroke(g, [[b[0], b[1] + 3], [t[0], t[1]]], 1.3, [176, 178, 176], 1);
+      ch_fill(g, r, ellPts(t[0] + .8, t[1] - 3, 6, 4.4, 12), [158, 162, 160], { n: 2, inka: .85, fx: (g2) => { ch_dot(g2, t[0] + 2.2, t[1] - 3.8, 1.1, [250, 250, 246], .8); g2.fillStyle = 'rgba(40,40,50,.5)'; g2.beginPath(); g2.ellipse(t[0] + .8, t[1] - 4.2, 3.4, 1.3, 0, 0, 7); g2.fill(); } });
     } else if (it === 'mic' && R) {
       const top = vAdd(hd.grip, vMul(hd.u, 0)), tt = vAdd(top, [0, 9 * sc, 2]), a1 = PE(top, 1), b1 = PE(tt, 3);
       ch_stroke(g, [[a1[0], a1[1]], [b1[0], b1[1]]], 2, [40, 40, 44], 1); ch_fill(g, r, ellPts(b1[0], b1[1] - 1, 2.2, 2.6, 10), [150, 154, 160], { n: 2, inka: .8 });

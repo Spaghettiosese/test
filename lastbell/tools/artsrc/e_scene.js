@@ -596,10 +596,13 @@ function makeRenderer(loc) {
     ctx.save();
     if (flash > .02) { ctx.globalCompositeOperation = 'screen'; ctx.fillStyle = css([200, 220, 255], flash * .3); ctx.fillRect(0, 0, w, h); ctx.globalCompositeOperation = 'source-over'; }
     const hz = S.mood.sky ? S.mood.sky[1] : S.grade.hi;
-    ctx.drawImage(sceneVignette(w, h, mul(S.mood.bg || [6, 4, 10], .5), [hz[0], hz[1], hz[2], .07]), 0, 0, w, h);
+    // vignette + grain in device pixels (1:1 blits, no resampling)
+    const dw = Math.round(w * ds), dh = Math.round(h * ds);
+    if (M) ctx.setTransform(1, 0, 0, 1, M.e, M.f);
+    ctx.drawImage(sceneVignette(M ? dw : w, M ? dh : h, mul(S.mood.bg || [6, 4, 10], .5), [hz[0], hz[1], hz[2], .07]), 0, 0);
     if (Art.quality.grain) {
       const o = (Math.floor(t / 60) * 53) % 256, o2 = (Math.floor(t / 60) * 97) % 256;
-      ctx.globalAlpha = .5; ctx.translate(-o, -o2); ctx.fillStyle = ctx.createPattern(grainTileA(), 'repeat'); ctx.fillRect(0, 0, w + 256, h + 256);
+      ctx.globalAlpha = .5; ctx.translate(-o, -o2); ctx.fillStyle = ctx.createPattern(grainTileA(), 'repeat'); ctx.fillRect(0, 0, (M ? dw : w) + 256, (M ? dh : h) + 256);
     }
     ctx.restore();
     if (typeof performance !== 'undefined' && _warmQ.length && performance.now() - t1 < 9) warmStep(1);
