@@ -345,7 +345,7 @@ function ch_render(L, id, yawDeg, pose, frame, idleB) {
   const V = (yw) => { const s = Math.sin(yw), c = Math.cos(yw); return { Rx: -c, Rd: s, Fx: s, Fd: c }; };
   const V0 = V(yaw);
   const P = (p, vv) => { vv = vv || V0; const d = p[0] * vv.Rd + p[2] * vv.Fd; return [p[0] * vv.Rx + p[2] * vv.Fx, -p[1] + d * CH_DK, d]; };
-  const parts = [];
+  const parts = [], post = [];
   let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9;
   const ext = (q, rad) => { rad = rad || 0; if (q[0] - rad < bx0) bx0 = q[0] - rad; if (q[0] + rad > bx1) bx1 = q[0] + rad; if (q[1] - rad < by0) by0 = q[1] - rad; if (q[1] + rad > by1) by1 = q[1] + rad; return q; };
   const PE = (p, rad, vv) => ext(P(p, vv), rad);
@@ -761,13 +761,13 @@ function ch_render(L, id, yawDeg, pose, frame, idleB) {
       const base = vAdd(hd.tip, vMul(hd.sv, 1.2 * sc)), dir = vNorm(vAdd(hd.sv, [0, .35, 0])), tip = vAdd(base, vMul(dir, 6 * sc));
       const b = PE(base, 1), t = PE(tip, 1);
       ch_stroke(g, [[b[0], b[1]], [t[0], t[1]]], 1.25, [238, 232, 216], 1); ch_stroke(g, [[b[0], b[1]], [lerp(b[0], t[0], .3), lerp(b[1], t[1], .3)]], 1.25, [200, 150, 90], 1);
-      ch_dot(g, t[0], t[1], .9, [255, 120, 40], 1); ch_dot(g, t[0], t[1], 2.4, [255, 140, 60], .18);
-      // smoke wisp: one soft curling ribbon, thinning as it rises
+      ch_dot(g, t[0], t[1], .9, [255, 120, 40], 1);
+      // smoke wisp: one soft curling ribbon (painted after the ink contour so it stays airy)
       const rs = RNG(M.hsh + 5), ph0 = rs() * 6, pts = [[t[0], t[1] - .8]]; let px = t[0], py = t[1] - .8;
       for (let i = 1; i <= 10; i++) { py -= 2.6 + i * .3; px += Math.sin(ph0 + i * .62) * (.5 + i * .22) + .25; pts.push(ext([px, py])); }
-      g.lineCap = 'round';
-      for (let k = 0; k < 3; k++) { const seg = pts.slice(Math.floor(k * 3), Math.min(pts.length, Math.floor(k * 3) + 5)); if (seg.length < 2) continue; g.strokeStyle = css([214, 220, 228], .16 - k * .04); g.lineWidth = 2.2 + k * 1.2; ch_curve(g, seg); g.stroke(); }
-      g.strokeStyle = css([238, 240, 244], .28); g.lineWidth = .5; ch_curve(g, pts.slice(0, 7)); g.stroke();
+      post.push((g) => { g.lineCap = 'round';
+        for (let k = 0; k < 3; k++) { const seg = pts.slice(Math.floor(k * 3), Math.min(pts.length, Math.floor(k * 3) + 5)); if (seg.length < 2) continue; g.strokeStyle = css([214, 220, 228], .2 - k * .05); g.lineWidth = 2.2 + k * 1.3; ch_curve(g, seg); g.stroke(); }
+        g.strokeStyle = css([238, 240, 244], .32); g.lineWidth = .5; ch_curve(g, pts.slice(0, 7)); g.stroke(); ch_dot(g, t[0], t[1], 2.4, [255, 140, 60], .2); });
     } else if ((it === 'clip' && !R) || (it === 'clipLap' && R)) {
       const c = it === 'clip' ? vAdd(hd.grip, [a.s * -1, 6 * sc, 3]) : [pel[0], pel[1] + H * .075, pel[2] + B.thighL * .6];
       const ux = [1, 0, 0], vy = it === 'clip' ? vNorm([0, 1, -.35]) : vNorm([0, .25, -1]);
@@ -1154,10 +1154,10 @@ function ch_render(L, id, yawDeg, pose, frame, idleB) {
   const W = Math.ceil((bx1 - bx0 + pad * 2) * sc), Hh = Math.ceil((by1 - by0 + pad * 2) * sc);
   const c = mk(W, Hh), g = ctx2(c), ox = (-bx0 + pad) * sc, oy = (-by0 + pad) * sc;
   g.setTransform(sc, 0, 0, sc, ox, oy);
-  const r2 = RNG(hsh32(M)); r.reseed && r.reseed();
+  post.length = 0;
   for (const p of parts) p.fn(g);
   g.setTransform(1, 0, 0, 1, 0, 0);
-  return { c, W, H: Hh, ox, oy, M };
+  return { c, W, H: Hh, ox, oy, M, post, sc };
 }
 /* a no-op 2D context used for the bounds pass */
 let ch_dryC = null;
@@ -1256,6 +1256,7 @@ function getFigure(look, facing, frame, poseOver) {
   else img = ch_render(L, id, yaw, pose, fr > 0 ? fr : 0, fr < 0);
   const rim = C(look && look._rim || [255, 156, 80]);
   const out = ch_finish(img.c, img.W, img.H, rim, img.oy, pose === 'hang' ? .38 : 0);
+  if (img.post && img.post.length) { const og = ctx2(out); og.setTransform(img.sc, 0, 0, img.sc, img.ox, img.oy); for (const fn of img.post) fn(og); og.setTransform(1, 0, 0, 1, 0, 0); }
   const B = img.M.B;
   spr = { c: out, ax: img.ox, ay: img.oy, w: img.W, h: img.H, hl: null, hang: null };
   if (pose === 'hang') { const left = (yaw < -10 && yaw > -170); spr.hang = { x: left ? -24 : 24, y: -150 }; }

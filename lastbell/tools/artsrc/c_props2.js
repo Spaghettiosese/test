@@ -665,7 +665,7 @@ PROPS.tree = function (g, S, p, I) {
     const a = r() * 6.28, d = Math.sqrt(r()) * 82, x = cx0 + Math.cos(a) * d * 1.2, y = cy0 + Math.sin(a) * d * .75;
     const rim = Math.cos(a - -.8) > .5 ? 1 : 0;
     const c = rim ? mix(r.p(cols), [255, 190, 90], .5) : mix(r.p(cols), [30, 40, 50], r() * .4);
-    bristle(g, x, y, r() * 6.28, r.r(6, 14), r.r(2.5, 5), c, .6, r);
+    bristle(g, x, y, r() * 6.28, r.r(3, 7), r.r(3.5, 6.5), c, .55, r);
   }
   if (v === 1) { g.strokeStyle = css([50, 40, 32], .8); g.lineWidth = 1.2; for (let i = 0; i < 10; i++) { const x = cx0 + r.r(-70, 70), y = cy0 + r.r(-50, 30); g.beginPath(); g.moveTo(x, y); g.lineTo(x + r.r(-14, 14), y - r.r(6, 16)); g.stroke(); } }
   for (let i = 0; i < 14; i++) { g.fillStyle = css([255, 230, 160], .2); g.beginPath(); g.arc(cx0 + r.r(-60, 60), cy0 + r.r(-40, 30), r.r(1.5, 4), 0, 7); g.fill(); }

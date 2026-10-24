@@ -91,9 +91,9 @@ PROPS.wardrobe = function (g, S, p, I) {
   const u0 = I.u0 + .02, v0 = I.v0 + .04, u1 = alongV ? I.u0 + d : I.u1 - .04, v1 = alongV ? I.v1 - .04 : I.v0 + d;
   contactShadow(g, S, u0, v0, u1, v1, 1.1);
   const J = { u0, v0, u1, v1 }, FF = frontFace(J);
-  fcs(g, S, r, u0, v0, u1, v1, 6, H, wood, { vert: true, alt: v === 1 ? [190, 230, 200] : [190, 130, 80], dens: 26, nk: 1.1 });
-  fcs(g, S, r, u0 - .03, v0 - .03, u1 + .03, v1 + .03, H, H + 8, mul(wood, 1.1), { alt: [220, 170, 110] });
-  fcs(g, S, r, u0 + .04, v0 + .04, u1 - .04, v1 - .04, 0, 7, [34, 28, 26], { ink: true });
+  fcs(g, S, r, u0, v0, u1, v1, 6, H, wood, { mat: 'wood', wear: .45, vert: true, alt: v === 1 ? [190, 230, 200] : [190, 130, 80], dens: 26, nk: 1.1 });
+  fcs(g, S, r, u0 - .03, v0 - .03, u1 + .03, v1 + .03, H, H + 8, mul(wood, 1.1), { mat: 'wood', wear: .45, alt: [220, 170, 110] });
+  fcs(g, S, r, u0 + .04, v0 + .04, u1 - .04, v1 - .04, 0, 7, [34, 28, 26], { mat: 'wood', wear: .45, ink: true });
   const nd = alongV ? Math.max(2, Math.round((v1 - v0) / .95)) : Math.max(2, Math.round((u1 - u0) / .95));
   for (let i = 0; i < nd; i++) {
     const t0 = (i + .06) / nd, t1 = (i + .94) / nd, open = (v === 3 && i === 0);
@@ -113,9 +113,9 @@ PROPS.wardrobe = function (g, S, p, I) {
 PROPS.hotplate = function (g, S, p, I) {
   const { r, v, u0, v0, u1, v1 } = I, cu = (u0 + u1) / 2, cv = (v0 + v1) / 2;
   contactShadow(g, S, cu - .42, cv - .42, cu + .42, cv + .42, .9);
-  fcs(g, S, r, cu - .36, cv - .36, cu + .36, cv + .36, 0, 30, [112, 76, 50], { vert: true, alt: [190, 140, 90], dens: 26 });
-  fcs(g, S, r, cu - .38, cv - .38, cu + .38, cv + .38, 30, 34, [136, 98, 62], { alt: [220, 170, 110] });
-  fcs(g, S, r, cu - .3, cv - .24, cu + .1, cv + .24, 34, 40, [70, 72, 74], { ink: true });   // hotplate body
+  fcs(g, S, r, cu - .36, cv - .36, cu + .36, cv + .36, 0, 30, [112, 76, 50], { mat: 'wood', wear: .4, vert: true, alt: [190, 140, 90], dens: 26 });
+  fcs(g, S, r, cu - .38, cv - .38, cu + .38, cv + .38, 30, 34, [136, 98, 62], { mat: 'wood', wear: .4, alt: [220, 170, 110] });
+  fcs(g, S, r, cu - .3, cv - .24, cu + .1, cv + .24, 34, 40, [70, 72, 74], { mat: 'wood', wear: .4, ink: true });   // hotplate body
   const q = gp(S, cu - .1, cv, 40);
   for (let k = 0; k < 3; k++) { g.strokeStyle = css([255, 120 - k * 20, 40], .95); g.lineWidth = 2.2; g.beginPath(); g.ellipse(q[0], q[1], 14 - k * 4.4, 6.6 - k * 2.1, 0, 0, 7); g.stroke(); }
   g.fillStyle = css([255, 200, 120], .5); g.beginPath(); g.ellipse(q[0], q[1], 6, 2.6, 0, 0, 7); g.fill();
@@ -132,8 +132,8 @@ PROPS.hotplate = function (g, S, p, I) {
 PROPS.catalog = function (g, S, p, I) {
   const { r, v, u0, v0, u1, v1 } = I, F = frontFace(I), wood = [[116, 76, 46], [88, 62, 44], [132, 98, 62], [74, 70, 64]][v], w = Math.max(u1 - u0, v1 - v0), H = 66;
   contactShadow(g, S, u0, v0, u1, v1, 1);
-  fcs(g, S, r, u0 + .04, v0 + .06, u1 - .04, v1 - .06, 0, H, wood, { vert: true, alt: [200, 150, 90], dens: 28 });
-  fcs(g, S, r, u0, v0, u1, v1, H, H + 5, mul(wood, 1.12), { alt: [230, 180, 120] });
+  fcs(g, S, r, u0 + .04, v0 + .06, u1 - .04, v1 - .06, 0, H, wood, { mat: 'wood', wear: .35, vert: true, alt: [200, 150, 90], dens: 28 });
+  fcs(g, S, r, u0, v0, u1, v1, H, H + 5, mul(wood, 1.12), { mat: 'wood', wear: .35, alt: [230, 180, 120] });
   const rows = 4, cols = Math.max(3, Math.round(w * 3.6));
   for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
     const t0 = (i + .07) / cols, t1 = (i + .93) / cols, z1 = H - 4 - j * (H - 10) / rows, z0 = z1 - (H - 10) / rows + 3;
@@ -184,8 +184,8 @@ PROPS.stall = function (g, S, p, I) {
   contactShadow(g, S, u0, v0, u1, v1, 1);
   for (const [uu, vv] of [[u0 + .1, v0 + .1], [u1 - .1, v0 + .1]]) vbar(g, S, r, uu, vv, 0, 124, 4.6, [70, 54, 40], { lit: [[255, 200, 140], [10, 12, 24], 0, .6, .5] });
   // counter + goods
-  fcs(g, S, r, u0 + .1, v0 + .45, u1 - .1, v1 - .15, 0, 34, wood, { vert: true, alt: [190, 140, 90], dens: 26 });
-  fcs(g, S, r, u0 + .05, v0 + .4, u1 - .05, v1 - .1, 34, 38, mul(wood, 1.18), { alt: [230, 190, 130] });
+  fcs(g, S, r, u0 + .1, v0 + .45, u1 - .1, v1 - .15, 0, 34, wood, { mat: 'wood', wear: .5, vert: true, alt: [190, 140, 90], dens: 26 });
+  fcs(g, S, r, u0 + .05, v0 + .4, u1 - .05, v1 - .1, 34, 38, mul(wood, 1.18), { mat: 'wood', wear: .5, alt: [230, 190, 130] });
   const cloth = [gp(S, u0 + .05, v1 - .1, 38), gp(S, u1 - .05, v1 - .1, 38), gp(S, u1 - .05, v1 - .1, 6), gp(S, u0 + .05, v1 - .1, 6)];
   paintPoly(g, cloth, mix(stripe[0], [20, 20, 30], .3), r, { n: 20, ang: 1.57, ink: true, wob: 2, alt: stripe[1], inkw: 1.2 });
   const goods = (n) => {
@@ -220,7 +220,7 @@ PROPS.stall = function (g, S, p, I) {
 PROPS.tram_stop = function (g, S, p, I) {
   const { r, v, u0, v0, u1, v1 } = I, col = [[170, 52, 46], [60, 120, 116], [196, 150, 60], [96, 100, 112]][v];
   contactShadow(g, S, u0, v0, u1, v1, .8);
-  fcs(g, S, r, u0 + .05, v0 + .05, u1 - .05, v1 - .05, 0, 6, [140, 136, 128], { alt: [190, 186, 170], dens: 24 });   // platform
+  fcs(g, S, r, u0 + .05, v0 + .05, u1 - .05, v1 - .05, 0, 6, [140, 136, 128], { mat: 'metal', wear: .4, alt: [190, 186, 170], dens: 24 });   // platform
   const pole = (uu, vv, h) => vbar(g, S, r, uu, vv, 6, h, 4.4, [56, 62, 66], { lit: [[255, 190, 130], [10, 12, 24], 0, .6, .5] });
   pole(u0 + .15, v0 + .15, 122); pole(u1 - .15, v0 + .15, 122);
   // glass back panel with frame and ad
@@ -234,9 +234,9 @@ PROPS.tram_stop = function (g, S, p, I) {
   // bench
   const bu0 = u0 + .35, bu1 = u1 - .45;
   for (const uu of [bu0 + .1, bu1 - .1]) { vbar(g, S, r, uu, v0 + .5, 6, 24, 3, [40, 44, 48]); vbar(g, S, r, uu, v0 + .85, 6, 24, 3, [40, 44, 48]); }
-  fcs(g, S, r, bu0, v0 + .42, bu1, v0 + .95, 24, 28, [136, 98, 60], { alt: [200, 150, 90], dens: 24 });
+  fcs(g, S, r, bu0, v0 + .42, bu1, v0 + .95, 24, 28, [136, 98, 60], { mat: 'metal', wear: .4, alt: [200, 150, 90], dens: 24 });
   // roof
-  fcs(g, S, r, u0 - .08, v0 - .05, u1 + .08, v1 - .25, 122, 128, [64, 72, 74], { alt: col, dens: 24 });
+  fcs(g, S, r, u0 - .08, v0 - .05, u1 + .08, v1 - .25, 122, 128, [64, 72, 74], { mat: 'metal', wear: .4, alt: col, dens: 24 });
   const rf = gp(S, u1 + .08, v1 - .25, 125); g.fillStyle = css(col, .95); const ra = gp(S, u0 - .08, v1 - .25, 128), rb = gp(S, u1 + .08, v1 - .25, 128); paintPoly(g, [ra, rb, rb.map((x, i) => i ? x + 7 : x), ra.map((x, i) => i ? x + 7 : x)], col, r, { n: 6, ink: true, inkw: 1, ang: 0 });
   // totem pole + round sign
   const sx = u1 - .1, sv = v1 - .1; pole(sx, sv, 196);
@@ -252,8 +252,8 @@ PROPS.kiosk = function (g, S, p, I) {
   const { r, v, u0, v0, u1, v1 } = I, F = frontFace(I), body = [[70, 112, 96], [160, 112, 60], [84, 96, 130], [150, 56, 52]][v];
   contactShadow(g, S, u0, v0, u1, v1, 1);
   const bu0 = u0 + .12, bv0 = v0 + .12, bu1 = u1 - .12, bv1 = v1 - .12, J = { u0: bu0, v0: bv0, u1: bu1, v1: bv1 };
-  fcs(g, S, r, bu0, bv0, bu1, bv1, 0, 96, body, { vert: true, alt: mul(body, 1.4), dens: 24 });
-  fcs(g, S, r, bu0 - .05, bv0 - .05, bu1 + .05, bv1 + .05, 0, 14, mul(body, .55), { ink: true });
+  fcs(g, S, r, bu0, bv0, bu1, bv1, 0, 96, body, { mat: 'enamel', wear: .6, under: [60, 50, 40], vert: true, alt: mul(body, 1.4), dens: 24 });
+  fcs(g, S, r, bu0 - .05, bv0 - .05, bu1 + .05, bv1 + .05, 0, 14, mul(body, .55), { mat: 'enamel', wear: .6, under: [60, 50, 40], ink: true });
   // serving windows on both visible faces
   const wnd = (Fn, t0, t1) => {
     facePanel(g, S, r, Fn, t0, t1, 40, 84, [250, 200, 110], { n: 6, ink: true, inkw: 1.4, ang: 1.57 });
@@ -264,7 +264,7 @@ PROPS.kiosk = function (g, S, p, I) {
   const Fv = (S_, t, z) => gp(S_, bu1, lerp(bv0, bv1, t), z), Fu = (S_, t, z) => gp(S_, lerp(bu0, bu1, t), bv1, z);
   wnd(Fu, .14, .86); wnd(Fv, .2, .8);
   // roof with deep overhang, sign board
-  fcs(g, S, r, u0 - .02, v0 - .02, u1 + .02, v1 + .02, 96, 104, mul(body, .7), { alt: [230, 200, 140] });
+  fcs(g, S, r, u0 - .02, v0 - .02, u1 + .02, v1 + .02, 96, 104, mul(body, .7), { mat: 'enamel', wear: .6, under: [60, 50, 40], alt: [230, 200, 140] });
   fcs(g, S, r, u0 + .25, v0 + .25, u1 - .25, v1 - .25, 104, 114, mul(body, .9), {});
   const sg = Fu(S, .5, 124), sg2 = Fu(S, .5, 130);
   paintRect(g, sg[0] - 28, sg[1] - 11, 56, 20, [24, 22, 26], r, { n: 8, ink: true, ang: 0 });
@@ -329,13 +329,13 @@ PROPS.car = function (g, S, p, I) {
     g.fillStyle = css([8, 8, 10]); g.beginPath(); g.arc(0, 0, 14, 0, 7); g.fill(); g.fillStyle = css([150, 154, 150]); g.beginPath(); g.arc(0, 0, 7.4, 0, 7); g.fill(); g.strokeStyle = css([40, 42, 46]); g.lineWidth = 1.4; g.stroke(); g.fillStyle = css([60, 60, 64]); g.beginPath(); g.arc(0, 0, 2.6, 0, 7); g.fill(); g.restore();
   };
   // chassis + lower body (chamfered with two stacked boxes)
-  fcs(g, S, r, bu0, bv0, bu1, bv1, 8, 24, body, { vert: false, alt: mul(body, 2.2), dens: 30, kl: .7, kr: 1.25 });
-  fcs(g, S, r, bu0 + .06, bv0 + .06, bu1 - .06, bv1 - .06, 24, H, body, { vert: false, alt: mul(body, 2.4), dens: 30, kl: .7, kr: 1.3, kt: 1.4 });
+  fcs(g, S, r, bu0, bv0, bu1, bv1, 8, 24, body, { mat: 'metal', vert: false, alt: mul(body, 2.2), dens: 30, kl: .7, kr: 1.25 });
+  fcs(g, S, r, bu0 + .06, bv0 + .06, bu1 - .06, bv1 - .06, 24, H, body, { mat: 'metal', vert: false, alt: mul(body, 2.4), dens: 30, kl: .7, kr: 1.3, kt: 1.4 });
   wheel(bu0 + .38, 0); wheel(bu1 - .36, 1);
   // cabin
   const cu0 = bu0 + (van ? .14 : .5), cu1 = bu1 - (van ? .14 : .62);
   const cabH = van ? 82 : 64;
-  fcs(g, S, r, cu0, bv0 + .12, cu1, bv1 - .12, H, cabH, van ? body : [34, 36, 44], { vert: false, alt: [90, 110, 130], dens: 40, kt: 1.5 });
+  fcs(g, S, r, cu0, bv0 + .12, cu1, bv1 - .12, H, cabH, van ? body : [34, 36, 44], { mat: 'metal', vert: false, alt: [90, 110, 130], dens: 40, kt: 1.5 });
   // windows (side face v = bv1 - .12, end face u = cu1)
   const win = (a, b, z0, z1, Fn) => { const P = [Fn(a, z1), Fn(b, z1), Fn(b, z0), Fn(a, z0)]; const gr = g.createLinearGradient(P[0][0], P[0][1], P[2][0], P[2][1]); gr.addColorStop(0, css([120, 150, 176])); gr.addColorStop(1, css([22, 34, 52])); g.fillStyle = gr; pathPoly(g, P); g.fill(); g.strokeStyle = css(INK, .9); g.lineWidth = 1.4; g.stroke(); g.fillStyle = css([255, 255, 255], .25); pathPoly(g, [P[0], [lerp(P[0][0], P[1][0], .3), lerp(P[0][1], P[1][1], .3)], [lerp(P[3][0], P[2][0], .15), lerp(P[3][1], P[2][1], .15)], P[3]]); g.fill(); };
   const Fs = (u, z) => gp(S, u, bv1 - .12, z), Fe = (vv, z) => gp(S, cu1, vv, z);
@@ -360,7 +360,7 @@ PROPS.console = function (g, S, p, I) {
   const { r, v, u0, v0, u1, v1 } = I, F = frontFace(I), W = u1 - u0, wal = [66, 46, 36], steel = [74, 82, 84];
   contactShadow(g, S, u0, v0, u1, v1, 1.1);
   // desk base + slanted control panel
-  fcs(g, S, r, u0 + .05, v0 + .85, u1 - .05, v1 - .05, 0, 32, wal, { vert: true, alt: [150, 100, 64], dens: 26 });
+  fcs(g, S, r, u0 + .05, v0 + .85, u1 - .05, v1 - .05, 0, 32, wal, { mat: 'metal', wear: .3, vert: true, alt: [150, 100, 64], dens: 26 });
   for (let i = 0; i < Math.round(W * 1.2); i++) { const t0 = (i + .08) / Math.round(W * 1.2), t1 = (i + .92) / Math.round(W * 1.2); facePanel(g, S, r, (S_, t, z) => gp(S_, lerp(u0 + .05, u1 - .05, t), v1 - .05, z), t0, t1, 5, 27, mul(wal, .85), { n: 6, ink: true, inkw: .9, ang: 1.57, ha: .5 }); }
   const P = (uu, tv) => gp(S, uu, lerp(v1 - .05, v0 + .85, tv), lerp(32, 56, tv));
   const pan = [P(u0 + .05, 0), P(u1 - .05, 0), P(u1 - .05, 1), P(u0 + .05, 1)];
@@ -379,7 +379,7 @@ PROPS.console = function (g, S, p, I) {
     if (on) S.lights.push({ x: lp[0], y: lp[1], r: 16, col: i % 3 ? [120, 255, 140] : [255, 90, 70], a: .5, fl: .5, ph: r() * 6, kind: 'lamp' });
   }
   // rack with valves + meters + tape reels
-  fcs(g, S, r, u0 + .08, v0 + .1, u1 - .08, v0 + .85, 56, 108, [44, 50, 52], { vert: true, ink: true, alt: [90, 100, 100], dens: 30 });
+  fcs(g, S, r, u0 + .08, v0 + .1, u1 - .08, v0 + .85, 56, 108, [44, 50, 52], { mat: 'metal', wear: .3, vert: true, ink: true, alt: [90, 100, 100], dens: 30 });
   const Fr = (t, z) => gp(S, lerp(u0 + .08, u1 - .08, t), v0 + .85, z);
   const bays = Math.max(3, Math.round(W / 1.2));
   for (let b = 0; b < bays; b++) {
@@ -404,8 +404,8 @@ PROPS.console = function (g, S, p, I) {
 PROPS.generator = function (g, S, p, I) {
   const { r, v, u0, v0, u1, v1 } = I, cu = (u0 + u1) / 2, cv = (v0 + v1) / 2, col = [[78, 92, 70], [110, 100, 70], [70, 84, 100], [100, 70, 60]][v];
   contactShadow(g, S, u0, v0, u1, v1, 1.2);
-  fcs(g, S, r, u0 + .06, v0 + .06, u1 - .06, v1 - .06, 0, 12, [34, 34, 38], { vert: true, ink: true });
-  fcs(g, S, r, u0 + .14, v0 + .14, u1 - .14, v1 - .3, 12, 70, col, { vert: true, alt: mul(col, 1.5), dens: 22 });
+  fcs(g, S, r, u0 + .06, v0 + .06, u1 - .06, v1 - .06, 0, 12, [34, 34, 38], { mat: 'enamel', wear: .6, under: [70, 44, 30], vert: true, ink: true });
+  fcs(g, S, r, u0 + .14, v0 + .14, u1 - .14, v1 - .3, 12, 70, col, { mat: 'enamel', wear: .6, under: [70, 44, 30], vert: true, alt: mul(col, 1.5), dens: 22 });
   const F = (t, z) => gp(S, lerp(u0 + .14, u1 - .14, t), v1 - .3, z), Fe = (t, z) => gp(S, u1 - .14, lerp(v0 + .14, v1 - .3, t), z);
   // side louvres + fan grille on the front, hazard chevrons
   for (let k = 0; k < 9; k++) { const a = Fe(.1, 22 + k * 5), b = Fe(.9, 22 + k * 5); g.strokeStyle = css([10, 12, 10], .85); g.lineWidth = 2; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); }

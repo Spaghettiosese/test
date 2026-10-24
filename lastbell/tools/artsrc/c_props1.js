@@ -1029,13 +1029,14 @@ WALLPROPS.banner = function (g, S, p, I) {
     cg.fillStyle = css(pal); cg.fillRect(0, 0, W, H);
     for (let i = 0; i < 40; i++) bristle(cg, rr() * W, rr() * H, 1.57 + rr.g() * .1, H * .6, 10, jit(pal, rr, .1), .3, rr);
     // hand-painted: big emblem disc on one side, two lines of lettering, border
-    const kind = kinds[v]; const ex = W * .17, ey = H * .44, eR = H * .3;
+    const kind = kinds[v], wide = W / H > 1.6, eR = wide ? H * .3 : H * .2, ex = wide ? W * .17 : W * .5, ey = wide ? H * .44 : H * .3;
     if (kind === 'march') { cg.fillStyle = css(UN.ochre, .9); cg.beginPath(); cg.moveTo(0, H * .8); cg.lineTo(W, H * .3); cg.lineTo(W, H * .5); cg.lineTo(0, H); cg.fill(); }
     cg.fillStyle = css(dark ? UN.cream : UN.red); cg.beginPath(); cg.arc(ex, ey, eR, 0, 7); cg.fill();
     prRays(cg, ex, ey, eR * .95, 16, dark ? UN.red : UN.cream, .5);
     prBellGlyph(cg, ex, ey, eR * 1.2, dark ? UN.ink : UN.cream);
     const words = label.split(' '), lines = words.length > 2 ? [words.slice(0, Math.ceil(words.length / 2)).join(' '), words.slice(Math.ceil(words.length / 2)).join(' ')] : [label];
-    lines.forEach((ln, i) => handText(cg, ln, W * .6, H * (lines.length > 1 ? .3 + i * .3 : .45), H * .26, fg, rr, W * .6, { shadow: [0, 0, 0, 0], drip: v === 3 }));
+    if (wide) lines.forEach((ln, i) => handText(cg, ln, W * .6, H * (lines.length > 1 ? .3 + i * .3 : .45), H * .26, fg, rr, W * .6, { shadow: [0, 0, 0, 0], drip: v === 3 }));
+    else lines.forEach((ln, i) => handText(cg, ln, W * .5, H * (lines.length > 1 ? .6 + i * .17 : .66), H * .15, fg, rr, W * .82, { shadow: [0, 0, 0, 0], drip: v === 3 }));
     cg.strokeStyle = css(UN.ochre, .9); cg.lineWidth = H * .03; cg.strokeRect(H * .05, H * .05, W - H * .1, H * .8);
     prAge(cg, W, H, rr, .8);
   }, 1.1);
