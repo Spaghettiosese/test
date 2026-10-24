@@ -921,9 +921,12 @@ function prTex(kind) {
 /* texture fill clipped to a screen polygon; frame(g) sets a face frame so the texture follows the surface */
 function prTexFill(g, pts, kind, a, frame, comp, off) {
   if (!a) return;
-  g.save(); pathPoly(g, pts); g.clip(); if (frame) frame(g); g.globalAlpha = a; if (comp) g.globalCompositeOperation = comp;
+  g.save(); pathPoly(g, pts); g.clip(); const m0 = g.getTransform(); if (frame) frame(g); g.globalAlpha = a; if (comp) g.globalCompositeOperation = comp;
   if (off) g.translate(-off[0], -off[1]);
-  g.fillStyle = g.createPattern(prTex(kind), 'repeat'); g.fillRect(-700, -700, 2200, 2200); g.restore();
+  // fill only the polygon's bounds expressed in the face frame (huge fills in skewed frames are slow)
+  const M = g.getTransform().inverse().multiply(m0), bb = bbox(pts); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const [px, py] of [[bb[0], bb[1]], [bb[2], bb[1]], [bb[2], bb[3]], [bb[0], bb[3]]]) { const lx = M.a * px + M.c * py + M.e, ly = M.b * px + M.d * py + M.f; if (lx < x0) x0 = lx; if (lx > x1) x1 = lx; if (ly < y0) y0 = ly; if (ly > y1) y1 = ly; }
+  g.fillStyle = g.createPattern(prTex(kind), 'repeat'); g.fillRect(x0 - 2, y0 - 2, x1 - x0 + 4, y1 - y0 + 4); g.restore();
 }
 /* linear gradient wash clipped to a polygon */
 function prShade(g, pts, x0, y0, x1, y1, stops, comp) {
