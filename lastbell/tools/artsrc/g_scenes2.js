@@ -213,7 +213,7 @@ GS.end_quiet = function (S, r) {
   gm.save(); gm.beginPath(); gm.rect(-S.M, -S.M, W + 2 * S.M, H + 2 * S.M); gm.rect(wx + ww, wy, -ww, wh); gm.clip('evenodd');
   gs_wash(gm, r, -S.M, -S.M, W + 2 * S.M, H + 2 * S.M, [[0, [70, 56, 44]], [.5, [120, 92, 62]], [1, [52, 40, 34]]], { n: 900, ang: 1.57, sl: [40, 160], sw: [8, 22] });
   for (let x = -S.M; x < W + S.M; x += 34) { gm.fillStyle = css([90, 60, 40], .12); gm.fillRect(x, -S.M, 12, H + 2 * S.M); }
-  gs_dark(gm, -S.M, -S.M, W, H, W + 60, wy + 120, 700, 500, [20, 12, 10], .55);
+  gs_dark(gm, -S.M, -S.M, W, H, wx + ww / 2, wy + wh / 2, 520, 360, [14, 8, 8], .7);
   gm.restore();
   const fr = [70, 58, 48];
   gs_rect(gm, r, wx - 16, wy - 16, ww + 32, 16, fr, L, { n: 16, ink: true, rim: lamp }); gs_rect(gm, r, wx - 16, wy, 16, wh, fr, L, { n: 16, ink: true, rim: lamp }); gs_rect(gm, r, wx + ww, wy, 16, wh, fr, L, { n: 16, ink: true, rim: lamp });
@@ -244,7 +244,7 @@ GS.end_quiet = function (S, r) {
   gs_glow(gm, bulbX, bulbY + 10, 380, [255, 180, 100], .3);
   // the parent at the window, hand flat against the glass, faint reflection
   const pf = S.layer(.8, { y0: wy - 80, y1: H + S.M });
-  const hH = 460, u = hH / 7.5, handX = wx + ww * .33, handY = wy + wh * .5, px = handX - 1.45 * u, py = handY + 6.25 * u;
+  const handX = wx + ww * .33, handY = wy + wh * .5, py = flY + 14, u = (py - handY) / 6.25, hH = u * 7.5, px = handX - 1.45 * u;
   gs_person(pf, r, px, py, hH, { view: 'side', pose: 'reach', dir: 1, L: [.85, -.5], rim: lamp, coat: [96, 78, 66], sleeve: [96, 78, 66], skin: '#d9a98a', hs: 'bun', hair: [60, 44, 36], coatLen: .75, amb: .45, shade: .6, shadow: false, rimA: .8 });
   gs_glow(gm, handX + 6, handY, 40, [200, 220, 255], .12);
   S.anim(.16, (c, t) => { gs_winFlicker(c, t, ow.filter((w, i) => i % 2 === 0), [255, 200, 120], .3); const ph = (t % 11000) / 11000; if (ph < .5) gs_rings(c, ph * 9000, sch.bellX, sch.bellY, [255, 200, 140], .3 * (1 - ph * 2), .0002, 200, .65); });

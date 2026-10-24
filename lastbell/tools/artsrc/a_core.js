@@ -270,7 +270,7 @@ function grainTileA() {
   for (let i = 0; i < N * N; i++) {
     const v = r() - .5 + (r() - .5) * .6, k = i * 4, lite = v > 0;
     id.data[k] = id.data[k + 1] = id.data[k + 2] = lite ? 235 : 8; if (lite) id.data[k + 2] = 220;
-    id.data[k + 3] = Math.min(255, v * v * 150);
+    id.data[k + 3] = Math.min(255, v * v * (lite ? 70 : 150));
   }
   g.putImageData(id, 0, 0); return (_grainA = c);
 }

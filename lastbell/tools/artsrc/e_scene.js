@@ -195,6 +195,7 @@ function lightPass(S, base) {
   const tt = timeTint(BUCKET_MIN[b]), kk = mood.grade !== undefined ? mood.grade : (interior ? .7 : 1), lit = mood.lit || [.62, .58, .56];
   let amb = [0, 1, 2].map(i => lit[i] * lerp(1, tt.mul[i], kk));
   if (day && wins.length && interior) amb = amb.map(v => v * 1.08);
+  if (interior) amb = [amb[0] * .93, amb[1] * .97, amb[2] * 1.06];
   lg.fillStyle = css(amb.map(v => v * 255)); lg.fillRect(0, 0, LW, LH);
   lg.save(); lg.scale(LS, LS);
   // depth darkening toward the scene edges and the ceiling line
@@ -204,7 +205,7 @@ function lightPass(S, base) {
   gg = lg.createLinearGradient(0, S.ty - WALLH - 20, 0, S.ty - WALLH * .3); gg.addColorStop(0, 'rgba(0,0,0,.4)'); gg.addColorStop(1, 'rgba(0,0,0,0)'); lg.fillStyle = gg; lg.fillRect(0, 0, W, S.ty);
   // lights
   lg.globalCompositeOperation = 'lighter';
-  const gain = interior ? 1.25 : 1.1;
+  const gain = interior ? 1.5 : 1.3;
   for (const Lg of S.lights) {
     const a = Lg.a * gain, R = Lg.r;
     if (Lg.kind === 'pool') lightDraw(lg, Lg.col, Lg.x, Lg.y, R * 1.6, R * .9, a * 1.2);
@@ -220,12 +221,12 @@ function lightPass(S, base) {
   const col = mood.dapple || DAPPLE[b], ka = (mood.dapple ? .8 : DAPPLE_A[b]) * S.lightK * (day ? 1 : .55), skew = b <= 1 ? .55 : b === 2 ? .2 : -.15;
   for (const p of wins) {
     const s0 = (p.side === 'l' ? p.y : p.x) || 0, s1 = s0 + ((p.side === 'l' ? p.h : p.w) || 1), L = (b === 3 ? 7 : 5.2), z0 = (p.v | 0) % 4 === 3 ? 62 : 52, zt = z0 + ((p.v | 0) % 4 === 3 ? 56 : 74);
-    const m0 = s0 + (s1 - s0) * .5 - Math.min(.65, (s1 - s0) * .4), m1 = s0 + (s1 - s0) * .5 + Math.min(.65, (s1 - s0) * .4);
+    const m0 = s0 + (s1 - s0) * .5 - Math.min(.9, (s1 - s0) * .5), m1 = s0 + (s1 - s0) * .5 + Math.min(.9, (s1 - s0) * .5);
     const F = (a, d) => p.side === 'r' ? gp(S, a + d * skew, d, 0) : gp(S, d, a + d * skew, 0);
     const poly = [F(m0, .05), F(m1, .05), F(m1, L), F(m0, L)];
     lg.save(); lg.globalCompositeOperation = 'lighter';
     const q0 = F((m0 + m1) / 2, 0), q1 = F((m0 + m1) / 2, L), lgr = lg.createLinearGradient(q0[0], q0[1], q1[0], q1[1]);
-    lgr.addColorStop(0, css(col, .55 * ka)); lgr.addColorStop(.5, css(col, .26 * ka)); lgr.addColorStop(1, css(col, 0));
+    lgr.addColorStop(0, css(col, .7 * ka)); lgr.addColorStop(.5, css(col, .34 * ka)); lgr.addColorStop(1, css(col, 0));
     lg.fillStyle = lgr; pathPoly(lg, poly, r, 4); lg.fill();
     // mullion shadows across the shaft
     lg.globalCompositeOperation = 'source-over'; lg.strokeStyle = css([0, 0, 0], .22 * ka); lg.lineWidth = 6;
@@ -261,8 +262,8 @@ function lightPass(S, base) {
     sg.beginPath(); fp.forEach((pt, i) => { const x = mx + (pt[0] - mx) * 1.12, y = my + (pt[1] - my) * 1.15 + 2; i ? sg.lineTo(x, y) : sg.moveTo(x, y); }); sg.closePath(); sg.fill(); sg.globalAlpha = 1;
   }
   sg.restore();
-  const smb = softBlur(sm, 3);
-  lg.globalAlpha = .62; lg.drawImage(smb, 0, 0); lg.globalAlpha = .25; lg.drawImage(sm, 0, 0); lg.globalAlpha = 1; lap('shadows');
+  const smb = softBlur(sm, 3), smb2 = softBlur(sm, 7);
+  lg.globalAlpha = .4; lg.drawImage(smb2, 0, 0); lg.globalAlpha = .32; lg.drawImage(smb, 0, 0); lg.globalAlpha = .1; lg.drawImage(sm, 0, 0); lg.globalAlpha = 1; lap('shadows');
   S.lm = lm; S.LS = LS;
   try { S.lmData = lg.getImageData(0, 0, LW, LH).data; S.LW = LW; S.LH = LH; } catch (e) { S.lmData = null; }
   // ---- multiply the light map over the composite
@@ -273,7 +274,7 @@ function lightPass(S, base) {
   for (const Lg of S.lights) {
     if (Lg.kind === 'pool' || Lg.kind === 'door') continue;
     const R = Lg.r, a = Lg.a;
-    if (Lg.kind === 'window') { cg.globalAlpha = Math.min(1, a * .9); cg.drawImage(glowSprite(Lg.col, 128), Lg.x - R, Lg.y - R, R * 2, R * 2); continue; }
+    if (Lg.kind === 'window') { cg.globalAlpha = Math.min(1, a * .35); cg.drawImage(glowSprite(Lg.col, 128), Lg.x - R, Lg.y - R, R * 2, R * 2); continue; }
     cg.globalAlpha = Math.min(1, a * .55); cg.drawImage(glowSprite(Lg.col, 128), Lg.x - R * .9, Lg.y - R * .9, R * 1.8, R * 1.8);
     cg.globalAlpha = Math.min(1, a * .9); cg.drawImage(glowSprite(mix(Lg.col, [255, 250, 230], .5), 128), Lg.x - R * .22, Lg.y - R * .22, R * .44, R * .44);
   }

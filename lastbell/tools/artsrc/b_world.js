@@ -402,8 +402,8 @@ function paintWall(ctx, S, side) {
       brickAt(u, v, o, B, M, dark);
       // plaster remnants clinging on
       const pl = nt(u * .009 + 5 + seed, v * .016 + 9) - (v / WH) * .1;
-      if (pl > .64) { const k = dark * (.86 + .2 * nt(u * .1, v * .1) + brushF(u, v, .995, .1, 50, 9, seed) * .06); o[0] = PL[0] * k; o[1] = PL[1] * k; o[2] = PL[2] * k; }
-      else if (pl > .61) { o[0] *= .55; o[1] *= .55; o[2] *= .6; }
+      if (pl > .69) { const k = dark * (.86 + .2 * nt(u * .1, v * .1) + brushF(u, v, .995, .1, 50, 9, seed) * .06); o[0] = PL[0] * k; o[1] = PL[1] * k; o[2] = PL[2] * k; }
+      else if (pl > .665) { o[0] *= .55; o[1] *= .55; o[2] *= .6; }
       shadeWall(u, v, o, WH, seed);
     };
   } else if (type === 'tiled') {
@@ -508,7 +508,7 @@ function wallDecor(g, S, side, len, type, P, gr, dark, seed) {
 /* wall thickness: cut top caps and open end faces (painted section), drawn after the walls */
 function paintWallCaps(ctx, S) {
   const loc = S.loc, r = S.r, w = lw(loc), h = lh(loc), T = .2, Z = WALLH, E = EDGE;
-  const brick = loc.wall === 'brick' || loc.wall === 'tiled', sec = mul(brick ? [92, 52, 40] : [74, 62, 56], S.mood.bake), topc = mul([44, 36, 36], S.mood.bake);
+  const brick = loc.wall === 'brick' || loc.wall === 'tiled', sec = mul(brick ? [120, 66, 50] : [104, 90, 80], S.mood.bake), topc = mul(brick ? [118, 84, 70] : [132, 118, 100], S.mood.bake);
   // end faces (cross sections)
   const endR = [gp(S, w, -T, Z), gp(S, w, 0, Z), gp(S, w, 0, -E), gp(S, w, -T, -E)], endL = [gp(S, -T, h, Z), gp(S, 0, h, Z), gp(S, 0, h, -E), gp(S, -T, h, -E)];
   for (const [pts, k] of [[endR, .62], [endL, .46]]) {

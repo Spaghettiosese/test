@@ -270,7 +270,7 @@ function grainTileA() {
   for (let i = 0; i < N * N; i++) {
     const v = r() - .5 + (r() - .5) * .6, k = i * 4, lite = v > 0;
     id.data[k] = id.data[k + 1] = id.data[k + 2] = lite ? 235 : 8; if (lite) id.data[k + 2] = 220;
-    id.data[k + 3] = Math.min(255, v * v * 150);
+    id.data[k + 3] = Math.min(255, v * v * (lite ? 70 : 150));
   }
   g.putImageData(id, 0, 0); return (_grainA = c);
 }
@@ -732,8 +732,8 @@ function paintWall(ctx, S, side) {
       brickAt(u, v, o, B, M, dark);
       // plaster remnants clinging on
       const pl = nt(u * .009 + 5 + seed, v * .016 + 9) - (v / WH) * .1;
-      if (pl > .64) { const k = dark * (.86 + .2 * nt(u * .1, v * .1) + brushF(u, v, .995, .1, 50, 9, seed) * .06); o[0] = PL[0] * k; o[1] = PL[1] * k; o[2] = PL[2] * k; }
-      else if (pl > .61) { o[0] *= .55; o[1] *= .55; o[2] *= .6; }
+      if (pl > .69) { const k = dark * (.86 + .2 * nt(u * .1, v * .1) + brushF(u, v, .995, .1, 50, 9, seed) * .06); o[0] = PL[0] * k; o[1] = PL[1] * k; o[2] = PL[2] * k; }
+      else if (pl > .665) { o[0] *= .55; o[1] *= .55; o[2] *= .6; }
       shadeWall(u, v, o, WH, seed);
     };
   } else if (type === 'tiled') {
@@ -838,7 +838,7 @@ function wallDecor(g, S, side, len, type, P, gr, dark, seed) {
 /* wall thickness: cut top caps and open end faces (painted section), drawn after the walls */
 function paintWallCaps(ctx, S) {
   const loc = S.loc, r = S.r, w = lw(loc), h = lh(loc), T = .2, Z = WALLH, E = EDGE;
-  const brick = loc.wall === 'brick' || loc.wall === 'tiled', sec = mul(brick ? [92, 52, 40] : [74, 62, 56], S.mood.bake), topc = mul([44, 36, 36], S.mood.bake);
+  const brick = loc.wall === 'brick' || loc.wall === 'tiled', sec = mul(brick ? [120, 66, 50] : [104, 90, 80], S.mood.bake), topc = mul(brick ? [118, 84, 70] : [132, 118, 100], S.mood.bake);
   // end faces (cross sections)
   const endR = [gp(S, w, -T, Z), gp(S, w, 0, Z), gp(S, w, 0, -E), gp(S, w, -T, -E)], endL = [gp(S, -T, h, Z), gp(S, 0, h, Z), gp(S, 0, h, -E), gp(S, -T, h, -E)];
   for (const [pts, k] of [[endR, .62], [endL, .46]]) {
@@ -4957,6 +4957,7 @@ function lightPass(S, base) {
   const tt = timeTint(BUCKET_MIN[b]), kk = mood.grade !== undefined ? mood.grade : (interior ? .7 : 1), lit = mood.lit || [.62, .58, .56];
   let amb = [0, 1, 2].map(i => lit[i] * lerp(1, tt.mul[i], kk));
   if (day && wins.length && interior) amb = amb.map(v => v * 1.08);
+  if (interior) amb = [amb[0] * .93, amb[1] * .97, amb[2] * 1.06];
   lg.fillStyle = css(amb.map(v => v * 255)); lg.fillRect(0, 0, LW, LH);
   lg.save(); lg.scale(LS, LS);
   // depth darkening toward the scene edges and the ceiling line
@@ -4966,7 +4967,7 @@ function lightPass(S, base) {
   gg = lg.createLinearGradient(0, S.ty - WALLH - 20, 0, S.ty - WALLH * .3); gg.addColorStop(0, 'rgba(0,0,0,.4)'); gg.addColorStop(1, 'rgba(0,0,0,0)'); lg.fillStyle = gg; lg.fillRect(0, 0, W, S.ty);
   // lights
   lg.globalCompositeOperation = 'lighter';
-  const gain = interior ? 1.25 : 1.1;
+  const gain = interior ? 1.5 : 1.3;
   for (const Lg of S.lights) {
     const a = Lg.a * gain, R = Lg.r;
     if (Lg.kind === 'pool') lightDraw(lg, Lg.col, Lg.x, Lg.y, R * 1.6, R * .9, a * 1.2);
@@ -4982,12 +4983,12 @@ function lightPass(S, base) {
   const col = mood.dapple || DAPPLE[b], ka = (mood.dapple ? .8 : DAPPLE_A[b]) * S.lightK * (day ? 1 : .55), skew = b <= 1 ? .55 : b === 2 ? .2 : -.15;
   for (const p of wins) {
     const s0 = (p.side === 'l' ? p.y : p.x) || 0, s1 = s0 + ((p.side === 'l' ? p.h : p.w) || 1), L = (b === 3 ? 7 : 5.2), z0 = (p.v | 0) % 4 === 3 ? 62 : 52, zt = z0 + ((p.v | 0) % 4 === 3 ? 56 : 74);
-    const m0 = s0 + (s1 - s0) * .5 - Math.min(.65, (s1 - s0) * .4), m1 = s0 + (s1 - s0) * .5 + Math.min(.65, (s1 - s0) * .4);
+    const m0 = s0 + (s1 - s0) * .5 - Math.min(.9, (s1 - s0) * .5), m1 = s0 + (s1 - s0) * .5 + Math.min(.9, (s1 - s0) * .5);
     const F = (a, d) => p.side === 'r' ? gp(S, a + d * skew, d, 0) : gp(S, d, a + d * skew, 0);
     const poly = [F(m0, .05), F(m1, .05), F(m1, L), F(m0, L)];
     lg.save(); lg.globalCompositeOperation = 'lighter';
     const q0 = F((m0 + m1) / 2, 0), q1 = F((m0 + m1) / 2, L), lgr = lg.createLinearGradient(q0[0], q0[1], q1[0], q1[1]);
-    lgr.addColorStop(0, css(col, .55 * ka)); lgr.addColorStop(.5, css(col, .26 * ka)); lgr.addColorStop(1, css(col, 0));
+    lgr.addColorStop(0, css(col, .7 * ka)); lgr.addColorStop(.5, css(col, .34 * ka)); lgr.addColorStop(1, css(col, 0));
     lg.fillStyle = lgr; pathPoly(lg, poly, r, 4); lg.fill();
     // mullion shadows across the shaft
     lg.globalCompositeOperation = 'source-over'; lg.strokeStyle = css([0, 0, 0], .22 * ka); lg.lineWidth = 6;
@@ -5023,8 +5024,8 @@ function lightPass(S, base) {
     sg.beginPath(); fp.forEach((pt, i) => { const x = mx + (pt[0] - mx) * 1.12, y = my + (pt[1] - my) * 1.15 + 2; i ? sg.lineTo(x, y) : sg.moveTo(x, y); }); sg.closePath(); sg.fill(); sg.globalAlpha = 1;
   }
   sg.restore();
-  const smb = softBlur(sm, 3);
-  lg.globalAlpha = .62; lg.drawImage(smb, 0, 0); lg.globalAlpha = .25; lg.drawImage(sm, 0, 0); lg.globalAlpha = 1; lap('shadows');
+  const smb = softBlur(sm, 3), smb2 = softBlur(sm, 7);
+  lg.globalAlpha = .4; lg.drawImage(smb2, 0, 0); lg.globalAlpha = .32; lg.drawImage(smb, 0, 0); lg.globalAlpha = .1; lg.drawImage(sm, 0, 0); lg.globalAlpha = 1; lap('shadows');
   S.lm = lm; S.LS = LS;
   try { S.lmData = lg.getImageData(0, 0, LW, LH).data; S.LW = LW; S.LH = LH; } catch (e) { S.lmData = null; }
   // ---- multiply the light map over the composite
@@ -5035,7 +5036,7 @@ function lightPass(S, base) {
   for (const Lg of S.lights) {
     if (Lg.kind === 'pool' || Lg.kind === 'door') continue;
     const R = Lg.r, a = Lg.a;
-    if (Lg.kind === 'window') { cg.globalAlpha = Math.min(1, a * .9); cg.drawImage(glowSprite(Lg.col, 128), Lg.x - R, Lg.y - R, R * 2, R * 2); continue; }
+    if (Lg.kind === 'window') { cg.globalAlpha = Math.min(1, a * .35); cg.drawImage(glowSprite(Lg.col, 128), Lg.x - R, Lg.y - R, R * 2, R * 2); continue; }
     cg.globalAlpha = Math.min(1, a * .55); cg.drawImage(glowSprite(Lg.col, 128), Lg.x - R * .9, Lg.y - R * .9, R * 1.8, R * 1.8);
     cg.globalAlpha = Math.min(1, a * .9); cg.drawImage(glowSprite(mix(Lg.col, [255, 250, 230], .5), 128), Lg.x - R * .22, Lg.y - R * .22, R * .44, R * .44);
   }
@@ -5605,11 +5606,11 @@ function iconBuild(id) {
     }
     case 'vanguard_armband': {
       const rd = M([176, 32, 36], { dither: true, lk: .55 }), wh = M([236, 228, 206]), gold = brass();
-      ring(28, 28, 21, 11, 13, rd, (x, y) => (y < 26 ? .3 : .6) - (x - 28) * .01, 1);
-      px_shape(P, (g) => { g.ellipse(28, 31, 21, 11, 0, 0, Math.PI); g.lineTo(7, 25); g.ellipse(28, 25, 21, 11, 0, Math.PI, 0, true); g.closePath(); g.fill(); }, rd, (x, y) => .6 - (x - 28) * .014 + (y > 38 ? -.15 : 0), 2);
-      ell(28, 33, 7, 6.5, wh, SP(28, 33, 7, 6.5, .65), 3);
-      px_shape(P, (g) => { for (let i = 0; i < 10; i++) { const a = i * .6283 - 1.5708, rr = i % 2 ? 2.3 : 5.5; g.lineTo(28 + Math.cos(a) * rr, 33 + Math.sin(a) * rr); } g.closePath(); g.fill(); }, rd, .55, 4);
-      for (let x = 9; x < 48; x += 3) pix(x, 26 + Math.round(Math.sin((x - 7) / 42 * Math.PI) * 10), gold, 2, 4);
+      ring(28, 23, 20, 8, 3, rd, .22, 1);
+      px_shape(P, (g) => { g.ellipse(28, 34, 21, 9, 0, 0, Math.PI); g.lineTo(7, 23); g.ellipse(28, 23, 21, 9, 0, Math.PI, 0, true); g.closePath(); g.fill(); }, rd, (x, y) => .6 - (x - 28) * .014 + (y > 40 ? -.15 : 0) + (Math.abs(x - 28) > 16 ? -.12 : 0), 2);
+      ell(28, 32, 7, 6.5, wh, SP(28, 32, 7, 6.5, .65), 3);
+      px_shape(P, (g) => { for (let i = 0; i < 10; i++) { const a = i * .6283 - 1.5708, rr = i % 2 ? 2.3 : 5.5; g.lineTo(28 + Math.cos(a) * rr, 32 + Math.sin(a) * rr); } g.closePath(); g.fill(); }, rd, .55, 4);
+      for (let x = 9; x < 48; x += 3) { pix(x, 24 + Math.round(Math.sin((x - 7) / 42 * Math.PI) * 8), gold, 3, 4); pix(x, 34 + Math.round(Math.sin((x - 7) / 42 * Math.PI) * 8), gold, 1, 4); }
       break;
     }
     case 'pocket_mirror': {
@@ -7365,7 +7366,7 @@ GS.end_quiet = function (S, r) {
   gm.save(); gm.beginPath(); gm.rect(-S.M, -S.M, W + 2 * S.M, H + 2 * S.M); gm.rect(wx + ww, wy, -ww, wh); gm.clip('evenodd');
   gs_wash(gm, r, -S.M, -S.M, W + 2 * S.M, H + 2 * S.M, [[0, [70, 56, 44]], [.5, [120, 92, 62]], [1, [52, 40, 34]]], { n: 900, ang: 1.57, sl: [40, 160], sw: [8, 22] });
   for (let x = -S.M; x < W + S.M; x += 34) { gm.fillStyle = css([90, 60, 40], .12); gm.fillRect(x, -S.M, 12, H + 2 * S.M); }
-  gs_dark(gm, -S.M, -S.M, W, H, W + 60, wy + 120, 700, 500, [20, 12, 10], .55);
+  gs_dark(gm, -S.M, -S.M, W, H, wx + ww / 2, wy + wh / 2, 520, 360, [14, 8, 8], .7);
   gm.restore();
   const fr = [70, 58, 48];
   gs_rect(gm, r, wx - 16, wy - 16, ww + 32, 16, fr, L, { n: 16, ink: true, rim: lamp }); gs_rect(gm, r, wx - 16, wy, 16, wh, fr, L, { n: 16, ink: true, rim: lamp }); gs_rect(gm, r, wx + ww, wy, 16, wh, fr, L, { n: 16, ink: true, rim: lamp });
@@ -7396,7 +7397,7 @@ GS.end_quiet = function (S, r) {
   gs_glow(gm, bulbX, bulbY + 10, 380, [255, 180, 100], .3);
   // the parent at the window, hand flat against the glass, faint reflection
   const pf = S.layer(.8, { y0: wy - 80, y1: H + S.M });
-  const hH = 460, u = hH / 7.5, handX = wx + ww * .33, handY = wy + wh * .5, px = handX - 1.45 * u, py = handY + 6.25 * u;
+  const handX = wx + ww * .33, handY = wy + wh * .5, py = flY + 14, u = (py - handY) / 6.25, hH = u * 7.5, px = handX - 1.45 * u;
   gs_person(pf, r, px, py, hH, { view: 'side', pose: 'reach', dir: 1, L: [.85, -.5], rim: lamp, coat: [96, 78, 66], sleeve: [96, 78, 66], skin: '#d9a98a', hs: 'bun', hair: [60, 44, 36], coatLen: .75, amb: .45, shade: .6, shadow: false, rimA: .8 });
   gs_glow(gm, handX + 6, handY, 40, [200, 220, 255], .12);
   S.anim(.16, (c, t) => { gs_winFlicker(c, t, ow.filter((w, i) => i % 2 === 0), [255, 200, 120], .3); const ph = (t % 11000) / 11000; if (ph < .5) gs_rings(c, ph * 9000, sch.bellX, sch.bellY, [255, 200, 140], .3 * (1 - ph * 2), .0002, 200, .65); });

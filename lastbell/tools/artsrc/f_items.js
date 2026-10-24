@@ -124,11 +124,11 @@ function iconBuild(id) {
     }
     case 'vanguard_armband': {
       const rd = M([176, 32, 36], { dither: true, lk: .55 }), wh = M([236, 228, 206]), gold = brass();
-      ring(28, 28, 21, 11, 13, rd, (x, y) => (y < 26 ? .3 : .6) - (x - 28) * .01, 1);
-      px_shape(P, (g) => { g.ellipse(28, 31, 21, 11, 0, 0, Math.PI); g.lineTo(7, 25); g.ellipse(28, 25, 21, 11, 0, Math.PI, 0, true); g.closePath(); g.fill(); }, rd, (x, y) => .6 - (x - 28) * .014 + (y > 38 ? -.15 : 0), 2);
-      ell(28, 33, 7, 6.5, wh, SP(28, 33, 7, 6.5, .65), 3);
-      px_shape(P, (g) => { for (let i = 0; i < 10; i++) { const a = i * .6283 - 1.5708, rr = i % 2 ? 2.3 : 5.5; g.lineTo(28 + Math.cos(a) * rr, 33 + Math.sin(a) * rr); } g.closePath(); g.fill(); }, rd, .55, 4);
-      for (let x = 9; x < 48; x += 3) pix(x, 26 + Math.round(Math.sin((x - 7) / 42 * Math.PI) * 10), gold, 2, 4);
+      ring(28, 23, 20, 8, 3, rd, .22, 1);
+      px_shape(P, (g) => { g.ellipse(28, 34, 21, 9, 0, 0, Math.PI); g.lineTo(7, 23); g.ellipse(28, 23, 21, 9, 0, Math.PI, 0, true); g.closePath(); g.fill(); }, rd, (x, y) => .6 - (x - 28) * .014 + (y > 40 ? -.15 : 0) + (Math.abs(x - 28) > 16 ? -.12 : 0), 2);
+      ell(28, 32, 7, 6.5, wh, SP(28, 32, 7, 6.5, .65), 3);
+      px_shape(P, (g) => { for (let i = 0; i < 10; i++) { const a = i * .6283 - 1.5708, rr = i % 2 ? 2.3 : 5.5; g.lineTo(28 + Math.cos(a) * rr, 32 + Math.sin(a) * rr); } g.closePath(); g.fill(); }, rd, .55, 4);
+      for (let x = 9; x < 48; x += 3) { pix(x, 24 + Math.round(Math.sin((x - 7) / 42 * Math.PI) * 8), gold, 3, 4); pix(x, 34 + Math.round(Math.sin((x - 7) / 42 * Math.PI) * 8), gold, 1, 4); }
       break;
     }
     case 'pocket_mirror': {
