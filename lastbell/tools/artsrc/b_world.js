@@ -233,13 +233,13 @@ function paintFloor(ctx, S) {
     };
   }
   // compose in local floor space, then transform into the scene
-  const ks = 1.0, lc = fn ? matCanvas(W, H, ks, fn) : mk(W * ks, H * ks), lg = ctx2(lc);
+  const ks = .8, lc = fn ? matCanvas(W, H, ks, fn) : mk(W * ks, H * ks), lg = ctx2(lc);
   lg.save(); lg.scale(ks, ks);
   if (!fn) { lg.fillStyle = css(gr([60, 44, 38])); lg.fillRect(0, 0, W, H); }
   if (post) post(lg);
   // directional over-strokes: a sparse layer of real bristle strokes so the brush reads at play zoom
   const ang = type === 'wood' ? 0 : type === 'asphalt' ? .1 : -.5;
-  for (let i = 0, n = W * H / 1500; i < n; i++) {
+  for (let i = 0, n = W * H / 2600; i < n; i++) {
     const x = r() * W, y = r() * H, lite = r() < .5;
     bristle(lg, x, y, ang + r.g() * (type === 'wood' ? .05 : .5), r.r(16, 46), r.r(2, 5), lite ? [255, 236, 200] : [20, 14, 24], lite ? .045 : .07, r);
   }
@@ -444,8 +444,8 @@ function paintWall(ctx, S, side) {
     };
   }
   if (fn) {
-    const ks = 1.5, lc = matCanvas(len, WH, ks, fn), lg = ctx2(lc);
-    lg.scale(ks, ks);
+    const ks = .85, ky = 1.5, lc = matCanvas(len, WH, ks, fn, ky), lg = ctx2(lc);
+    lg.scale(ks, ky);
     wallDecor(lg, S, side, len, type, P, gr, dark, seed);
     ctx.save(); wallFrame(ctx, S, side); ctx.drawImage(lc, 0, 0, len, WH); ctx.restore();
   } else {

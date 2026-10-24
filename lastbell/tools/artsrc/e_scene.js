@@ -51,9 +51,14 @@ function gradePx(G, r, g, b, o) {
   r += (G.sh[0] - r) * ws + (G.hi[0] - r) * wh; g += (G.sh[1] - g) * ws + (G.hi[1] - g) * wh; b += (G.sh[2] - b) * ws + (G.hi[2] - b) * wh;
   o[0] = r; o[1] = g; o[2] = b;
 }
-function gradeCanvas(c, G) {
-  const g = ctx2(c), id = g.getImageData(0, 0, c.width, c.height), d = id.data, o = [0, 0, 0];
-  for (let i = 0; i < d.length; i += 4) { if (!d[i + 3]) continue; gradePx(G, d[i], d[i + 1], d[i + 2], o); d[i] = o[0]; d[i + 1] = o[1]; d[i + 2] = o[2]; }
+function gradeCanvas(c, G, S) {   // via the dithered 64^3 LUT (fast)
+  const g = ctx2(c), id = g.getImageData(0, 0, c.width, c.height), d = id.data, L = gradeLUT(S);
+  let h = 12345;
+  for (let i = 0; i < d.length; i += 4) {
+    h = (h * 1103515245 + 12345) & 0x7fffffff; const dt = (h >> 16) & 3;
+    let r = d[i] + dt, gg = d[i + 1] + dt, b = d[i + 2] + dt; r = r > 255 ? 255 : r; gg = gg > 255 ? 255 : gg; b = b > 255 ? 255 : b;
+    const li = (((r >> 2) << 12) | ((gg >> 2) << 6) | (b >> 2)) * 3; d[i] = L[li]; d[i + 1] = L[li + 1]; d[i + 2] = L[li + 2];
+  }
   g.putImageData(id, 0, 0);
 }
 /* 64^3 LUT of the grade (for per-frame character relighting) */
@@ -299,7 +304,7 @@ function lightPass(S, base) {
   }
   lap('fx');
   // ---- colour grade + bloom
-  gradeCanvas(comp, S.grade); lap('grade');
+  gradeCanvas(comp, S.grade, S); lap('grade');
   bloomPass(comp, S); lap('bloom');
   applyGrain(cg, comp.width, comp.height, .14, 'overlay');
   // match the void colour at the borders to the per-frame clear colour

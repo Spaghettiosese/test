@@ -5,7 +5,7 @@
  * cool painted backdrop. Per-character signature details are keyed on the npc look (skin|hair fingerprint).
  * buildPortraitBuffer(look,opts) returns the 96x96 canvas (swap-in seam); drawPortraitImpl adds the badge. */
 const PT_N = 96;
-const _pbuf = new Map(), _pcomp = new Map();
+const _pbuf = new Map(), _pcomp = new Map(); let _ptBg = null;
 const PX_DET = 1, PT_B4 = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
 /* ---- private helpers (portrait / item area; independent of other modules' internals) */
 const pt_clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -203,15 +203,17 @@ function buildPortraitBuffer(look, opts) {
   const mFrame = px_mat(P, glB, { n: 4, bias: .45, lk: .7 });
   const mDark = px_mat(P, [40, 38, 44], { n: 4, bias: .4, lk: .6 });
   // ---- backdrop: painted strokes, glow behind head, warm haze on the right (rim source)
+  if (!_ptBg) { _ptBg = { V: new Float32Array(N * N), W: new Uint8Array(N * N) };
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
     const u = x * .8 + y * .6, w = -x * .6 + y * .8;
     const glow = pt_clamp(1 - Math.hypot((x - 34) * .85, y - 30) / 62, 0, 1);
     let v = .16 + glow * .55 + (pt_vn(u * .07, w * .3, 3) - .5) * .32 + (pt_vn(x * .18, y * .05, 9) - .5) * .12;
     const wv = pt_clamp((x - 70) / 24, 0, 1) * pt_clamp(1 - Math.abs(y - 40) / 46, 0, 1) + (pt_vn(u * .1, w * .2, 5) - .5) * .3;
     const i = y * N + x;
-    if (wv > .62 + (PT_B4[y & 3][x & 3] / 15) * .3) { P.M[i] = mBgW; P.V[i] = .25 + wv * .55; } else { P.M[i] = mBg; P.V[i] = v; }
-    P.Z[i] = 0;
+    if (wv > .62 + (PT_B4[y & 3][x & 3] / 15) * .3) { _ptBg.W[i] = 1; _ptBg.V[i] = .25 + wv * .55; } else { _ptBg.V[i] = v; }
   }
+  }
+  for (let i = 0; i < N * N; i++) { P.M[i] = _ptBg.W[i] ? mBgW : mBg; P.V[i] = _ptBg.V[i]; P.Z[i] = 0; }
   // ---- wheelchair handles (behind body)
   if (S.chair) for (const sd of [-1, 1]) { const x0 = hcx + sd * (sw - 4); px_fill(P, x0 - 1, 60, x0 + 1, 84, (x, y) => (y < 66 ? .25 + (x - x0 + 1) * .12 : .45 + (sd * (x0 - x)) * .15), mDark, 3); }
   // ---- back hair (long) / bun
@@ -640,10 +642,10 @@ function pt_compose(look, opts, size) {
   g.fillStyle = sh; g.beginPath(); g.arc(size * .02, size * .04, R * 1.08, 0, 7); g.fill();
   // pixel art: integer nearest upscale, then filtered fit (even pixel sizes at any badge size)
   g.save(); g.beginPath(); g.arc(0, 0, Rin, 0, 7); g.clip();
-  const diam = Rin * 2.02, k = Math.max(1, Math.ceil(diam / PT_N)), up = pt_mk(PT_N * k, PT_N * k), ug = up.getContext('2d');
+  const diam = Rin * 2.02, CR = 82, k = Math.max(1, Math.ceil(diam / CR)), up = pt_mk(PT_N * k, PT_N * k), ug = up.getContext('2d');
   ug.imageSmoothingEnabled = false; ug.drawImage(buf, 0, 0, PT_N * k, PT_N * k);
   g.imageSmoothingEnabled = true; if ('imageSmoothingQuality' in g) g.imageSmoothingQuality = 'high';
-  g.drawImage(up, -diam / 2, -diam / 2, diam, diam);
+  g.drawImage(up, 7 * k, 5 * k, CR * k, CR * k, -diam / 2, -diam / 2, diam, diam);
   const vg = g.createRadialGradient(-Rin * .15, -Rin * .2, Rin * .55, 0, 0, Rin * 1.02); vg.addColorStop(0, 'rgba(8,6,16,0)'); vg.addColorStop(1, 'rgba(8,6,16,.5)'); g.fillStyle = vg; g.fillRect(-Rin, -Rin, Rin * 2, Rin * 2);
   g.shadowColor = 'rgba(0,0,0,.75)'; g.shadowBlur = bw * .9; g.shadowOffsetX = bw * .22; g.shadowOffsetY = bw * .3; g.strokeStyle = '#000'; g.lineWidth = bw; g.beginPath(); g.arc(0, 0, Rin + bw * .5, 0, 7); g.stroke();
   g.restore();

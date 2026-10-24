@@ -77,10 +77,11 @@ function brushF(u, v, ca, sa, len, wid, s) {
   return (t - .5) * 1.5 + hair * .55 - ridge;
 }
 /* per-pixel material canvas: fn(u, v, out[3]) in local units, ks texels per unit */
-function matCanvas(w, h, ks, fn) {
-  const W = Math.max(1, Math.ceil(w * ks)), H = Math.max(1, Math.ceil(h * ks)), c = mk(W, H), g = ctx2(c), id = g.createImageData(W, H), d = id.data, o = [0, 0, 0];
+function matCanvas(w, h, ks, fn, ky) {
+  ky = ky || ks;
+  const W = Math.max(1, Math.ceil(w * ks)), H = Math.max(1, Math.ceil(h * ky)), c = mk(W, H), g = ctx2(c), id = g.createImageData(W, H), d = id.data, o = [0, 0, 0];
   for (let y = 0, i = 0; y < H; y++) {
-    const v = (y + .5) / ks;
+    const v = (y + .5) / ky;
     for (let x = 0; x < W; x++, i += 4) { o[0] = o[1] = o[2] = 0; fn((x + .5) / ks, v, o); d[i] = o[0]; d[i + 1] = o[1]; d[i + 2] = o[2]; d[i + 3] = 255; }
   }
   g.putImageData(id, 0, 0); return c;

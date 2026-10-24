@@ -77,10 +77,11 @@ function brushF(u, v, ca, sa, len, wid, s) {
   return (t - .5) * 1.5 + hair * .55 - ridge;
 }
 /* per-pixel material canvas: fn(u, v, out[3]) in local units, ks texels per unit */
-function matCanvas(w, h, ks, fn) {
-  const W = Math.max(1, Math.ceil(w * ks)), H = Math.max(1, Math.ceil(h * ks)), c = mk(W, H), g = ctx2(c), id = g.createImageData(W, H), d = id.data, o = [0, 0, 0];
+function matCanvas(w, h, ks, fn, ky) {
+  ky = ky || ks;
+  const W = Math.max(1, Math.ceil(w * ks)), H = Math.max(1, Math.ceil(h * ky)), c = mk(W, H), g = ctx2(c), id = g.createImageData(W, H), d = id.data, o = [0, 0, 0];
   for (let y = 0, i = 0; y < H; y++) {
-    const v = (y + .5) / ks;
+    const v = (y + .5) / ky;
     for (let x = 0; x < W; x++, i += 4) { o[0] = o[1] = o[2] = 0; fn((x + .5) / ks, v, o); d[i] = o[0]; d[i + 1] = o[1]; d[i + 2] = o[2]; d[i + 3] = 255; }
   }
   g.putImageData(id, 0, 0); return c;
@@ -563,13 +564,13 @@ function paintFloor(ctx, S) {
     };
   }
   // compose in local floor space, then transform into the scene
-  const ks = 1.0, lc = fn ? matCanvas(W, H, ks, fn) : mk(W * ks, H * ks), lg = ctx2(lc);
+  const ks = .8, lc = fn ? matCanvas(W, H, ks, fn) : mk(W * ks, H * ks), lg = ctx2(lc);
   lg.save(); lg.scale(ks, ks);
   if (!fn) { lg.fillStyle = css(gr([60, 44, 38])); lg.fillRect(0, 0, W, H); }
   if (post) post(lg);
   // directional over-strokes: a sparse layer of real bristle strokes so the brush reads at play zoom
   const ang = type === 'wood' ? 0 : type === 'asphalt' ? .1 : -.5;
-  for (let i = 0, n = W * H / 1500; i < n; i++) {
+  for (let i = 0, n = W * H / 2600; i < n; i++) {
     const x = r() * W, y = r() * H, lite = r() < .5;
     bristle(lg, x, y, ang + r.g() * (type === 'wood' ? .05 : .5), r.r(16, 46), r.r(2, 5), lite ? [255, 236, 200] : [20, 14, 24], lite ? .045 : .07, r);
   }
@@ -774,8 +775,8 @@ function paintWall(ctx, S, side) {
     };
   }
   if (fn) {
-    const ks = 1.5, lc = matCanvas(len, WH, ks, fn), lg = ctx2(lc);
-    lg.scale(ks, ks);
+    const ks = .85, ky = 1.5, lc = matCanvas(len, WH, ks, fn, ky), lg = ctx2(lc);
+    lg.scale(ks, ky);
     wallDecor(lg, S, side, len, type, P, gr, dark, seed);
     ctx.save(); wallFrame(ctx, S, side); ctx.drawImage(lc, 0, 0, len, WH); ctx.restore();
   } else {
@@ -2888,31 +2889,51 @@ function glassTube(g, x, yb, h, w, glowCol, a) {   // vertical valve / glass tub
 
 /* ---- dorm ---- */
 PROPS.bunk = function (g, S, p, I) {
-  const { r, v, u0, v0, u1, v1 } = I, wood = [[96, 70, 52], [84, 74, 66], [110, 84, 56], [76, 80, 84]][v];
-  const bl = [[[70, 92, 110], [196, 190, 170]], [[120, 124, 122], [210, 206, 190]], [[168, 130, 70], [220, 210, 180]], [[140, 56, 52], [226, 214, 190]]][v];
+  const { r, v, u0, v0, u1, v1 } = I, metal = v === 1 || v === 3, frame = metal ? [70, 78, 80] : [[96, 70, 52], [84, 74, 66], [110, 84, 56], [76, 80, 84]][v];
+  const bl = [[[66, 84, 100], [196, 190, 170]], [[112, 116, 112], [210, 206, 190]], [[150, 118, 66], [220, 210, 180]], [[130, 52, 48], [226, 214, 190]]][v];
   contactShadow(g, S, u0, v0, u1, v1, 1);
-  const post = (u, vv, z0, z1) => vbar(g, S, r, u, vv, z0, z1, 5.4, mul(wood, .8), { lit: [[255, 200, 140], [10, 12, 24], 0, .6, .5] });
-  post(u0 + .08, v0 + .1, 0, 104); post(u1 - .08, v0 + .1, 0, 104);
-  // lower bunk
-  const deck = (z, tidy) => {
-    fcs(g, S, r, u0 + .04, v0 + .06, u1 - .04, v1 - .06, z, z + 5, wood, { alt: [200, 150, 100], dens: 30 });
-    fcs(g, S, r, u0 + .08, v0 + .1, u1 - .08, v1 - .1, z + 5, z + 12, bl[0], { alt: mul(bl[0], 1.4), dens: 22, kt: 1.15 });
-    const a = gp(S, u0 + .08, v0 + .1, z + 12), b = gp(S, u1 - .08, v0 + .1, z + 12), c = gp(S, u1 - .08, v1 - .1, z + 12), d = gp(S, u0 + .08, v1 - .1, z + 12);
-    // pillow
-    const pa = gp(S, u0 + .14, v0 + .16, z + 12), pb = gp(S, u0 + .5, v0 + .16, z + 12), pc = gp(S, u0 + .5, v1 - .16, z + 12), pd = gp(S, u0 + .14, v1 - .16, z + 12);
-    paintPoly(g, [pa, pb, pc, pd], bl[1], r, { n: 10, ink: true, inkw: 1.1, ang: .46, ew: .8 });
-    // blanket stripes / fold
-    g.strokeStyle = css(mul(bl[0], .6), .5); g.lineWidth = 1.2; for (let k = 1; k < 4; k++) { const t = .5 + k * .11; const q0 = gp(S, lerp(u0, u1, t), v0 + .1, z + 12), q1 = gp(S, lerp(u0, u1, t), v1 - .1, z + 12); g.beginPath(); g.moveTo(q0[0], q0[1]); g.lineTo(q1[0], q1[1]); g.stroke(); }
-    if (v === 2 && !tidy) { const q = gp(S, u0 + 1.4, (v0 + v1) / 2, z + 14); paintEll(g, q[0], q[1] - 2, 11, 5, mul(bl[0], 1.1), r, { n: 8, ink: true }); }   // rumpled lump
+  const post = (u, vv, z0, z1) => metal ? vbar(g, S, r, u, vv, z0, z1, 4, frame) : fcs(g, S, r, u - .05, vv - .05, u + .05, vv + .05, z0, z1, mul(frame, .85), { ink: true, inkw: 1, grime: .2, mat: 'wood', vert: true, wear: .3 });
+  post(u0 + .08, v0 + .1, 0, 108); post(u1 - .08, v0 + .1, 0, 108);
+  // boots and a cardboard suitcase under the lower bunk
+  { const q = gp(S, u0 + .6, v1 - .2, 0); for (const dx of [0, 7]) { paintPoly(g, [[q[0] + dx - 3, q[1]], [q[0] + dx + 5, q[1] - 2], [q[0] + dx + 6, q[1] - 6], [q[0] + dx + 2, q[1] - 12], [q[0] + dx - 2, q[1] - 12], [q[0] + dx - 3, q[1] - 5]], [36, 28, 24], r, { n: 3, ink: true, inkw: .8, edge: false }); } }
+  if (r() < .7) fcs(g, S, r, u1 - .9, v0 + .3, u1 - .3, v1 - .15, 0, 8, [120, 96, 66], { ink: true, inkw: 1, rim: true, wear: .5, under: [70, 50, 34] });
+  const deck = (z, made, upper) => {
+    // slats / spring frame, striped ticking mattress
+    fcs(g, S, r, u0 + .04, v0 + .06, u1 - .04, v1 - .06, z, z + 4, frame, { mat: metal ? 'metal' : 'wood', ink: true, inkw: 1, wear: .3, grime: .2 });
+    fcs(g, S, r, u0 + .08, v0 + .1, u1 - .08, v1 - .1, z + 4, z + 11, [196, 188, 166], { mat: 'fabric', ink: true, inkw: 1, kt: 1.1, grime: .4 });
+    g.save(); faceL(g, S, u0 + .08, v1 - .1, z + 11); g.strokeStyle = css([60, 80, 110], .5); g.lineWidth = 1.4; for (let x = 4; x < (u1 - u0 - .16) * 64; x += 6) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 7); g.stroke(); } g.restore();
+    // pillow: plump, creased, at the u0 end
+    const pu = u0 + .32, pv = (v0 + v1) / 2, pq = gp(S, pu, pv, z + 13);
+    const PP = ellPts(pq[0], pq[1], 17, 8, 14, .46, r, .12);
+    paintPoly(g, PP, bl[1], r, { n: 8, ink: true, inkw: 1, edge: false, alt: [240, 236, 220] });
+    prShade(g, PP, pq[0] - 14, pq[1] - 7, pq[0] + 12, pq[1] + 7, [[0, [255, 240, 210], .3], [1, [40, 40, 70], .35]]);
+    g.strokeStyle = css([120, 110, 100], .5); g.lineWidth = .9; g.beginPath(); g.moveTo(pq[0] - 6, pq[1] - 2); g.quadraticCurveTo(pq[0], pq[1] + 1, pq[0] + 6, pq[1] - 1); g.stroke();
+    // wool blanket: covers the rest, folds down over the front edge, turned-down sheet, stripe band
+    const bu0 = u0 + .55, top = z + 12.5;
+    const T = [gp(S, bu0, v0 + .08, top), gp(S, u1 - .06, v0 + .08, top), gp(S, u1 - .06, v1 - .06, top), gp(S, bu0, v1 - .06, top)];
+    paintPoly(g, T, bl[0], r, { n: 18, ang: .46, ink: false, edge: false, alt: mul(bl[0], 1.3) }); prTexFill(g, T, 'weave', 1, (k) => faceT(k, S, bu0, v0, top));
+    prShade(g, T, T[0][0], T[0][1], T[2][0], T[2][1], [[0, [20, 24, 44], .2], [1, [255, 220, 170], .15]]);
+    const F = [gp(S, bu0, v1 - .06, top), gp(S, u1 - .06, v1 - .06, top), gp(S, u1 - .06, v1 - .04, z + 2), gp(S, bu0 + .05, v1 - .04, z + 1)];
+    paintPoly(g, F, mul(bl[0], .7), r, { n: 10, ang: 1.57, ink: false, edge: false }); prTexFill(g, F, 'weave', 1);
+    prShade(g, F, 0, F[0][1], 0, F[3][1], [[0, [255, 220, 170], .12], [1, PR_AO, .4]]);
+    for (let k = 0; k < 4; k++) { const t = (k + .5) / 4, a = gp(S, lerp(bu0, u1 - .06, t), v1 - .06, top), b = gp(S, lerp(bu0, u1 - .06, t) + .03, v1 - .04, z + 2); prLine(g, a, b, mul(bl[0], .45), .5, 1.6); }
+    const SR = gp(S, u1 - .06, v1 - .05, top), SR2 = gp(S, u1 - .06, v0 + .08, top);
+    prLine(g, gp(S, bu0 + .05, v0 + .08, top + .2), gp(S, bu0 + .05, v1 - .06, top + .2), bl[1], .95, 3.2);   // turned-down sheet
+    g.save(); faceT(g, S, bu0, v0 + .08, top + .1); g.fillStyle = css([226, 214, 186], .6); g.fillRect(14, 0, 6, (v1 - v0 - .14) * 64); g.restore();   // stripe band
+    ink(g, [T[0], T[1], SR, F[2], F[3], T[3]], r, 1.2, null, .7);
+    if (!made) { for (let k = 0; k < 3; k++) { const q = gp(S, lerp(bu0 + .2, u1 - .3, r()), lerp(v0 + .2, v1 - .3, r()), top); const P = ellPts(q[0], q[1] - 2, r.r(8, 14), r.r(3, 5), 9, .4, r, .3); paintPoly(g, P, mul(bl[0], 1.1), r, { n: 4, ink: false, edge: false }); prShade(g, P, q[0] - 10, q[1] - 6, q[0] + 10, q[1] + 2, [[0, [255, 220, 170], .3], [1, [10, 10, 30], .35]]); } }
+    // personal items: a book, a letter, a photo
+    if (r() < .6) prBookFlat(g, S, r, u1 - .45, v0 + .3, top, .24, .17, 2.4);
+    if (r() < .5) prSheet(g, S, r, u0 + .8, v1 - .3, top + .2, .2, .14, r(), { ink: [40, 50, 110] });
   };
-  deck(18); 
-  // upper bunk (further back so the lower is visible)
-  for (const [uu, vv] of [[u0 + .08, v1 - .1], [u1 - .08, v1 - .1]]) post(uu, vv, 0, 104);
-  deck(66, v === 1);
-  // guard rail + ladder at the right end
-  const ra = gp(S, u0 + .1, v1 - .08, 92), rb = gp(S, u1 - .1, v1 - .08, 92); g.strokeStyle = css(mul(wood, .7), .95); g.lineWidth = 3; g.beginPath(); g.moveTo(ra[0], ra[1]); g.lineTo(rb[0], rb[1]); g.stroke(); g.strokeStyle = css(INK, .6); g.lineWidth = .8; g.stroke();
-  for (let k = 0; k < 4; k++) { const q0 = gp(S, u1 - .02, v1 - .22, 18 + k * 13), q1 = gp(S, u1 - .02, v0 + .22, 18 + k * 13); g.strokeStyle = css(mul(wood, 1.1), .95); g.lineWidth = 2.6; g.beginPath(); g.moveTo(q0[0], q0[1]); g.lineTo(q1[0], q1[1]); g.stroke(); }
-  if (v === 0) { const q = gp(S, u0 + .3, v1 - .06, 80); g.fillStyle = css([226, 220, 190], .85); g.fillRect(q[0] - 7, q[1] - 5, 14, 9); g.strokeStyle = css(INK, .7); g.lineWidth = 1; g.strokeRect(q[0] - 7, q[1] - 5, 14, 9); scribbleLines(g, r, q[0] - 5, q[1] - 2, 10, 2, 3, [30, 30, 36], .8); }
+  deck(18, v === 1);
+  for (const [uu, vv] of [[u0 + .08, v1 - .1], [u1 - .08, v1 - .1]]) post(uu, vv, 0, 108);
+  deck(66, v !== 2, true);
+  // guard rail, ladder, a towel over the rail, a taped photo on the post
+  const ra = gp(S, u0 + .1, v1 - .08, 92), rb = gp(S, u1 - .1, v1 - .08, 92); prLine(g, ra, rb, INK, .85, 4.6); prLine(g, ra, rb, metal ? frame : mul(frame, .9), 1, 3); prLine(g, [ra[0], ra[1] - 1], [rb[0], rb[1] - 1], [255, 210, 160], .35, .8);
+  for (let k = 0; k < 4; k++) { const q0 = gp(S, u1 - .02, v1 - .22, 18 + k * 13), q1 = gp(S, u1 - .02, v0 + .22, 18 + k * 13); prLine(g, q0, q1, INK, .8, 4); prLine(g, q0, q1, mul(frame, 1.15), 1, 2.4); }
+  { const t = r.r(.3, .6), a = gp(S, lerp(u0, u1, t), v1 - .08, 92); const tc = r.p([[200, 70, 60], [226, 220, 200], [80, 110, 140]]); const P = [[a[0] - 7, a[1] - 3], [a[0] + 7, a[1] + 1], [a[0] + 8, a[1] + 18], [a[0] - 6, a[1] + 14]]; paintPoly(g, P, tc, r, { n: 4, ink: true, inkw: .8, edge: false }); prTexFill(g, P, 'weave', 1); g.fillStyle = css([255, 255, 255], .3); g.fillRect(a[0] - 6, a[1] + 8, 13, 1.4); }
+  if (v === 0) { const q = gp(S, u0 + .08, v1 - .1, 86); g.save(); g.translate(q[0] + 3, q[1]); g.rotate(.08); g.fillStyle = css([236, 230, 214]); g.fillRect(-5, -6, 10, 12); g.fillStyle = css([90, 84, 76]); g.fillRect(-4, -5, 8, 8); g.fillStyle = css([160, 150, 130]); g.beginPath(); g.arc(0, -2, 1.8, 0, 7); g.fill(); g.fillStyle = css([230, 220, 170], .7); g.fillRect(-3, -7.5, 6, 2.4); g.restore(); }
 };
 PROPS.wardrobe = function (g, S, p, I) {
   const { r, v } = I, F = frontFace(I), wood = [[104, 66, 44], [118, 148, 126], [112, 120, 122], [130, 90, 58]][v], H = 132;
@@ -3308,44 +3329,27 @@ WALLPROPS.antenna = function (g, S, p, I) {
 };
 WALLPROPS.poster_wall = function (g, S, p, I) {
   const { r, u0, len, Y, v } = I, top = Y(132), bot = Y(4), hgt = bot - top;
-  paintRect(g, u0, top, len, hgt, [88, 72, 58], r, { n: len / 2, sw: 5, ang: 1.57, ink: true, inkw: 2, alt: [140, 120, 96], ew: 1.4 });
-  const paper = [[170, 36, 38], [226, 208, 160], [58, 92, 84], [206, 154, 60], [44, 48, 62], [196, 180, 146], [150, 40, 52], [86, 112, 96], [232, 226, 204]];
-  const slog = ['WORK', 'ONE BELL', 'LISTEN', 'HARMONY', 'QUIET', 'OBEY', 'TOGETHER', 'WATCH', 'PROGRESS', 'THE WARDEN HEARS', 'BE SILENT', 'REPORT'];
-  const N = Math.round(len / 9);
-  for (let i = 0; i < N; i++) {
-    const w = r.r(38, 86), h = r.r(46, 104), x = u0 + r.r(-10, len - w + 10), y = top + r.r(-8, hgt - h + 8), rot = (r() - .5) * .1, col = jit(r.p(paper), r, .08), cx = x + w / 2, cy = y + h / 2;
-    g.save(); g.translate(cx, cy); g.rotate(rot); g.translate(-cx, -cy);
-    g.fillStyle = css([6, 4, 14], .32); g.fillRect(x + 2, y + 3, w, h);
-    g.save();
-    const pts = [[x, y], [x + w * .5, y - r() * 3], [x + w, y], [x + w + r.r(-3, 2), y + h * .5], [x + w, y + h], [x + w * .55, y + h + r.r(-6, 2)], [x + w * .3, y + h - r.r(0, 8)], [x, y + h]];
-    if (r() < .5) { pts.splice(6, 0, [x + w * .18, y + h - r.r(10, 22)], [x + w * .08, y + h - r.r(2, 8)]); }
-    pathPoly(g, pts, r, 3); g.clip();
-    g.fillStyle = css(col); g.fillRect(x - 4, y - 4, w + 8, h + 8);
-    for (let k = 0; k < 6; k++) bristle(g, x + r() * w, y + r() * h, r() * 3, 14, 4, jit(col, r, .14), .4, r);
-    const dk = lum(col) < 110, ink = dk ? [236, 222, 176] : [34, 28, 30], acc = dk ? [210, 70, 56] : [170, 36, 38];
-    const kind = r();
-    if (kind < .42) { handText(g, r.p(slog), cx, y + h * .3, Math.min(22, w * .3), ink, r, w - 8, { shadow: [0, 0, 0, 0] }); handText(g, r.p(slog), cx, y + h * .64, Math.min(14, w * .22), acc, r, w - 10, { shadow: [0, 0, 0, 0] }); g.fillStyle = css(acc, .9); g.fillRect(x + 4, y + h - 10, w - 8, 4); }
-    else if (kind < .62) { g.fillStyle = css(acc, .95); g.beginPath(); for (let k = 0; k < 10; k++) { const a = k * .6283 - 1.57, rr = k % 2 ? w * .12 : w * .28; g.lineTo(cx + Math.cos(a) * rr, y + h * .38 + Math.sin(a) * rr); } g.fill(); handText(g, r.p(slog), cx, y + h * .8, Math.min(12, w * .2), ink, r, w - 8, { shadow: [0, 0, 0, 0] }); }
-    else if (kind < .78) { g.fillStyle = css(acc, .8); for (let k = 0; k < 9; k++) { const a = -2.2 + k * .35; g.beginPath(); g.moveTo(cx, y + h * .75); g.lineTo(cx + Math.cos(a) * w, y + h * .75 + Math.sin(a) * w); g.lineTo(cx + Math.cos(a + .14) * w, y + h * .75 + Math.sin(a + .14) * w); g.fill(); }
-      paintPoly(g, [[cx - 8, y + h], [cx - 9, y + h * .6], [cx - 4, y + h * .48], [cx + 4, y + h * .48], [cx + 9, y + h * .6], [cx + 8, y + h]], dk ? [30, 26, 30] : [60, 50, 50], r, { n: 6, ink: false }); paintEll(g, cx, y + h * .4, 5, 6, [196, 150, 120], r, { n: 6, ink: true, inkw: .8 }); }
-    else if (kind < .9) { g.strokeStyle = css(ink, .8); g.lineWidth = 1.6; g.strokeRect(x + 5, y + 5, w - 10, h - 10); handText(g, 'WANTED', cx, y + 15, 12, ink, r, w - 16, { shadow: [0, 0, 0, 0] }); paintEll(g, cx, y + h * .5, w * .2, h * .2, [190, 160, 130], r, { n: 8, ink: true, inkw: 1 }); scribbleLines(g, r, x + 9, y + h - 20, w - 18, 3, 5, ink, .7); }
-    else { scribbleLines(g, r, x + 6, y + 10, w - 12, Math.floor((h - 14) / 5), 5, ink, .55); handText(g, 'NOTICE', cx, y + 6, 8, acc, r, w - 12, { shadow: [0, 0, 0, 0] }); }
-    // tear shading along the ripped edges
-    g.strokeStyle = css([20, 12, 10], .5); g.lineWidth = 2; pathPoly(g, pts); g.stroke();
-    g.restore();
-    paintPoly(g, [[x + w, y + h], [x + w - r.r(8, 16), y + h + 1], [x + w - 2, y + h - r.r(8, 16)]], mul(col, 1.18), r, { n: 3, ink: true, inkw: .8, ew: .5 });   // curling corner
-    g.restore();
-  }
-  for (let i = 0; i < len / 40; i++) { const x = u0 + r() * len; g.fillStyle = css([226, 210, 170], .12 + r() * .1); g.fillRect(x, top + r() * hgt * .4, r.r(1.4, 3.4), r.r(18, 60)); }
-  g.save(); g.fillStyle = css([6, 4, 14], .0); const gg = g.createLinearGradient(0, top, 0, bot); gg.addColorStop(0, 'rgba(8,6,16,.4)'); gg.addColorStop(.22, 'rgba(8,6,16,0)'); gg.addColorStop(1, 'rgba(8,6,16,.38)'); g.fillStyle = gg; g.fillRect(u0, top, len, hgt); g.restore();
-  // chalk graffiti: a tiny bell with an X
-  g.strokeStyle = css([240, 240, 226], .55); g.lineWidth = 1.6; const gx = u0 + len * .66, gy = Y(36); g.beginPath(); g.moveTo(gx - 6, gy + 8); g.quadraticCurveTo(gx - 6, gy - 8, gx, gy - 9); g.quadraticCurveTo(gx + 6, gy - 8, gx + 6, gy + 8); g.closePath(); g.moveTo(gx - 9, gy - 8); g.lineTo(gx + 9, gy + 10); g.moveTo(gx + 9, gy - 8); g.lineTo(gx - 9, gy + 10); g.stroke();
+  const B = [[u0, top], [u0 + len, top], [u0 + len, bot], [u0, bot]];
+  paintPoly(g, B, [88, 72, 58], r, { n: len / 2, sw: 5, ang: 1.57, ink: true, inkw: 2, alt: [140, 120, 96], ew: 1.4, edge: false });
+  prTexFill(g, B, 'streak', 1); prTexFill(g, B, 'speck', .6);
+  // three generations of paste: old faded layer, the current campaign, fresh notices on top
+  prPosterLayer(g, S, r, u0, top + 2, len, hgt - 10, Math.round(len / 22), 'pw0' + p.x);
+  g.save(); g.globalAlpha = .35; g.fillStyle = css([220, 206, 170]); g.fillRect(u0, top, len, hgt); g.restore();   // sun-bleached under-layer
+  prPosterLayer(g, S, r, u0 + 6, top + 10, len - 12, hgt - 30, Math.round(len / 34), 'pw1' + p.x);
+  prPosterLayer(g, S, r, u0 + 20, top + 30, len - 40, hgt - 70, Math.max(2, Math.round(len / 90)), 'pw2' + p.x);
+  const gg = g.createLinearGradient(0, top, 0, bot); gg.addColorStop(0, 'rgba(8,6,16,.4)'); gg.addColorStop(.22, 'rgba(8,6,16,0)'); gg.addColorStop(.8, 'rgba(8,6,16,0)'); gg.addColorStop(1, 'rgba(8,6,16,.45)'); g.fillStyle = gg; g.fillRect(u0, top, len, hgt);
+  prTexFill(g, B, 'grime', .9);
+  // dissident chalk: a bell crossed out, and WAKE UP scrawled across a face
+  g.strokeStyle = css([240, 240, 226], .6); g.lineWidth = 1.6; const gx = u0 + len * .66, gy = Y(36); g.beginPath(); g.moveTo(gx - 6, gy + 8); g.quadraticCurveTo(gx - 6, gy - 8, gx, gy - 9); g.quadraticCurveTo(gx + 6, gy - 8, gx + 6, gy + 8); g.closePath(); g.moveTo(gx - 9, gy - 8); g.lineTo(gx + 9, gy + 10); g.moveTo(gx + 9, gy - 8); g.lineTo(gx - 9, gy + 10); g.stroke();
+  handText(g, 'WAKE UP', u0 + len * .3, Y(56), 13, [236, 236, 220], r, 70, { shadow: false, alpha: .6, family: '"Comic Sans MS","Segoe Print",cursive' });
+  // a paste bucket and brush left at the foot
+  { const bx = u0 + len * .82; paintRect(g, bx, Y(18), 14, 14, [120, 124, 120], r, { n: 3, ink: true, inkw: 1, ang: 1.57, edge: false }); g.fillStyle = css([226, 220, 196], .9); g.fillRect(bx + 1, Y(18), 12, 2); prLine(g, [bx + 9, Y(16)], [bx + 18, Y(40)], [110, 80, 50], 1, 2); }
   paintRect(g, u0, top - 6, len, 6, [56, 46, 40], r, { n: len / 6, ink: true, ang: 0 });
 };
 
 /* ---- tower ---- */
 PROPS.bigbell = function (g, S, p, I) {
-  const { r, v, u0, v0, u1, v1 } = I, cu = (u0 + u1) / 2, cv = (v0 + v1) / 2, bronze = v === 1 ? [92, 150, 120] : [186, 128, 54], timber = [92, 66, 46];
+  const { r, v, u0, v0, u1, v1 } = I, cu = (u0 + u1) / 2, cv = (v0 + v1) / 2, bronze = v === 1 ? [92, 150, 120] : [168, 112, 50], timber = [92, 66, 46];
   contactShadow(g, S, cu - 1.3, cv - .9, cu + 1.3, cv + .9, 1.3);
   g.fillStyle = css([6, 4, 14], .3); { const b = gp(S, cu, cv, 0); g.beginPath(); g.ellipse(b[0] - 6, b[1] + 3, 64, 26, -.05, 0, 7); g.fill(); }
   const post = (uu, vv, top, w) => vbar(g, S, r, uu, vv, 0, top, w, timber, { lit: [[255, 200, 140], [10, 12, 24], 0, .6, .5], alt: [150, 110, 76] });
@@ -3365,19 +3369,30 @@ PROPS.bigbell = function (g, S, p, I) {
   for (let i = 0; i <= 14; i++) { const a = i / 14 * Math.PI; arc.push([mc[0] + Math.cos(a) * ecx(mr), mc[1] + Math.sin(a) * ecy(mr)]); }
   const body = L.concat(arc.reverse()).concat(R.reverse());
   g.save(); g.translate(0, 0);
-  // dark interior sliver under the lip, then the body
+  // dark interior sliver under the lip, then the cast-bronze body
   paintPoly(g, ellPts(mc[0], mc[1] + 1.5, ecx(mr) * .96, ecy(mr) * .98, 24, 0, r, .01), [14, 8, 6], r, { n: 4, ink: true, inkw: 1.8 });
-  paintPoly(g, body, bronze, r, { n: 260, sw: 5, sl: 60, ang: 1.5, aj: .25, ink: true, inkw: 2.6, alt: mix(bronze, [255, 220, 130], .4), jv: .16, lit: [mix(bronze, [255, 230, 150], .35), mix(mul(bronze, .3), [20, 30, 70], .4), Math.PI, .6, .7], ew: 2 });
+  paintPoly(g, body, bronze, r, { n: 200, sw: 5, sl: 50, ang: 1.5, aj: .25, ink: false, alt: mix(bronze, [255, 220, 130], .35), jv: .14, edge: false });
   g.save(); pathPoly(g, body); g.clip();
-  // inscription bands (front arcs) with relief studs
-  for (const z of [132, 108, 70]) { const c0 = gp(S, cu, cv, z), rd = prof(z); g.strokeStyle = css(mul(bronze, .45), .85); g.lineWidth = 3.2; g.beginPath(); g.ellipse(c0[0], c0[1], ecx(rd), ecy(rd), 0, 0, Math.PI); g.stroke(); g.strokeStyle = css(mix(bronze, [255, 230, 150], .6), .7); g.lineWidth = 1.2; g.beginPath(); g.ellipse(c0[0], c0[1] - 2.4, ecx(rd), ecy(rd), 0, .1, Math.PI - .1); g.stroke(); }
-  const ib = gp(S, cu, cv + prof(120) * .9, 120); handText(g, 'SCHOOL No. 9', ib[0] - 4, ib[1] - 6, 9, mul(bronze, .38), r, 60, { shadow: [255, 220, 150, .0], font: 'bold' });
-  for (let k = 0; k < 10; k++) { const a = .2 + k * .27, z = 90, c0 = gp(S, cu, cv, z), rd = prof(z); g.fillStyle = css(mix(bronze, [255, 230, 150], .5), .8); g.beginPath(); g.arc(c0[0] + Math.cos(a) * ecx(rd) * .92, c0[1] + Math.sin(a) * ecy(rd) * .92, 1.8, 0, 7); g.fill(); }
+  const bx0 = mc[0] - ecx(mr), bx1 = mc[0] + ecx(mr), btop = gp(S, cu, cv, 172)[1];
+  // cylindrical volume: cold teal shadow side, deep core, polished warm highlight, hot reflected rim
+  { const gr = g.createLinearGradient(bx0, 0, bx1, 0); gr.addColorStop(0, 'rgba(30,70,90,.7)'); gr.addColorStop(.18, 'rgba(20,30,50,.45)'); gr.addColorStop(.42, 'rgba(0,0,0,0)'); gr.addColorStop(.6, 'rgba(255,226,150,.35)'); gr.addColorStop(.68, 'rgba(255,246,210,.42)'); gr.addColorStop(.76, 'rgba(0,0,0,0)'); gr.addColorStop(.9, 'rgba(30,16,10,.35)'); gr.addColorStop(1, 'rgba(255,150,60,.6)'); g.fillStyle = gr; g.fillRect(bx0 - 4, btop - 10, bx1 - bx0 + 8, mc[1] - btop + 30); }
+  // verdigris: green-blue patina pooled at the crown and in the band recesses, running down in streaks
+  { const pg = g.createLinearGradient(0, btop, 0, mc[1]); pg.addColorStop(0, 'rgba(90,160,130,.55)'); pg.addColorStop(.35, 'rgba(90,160,130,.18)'); pg.addColorStop(1, 'rgba(90,160,130,.05)'); g.fillStyle = pg; g.fillRect(bx0 - 4, btop - 10, bx1 - bx0 + 8, mc[1] - btop + 30); }
+  for (let i = 0; i < 46; i++) { const x = lerp(bx0, bx1, r()), z = r.r(60, 172), q = gp(S, cu, cv, z), l = r.r(8, 46); g.strokeStyle = css(r() < .7 ? [96, 170, 140] : [140, 200, 176], .14 + r() * .22); g.lineWidth = r.r(1, 3.4); g.beginPath(); g.moveTo(x, q[1] - 30); g.quadraticCurveTo(x + r.r(-2, 2), q[1] - 30 + l * .5, x + r.r(-1.5, 1.5), q[1] - 30 + l); g.stroke(); }
+  for (let i = 0; i < 16; i++) { const q = [lerp(bx0, bx1, r()), lerp(btop + 10, mc[1], r())], rr = r.r(3, 9), gr = g.createRadialGradient(q[0], q[1], 0, q[0], q[1], rr); gr.addColorStop(0, 'rgba(110,180,150,.4)'); gr.addColorStop(1, 'rgba(110,180,150,0)'); g.fillStyle = gr; g.fillRect(q[0] - rr, q[1] - rr, rr * 2, rr * 2); }
+  // the polished strike zone near the lip, worn bright by a century of the clapper
+  { const sq = gp(S, cu, cv, 48), gr = g.createRadialGradient(sq[0] + 14, sq[1] + 8, 2, sq[0] + 14, sq[1] + 8, 30); gr.addColorStop(0, 'rgba(255,214,140,.5)'); gr.addColorStop(1, 'rgba(255,214,140,0)'); g.fillStyle = gr; g.fillRect(sq[0] - 20, sq[1] - 24, 70, 60); }
+  // inscription bands (front arcs) with relief studs and cast lettering
+  for (const z of [132, 108, 70]) { const c0 = gp(S, cu, cv, z), rd = prof(z); g.strokeStyle = css(mul(bronze, .4), .85); g.lineWidth = 3.4; g.beginPath(); g.ellipse(c0[0], c0[1], ecx(rd), ecy(rd), 0, 0, Math.PI); g.stroke(); g.strokeStyle = css([110, 180, 150], .45); g.lineWidth = 1.6; g.beginPath(); g.ellipse(c0[0], c0[1] + 1.6, ecx(rd), ecy(rd), 0, .1, Math.PI - .1); g.stroke(); g.strokeStyle = css(mix(bronze, [255, 230, 150], .6), .7); g.lineWidth = 1.2; g.beginPath(); g.ellipse(c0[0], c0[1] - 2.4, ecx(rd), ecy(rd), 0, .1, Math.PI - .1); g.stroke(); }
+  const ib = gp(S, cu, cv + prof(120) * .9, 120); prBlock(g, 'ONE BELL · ONE UNION', ib[0] - 2, ib[1] - 5, 8, mul(bronze, .36), 74, { alpha: .9 }); prBlock(g, 'ONE BELL · ONE UNION', ib[0] - 2.8, ib[1] - 5.8, 8, mix(bronze, [255, 230, 160], .5), 74, { alpha: .35 });
+  const ib2 = gp(S, cu, cv + prof(86) * .9, 86); prBlock(g, 'SCHOOL No. 9  ·  CAST 1891', ib2[0], ib2[1] - 2, 6, mul(bronze, .38), 96, { alpha: .8 });
+  for (let k = 0; k < 12; k++) { const a = .2 + k * .23, z = 96, c0 = gp(S, cu, cv, z), rd = prof(z); g.fillStyle = css(mix(bronze, [255, 230, 150], .5), .8); g.beginPath(); g.arc(c0[0] + Math.cos(a) * ecx(rd) * .92, c0[1] + Math.sin(a) * ecy(rd) * .92, 1.8, 0, 7); g.fill(); g.fillStyle = css([30, 20, 10], .5); g.beginPath(); g.arc(c0[0] + Math.cos(a) * ecx(rd) * .92 + .8, c0[1] + Math.sin(a) * ecy(rd) * .92 + 1, 1.2, 0, 7); g.fill(); }
+  // cast relief of the bell emblem on the front, a chalked tally of the nights
+  { const q = gp(S, cu + .1, cv + prof(150) * .9, 150); prBellGlyph(g, q[0], q[1], 16, mul(bronze, .45), .9); prBellGlyph(g, q[0] - .8, q[1] - .8, 16, mix(bronze, [255, 230, 160], .4), .5); }
   if (v === 2) { g.strokeStyle = css([10, 6, 4], .95); g.lineWidth = 2; g.beginPath(); const s0 = gp(S, cu + .3, cv + .8, 110); g.moveTo(s0[0], s0[1]); g.lineTo(s0[0] + 3, s0[1] + 12); g.lineTo(s0[0] - 2, s0[1] + 26); g.lineTo(s0[0] + 4, s0[1] + 44); g.stroke(); }
-  if (v !== 1) for (let i = 0; i < 12; i++) { const q = gp(S, cu + r.r(-.5, .5), cv + .7, r.r(50, 160)); g.fillStyle = css([70, 130, 100], .16 + r() * .1); g.fillRect(q[0] + r.r(-4, 4), q[1], r.r(2, 6), r.r(12, 40)); }
-  // hot orange rim on the right edge, cold teal on the left
-  const rg = g.createLinearGradient(mc[0] - ecx(mr), 0, mc[0] + ecx(mr), 0); rg.addColorStop(0, 'rgba(20,60,90,.62)'); rg.addColorStop(.3, 'rgba(10,20,40,.2)'); rg.addColorStop(.62, 'rgba(255,214,140,.2)'); rg.addColorStop(.85, 'rgba(255,170,80,.1)'); rg.addColorStop(1, 'rgba(255,150,60,.55)'); g.fillStyle = rg; g.fillRect(mc[0] - ecx(mr) - 4, mc[1] - 160, ecx(mr) * 2 + 8, 200);
+  prTexFill(g, body, 'scratch', .6); prTexFill(g, body, 'grime', .7);
   g.restore();
+  ink(g, body, r, 2.6, null, .9);
   // heavy lip band
   g.strokeStyle = css(mix(bronze, [255, 230, 150], .35), .9); g.lineWidth = 4; g.beginPath(); g.ellipse(mc[0], mc[1], ecx(mr), ecy(mr), 0, 0, Math.PI); g.stroke(); g.strokeStyle = css(INK, .9); g.lineWidth = 1.2; g.stroke();
   // crown loops
@@ -3426,7 +3441,7 @@ PROPS.ropes = function (g, S, p, I) {
 };
 WALLPROPS.railing = function (g, S, p, I) {
   const { r, u0, len, Y, v } = I, sk = S.mood.sky || SKY[S.bucket], zOpen = 40, zTop = 126;
-  const wins = S.props.filter(q => q.t === 'window' && q.side === p.side).map(q => [wallStart(q) * 64 - 8, (wallStart(q) + wallLen(q)) * 64 + 8]);
+  const wins = S.props.filter(q => q.t === 'window' && q.side === p.side).map(q => [wallStart(q) * 64 - 8, (wallStart(q) + wallLen(q)) * 64 + 8]).map(w => I.mir ? [u0 * 2 + len - w[1], u0 * 2 + len - w[0]] : w);
   const pierW = 20, slot = 86; let x = u0 + 4;
   // parapet stone course
   paintRect(g, u0, Y(zOpen), len, zOpen, [92, 90, 86], r, { n: len / 3, sw: 5, ang: 0, ink: true, inkw: 1.8, alt: [136, 134, 124], ew: 1.4 });
@@ -3512,7 +3527,7 @@ function ch_idOf(look) {
   if (look._id) return look._id;
   let id = ch_ids.get(look); if (id !== undefined) return id;
   id = '';
-  try { const gd = typeof window !== 'undefined' && window.GD; if (gd && gd.npcs) for (const k in gd.npcs) if (gd.npcs[k] && gd.npcs[k].look === look) { id = k; break; } } catch (e) { /* ignore */ }
+  try { const gd = typeof window !== 'undefined' && window.GD; if (gd && gd.npcs) for (const k in gd.npcs) if (gd.npcs[k] && gd.npcs[k].look === look) { id = k; break; } if (!id && gd && gd.playerLook === look) id = 'player'; } catch (e) { /* ignore */ }
   ch_ids.set(look, id); return id;
 }
 
@@ -3688,7 +3703,7 @@ function ch_outfit(L, B, id) {
 function ch_armPlan(L, B, id, pose, walk, idleB, hsh) {
   const ex = L.extra || 'none';
   const sigs = { fenwick: 'clasp', lemmy: 'behind', rhea: 'crossed', gregor: 'behind', hob: 'clasp', brune: 'hipL', tomas: 'lap', wren: 'relax', player: 'relax', vasha: 'smoke', nadia: 'smoke', dov: 'smokeLow', anka: 'smokeSit' };
-  let plan = sigs[id] || ['relax', 'pockets', 'behind', 'relax', 'crossed', 'pockets'][hsh % 6];
+  let plan = sigs[id] || ['relax', 'relax', 'pockets', 'behind', 'relax', 'crossed'][hsh % 6];
   if (L.outfit === 'apron' && plan === 'pockets') plan = 'hipL';
   if (ex === 'cigarette') plan = pose === 'sit' || pose === 'wheelchair' ? 'smokeSit' : (id === 'dov' ? 'smokeLow' : 'smoke');
   else if (ex === 'clipboard') plan = pose === 'sit' || pose === 'wheelchair' ? 'clipLap' : 'clipChest';
@@ -3901,7 +3916,7 @@ function ch_render(L, id, yawDeg, pose, frame, idleB) {
     const hp = P(lg.hip), kn = P(lg.knee), an = P(lg.ank), lifted = lg.ank[1] > B.ankY + 3 && !M.hang;
     ext(hp, 10); ext(an, 8);
     const calf = P(vLerp(lg.knee, lg.ank, .32)), tr = trouserR;
-    const Rr = legBare ? [B.rThigh, B.rKnee, B.rCalf, B.rAnk] : [B.rThigh + tr, B.rKnee + tr + .5, B.rCalf + tr * .8, B.rAnk + tr + 1.1];
+    const Rr = legBare ? [B.rThigh, B.rKnee, B.rCalf, B.rAnk] : [B.rThigh + tr + .6, B.rKnee + tr + 2.6, B.rCalf + tr + 1.6, B.rAnk + tr + 3.2];
     const knS = M.sit ? 1.12 : 1;
     const pts = [[hp[0], hp[1]], [kn[0], kn[1]], [calf[0], calf[1]], [an[0], an[1] - 1]];
     // foot first when it points away (heel nearer), else after
@@ -4171,7 +4186,7 @@ function ch_render(L, id, yawDeg, pose, frame, idleB) {
 
   /* ---------- ARMS + HANDS + held items */
   const sleeveC = OF.o === 'shirtsleeves' ? C(OF.shirt) : C(OF.sleeve);
-  const sleeveR = OF.o === 'coat' ? 1.8 : OF.o === 'labcoat' ? 1.5 : OF.o === 'suit' || OF.o === 'uniform' || OF.o === 'cardigan' ? 1.1 : .8;
+  const sleeveR = OF.o === 'coat' ? 2.4 : OF.o === 'labcoat' ? 2.1 : OF.o === 'suit' || OF.o === 'uniform' || OF.o === 'cardigan' ? 1.7 : 1.3;
   const handGeo = (a) => {
     // hand frame: u along fingers, s across knuckles, n palm normal
     let u = vNorm(vSub(a.wr, a.el)); if (a.up) u = vNorm(vAdd(u, [0, 1.2, .5]));
@@ -4492,8 +4507,8 @@ function ch_render(L, id, yawDeg, pose, frame, idleB) {
       const al = s * 1.5, v = hVis(al, -.05);
       if (v < -.25) continue;
       if ((hsN === 'long' || hsN === 'bob') && true) continue;
-      const q = HS(al, -.08, 1.02), w = 1.6 * Math.max(.3, Math.abs(Math.sin(hd.yaw - al))) + .5;
-      ch_fill(g, r, ellPts(q[0], q[1], w, hd.hh * .27, 10), mul(skin, .96), { n: 1, inka: .6, inkw: .45, fx: (g2) => { ch_stroke(g2, [[q[0] - w * .2, q[1] - 1.5], [q[0] + w * .25, q[1] + .3], [q[0] - w * .1, q[1] + 1.6]], .4, ch_tones(skin).core, .6); } });
+      const q = HS(al, -.08, 1.0), w = 1.1 * Math.max(.25, Math.abs(Math.sin(hd.yaw - al))) + .35;
+      ch_fill(g, r, ellPts(q[0], q[1], w, hd.hh * .22, 10), mix(skin, [220, 120, 100], .12), { n: 1, inka: .45, inkw: .4, flat: .5, fx: (g2) => { ch_stroke(g2, [[q[0] - w * .2, q[1] - 1.5], [q[0] + w * .25, q[1] + .3], [q[0] - w * .1, q[1] + 1.6]], .4, ch_tones(skin).core, .6); } });
     }
   };
   const drawSideHair = (g) => {   // bob/long curtains in front of the ears; fringe flicks
@@ -4669,9 +4684,9 @@ function ch_finish(src, W, H, rimCol, groundY, dark) {
   const out = mk(W, H), og = ctx2(out), k = SS;
   // rim lights
   const tmp = mk(W, H), tg = ctx2(tmp);
-  tg.drawImage(src, 0, 0); tg.globalCompositeOperation = 'destination-out'; tg.drawImage(src, -1.4 * k, .9 * k); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = css(rimCol, .62); tg.fillRect(0, 0, W, H);
+  tg.drawImage(src, 0, 0); tg.globalCompositeOperation = 'destination-out'; tg.drawImage(src, -1.0 * k, .7 * k); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = css(rimCol, .4); tg.fillRect(0, 0, W, H);
   const tmp2 = mk(W, H), t2 = ctx2(tmp2);
-  t2.drawImage(src, 0, 0); t2.globalCompositeOperation = 'destination-out'; t2.drawImage(src, 1.3 * k, -.2 * k); t2.globalCompositeOperation = 'source-in'; t2.fillStyle = 'rgba(80,140,165,.42)'; t2.fillRect(0, 0, W, H);
+  t2.drawImage(src, 0, 0); t2.globalCompositeOperation = 'destination-out'; t2.drawImage(src, 1.3 * k, -.2 * k); t2.globalCompositeOperation = 'source-in'; t2.fillStyle = 'rgba(80,140,165,.3)'; t2.fillRect(0, 0, W, H);
   // ink contour (dilated silhouette)
   const R = 1.05 * k;
   for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832; og.drawImage(src, Math.cos(a) * R, Math.sin(a) * R); }
@@ -4813,9 +4828,14 @@ function gradePx(G, r, g, b, o) {
   r += (G.sh[0] - r) * ws + (G.hi[0] - r) * wh; g += (G.sh[1] - g) * ws + (G.hi[1] - g) * wh; b += (G.sh[2] - b) * ws + (G.hi[2] - b) * wh;
   o[0] = r; o[1] = g; o[2] = b;
 }
-function gradeCanvas(c, G) {
-  const g = ctx2(c), id = g.getImageData(0, 0, c.width, c.height), d = id.data, o = [0, 0, 0];
-  for (let i = 0; i < d.length; i += 4) { if (!d[i + 3]) continue; gradePx(G, d[i], d[i + 1], d[i + 2], o); d[i] = o[0]; d[i + 1] = o[1]; d[i + 2] = o[2]; }
+function gradeCanvas(c, G, S) {   // via the dithered 64^3 LUT (fast)
+  const g = ctx2(c), id = g.getImageData(0, 0, c.width, c.height), d = id.data, L = gradeLUT(S);
+  let h = 12345;
+  for (let i = 0; i < d.length; i += 4) {
+    h = (h * 1103515245 + 12345) & 0x7fffffff; const dt = (h >> 16) & 3;
+    let r = d[i] + dt, gg = d[i + 1] + dt, b = d[i + 2] + dt; r = r > 255 ? 255 : r; gg = gg > 255 ? 255 : gg; b = b > 255 ? 255 : b;
+    const li = (((r >> 2) << 12) | ((gg >> 2) << 6) | (b >> 2)) * 3; d[i] = L[li]; d[i + 1] = L[li + 1]; d[i + 2] = L[li + 2];
+  }
   g.putImageData(id, 0, 0);
 }
 /* 64^3 LUT of the grade (for per-frame character relighting) */
@@ -5061,7 +5081,7 @@ function lightPass(S, base) {
   }
   lap('fx');
   // ---- colour grade + bloom
-  gradeCanvas(comp, S.grade); lap('grade');
+  gradeCanvas(comp, S.grade, S); lap('grade');
   bloomPass(comp, S); lap('bloom');
   applyGrain(cg, comp.width, comp.height, .14, 'overlay');
   // match the void colour at the borders to the per-frame clear colour
@@ -5862,7 +5882,7 @@ function drawItemIconImpl(ctx, x, y, size, id) {
  * cool painted backdrop. Per-character signature details are keyed on the npc look (skin|hair fingerprint).
  * buildPortraitBuffer(look,opts) returns the 96x96 canvas (swap-in seam); drawPortraitImpl adds the badge. */
 const PT_N = 96;
-const _pbuf = new Map(), _pcomp = new Map();
+const _pbuf = new Map(), _pcomp = new Map(); let _ptBg = null;
 const PX_DET = 1, PT_B4 = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
 /* ---- private helpers (portrait / item area; independent of other modules' internals) */
 const pt_clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -6060,15 +6080,17 @@ function buildPortraitBuffer(look, opts) {
   const mFrame = px_mat(P, glB, { n: 4, bias: .45, lk: .7 });
   const mDark = px_mat(P, [40, 38, 44], { n: 4, bias: .4, lk: .6 });
   // ---- backdrop: painted strokes, glow behind head, warm haze on the right (rim source)
+  if (!_ptBg) { _ptBg = { V: new Float32Array(N * N), W: new Uint8Array(N * N) };
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
     const u = x * .8 + y * .6, w = -x * .6 + y * .8;
     const glow = pt_clamp(1 - Math.hypot((x - 34) * .85, y - 30) / 62, 0, 1);
     let v = .16 + glow * .55 + (pt_vn(u * .07, w * .3, 3) - .5) * .32 + (pt_vn(x * .18, y * .05, 9) - .5) * .12;
     const wv = pt_clamp((x - 70) / 24, 0, 1) * pt_clamp(1 - Math.abs(y - 40) / 46, 0, 1) + (pt_vn(u * .1, w * .2, 5) - .5) * .3;
     const i = y * N + x;
-    if (wv > .62 + (PT_B4[y & 3][x & 3] / 15) * .3) { P.M[i] = mBgW; P.V[i] = .25 + wv * .55; } else { P.M[i] = mBg; P.V[i] = v; }
-    P.Z[i] = 0;
+    if (wv > .62 + (PT_B4[y & 3][x & 3] / 15) * .3) { _ptBg.W[i] = 1; _ptBg.V[i] = .25 + wv * .55; } else { _ptBg.V[i] = v; }
   }
+  }
+  for (let i = 0; i < N * N; i++) { P.M[i] = _ptBg.W[i] ? mBgW : mBg; P.V[i] = _ptBg.V[i]; P.Z[i] = 0; }
   // ---- wheelchair handles (behind body)
   if (S.chair) for (const sd of [-1, 1]) { const x0 = hcx + sd * (sw - 4); px_fill(P, x0 - 1, 60, x0 + 1, 84, (x, y) => (y < 66 ? .25 + (x - x0 + 1) * .12 : .45 + (sd * (x0 - x)) * .15), mDark, 3); }
   // ---- back hair (long) / bun
@@ -6497,10 +6519,10 @@ function pt_compose(look, opts, size) {
   g.fillStyle = sh; g.beginPath(); g.arc(size * .02, size * .04, R * 1.08, 0, 7); g.fill();
   // pixel art: integer nearest upscale, then filtered fit (even pixel sizes at any badge size)
   g.save(); g.beginPath(); g.arc(0, 0, Rin, 0, 7); g.clip();
-  const diam = Rin * 2.02, k = Math.max(1, Math.ceil(diam / PT_N)), up = pt_mk(PT_N * k, PT_N * k), ug = up.getContext('2d');
+  const diam = Rin * 2.02, CR = 82, k = Math.max(1, Math.ceil(diam / CR)), up = pt_mk(PT_N * k, PT_N * k), ug = up.getContext('2d');
   ug.imageSmoothingEnabled = false; ug.drawImage(buf, 0, 0, PT_N * k, PT_N * k);
   g.imageSmoothingEnabled = true; if ('imageSmoothingQuality' in g) g.imageSmoothingQuality = 'high';
-  g.drawImage(up, -diam / 2, -diam / 2, diam, diam);
+  g.drawImage(up, 7 * k, 5 * k, CR * k, CR * k, -diam / 2, -diam / 2, diam, diam);
   const vg = g.createRadialGradient(-Rin * .15, -Rin * .2, Rin * .55, 0, 0, Rin * 1.02); vg.addColorStop(0, 'rgba(8,6,16,0)'); vg.addColorStop(1, 'rgba(8,6,16,.5)'); g.fillStyle = vg; g.fillRect(-Rin, -Rin, Rin * 2, Rin * 2);
   g.shadowColor = 'rgba(0,0,0,.75)'; g.shadowBlur = bw * .9; g.shadowOffsetX = bw * .22; g.shadowOffsetY = bw * .3; g.strokeStyle = '#000'; g.lineWidth = bw; g.beginPath(); g.arc(0, 0, Rin + bw * .5, 0, 7); g.stroke();
   g.restore();
@@ -6766,6 +6788,9 @@ function gs_pose(name) {
     sitBow: { head: [.95, -5.2], neck: [.72, -4.82], shL: [.42, -4.55], shR: [.6, -4.55], elL: [.95, -3.3], elR: [1.1, -3.3], haL: [1.6, -2.9], haR: [1.75, -2.95], hpL: [-.05, -2.3], hpR: [.05, -2.3], knL: [1.72, -2.35], knR: [1.8, -2.32], ftL: [1.6, -.12], ftR: [1.78, -.12] },
     sitWrite: { head: [.42, -5.6], neck: [.25, -5.05], shL: [.08, -4.72], shR: [.25, -4.72], elL: [.2, -3.4], elR: [.95, -4.25], haL: [1.1, -2.9], haR: [1.55, -5.2], hpL: [-.05, -2.3], hpR: [.05, -2.3], knL: [1.72, -2.35], knR: [1.8, -2.32], ftL: [1.6, -.12], ftR: [1.78, -.12] },
     sitFront: { head: [0, -5.62], neck: [0, -5.05], shL: [-.95, -4.72], shR: [.95, -4.72], elL: [-1.1, -3.45], elR: [1.1, -3.45], haL: [-.55, -2.65], haR: [.55, -2.65], hpL: [-.55, -2.4], hpR: [.55, -2.4], knL: [-.6, -2.1], knR: [.6, -2.1], ftL: [-.62, -.12], ftR: [.62, -.12] },
+    palm: { head: [.26, -6.9], neck: [.06, -6.42], shL: [-.1, -6.1], shR: [.08, -6.1], elL: [-.05, -4.75], elR: [.55, -4.85], haL: [.1, -3.65], haR: [1.0, -5.35], hpL: [-.05, -3.8], hpR: [.05, -3.8], knL: [.0, -2.0], knR: [.12, -2.0], ftL: [-.05, -.12], ftR: [.18, -.12] },
+    wipe: { head: [0, -7.0], neck: [0, -6.42], shL: [-.95, -6.08], shR: [.95, -6.08], elL: [-1.2, -4.85], elR: [1.2, -4.85], haL: [-.3, -4.6], haR: [.3, -4.75], hpL: [-.52, -3.8], hpR: [.52, -3.8], knL: [-.5, -2.0], knR: [.5, -2.0], ftL: [-.55, -.12], ftR: [.55, -.12] },
+    sitPour: { head: [0, -5.62], neck: [0, -5.05], shL: [-.95, -4.72], shR: [.95, -4.72], elL: [-1.15, -3.5], elR: [1.25, -3.6], haL: [-.5, -3.0], haR: [.8, -3.3], hpL: [-.55, -2.4], hpR: [.55, -2.4], knL: [-.6, -2.1], knR: [.6, -2.1], ftL: [-.62, -.12], ftR: [.62, -.12] },
     lie: null
   };
   return P[name] || P.stand;

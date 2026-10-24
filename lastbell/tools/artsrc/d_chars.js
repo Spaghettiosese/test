@@ -27,7 +27,7 @@ function ch_idOf(look) {
   if (look._id) return look._id;
   let id = ch_ids.get(look); if (id !== undefined) return id;
   id = '';
-  try { const gd = typeof window !== 'undefined' && window.GD; if (gd && gd.npcs) for (const k in gd.npcs) if (gd.npcs[k] && gd.npcs[k].look === look) { id = k; break; } } catch (e) { /* ignore */ }
+  try { const gd = typeof window !== 'undefined' && window.GD; if (gd && gd.npcs) for (const k in gd.npcs) if (gd.npcs[k] && gd.npcs[k].look === look) { id = k; break; } if (!id && gd && gd.playerLook === look) id = 'player'; } catch (e) { /* ignore */ }
   ch_ids.set(look, id); return id;
 }
 
@@ -203,7 +203,7 @@ function ch_outfit(L, B, id) {
 function ch_armPlan(L, B, id, pose, walk, idleB, hsh) {
   const ex = L.extra || 'none';
   const sigs = { fenwick: 'clasp', lemmy: 'behind', rhea: 'crossed', gregor: 'behind', hob: 'clasp', brune: 'hipL', tomas: 'lap', wren: 'relax', player: 'relax', vasha: 'smoke', nadia: 'smoke', dov: 'smokeLow', anka: 'smokeSit' };
-  let plan = sigs[id] || ['relax', 'pockets', 'behind', 'relax', 'crossed', 'pockets'][hsh % 6];
+  let plan = sigs[id] || ['relax', 'relax', 'pockets', 'behind', 'relax', 'crossed'][hsh % 6];
   if (L.outfit === 'apron' && plan === 'pockets') plan = 'hipL';
   if (ex === 'cigarette') plan = pose === 'sit' || pose === 'wheelchair' ? 'smokeSit' : (id === 'dov' ? 'smokeLow' : 'smoke');
   else if (ex === 'clipboard') plan = pose === 'sit' || pose === 'wheelchair' ? 'clipLap' : 'clipChest';
@@ -416,7 +416,7 @@ function ch_render(L, id, yawDeg, pose, frame, idleB) {
     const hp = P(lg.hip), kn = P(lg.knee), an = P(lg.ank), lifted = lg.ank[1] > B.ankY + 3 && !M.hang;
     ext(hp, 10); ext(an, 8);
     const calf = P(vLerp(lg.knee, lg.ank, .32)), tr = trouserR;
-    const Rr = legBare ? [B.rThigh, B.rKnee, B.rCalf, B.rAnk] : [B.rThigh + tr, B.rKnee + tr + .5, B.rCalf + tr * .8, B.rAnk + tr + 1.1];
+    const Rr = legBare ? [B.rThigh, B.rKnee, B.rCalf, B.rAnk] : [B.rThigh + tr + .6, B.rKnee + tr + 2.6, B.rCalf + tr + 1.6, B.rAnk + tr + 3.2];
     const knS = M.sit ? 1.12 : 1;
     const pts = [[hp[0], hp[1]], [kn[0], kn[1]], [calf[0], calf[1]], [an[0], an[1] - 1]];
     // foot first when it points away (heel nearer), else after
@@ -686,7 +686,7 @@ function ch_render(L, id, yawDeg, pose, frame, idleB) {
 
   /* ---------- ARMS + HANDS + held items */
   const sleeveC = OF.o === 'shirtsleeves' ? C(OF.shirt) : C(OF.sleeve);
-  const sleeveR = OF.o === 'coat' ? 1.8 : OF.o === 'labcoat' ? 1.5 : OF.o === 'suit' || OF.o === 'uniform' || OF.o === 'cardigan' ? 1.1 : .8;
+  const sleeveR = OF.o === 'coat' ? 2.4 : OF.o === 'labcoat' ? 2.1 : OF.o === 'suit' || OF.o === 'uniform' || OF.o === 'cardigan' ? 1.7 : 1.3;
   const handGeo = (a) => {
     // hand frame: u along fingers, s across knuckles, n palm normal
     let u = vNorm(vSub(a.wr, a.el)); if (a.up) u = vNorm(vAdd(u, [0, 1.2, .5]));
@@ -1007,8 +1007,8 @@ function ch_render(L, id, yawDeg, pose, frame, idleB) {
       const al = s * 1.5, v = hVis(al, -.05);
       if (v < -.25) continue;
       if ((hsN === 'long' || hsN === 'bob') && true) continue;
-      const q = HS(al, -.08, 1.02), w = 1.6 * Math.max(.3, Math.abs(Math.sin(hd.yaw - al))) + .5;
-      ch_fill(g, r, ellPts(q[0], q[1], w, hd.hh * .27, 10), mul(skin, .96), { n: 1, inka: .6, inkw: .45, fx: (g2) => { ch_stroke(g2, [[q[0] - w * .2, q[1] - 1.5], [q[0] + w * .25, q[1] + .3], [q[0] - w * .1, q[1] + 1.6]], .4, ch_tones(skin).core, .6); } });
+      const q = HS(al, -.08, 1.0), w = 1.1 * Math.max(.25, Math.abs(Math.sin(hd.yaw - al))) + .35;
+      ch_fill(g, r, ellPts(q[0], q[1], w, hd.hh * .22, 10), mix(skin, [220, 120, 100], .12), { n: 1, inka: .45, inkw: .4, flat: .5, fx: (g2) => { ch_stroke(g2, [[q[0] - w * .2, q[1] - 1.5], [q[0] + w * .25, q[1] + .3], [q[0] - w * .1, q[1] + 1.6]], .4, ch_tones(skin).core, .6); } });
     }
   };
   const drawSideHair = (g) => {   // bob/long curtains in front of the ears; fringe flicks
@@ -1184,9 +1184,9 @@ function ch_finish(src, W, H, rimCol, groundY, dark) {
   const out = mk(W, H), og = ctx2(out), k = SS;
   // rim lights
   const tmp = mk(W, H), tg = ctx2(tmp);
-  tg.drawImage(src, 0, 0); tg.globalCompositeOperation = 'destination-out'; tg.drawImage(src, -1.4 * k, .9 * k); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = css(rimCol, .62); tg.fillRect(0, 0, W, H);
+  tg.drawImage(src, 0, 0); tg.globalCompositeOperation = 'destination-out'; tg.drawImage(src, -1.0 * k, .7 * k); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = css(rimCol, .4); tg.fillRect(0, 0, W, H);
   const tmp2 = mk(W, H), t2 = ctx2(tmp2);
-  t2.drawImage(src, 0, 0); t2.globalCompositeOperation = 'destination-out'; t2.drawImage(src, 1.3 * k, -.2 * k); t2.globalCompositeOperation = 'source-in'; t2.fillStyle = 'rgba(80,140,165,.42)'; t2.fillRect(0, 0, W, H);
+  t2.drawImage(src, 0, 0); t2.globalCompositeOperation = 'destination-out'; t2.drawImage(src, 1.3 * k, -.2 * k); t2.globalCompositeOperation = 'source-in'; t2.fillStyle = 'rgba(80,140,165,.3)'; t2.fillRect(0, 0, W, H);
   // ink contour (dilated silhouette)
   const R = 1.05 * k;
   for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832; og.drawImage(src, Math.cos(a) * R, Math.sin(a) * R); }
