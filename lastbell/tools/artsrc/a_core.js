@@ -35,6 +35,56 @@ function noise(x, y, s) {
   return lerp(lerp(a, b, xf), lerp(c, d, xf), yf);
 }
 function fbm(x, y, s, o) { let v = 0, a = .5, f = 1; for (let i = 0; i < (o || 3); i++) { v += a * noise(x * f, y * f, s + i * 7); a *= .5; f *= 2.03; } return v; }
+const sstep = (a, b, x) => { const t = x <= a ? 0 : x >= b ? 1 : (x - a) / (b - a); return t * t * (3 - 2 * t); };
+
+/* ---- fast tileable fbm table (256², 6 octaves, periods 128..4 texels) + bilinear sampler. nt() returns ~0..1 */
+let _NT = null;
+function ntTable() {
+  if (_NT) return _NT;
+  const N = 256, T = new Float32Array(N * N), oct = [[2, .2], [4, .3], [8, .3], [16, .15], [32, .08], [64, .04]];
+  for (const [c, a] of oct) {
+    const L = new Float32Array(c * c); for (let i = 0; i < c * c; i++) L[i] = lat(i % c, (i / c) | 0, c * 31 + 5);
+    const k = c / N;
+    for (let y = 0; y < N; y++) {
+      const fy = y * k, yi = fy | 0, ty = smooth(fy - yi), y0 = yi % c, y1 = (yi + 1) % c;
+      for (let x = 0; x < N; x++) {
+        const fx = x * k, xi = fx | 0, tx = smooth(fx - xi), x0 = xi % c, x1 = (xi + 1) % c;
+        const p = L[y0 * c + x0], q = L[y0 * c + x1], s2 = L[y1 * c + x0], u = L[y1 * c + x1];
+        T[y * N + x] += a * (p + (q - p) * tx + (s2 - p + (p - q - s2 + u) * tx) * ty);
+      }
+    }
+  }
+  let lo = 1e9, hi = -1e9; for (let i = 0; i < N * N; i++) { if (T[i] < lo) lo = T[i]; if (T[i] > hi) hi = T[i]; }
+  for (let i = 0; i < N * N; i++) T[i] = (T[i] - lo) / (hi - lo);
+  return (_NT = T);
+}
+function nt(x, y) {   // feature size ~ 1/scale of the caller (x,y in 'feature' units); tiles every 8 features
+  const T = _NT || ntTable(); x *= 32; y *= 32;
+  const xf = Math.floor(x), yf = Math.floor(y), fx = x - xf, fy = y - yf, xi = xf & 255, yi = yf & 255, x1 = (xi + 1) & 255, y1 = ((yi + 1) & 255) << 8, y0 = yi << 8;
+  const a = T[y0 + xi], b = T[y0 + x1], c = T[y1 + xi], d = T[y1 + x1];
+  return a + (b - a) * fx + (c - a + (a - b - c + d) * fx) * fy;
+}
+/* directional brush-dab field: rows of overlapping strokes of length len, width wid along angle (ca,sa). ~[-1,1] */
+function brushF(u, v, ca, sa, len, wid, s) {
+  const wx = (nt(u * .045 + s, v * .045) - .5) * len * .6, wy = (nt(u * .03, v * .03 + s * 1.7) - .5) * wid * 2.2;
+  const x = u * ca + v * sa + wx, y = -u * sa + v * ca + wy;
+  const ry = y / wid, row = Math.floor(ry), fy = ry - row;
+  const rl = len * (.7 + lat(row, 3, s) * .6), rx = x / rl + lat(row, 7, s) * 9.7, col = Math.floor(rx), fx = rx - col;
+  let t = lat(col, row, s);
+  if (fx > .72) { const k = smooth((fx - .72) / .28) * .5; t += (lat(col + 1, row, s) - t) * k; }
+  const hair = lat((fy * 7) | 0, col * 13 + row, s + 1) - .5;
+  const ridge = fy < .12 ? (.12 - fy) * 4.5 : fy > .9 ? (fy - .9) * -2.5 : 0;
+  return (t - .5) * 1.5 + hair * .55 - ridge;
+}
+/* per-pixel material canvas: fn(u, v, out[3]) in local units, ks texels per unit */
+function matCanvas(w, h, ks, fn) {
+  const W = Math.max(1, Math.ceil(w * ks)), H = Math.max(1, Math.ceil(h * ks)), c = mk(W, H), g = ctx2(c), id = g.createImageData(W, H), d = id.data, o = [0, 0, 0];
+  for (let y = 0, i = 0; y < H; y++) {
+    const v = (y + .5) / ks;
+    for (let x = 0; x < W; x++, i += 4) { o[0] = o[1] = o[2] = 0; fn((x + .5) / ks, v, o); d[i] = o[0]; d[i + 1] = o[1]; d[i + 2] = o[2]; d[i + 3] = 255; }
+  }
+  g.putImageData(id, 0, 0); return c;
+}
 
 /* colours: arrays [r,g,b] */
 const _cc = new Map();
@@ -210,6 +260,40 @@ function grainTile() {
 function applyGrain(ctx, w, h, amt, comp) {
   ctx.save(); ctx.globalCompositeOperation = comp || 'overlay'; ctx.globalAlpha = amt;
   ctx.fillStyle = ctx.createPattern(grainTile(), 'repeat'); ctx.fillRect(0, 0, w, h); ctx.restore();
+}
+
+/* film grain with alpha (cheap source-over instead of overlay): light & dark specks */
+let _grainA = null;
+function grainTileA() {
+  if (_grainA) return _grainA;
+  const N = 256, c = mk(N, N), g = ctx2(c), id = g.createImageData(N, N), r = RNG(77);
+  for (let i = 0; i < N * N; i++) {
+    const v = r() - .5 + (r() - .5) * .6, k = i * 4, lite = v > 0;
+    id.data[k] = id.data[k + 1] = id.data[k + 2] = lite ? 235 : 8; if (lite) id.data[k + 2] = 220;
+    id.data[k + 3] = Math.min(255, v * v * 150);
+  }
+  g.putImageData(id, 0, 0); return (_grainA = c);
+}
+/* scene vignette: strong oval falloff + brushy corners + soft top haze band (cached per size+tone) */
+const _svig = {};
+function sceneVignette(w, h, tone, haze) {
+  w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
+  const k = w + 'x' + h + ':' + tone.join(',') + ':' + (haze ? haze.join(',') : ''); if (_svig[k]) return _svig[k];
+  const c = mk(w, h), g = ctx2(c), R = Math.hypot(w, h) / 2, tc = tone;
+  g.save(); g.translate(w / 2, h / 2); g.scale(1, h / w * 1.25);
+  const rr = w * .62, gr = g.createRadialGradient(0, 0, rr * .42, 0, 0, rr * 1.12);
+  gr.addColorStop(0, css(tc, 0)); gr.addColorStop(.45, css(tc, .22)); gr.addColorStop(.75, css(tc, .58)); gr.addColorStop(1, css(tc, .9));
+  g.fillStyle = gr; g.fillRect(-w, -w, w * 2, w * 2); g.restore();
+  if (haze) { const hg = g.createLinearGradient(0, 0, 0, h * .45); hg.addColorStop(0, css(haze, haze[3])); hg.addColorStop(1, css(haze, 0)); g.fillStyle = hg; g.fillRect(0, 0, w, h * .45); }
+  const r = RNG(w * 31 + h);
+  g.lineCap = 'round';
+  for (let i = 0; i < 120; i++) {
+    const a = r() * Math.PI * 2, d = .78 + r() * .3, x = w / 2 + Math.cos(a) * w * .55 * d, y = h / 2 + Math.sin(a) * h * .62 * d;
+    g.strokeStyle = css(tc, .06 + r() * .14); g.lineWidth = 10 + r() * 34;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a + 1.6) * 80, y + Math.sin(a + 1.6) * 80); g.stroke();
+  }
+  const keys = Object.keys(_svig); if (keys.length > 4) delete _svig[keys[0]];
+  return (_svig[k] = c);
 }
 
 /* vignette (cached per size) */

@@ -42,6 +42,11 @@
     document.body.classList.toggle('portrait', W < 640 && H > W);
   }
   window.addEventListener('resize', resize); resize();
+  // dialogue column docks on the right on desktop-sized screens (must match the CSS breakpoint)
+  const dockMQ = window.matchMedia ? matchMedia('(min-width: 900px) and (min-height: 521px)') : { matches: true };
+  const dockedRight = () => dockMQ.matches;
+  let dockW = 0, dockWAt = 0;
+  const dockWidth = () => { const t = performance.now(); if (t - dockWAt > 500) { dockWAt = t; const d = $('#dialogue'); dockW = (d && d.offsetWidth) || Math.min(620, Math.max(380, W * 0.35)); } return dockW; };
 
   // ---------- main loop ----------
   function frame(now) {
@@ -57,10 +62,13 @@
       const p = A.project(l, S.px, S.py), ws = A.worldSize(l);
       if (document.body.classList.contains('portrait')) zoom = Math.max(0.35, Math.min(1, W / ws.w * 1.02));
       const dlgOpen = !!G.D;
-      const focusY = dlgOpen ? H * 0.28 : H / 2;
-      let tx = p.sx, ty = p.sy - 30 + (H / 2 - focusY) / zoom;
+      const docked = dlgOpen && dockedRight();
+      const focusY = dlgOpen && !docked ? H * 0.28 : H / 2;
+      const focusX = docked ? (W - dockWidth()) / 2 : W / 2;
+      let tx = p.sx + (W / 2 - focusX) / zoom, ty = p.sy - 30 + (H / 2 - focusY) / zoom;
       const halfW = W / 2 / zoom, halfH = H / 2 / zoom;
-      if (ws.w * 1 < halfW * 2) tx = ws.w / 2; else tx = Math.max(halfW, Math.min(ws.w - halfW, tx));
+      const visW = (docked ? W - dockWidth() : W) / zoom, shiftX = (W / 2 - focusX) / zoom;   // visible scene width beside the dialogue dock
+      if (ws.w < visW) tx = ws.w / 2 + shiftX; else tx = Math.max(halfW, Math.min(ws.w - visW + halfW, tx));
       if (ws.h * 1 < halfH * 2) ty = ws.h / 2 + (H / 2 - focusY) / zoom * 0; else ty = Math.max(halfH - 60, Math.min(ws.h - halfH + 80, ty));
       cam.x += (tx - cam.x) * Math.min(1, dt * 5); cam.y += (ty - cam.y) * Math.min(1, dt * 5);
       if (Math.abs(cam.x - tx) > 600) { cam.x = tx; cam.y = ty; }
@@ -131,8 +139,10 @@
 
   // ---------- toasts ----------
   const toastQ = []; let toastBusy = false;
+  const TOAST_LABEL = { good: 'Body &amp; mind', bad: 'Body &amp; mind', xp: 'Experience', item: 'Item', thought: 'Thought cabinet', task: 'Journal', warn: 'Warning', bell: 'The bell' };
   function showToast(t) {
-    const box = $('#toasts'), d = document.createElement('div'); d.className = 'toast ' + (t.kind || ''); d.textContent = t.text; box.appendChild(d);
+    const box = $('#toasts'), d = document.createElement('div'); d.className = 'toast ' + (t.kind || '');
+    const lbl = TOAST_LABEL[t.kind]; d.innerHTML = (lbl ? '<span class="tk">' + lbl + '</span>' : '') + esc(t.text); box.appendChild(d);
     setTimeout(() => d.remove(), 5200);
     const tk = { good: 'good', xp: 'xp', bad: 'bad', warn: 'warn', item: 'pickup', thought: 'thought', task: 'paper', info: 'toast' }[t.kind]; if (tk) snd(tk);
   }
@@ -146,18 +156,26 @@
   // ---------- HUD ----------
   function refreshHud() {
     const S = G.S; if (!S) return;
-    $('#m-hp').style.width = S.hp * 10 + '%'; $('#m-morale').style.width = S.morale * 10 + '%'; $('#m-surv').style.width = S.surv + '%';
+    setPips($('#m-hp'), S.hp); setPips($('#m-morale'), S.morale); $('#m-surv').style.width = S.surv + '%';
+    $('#surv-n').textContent = Math.round(S.surv); $('#topright').classList.toggle('hot', S.surv >= 66); $('#hud-name').textContent = S.name || '';
     $('#clock').textContent = fmtTime(S.time); const dn = (GD.meta.days[S.day || 1] || {}); $('#dayname').textContent = 'DAY ' + (S.day || 1) + ' · ' + (dn.name || '').toUpperCase(); if (window.Sound) Sound.tension(S.surv, S.hp, S.morale);
     const rem = GD.meta.curfew - S.time; $('#curfew').textContent = rem > 0 ? 'Curfew in ' + Math.floor(rem / 60) + 'h ' + String(rem % 60).padStart(2, '0') + 'm' : 'CURFEW';
     $('#locname').textContent = G.loc().name;
     $('#pt-dot').classList.toggle('hidden', S.points <= 0);
     // task tracker
     const act = Object.entries(S.tasks).filter(([id, t]) => t.state === 'active' && GD.tasks[id]).sort((a, b) => (GD.tasks[a[0]].category === 'main' ? 0 : 1) - (GD.tasks[b[0]].category === 'main' ? 0 : 1)).slice(0, 3);
-    $('#tasktrack').innerHTML = act.length ? '<b>TASKS</b>' + act.map(([id]) => '• ' + esc(GD.tasks[id].title)).join('<br>') : '';
+    $('#tasktrack').innerHTML = act.length ? '<b>TASKS</b>' + act.map(([id]) => '<span class="tt">' + esc(GD.tasks[id].title) + '</span>').join('') : '';
     if (!drawnPortrait || drawnPortrait !== S.morale + ':' + S.hp) { drawnPortrait = S.morale + ':' + S.hp; A.drawPortrait($('#portrait'), S.look, { mood: S.morale <= 3 ? 'sad' : S.hp <= 3 ? 'shock' : 'neutral' }); }
     if (!$('#panel').classList.contains('hidden')) renderPanel();
   }
   let drawnPortrait = null;
+  function setPips(el, v) {
+    const n = Math.max(0, Math.min(10, Math.round(v)));
+    if (el.childElementCount !== 10) el.innerHTML = '<i></i>'.repeat(10);
+    [...el.children].forEach((p, i) => p.classList.toggle('on', i < n));
+    el.classList.toggle('low', n <= 3); el.setAttribute('aria-valuenow', n); el.title = n + ' / 10';
+  }
+
   G.on('state', refreshHud); G.on('time', refreshHud);
   G.on('location', (id) => { refreshHud(); const l = GD.locations[id]; window.Sound && Sound.mood(l.mood); pulseUntil = performance.now() + 3500; const t = $('#locname'); t.style.opacity = 0; setTimeout(() => (t.style.opacity = 1), 50); });
   G.on('transition', () => snd('door'));
@@ -172,19 +190,25 @@
   G.on('dialogueEnd', () => { window.Sound && Sound.duck(false); document.body.classList.remove('indlg'); $('#dialogue').classList.add('hidden'); refreshHud(); });
   G.on('dialogue', renderDialogue);
   function lineHtml(b) {
-    if (b.kind === 'choice') return '<div class="chosen">' + md(b.text) + '</div>';
+    if (b.kind === 'choice') return '<div class="chosen"><span class="who">' + esc(((G.S && G.S.name) || 'You').toUpperCase()) + '</span><span class="dash">—</span>' + md(b.text) + '</div>';
     if (b.kind === 'roll') return rollHtml(b.roll, b.resolved);
-    const sp = b.speaker, cls = 'line' + (b.voice || sp.kind === 'skill' ? ' voice' : '') + (sp.kind === 'narrator' ? ' narr' : '');
-    const who = sp.name ? '<span class="who" style="color:' + sp.color + '">' + esc(sp.name) + (sp.kind === 'skill' ? ' <small>' + (b.passive ? 'passive ' : '') + sp.level + '</small>' : '') + '</span>' : '';
-    return '<div class="' + cls + '" style="color:' + (sp.kind === 'skill' ? sp.color : '') + '">' + who + '<span style="color:var(--paper)">' + md(b.text) + '</span></div>';
+    const sp = b.speaker, isSkill = sp.kind === 'skill';
+    const cls = 'line' + (b.voice || isSkill ? ' voice' : '') + (b.passive ? ' passive' : '') + (sp.kind === 'narrator' ? ' narr' : '') + (sp.kind === 'you' ? ' you' : '');
+    const who = sp.name ? '<span class="who" style="color:' + sp.color + '">' + esc(sp.name) + (isSkill ? '<small>' + (b.passive ? '[passive · ' + sp.level + ']' : '[' + sp.level + ']') + '</small>' : '') + '</span><span class="dash">—</span>' : '';
+    return '<div class="' + cls + '"' + (isSkill ? ' style="--c:' + sp.color + '"' : '') + '>' + who + '<span class="txt">' + md(b.text) + '</span></div>';
   }
+  const dieHtml = (v) => '<span class="die" data-v="' + v + '">' + '<i></i>'.repeat(9) + '</span>';
+  const chkHtml = (c, noName) => '<span class="chk ' + (c.white ? 'white' : 'red') + '" style="--c:' + c.color + '" title="' + (c.white ? 'White check — can be retried after the skill improves' : 'Red check — one chance only') + '">' + (noName ? (c.white ? 'White · ' : 'Red · ') : '<span class="sk">' + esc(c.skillName) + '</span>') + esc(c.word) + ' ' + c.diff + (c.chance != null ? ' <span class="pc">' + c.chance + '%</span>' : '') + '</span>';
   function rollHtml(r, resolved) {
-    const res = r.crit ? 'CRITICAL SUCCESS' : r.fumble ? 'CRITICAL FAILURE' : r.success ? 'SUCCESS' : 'FAILURE';
-    return '<div class="roll ' + (resolved ? (r.success ? 'ok' : 'no') : 'rolling') + '" data-roll><span style="color:' + r.color + ';font-weight:bold;letter-spacing:.1em">' + esc(r.skillName.toUpperCase()) + '</span>'
-      + '<span class="die">' + (resolved ? r.d1 : '?') + '</span><span class="die">' + (resolved ? r.d2 : '?') + '</span>'
-      + '<span>+ ' + r.level + ' = <b>' + (resolved ? r.total : '…') + '</b> vs ' + r.diff + ' (' + r.word + ')</span><span class="res">' + (resolved ? res : '') + '</span></div>';
+    const res = r.crit ? 'Critical success' : r.fumble ? 'Critical failure' : r.success ? 'Success' : 'Failure';
+    const rnd = () => 1 + Math.floor(Math.random() * 6);
+    return '<div class="roll ' + (resolved ? (r.success ? 'ok' : 'no') : 'rolling') + '" data-roll style="--c:' + r.color + '">'
+      + '<div class="dice">' + dieHtml(resolved ? r.d1 : rnd()) + dieHtml(resolved ? r.d2 : rnd()) + '</div>'
+      + '<div class="rhead"><span class="sk">' + esc(r.skillName) + '</span>' + chkHtml(r, true) + '</div>'
+      + '<div class="rmath">' + (resolved ? r.d1 + ' + ' + r.d2 : '? + ?') + ' + skill ' + r.level + ' = <b>' + (resolved ? r.total : '…') + '</b> <span style="color:var(--dim)">vs ' + r.diff + '</span></div>'
+      + '<div class="res">' + (resolved ? res : '') + '</div></div>';
   }
-  let staggerN = 0;
+  let staggerN = 0, tumbleTimer = null;
   function renderDialogue(D) {
     const log = $('#dlg-log'); staggerN = 0;
     // newly added blocks
@@ -194,7 +218,9 @@
         wrap.innerHTML = rollHtml(b.roll, false); log.appendChild(wrap);
         snd('dice');
         $('#dlg-choices').innerHTML = '';
-        rollTimer = setTimeout(() => { rollTimer = null; b.resolved = true; wrap.innerHTML = rollHtml(b.roll, true); snd(b.roll.crit ? 'crit' : b.roll.fumble ? 'fumble' : b.roll.success ? 'good' : 'bad'); showRollContinue(); log.scrollTop = log.scrollHeight; }, 1100);
+        clearInterval(tumbleTimer);
+        tumbleTimer = setInterval(() => wrap.querySelectorAll('.die').forEach((d) => (d.dataset.v = 1 + Math.floor(Math.random() * 6))), 90);
+        rollTimer = setTimeout(() => { rollTimer = null; clearInterval(tumbleTimer); b.resolved = true; wrap.innerHTML = rollHtml(b.roll, true); snd(b.roll.crit ? 'crit' : b.roll.fumble ? 'fumble' : b.roll.success ? 'good' : 'bad'); showRollContinue(); log.scrollTop = log.scrollHeight; }, 1100);
       } else {
         wrap.innerHTML = lineHtml(b); log.appendChild(wrap);
         if (b.voice) { wrap.style.opacity = 0; const dly = 500 + (staggerN++) * 900; setTimeout(() => { wrap.style.transition = 'opacity .5s'; wrap.style.opacity = 1; snd('whisper'); log.scrollTop = log.scrollHeight; }, dly); }
@@ -207,16 +233,16 @@
   }
   function showRollContinue() {
     const box = $('#dlg-choices'); box.innerHTML = '';
-    const b = document.createElement('button'); b.className = 'choice cont'; b.innerHTML = '<span class="n">▸</span>Continue.'; b.onclick = () => { G.continueRoll(); }; box.appendChild(b);
+    const b = document.createElement('button'); b.className = 'choice cont'; b.innerHTML = '<span class="n">▸</span><span class="ct">Continue.</span>'; b.onclick = () => { G.continueRoll(); }; box.appendChild(b);
+    if (!isTouch) b.focus({ preventScroll: true });
   }
   function renderChoices(D) {
     const box = $('#dlg-choices'); box.innerHTML = '';
     D.choices.forEach((c, idx) => {
-      const b = document.createElement('button'); b.className = 'choice' + (c.locked ? ' locked' : '') + (c.cont ? ' cont' : '');
-      let tag = '';
-      if (c.check) tag = '<span class="tag" style="color:' + c.check.color + '">[' + esc(c.check.skillName) + ' — ' + c.check.word + (c.check.white ? '' : ' · RED') + ' ' + c.check.chance + '%]</span>';
-      b.innerHTML = '<span class="n">' + (idx + 1) + '.</span>' + tag + md(c.text) + (c.locked ? ' <small>(' + esc(c.locked) + ')</small>' : '');
-      if (!c.locked) b.onclick = () => pickChoice(idx);
+      const b = document.createElement('button'); b.className = 'choice' + (c.locked ? ' locked' : '') + (c.cont ? ' cont' : '') + (c.check ? ' check' : '');
+      const tag = c.check ? chkHtml(c.check) : '';
+      b.innerHTML = '<span class="n">' + (idx + 1) + '.</span><span class="ct">' + tag + md(c.text) + (c.locked ? ' <small>(' + esc(c.locked) + ')</small>' : '') + '</span>';
+      if (c.locked) b.setAttribute('aria-disabled', 'true'); else b.onclick = () => pickChoice(idx);
       box.appendChild(b);
     });
   }
@@ -234,59 +260,87 @@
   $('#panel-close').onclick = closePanel;
   $('#panel').addEventListener('click', (e) => { if (e.target.id === 'panel') closePanel(); });
   document.querySelectorAll('#menubar button').forEach((b) => (b.onclick = () => { if (G.D) return; window.Sound && Sound.init(); togglePanel(b.dataset.panel); }));
+  const LOCK_SVG = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="1.2"/><path d="M8.2 10.5V7.6a3.8 3.8 0 0 1 7.6 0v2.9"/><path d="M12 14.4v2.4"/></svg>';
   function renderPanel() {
     const body = $('#panel-body'), S = G.S;
+    $('#panel').dataset.kind = panelKind || '';
     if (panelKind === 'character') {
-      let h = '<h2 class="ptitle">' + esc(S.name) + '</h2><div class="psub">' + esc(S.archetype === 'custom' ? 'Self-made student' : ((GD.archetypes || {})[S.archetype] || {}).name || '') + ' · Skill points to spend: <b style="color:var(--orange)">' + S.points + '</b> · XP ' + S.xp + '/' + ((GD.rules && GD.rules.xpPerPoint) || 6) + ' · Passed ' + S.stats.passed + ' / failed ' + S.stats.failed + ' checks</div><div class="attrgrid">';
+      const xpp = (GD.rules && GD.rules.xpPerPoint) || 6, cap = (GD.rules && GD.rules.skillCap) || 10;
+      const arch = S.archetype === 'custom' ? 'Self-made student' : ((GD.archetypes || {})[S.archetype] || {}).name || '';
+      let h = '<header class="phead"><div><div class="kicker">Student file</div><h2 class="ptitle">' + esc(S.name) + '</h2><div class="psub">' + esc(arch) + '</div></div><div class="stats">'
+        + '<div class="stat' + (S.points > 0 ? ' hot' : '') + '"><b>' + S.points + '</b><span>Skill points</span></div>'
+        + '<div class="stat"><b>' + S.xp + '/' + xpp + '</b><span>XP</span></div>'
+        + '<div class="stat"><b>' + S.stats.passed + '</b><span>Passed</span></div>'
+        + '<div class="stat"><b>' + S.stats.failed + '</b><span>Failed</span></div></div></header><div class="attrgrid">';
       for (const aid of Object.keys(GD.attributes)) {
-        const at = GD.attributes[aid]; h += '<div class="attrcol"><h3 style="color:' + at.color + ';border-color:' + at.color + '">' + esc(at.name) + ' ' + S.attrs[aid] + '</h3>';
+        const at = GD.attributes[aid];
+        h += '<section class="attrcol" style="--c:' + at.color + '" title="' + esc(at.blurb || '') + '"><h3><span>' + esc(at.name) + '</span><span class="av">' + S.attrs[aid] + '</span></h3>';
         for (const sid of Object.keys(GD.skills).filter((s) => GD.skills[s].attribute === aid)) {
           const sk = GD.skills[sid], lv = G.skill(sid), base = G.skillBase(sid) + (S.learned[sid] || 0);
-          h += '<div class="skillrow" data-skill="' + sid + '"><span class="lv" style="color:' + sk.color + '">' + lv + (lv !== base ? '<sup style="font-size:9px;color:' + (lv > base ? '#8fe08a' : '#e0705a') + '">' + (lv > base ? '+' : '') + (lv - base) + '</sup>' : '') + '</span><span class="nm">' + esc(sk.name) + '</span><button data-up="' + sid + '" ' + (S.points <= 0 || base >= ((GD.rules && GD.rules.skillCap) || 10) ? 'disabled' : '') + '>+</button></div>';
+          let pips = ''; for (let i = 0; i < cap; i++) pips += '<i class="' + (i < Math.min(lv, base) ? 'on' : i < lv ? 'bonus' : i < base ? 'pen' : '') + '"></i>';
+          h += '<div class="skillrow' + (selSkill === sid ? ' sel' : '') + '" data-skill="' + sid + '" tabindex="0" style="--c:' + sk.color + '" title="' + esc(sk.blurb || '') + '">'
+            + '<span class="mono">' + esc(sk.icon || sk.name.slice(0, 2)) + '</span>'
+            + '<span class="sk-main"><span class="nm">' + esc(sk.name) + '</span><span class="lvpips">' + pips + '</span></span>'
+            + '<span class="lv">' + lv + (lv !== base ? '<sup style="color:' + (lv > base ? 'var(--green)' : '#ec7458') + '">' + (lv > base ? '+' : '') + (lv - base) + '</sup>' : '') + '</span>'
+            + '<button data-up="' + sid + '" aria-label="Raise ' + esc(sk.name) + '" title="Spend a skill point" ' + (S.points <= 0 || base >= cap ? 'disabled' : '') + '>+</button></div>';
         }
-        h += '</div>';
+        h += '</section>';
       }
-      h += '</div><div id="skilldesc">Hover a skill to hear it clear its throat.</div><div class="psub" style="margin-top:14px">Ideology — ' + ['vanguard', 'undercurrent', 'quiet'].map((k) => { const d = (GD.ideologies || {})[k] || { name: k, color: '#aaa' }; return '<span style="color:' + d.color + '">' + esc(d.name) + ' ' + S.ideo[k] + '</span>'; }).join(' · ') + '</div>';
+      h += '</div><div id="skilldesc">Hover or tap a skill to hear it clear its throat.</div><div class="ideo">Ideology ' + ['vanguard', 'undercurrent', 'quiet'].map((k) => { const d = (GD.ideologies || {})[k] || { name: k, color: '#aaa' }; return '<span style="color:' + d.color + '">' + esc(d.name) + '<b>' + S.ideo[k] + '</b></span>'; }).join('') + '</div>';
       body.innerHTML = h;
       const show = (sid) => {
-        const sk = GD.skills[sid], mods = G.skillMods(sid), lv = G.skill(sid), tiers = sk.levelNames || (GD.skills.levelNames) || [];
-        $('#skilldesc').innerHTML = '<b style="color:' + sk.color + ';letter-spacing:.15em">' + esc(sk.name.toUpperCase()) + '</b> — level ' + lv + '<br>' + esc(sk.blurb || '') + '<br><i style="color:var(--dim)">' + esc(sk.voice || '') + '</i>' + (mods.length ? '<br><small>' + mods.map((m) => esc(m.label) + ' ' + (m.n > 0 ? '+' : '') + m.n).join(' · ') + '</small>' : '');
+        const sk = GD.skills[sid], mods = G.skillMods(sid), lv = G.skill(sid), box = $('#skilldesc');
+        selSkill = sid; body.querySelectorAll('.skillrow').forEach((r) => r.classList.toggle('sel', r.dataset.skill === sid));
+        box.style.setProperty('--c', sk.color);
+        box.innerHTML = '<div class="sd-h"><span class="sd-n">' + esc(sk.name.toUpperCase()) + '</span><span class="sd-l">Level ' + lv + (GD.levelName ? ' — ' + esc(GD.levelName(lv)) : '') + '</span></div>' + esc(sk.blurb || '') + '<div class="sd-v">' + esc(sk.voice || '') + '</div>' + (mods.length ? '<div class="sd-m">' + mods.map((m) => '<span>' + esc(m.label) + ' ' + (m.n > 0 ? '+' : '') + m.n + '</span>').join('') + '</div>' : '');
       };
-      body.querySelectorAll('.skillrow').forEach((r) => (r.onmouseenter = () => show(r.dataset.skill)));
-      body.querySelectorAll('[data-up]').forEach((b) => (b.onclick = () => G.spendPoint(b.dataset.up)));
+      body.querySelectorAll('.skillrow').forEach((r) => { r.onmouseenter = () => show(r.dataset.skill); r.onfocus = () => show(r.dataset.skill); r.onclick = () => show(r.dataset.skill); });
+      body.querySelectorAll('[data-up]').forEach((b) => (b.onclick = (e) => { e.stopPropagation(); G.spendPoint(b.dataset.up); }));
+      if (selSkill && GD.skills[selSkill]) show(selSkill);
     } else if (panelKind === 'inventory') {
       const ids = Object.keys(S.items);
-      let h = '<h2 class="ptitle">Inventory</h2><div class="psub">' + ids.length + ' items. Apparel can be worn; consumables can be used.</div><div class="grid-items">';
-      if (!ids.length) h += '<div class="psub">Your pockets contain lint and mild dread.</div>';
-      ids.forEach((id) => { h += '<div class="item' + (selItem === id ? ' sel' : '') + (S.equipped[id] ? ' eq' : '') + '" data-id="' + id + '"><canvas width="56" height="56"></canvas>' + esc((GD.items[id] || { name: id }).name) + '</div>'; });
-      h += '</div><div class="idesc" id="idesc">' + (selItem && S.items[selItem] ? itemDesc(selItem) : 'Select an item.') + '</div>';
+      let h = '<header class="phead"><div><div class="kicker">Pockets &amp; satchel</div><h2 class="ptitle">Inventory</h2><div class="psub">' + ids.length + ' item' + (ids.length === 1 ? '' : 's') + '. Apparel can be worn; consumables can be used.</div></div></header><div class="inv-wrap"><div class="grid-items">';
+      if (!ids.length) h += '<div class="psub none">Your pockets contain lint and mild dread.</div>';
+      const TY = { apparel: 'Apparel', key: 'Key', consumable: 'Consumable', document: 'Document', tool: 'Tool' };
+      ids.forEach((id) => { const it = GD.items[id] || { name: id }; h += '<div class="item' + (selItem === id ? ' sel' : '') + (S.equipped[id] ? ' eq' : '') + '" data-id="' + id + '" tabindex="0" role="button" aria-pressed="' + (selItem === id) + '">' + (S.equipped[id] ? '<span class="worn">Worn</span>' : '') + '<canvas width="128" height="128"></canvas><span>' + esc(it.name) + '</span><span class="ty">' + esc(TY[it.type] || it.type || (it.usable ? 'Usable' : 'Item')) + '</span></div>'; });
+      h += '</div><div class="idesc" id="idesc">' + (selItem && S.items[selItem] ? itemDesc(selItem) : '<span class="empty">Select an item to turn it over in your hands.</span>') + '</div></div>';
       body.innerHTML = h;
-      body.querySelectorAll('.item').forEach((el) => { const c = el.querySelector('canvas').getContext('2d'); A.drawItemIcon(c, 0, 0, 56, el.dataset.id); el.onclick = () => { selItem = el.dataset.id; renderPanel(); }; });
+      body.querySelectorAll('.item').forEach((el) => { const c = el.querySelector('canvas').getContext('2d'); A.drawItemIcon(c, 0, 0, 128, el.dataset.id); el.onclick = () => { selItem = el.dataset.id; renderPanel(); }; el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } }; });
+      const ic = body.querySelector('.id-ic'); if (ic) A.drawItemIcon(ic.getContext('2d'), 0, 0, 144, selItem);
       const u = body.querySelector('[data-use]'); if (u) u.onclick = () => { G.useItem(u.dataset.use); };
     } else if (panelKind === 'journal') {
-      let h = '<h2 class="ptitle">Journal</h2><div class="psub">Tasks and what you know.</div>';
+      let h = '<header class="phead"><div><div class="kicker">Exercise book · property of ' + esc(S.name) + '</div><h2 class="ptitle">Journal</h2><div class="psub">Tasks and what you know.</div></div></header>';
       const order = { active: 0, done: 1, failed: 2 };
       const list = Object.entries(S.tasks).filter(([id, t]) => t.state !== 'none' && GD.tasks[id]).sort((a, b) => order[a[1].state] - order[b[1].state] || (GD.tasks[a[0]].category === 'main' ? -1 : 1));
-      if (!list.length) h += '<div class="psub">Nothing yet.</div>';
-      list.forEach(([id, t]) => { const d = GD.tasks[id]; h += '<div class="task ' + t.state + '"><h4>' + (t.state === 'done' ? '✔ ' : t.state === 'failed' ? '✘ ' : '') + esc(d.title) + ' <small style="color:var(--dim)">' + (d.category || '') + '</small></h4><p>' + esc(d.summary || d.description || '') + '</p><ul>' + t.notes.map((n) => '<li>' + esc(n) + '</li>').join('') + '</ul></div>'; });
+      const taskHtml = ([id, t]) => { const d = GD.tasks[id], txt = (G.taskText && G.taskText(id)) || d.summary || d.description || ''; return '<div class="task ' + t.state + '"><h4><span class="box"></span><span class="tt">' + esc(d.title) + '</span>' + (d.category ? '<span class="cat ' + esc(d.category) + '">' + esc(d.category) + '</span>' : '') + '</h4><p>' + esc(txt) + '</p>' + (t.notes.length ? '<ul>' + t.notes.map((n) => '<li>' + esc(n) + '</li>').join('') + '</ul>' : '') + '</div>'; };
+      const open = list.filter(([, t]) => t.state === 'active'), closed = list.filter(([, t]) => t.state !== 'active');
+      h += '<div class="notebook"><div class="page"><h3>Open tasks</h3>' + (open.length ? open.map(taskHtml).join('') : '<p class="none">Nothing yet.</p>') + '</div><div class="page"><h3>Closed</h3>' + (closed.length ? closed.map(taskHtml).join('') : '<p class="none">Nothing finished. Nothing failed. Yet.</p>') + '</div></div>';
       body.innerHTML = h;
     } else if (panelKind === 'thoughts') {
       const slots = S.thoughtSlots, res = Object.entries(S.thoughts).filter(([, t]) => t.state === 'researching');
-      let h = '<h2 class="ptitle">Notebook of Unsanctioned Thoughts</h2><div class="psub">Thoughts take time to internalize. They change you — usually both ways. Time only passes when you act.</div><div class="slots">';
-      for (let i = 0; i < slots; i++) { const r = res[i]; if (r) { const d = GD.thoughts[r[0]], pct = Math.round((1 - r[1].remaining / r[1].total) * 100); h += '<div class="slot full"><b>' + esc(d.name) + '</b><br>' + esc(d.problem || '') + '<div class="prog"><i style="width:' + pct + '%"></i></div><button class="pbtn" data-forget="' + r[0] + '" style="padding:2px 8px;font-size:11px">forget</button></div>'; } else h += '<div class="slot">Empty slot</div>'; }
+      const maxSlots = Math.max(slots, (GD.thoughtSlots && GD.thoughtSlots.max) || slots);
+      let h = '<header class="phead"><div><div class="kicker">Thought cabinet</div><h2 class="ptitle">Notebook of Unsanctioned Thoughts</h2><div class="psub">Thoughts take time to internalize. They change you — usually both ways. Time only passes when you act.</div></div><div class="stats"><div class="stat"><b>' + G.usedSlots() + '/' + slots + '</b><span>Slots in use</span></div></div></header><div class="cabinet" style="--n:' + maxSlots + '">';
+      for (let i = 0; i < maxSlots; i++) {
+        const r = res[i];
+        if (i >= slots) h += '<div class="slot locked">' + LOCK_SVG + '<span class="sl-n">Locked drawer</span></div>';
+        else if (r) { const d = GD.thoughts[r[0]], pct = Math.round((1 - r[1].remaining / r[1].total) * 100); h += '<div class="slot full"><span class="sl-n">Drawer ' + (i + 1) + ' · thinking</span><b>' + esc(d.name) + '</b><span class="pct">' + pct + '% · ' + Math.ceil(r[1].remaining) + ' min left</span><div class="prog"><i style="width:' + pct + '%"></i></div><button class="pbtn ghost" data-forget="' + r[0] + '">Forget</button></div>'; }
+        else h += '<div class="slot empty"><span class="glyph">+</span><span>Empty drawer</span></div>';
+      }
       h += '</div>';
-      G.slotUnlocks().forEach((u, i) => { const free = G.evalCond(u.cond); h += '<div class="psub">' + esc(u.label) + ' <button class="pbtn" data-slot="' + (free ? 'free' : 'pay') + '" ' + (!free && S.points < u.xp ? 'disabled' : '') + '>' + (free ? 'Unlock slot' : 'Pay ' + u.xp + ' skill points') + '</button></div>'; });
+      G.slotUnlocks().forEach((u) => { const free = G.evalCond(u.cond); h += '<div class="unlock"><span>' + esc(u.label) + '</span><button class="pbtn" data-slot="' + (free ? 'free' : 'pay') + '" ' + (!free && S.points < u.xp ? 'disabled' : '') + '>' + (free ? 'Unlock drawer' : 'Pay ' + u.xp + ' skill points') + '</button></div>'; });
       const known = Object.entries(S.thoughts).filter(([, t]) => t.state === 'known'), done = Object.entries(S.thoughts).filter(([, t]) => t.state === 'internalized');
-      h += '<h3 style="letter-spacing:.15em;color:var(--dim)">UNRESOLVED</h3>' + (known.length ? '' : '<div class="psub">No thoughts waiting.</div>');
-      known.forEach(([id]) => { const d = GD.thoughts[id]; h += '<div class="thought"><h4>' + esc(d.name) + '</h4><p>' + esc(d.problem || d.discover || '') + '</p><p class="mods">' + esc(modText(d)) + '</p><button class="pbtn" data-think="' + id + '" ' + (G.usedSlots() >= slots ? 'disabled' : '') + '>Think about it (' + (d.minutes || d.research || 90) + ' min)</button></div>'; });
-      h += '<h3 style="letter-spacing:.15em;color:var(--dim)">INTERNALIZED</h3>' + (done.length ? '' : '<div class="psub">None yet.</div>');
-      done.forEach(([id]) => { const d = GD.thoughts[id]; h += '<div class="thought"><h4>' + esc(d.name) + '</h4><p>' + esc(d.solution || '') + '</p><p class="mods">' + esc(modText(d)) + '</p></div>'; });
+      h += '<div class="sect">Unresolved</div>' + (known.length ? '<div class="tgrid">' : '<div class="psub none">No thoughts waiting.</div>');
+      known.forEach(([id]) => { const d = GD.thoughts[id]; h += '<div class="tcard"><h4>' + esc(d.name) + '</h4><p>' + esc(d.problem || d.discover || '') + '</p><p class="mods">' + esc(modText(d)) + '</p><button class="pbtn" data-think="' + id + '" ' + (G.usedSlots() >= slots ? 'disabled' : '') + '>Think about it (' + (d.minutes || d.research || 90) + ' min)</button></div>'; });
+      if (known.length) h += '</div>';
+      h += '<div class="sect">Internalized</div>' + (done.length ? '<div class="tgrid">' : '<div class="psub none">None yet.</div>');
+      done.forEach(([id]) => { const d = GD.thoughts[id]; h += '<div class="tcard done"><h4>' + esc(d.name) + '</h4><p>' + esc(d.solution || '') + '</p><p class="mods">' + esc(modText(d)) + '</p></div>'; });
+      if (done.length) h += '</div>';
       body.innerHTML = h;
       body.querySelectorAll('[data-slot]').forEach((b) => (b.onclick = () => G.unlockSlot(G.slotUnlocks()[0], b.dataset.slot === 'pay')));
       body.querySelectorAll('[data-think]').forEach((b) => (b.onclick = () => G.startThought(b.dataset.think)));
       body.querySelectorAll('[data-forget]').forEach((b) => (b.onclick = () => G.forgetThought(b.dataset.forget)));
     } else if (panelKind === 'menu') {
-      body.innerHTML = '<h2 class="ptitle">Menu</h2><div class="menu-btns"><button class="pbtn" id="mn-res">Resume</button><button class="pbtn" id="mn-save">Save now</button>' + ((S.loc === 'dorm' && S.time >= 1020 && (S.day || 1) < 3) ? '<button class="pbtn" id="mn-sleep">Go to sleep (end the day)</button>' : '') + '<button class="pbtn" id="mn-snd">Sound: ' + (Sound.muted ? 'Off' : 'On') + '</button>' + ['music:Music', 'sfx:Effects', 'amb:Ambience'].map((x) => { const [k, n] = x.split(':'); return '<label style="font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center">' + n + '<input type="range" min="0" max="1" step="0.05" value="' + Sound.vol[k] + '" data-vol="' + k + '" style="flex:1"></label>'; }).join('') + '<button class="pbtn" id="mn-res2" style="display:none"></button><button class="pbtn" id="mn-text">Text size: ' + ['Normal', 'Large', 'Extra large'][textSize] + '</button><button class="pbtn" id="mn-grain">Film grain: ' + ((A.quality && A.quality.grain === false) ? 'Off' : 'On') + '</button><button class="pbtn" id="mn-help">How to play</button><button class="pbtn" id="mn-title">Quit to title</button></div><p class="psub" style="margin-top:20px">The game autosaves after every conversation and every move between rooms.</p>';
+      body.innerHTML = '<header class="phead"><div><div class="kicker">Paused</div><h2 class="ptitle">Menu</h2></div></header><div class="menu-btns"><button class="pbtn prime" id="mn-res">Resume</button><button class="pbtn" id="mn-save">Save now</button>' + ((S.loc === 'dorm' && S.time >= 1020 && (S.day || 1) < 3) ? '<button class="pbtn" id="mn-sleep">Go to sleep (end the day)</button>' : '') + '<button class="pbtn ghost" id="mn-snd">Sound <span>' + (Sound.muted ? 'Off' : 'On') + '</span></button>' + ['music:Music', 'sfx:Effects', 'amb:Ambience'].map((x) => { const [k, n] = x.split(':'); return '<label><span>' + n + '</span><input type="range" min="0" max="1" step="0.05" value="' + Sound.vol[k] + '" data-vol="' + k + '" aria-label="' + n + ' volume"></label>'; }).join('') + '<button class="pbtn" id="mn-res2" style="display:none"></button><button class="pbtn ghost" id="mn-text">Text size <span>' + ['Normal', 'Large', 'Extra large'][textSize] + '</span></button><button class="pbtn ghost" id="mn-grain">Film grain <span>' + ((A.quality && A.quality.grain === false) ? 'Off' : 'On') + '</span></button><button class="pbtn ghost" id="mn-help">How to play</button><button class="pbtn ghost" id="mn-title">Quit to title</button></div><p class="psub" style="margin-top:18px;font-style:italic">The game autosaves after every conversation and every move between rooms.</p>';
       $('#mn-res').onclick = closePanel; if ($('#mn-sleep')) $('#mn-sleep').onclick = () => { closePanel(); G.queueEnding('end_curfew'); }; $('#mn-save').onclick = () => { G.save(); closePanel(); G.emit('toast', { text: 'Saved.', kind: 'info' }); };
       $('#mn-snd').onclick = () => { Sound.toggle(); renderPanel(); }; document.querySelectorAll('[data-vol]').forEach((r) => (r.oninput = () => { Sound.set(r.dataset.vol, parseFloat(r.value)); })); $('#mn-text').onclick = () => { textSize = (textSize + 1) % 3; try { localStorage.setItem('lastbell_text', String(textSize)); } catch (e) {} applyTextSize(); renderPanel(); }; $('#mn-grain').onclick = () => { if (A.quality) A.quality.grain = A.quality.grain === false; renderPanel(); }; $('#mn-help').onclick = showHelp; $('#mn-title').onclick = () => { G.save(); location.reload(); };
     }
@@ -294,14 +348,14 @@
   function modText(d) { const m = d.mods || {}; return Object.entries(m).map(([k, v]) => (GD.skills[k] ? GD.skills[k].name : k) + ' ' + (v > 0 ? '+' : '') + v).join(' · '); }
   function itemDesc(id) {
     const it = GD.items[id], S = G.S; const mods = it.mods ? Object.entries(it.mods).map(([k, v]) => GD.skills[k].name + ' ' + (v > 0 ? '+' : '') + v).join(' · ') : '';
-    let h = '<b>' + esc(it.name) + '</b><br>' + esc(it.desc || '') + (mods ? '<br><small style="color:#8fcf8a">' + esc(mods) + '</small>' : '');
+    let h = '<canvas class="id-ic" width="144" height="144"></canvas><h4>' + esc(it.name) + '</h4><div class="id-t">' + esc(it.type || 'item') + (S.equipped[id] ? ' · worn' : '') + '</div>' + esc(it.desc || '') + (mods ? '<div class="id-m">' + esc(mods) + '</div>' : '');
     if (it.type === 'apparel') h += '<br><button data-use="' + id + '">' + (S.equipped[id] ? 'Take off' : 'Wear') + '</button>';
     else if (it.usable) h += '<br><button data-use="' + id + '">Use</button>';
     return h;
   }
   function showHelp() {
-    $('#panel').classList.remove('hidden'); panelKind = 'help';
-    $('#panel-body').innerHTML = '<h2 class="ptitle">How to Play</h2><div style="line-height:1.7;max-width:760px"><p><b>Explore.</b> Click the floor to walk. Click people and objects (they glow green when hovered; hold <kbd>Tab</kbd> to show them all). Doors take you between rooms.</p><p><b>Talk.</b> Pick lines with the mouse or number keys. Your 24 skills are voices in your head; they chime in with passive observations when they are strong enough.</p><p><b>Checks.</b> Skill checks roll 2d6 + skill against a difficulty. <b>White</b> checks can be retried once the skill improves. <b>Red</b> checks happen once, ever.</p><p><b>Grow.</b> Successes earn XP; every few XP is a skill point (Character, <kbd>C</kbd>). Thoughts (<kbd>T</kbd>) cost time and reshape your skills.</p><p><b>Watch the clock.</b> Time passes when you walk, talk and think. The exam is at 17:00. Curfew is 21:00 — when the Bell rings, the Static takes you.</p><p><b>Watch yourself.</b> Defiance, shortcuts and snooping raise <b>Watched</b>. At 100 you are arrested. Body or Nerve at zero and you black out for hours.</p><p>Keys: <kbd>I</kbd> inventory · <kbd>J</kbd> journal · <kbd>T</kbd> thoughts · <kbd>C</kbd> character · <kbd>Esc</kbd> menu · <kbd>1-9</kbd> dialogue choices.</p></div>';
+    $('#panel').classList.remove('hidden'); panelKind = 'help'; $('#panel').dataset.kind = 'help';
+    $('#panel-body').innerHTML = '<header class="phead"><div><div class="kicker">Orientation</div><h2 class="ptitle">How to Play</h2></div></header><div class="help"><p><b>Explore.</b> Click the floor to walk. Click people and objects (they glow green when hovered; hold <kbd>Tab</kbd> to show them all). Doors take you between rooms.</p><p><b>Talk.</b> Pick lines with the mouse or number keys. Your 24 skills are voices in your head; they chime in with passive observations when they are strong enough.</p><p><b>Checks.</b> Skill checks roll 2d6 + skill against a difficulty. <b>White</b> checks can be retried once the skill improves. <b>Red</b> checks happen once, ever.</p><p><b>Grow.</b> Successes earn XP; every few XP is a skill point (Character, <kbd>C</kbd>). Thoughts (<kbd>T</kbd>) cost time and reshape your skills.</p><p><b>Watch the clock.</b> Time passes when you walk, talk and think. The exam is at 17:00. Curfew is 21:00 — when the Bell rings, the Static takes you.</p><p><b>Watch yourself.</b> Defiance, shortcuts and snooping raise <b>Watched</b>. At 100 you are arrested. Body or Nerve at zero and you black out for hours.</p><p>Keys: <kbd>I</kbd> inventory · <kbd>J</kbd> journal · <kbd>T</kbd> thoughts · <kbd>C</kbd> character · <kbd>Esc</kbd> menu · <kbd>1-9</kbd> dialogue choices.</p></div>';
   }
   $('#btn-how').onclick = () => { $('#title').classList.add('hidden'); showHelp(); const c = $('#panel-close'); c.onclick = () => { closePanel(); if (!started) $('#title').classList.remove('hidden'); c.onclick = closePanel; }; };
 
@@ -333,12 +387,15 @@
     function render() {
       const a = archs.find((x) => x.id === sel);
       const pts = Object.values(attrs).reduce((s, v) => s + v, 0);
-      let h = '<h2 class="ptitle">Who are you, exactly?</h2><div class="psub">Seventeen. Third-year student, School No. 9. Your file says "reliable." Your head says "ringing."</div>';
-      h += '<div class="crow"><canvas id="cp" width="128" height="128" style="width:110px;height:110px;border-radius:50%;border:3px solid #8a7a4a;image-rendering:pixelated"></canvas><div><div>Name <input type="text" id="cn" value="' + esc(name) + '" maxlength="22"></div>';
-      h += '<div style="margin-top:8px;font-size:13px">Skin ' + skins.map((c) => '<button class="cbtn" data-skin="' + c + '" style="background:' + c + ';width:22px;height:22px;padding:0;border:' + (look.skin === c ? '3px solid #6fe39a' : '1px solid #000') + '"></button>').join(' ') + ' &nbsp;Hair ' + hairs.map((c) => '<button class="cbtn" data-hair="' + c + '" style="background:' + c + ';width:22px;height:22px;padding:0;border:' + (look.hair === c ? '3px solid #6fe39a' : '1px solid #888') + '"></button>').join(' ') + ' &nbsp;<button class="cbtn" id="cstyle" style="padding:2px 8px;font-size:12px">Style: ' + look.hairStyle + '</button> <button class="cbtn" id="cglass" style="padding:2px 8px;font-size:12px">Glasses: ' + (look.glasses ? 'yes' : 'no') + '</button></div></div></div>';
-      h += '<div class="arch-grid">' + archs.map((x) => '<div class="arch' + (sel === x.id ? ' sel' : '') + '" data-a="' + x.id + '"><h4>' + esc(x.name) + '</h4><p>' + esc(x.description || x.desc || '') + '</p><div class="at">' + Object.entries(x.attributes || x.attrs || {}).map(([k, v]) => k.slice(0, 3).toUpperCase() + ' ' + v).join(' · ') + '</div></div>').join('') + '<div class="arch' + (sel === 'custom' ? ' sel' : '') + '" data-a="custom"><h4>Self-made</h4><p>Distribute 12 points across four attributes (1–5 each) yourself.</p></div></div>';
-      if (sel === 'custom') h += '<div class="crow">' + Object.keys(GD.attributes).map((k) => '<div style="min-width:200px"><b style="color:' + GD.attributes[k].color + '">' + esc(GD.attributes[k].name) + '</b> <button class="cbtn" data-d="-' + k + '" style="padding:0 10px">−</button> ' + attrs[k] + ' <button class="cbtn" data-d="+' + k + '" style="padding:0 10px">+</button></div>').join('') + '<span style="color:' + (pts === 12 ? '#8fe08a' : '#e0705a') + '">Points: ' + pts + ' / 12</span></div>';
-      h += '<div class="crow"><button class="cbtn" id="cgo" ' + (sel === 'custom' && pts !== 12 ? 'disabled' : '') + '>Wake up ▸</button><button class="cbtn" id="cback">Back</button></div>';
+      let h = '<div class="kicker">Admission form · School No. 9</div><h2 class="ptitle">Who are you, exactly?</h2><div class="psub">Seventeen. Third-year student, School No. 9. Your file says "reliable." Your head says "ringing."</div>';
+      h += '<div class="cr-top"><div class="cr-portrait"><canvas id="cp" width="128" height="128"></canvas></div><div class="cr-fields"><div class="crow"><label class="lbl" for="cn">Name</label><input type="text" id="cn" value="' + esc(name) + '" maxlength="22" autocomplete="off"></div>';
+      h += '<div class="crow"><span class="lbl">Skin</span>' + skins.map((c) => '<button class="swatch' + (look.skin === c ? ' on' : '') + '" data-skin="' + c + '" style="background:' + c + '" aria-label="Skin tone ' + c + '" aria-pressed="' + (look.skin === c) + '"></button>').join('') + '</div>';
+      h += '<div class="crow"><span class="lbl">Hair</span>' + hairs.map((c) => '<button class="swatch' + (look.hair === c ? ' on' : '') + '" data-hair="' + c + '" style="background:' + c + '" aria-label="Hair colour ' + c + '" aria-pressed="' + (look.hair === c) + '"></button>').join('') + '</div>';
+      h += '<div class="crow"><span class="lbl">Look</span><button class="tog" id="cstyle">Style: ' + look.hairStyle + '</button><button class="tog" id="cglass">Glasses: ' + (look.glasses ? 'yes' : 'no') + '</button></div></div></div>';
+      const atTags = (o) => Object.entries(o || {}).map(([k, v]) => '<span style="--c:' + ((GD.attributes[k] || {}).color || '#aaa') + '">' + k.slice(0, 3).toUpperCase() + ' ' + v + '</span>').join('');
+      h += '<div class="sect">Archetype</div><div class="arch-grid">' + archs.map((x) => '<div class="arch' + (sel === x.id ? ' sel' : '') + '" data-a="' + x.id + '" tabindex="0" role="button" aria-pressed="' + (sel === x.id) + '"><h4>' + esc(x.name) + '</h4><p>' + esc(x.description || x.desc || '') + '</p><div class="at">' + atTags(x.attributes || x.attrs) + '</div></div>').join('') + '<div class="arch' + (sel === 'custom' ? ' sel' : '') + '" data-a="custom" tabindex="0" role="button" aria-pressed="' + (sel === 'custom') + '"><h4>Self-made</h4><p>Distribute 12 points across four attributes (1–5 each) yourself.</p></div></div>';
+      if (sel === 'custom') h += '<div class="attr-edit">' + Object.keys(GD.attributes).map((k) => '<div style="--c:' + GD.attributes[k].color + '"><b>' + esc(GD.attributes[k].name) + '</b><button data-d="-' + k + '" aria-label="Lower ' + esc(GD.attributes[k].name) + '">−</button><span class="v">' + attrs[k] + '</span><button data-d="+' + k + '" aria-label="Raise ' + esc(GD.attributes[k].name) + '">+</button></div>').join('') + '<span class="pts" style="color:' + (pts === 12 ? 'var(--green)' : '#ec7458') + '">' + pts + ' / 12</span></div>';
+      h += '<div class="cr-go"><button class="cbtn" id="cgo" ' + (sel === 'custom' && pts !== 12 ? 'disabled' : '') + '>Wake up ▸</button><button class="cbtn ghost" id="cback">Back</button></div>';
       $('#create-inner').innerHTML = h;
       A.drawPortrait($('#cp'), look, {});
       $('#cn').oninput = (e) => (name = e.target.value);
@@ -346,6 +403,7 @@
       document.querySelectorAll('[data-hair]').forEach((b) => (b.onclick = () => { look.hair = b.dataset.hair; render(); }));
       $('#cstyle').onclick = () => { look.hairStyle = styles[(styles.indexOf(look.hairStyle) + 1) % styles.length]; render(); };
       $('#cglass').onclick = () => { look.glasses = !look.glasses; render(); };
+      document.querySelectorAll('[data-a]').forEach((b) => (b.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); b.click(); } }));
       document.querySelectorAll('[data-a]').forEach((b) => (b.onclick = () => { sel = b.dataset.a; const ar = archs.find((x) => x.id === sel); if (ar) attrs = Object.assign({}, ar.attributes || ar.attrs); render(); }));
       document.querySelectorAll('[data-d]').forEach((b) => (b.onclick = () => { const k = b.dataset.d.slice(1), d = b.dataset.d[0] === '+' ? 1 : -1; if (attrs[k] + d >= 1 && attrs[k] + d <= 5) attrs[k] += d; render(); }));
       $('#cback').onclick = () => { box.classList.add('hidden'); $('#title').classList.remove('hidden'); };
@@ -378,7 +436,11 @@
   G.on('dialogueEnd', (D) => { if (D.isEnding) setTimeout(() => showSummary(G.S.ending), 300); });
   function showSummary(id) {
     const S = G.S, el = $('#ending-summary'); document.body.classList.remove('endmode');
-    el.innerHTML = '<h2>' + (ENDNAMES[id] || 'THE END') + '</h2><p>' + esc(S.name) + ' · ' + fmtTime(S.time) + ' · checks passed ' + S.stats.passed + ' / failed ' + S.stats.failed + ' · thoughts internalized ' + Object.values(S.thoughts).filter((t) => t.state === 'internalized').length + ' · Watched ' + S.surv + '%</p><p style="color:var(--dim)">Endings found: ' + G.endingsSeen().length + ' of ' + Object.keys(GD.endingInfo || {}).length + '. There is more than one way to get through a Tuesday.</p><div class="eg">' + Object.entries(GD.endingInfo || {}).map(([k, v]) => G.endingsSeen().includes(k) ? '<b>✔ ' + esc(v.name) + '</b>' : '<span>? ' + esc(v.hint) + '</span>').join('<br>') + '</div><button class="cbtn" id="again">Return to title</button>';
+    const seen = G.endingsSeen(), total = Object.keys(GD.endingInfo || {}).length;
+    el.innerHTML = '<div class="kicker">' + esc(S.name) + ' · ' + fmtTime(S.time) + '</div><h2>' + (ENDNAMES[id] || 'THE END') + '</h2><div class="stats">'
+      + '<div class="stat"><b>' + S.stats.passed + '</b><span>Checks passed</span></div><div class="stat"><b>' + S.stats.failed + '</b><span>Checks failed</span></div>'
+      + '<div class="stat"><b>' + Object.values(S.thoughts).filter((t) => t.state === 'internalized').length + '</b><span>Thoughts</span></div><div class="stat' + (S.surv >= 66 ? ' hot' : '') + '"><b>' + S.surv + '%</b><span>Watched</span></div></div>'
+      + '<p style="color:var(--dim)">Endings found: ' + seen.length + ' of ' + total + '. There is more than one way to get through a Tuesday.</p><div class="eg">' + Object.entries(GD.endingInfo || {}).map(([k, v]) => seen.includes(k) ? '<b><i>✔</i>' + esc(v.name) + '</b>' : '<span><i>?</i>' + esc(v.hint) + '</span>').join('') + '</div><button class="cbtn" id="again">Return to title</button>';
     el.classList.remove('hidden'); $('#again').onclick = () => location.reload();
   }
 
@@ -394,7 +456,7 @@
     else if (db && db.length && r < 0.6) { const b = db[Math.floor(Math.random() * db.length)]; pickB = { skill: b.skill, text: b.text }; }
     else { const ids = Object.keys(GD.barks || {}).filter((k) => G.skill(k) >= 3 && GD.skills[k]); if (!ids.length) return; const k = ids[Math.floor(Math.random() * ids.length)], arr = GD.barks[k]; pickB = { skill: k, text: arr[Math.floor(Math.random() * arr.length)] }; }
     if (!pickB || !GD.skills[pickB.skill]) return;
-    const box = $('#toasts'), d = document.createElement('div'); d.className = 'toast'; d.style.borderColor = GD.skills[pickB.skill].color; d.innerHTML = '<b style="color:' + GD.skills[pickB.skill].color + ';font-size:11px;letter-spacing:.15em">' + esc(GD.skills[pickB.skill].name.toUpperCase()) + '</b><br><i>' + esc(G.sub(pickB.text)) + '</i>'; box.appendChild(d); setTimeout(() => d.remove(), 5200);
+    const box = $('#toasts'), d = document.createElement('div'); d.className = 'toast bark'; d.style.setProperty('--c', GD.skills[pickB.skill].color); d.innerHTML = '<span class="tk">' + esc(GD.skills[pickB.skill].name.toUpperCase()) + '</span>' + esc(G.sub(pickB.text)); box.appendChild(d); setTimeout(() => d.remove(), 5200);
   }, 38000);
 
   // debug hook

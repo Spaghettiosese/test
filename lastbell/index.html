@@ -4,49 +4,55 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>LAST BELL — A Day at School No. 9</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Oswald:wght@400;500;600&family=Special+Elite&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div id="app">
-  <canvas id="scene"></canvas>
+  <canvas id="scene" aria-label="Game scene"></canvas>
 
   <div id="hud" class="hidden">
-    <div id="badge"><canvas id="portrait" width="128" height="128"></canvas></div>
+    <div id="badge" title="You"><canvas id="portrait" width="128" height="128"></canvas><span id="hud-name"></span></div>
     <div id="meters">
-      <div class="meter body" title="Body — your physical health"><span>BODY</span><div class="bar"><i id="m-hp"></i></div></div>
-      <div class="meter nerve" title="Nerve — your morale"><span>NERVE</span><div class="bar"><i id="m-morale"></i></div></div>
+      <div class="meter body" title="Body — your physical health"><span>Body</span><div class="pips" id="m-hp" role="meter" aria-label="Body" aria-valuemin="0" aria-valuemax="10"></div></div>
+      <div class="meter nerve" title="Nerve — your morale"><span>Nerve</span><div class="pips" id="m-morale" role="meter" aria-label="Nerve" aria-valuemin="0" aria-valuemax="10"></div></div>
     </div>
-    <div id="menubar">
-      <button data-panel="inventory" title="Inventory (I)"><b>▣</b><em>Inventory</em></button>
-      <button data-panel="journal" title="Journal (J)"><b>☰</b><em>Journal</em></button>
-      <button data-panel="thoughts" title="Thought Cabinet (T)"><b>✺</b><em>Thoughts</em></button>
-      <button data-panel="character" title="Character (C)"><b>◈</b><em>Character</em><u id="pt-dot" class="hidden"></u></button>
-      <button data-panel="menu" title="Menu (Esc)"><b>⋯</b><em>Menu</em></button>
-    </div>
-    <div id="topright">
-      <div id="dayname">DAY 1</div><div id="clock">07:30</div>
-      <div id="surv" title="Surveillance — how closely the State is watching you. At 100 you are arrested."><span>WATCHED</span><div class="bar"><i id="m-surv"></i></div></div>
+    <nav id="menubar" aria-label="Game menu">
+      <button data-panel="inventory" title="Inventory (I)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.6 9.2h14.8l-1.3 10.6c-.1.7-.6 1.2-1.3 1.2H7.2c-.7 0-1.2-.5-1.3-1.2z"/><path d="M8.6 9.2V6.4a3.4 3.4 0 0 1 6.8 0v2.8"/><path d="M5.2 13.4c4.4 1.1 9.2 1.1 13.6 0"/><path d="M11 13.9h2v2.2h-2z"/></svg><em>Inventory</em></button>
+      <button data-panel="journal" title="Journal (J)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.2h11.6c.6 0 1 .4 1 1v15.6c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1V4.2c0-.6.4-1 1-1z"/><path d="M8.4 3.4v17.2"/><path d="M11.2 8h4.6M11.2 11.4h4.6M11.2 14.8h3"/><path d="M3.6 6.4h2.6M3.6 10h2.6M3.6 13.6h2.6M3.6 17.2h2.6"/></svg><em>Journal</em></button>
+      <button data-panel="thoughts" title="Thought Cabinet (T)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.4 21v-3.4C5 16.1 3.8 13.7 3.8 11 3.8 6.4 7.5 3 12 3c4.3 0 7.6 3 7.8 7.1l1.6 3.3h-1.8v3.1c0 .9-.7 1.6-1.6 1.6h-2.4V21"/><path d="M12.2 6.6l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z"/></svg><em>Thoughts</em></button>
+      <button data-panel="character" title="Character (C)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7.6" r="3.8"/><path d="M4.2 21c.6-4.4 3.6-7.3 7.8-7.3s7.2 2.9 7.8 7.3"/><path d="M12 13.8l-1.2 2.6L12 21l1.2-4.6z"/></svg><em>Character</em><u id="pt-dot" class="hidden" aria-label="Skill points available"></u></button>
+      <button data-panel="menu" title="Menu (Esc)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.4 6.8c5.2-.6 10.2-.6 15.2 0"/><path d="M4.4 12c5.2.4 10.2.4 15.2 0"/><path d="M4.4 17.2c5.2-.5 10.2-.5 15.2 0"/></svg><em>Menu</em></button>
+    </nav>
+    <div id="topright" class="doc">
+      <div class="doc-top"><span id="dayname">DAY 1</span></div>
+      <div id="clock">07:30</div>
       <div id="curfew">Curfew 21:00</div>
+      <div id="surv" title="Surveillance — how closely the State is watching you. At 100 you are arrested."><span>Watched</span><div class="bar"><i id="m-surv"></i></div><b id="surv-n">0</b></div>
+      <div class="stamp" id="surv-stamp" aria-hidden="true">Under watch</div>
     </div>
     <div id="locname"></div>
     <div id="tasktrack"></div>
     <div id="tooltip" class="hidden"></div>
-    <div id="toasts"></div>
-    <button id="hl-btn" title="Highlight everything you can interact with">◉ Show</button>
+    <div id="toasts" aria-live="polite"></div>
+    <button id="hl-btn" title="Highlight everything you can interact with"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.4 12.2C4.6 8 8 5.6 12 5.6s7.4 2.4 9.6 6.6C19.4 16.2 16 18.6 12 18.6s-7.4-2.4-9.6-6.4z"/><circle cx="12" cy="12" r="3.2"/></svg><span>Show</span></button>
     <div id="hint">Click to move · Click people &amp; objects to interact · Hold <kbd>Tab</kbd> to highlight everything</div>
   </div>
 
-  <div id="dialogue" class="hidden">
+  <div id="dialogue" class="hidden" role="dialog" aria-label="Conversation">
     <div id="dlg-head"><span id="dlg-title"></span><button id="dlg-skip" title="Skip dice animation" class="hidden">…</button></div>
-    <div id="dlg-log"></div>
+    <div id="dlg-log" aria-live="polite"></div>
     <div id="dlg-choices"></div>
   </div>
 
-  <div id="panel" class="hidden"><div id="panel-inner"><button id="panel-close">✕</button><div id="panel-body"></div></div></div>
+  <div id="panel" class="hidden"><div id="panel-inner" role="dialog" aria-modal="true"><button id="panel-close" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 5.8l12.8 12.6M18.4 5.6L5.6 18.3"/></svg></button><div id="panel-body"></div></div></div>
 
   <div id="title">
     <canvas id="title-canvas"></canvas>
     <div id="title-box">
+      <div class="kicker">School No. 9 · Third Year</div>
       <h1>LAST BELL</h1>
       <h2>A Day at School No. 9</h2>
       <p class="tag">You woke up on a stage. Something rang in your head all night. The Warden hears everything — except, apparently, you.</p>
@@ -61,15 +67,15 @@
     </div>
   </div>
 
-  <div id="tutorial" class="hidden"><div id="tut-card"><h3>Before you wake up fully</h3>
-<ul><li><b>Move &amp; look.</b> Click (or tap) the floor to walk. Hover people and objects to see them glow green; touch users tap once to preview, twice to act. <kbd>Tab</kbd> or the <b>◉</b> button shows everything.</li>
+  <div id="tutorial" class="hidden"><div id="tut-card" role="dialog" aria-labelledby="tut-h"><div class="kicker">Orientation leaflet · No. 9</div><h3 id="tut-h">Before you wake up fully</h3>
+<ol><li><b>Move &amp; look.</b> Click (or tap) the floor to walk. Hover people and objects to see them glow green; touch users tap once to preview, twice to act. <kbd>Tab</kbd> or the <b>eye</b> button shows everything.</li>
 <li><b>Listen to your head.</b> Your 24 skills talk to you. Strong skills interrupt with passive observations; weak ones stay quiet.</li>
-<li><b>Roll the dice.</b> Skill checks are 2d6 + skill. <b>White</b> checks can be retried after the skill rises; <b>red</b> checks only once.</li>
+<li><b>Roll the dice.</b> Skill checks are 2d6 + skill. <b class="w">White</b> checks can be retried after the skill rises; <b class="r">red</b> checks only once.</li>
 <li><b>Spend points.</b> XP becomes skill points in <b>Character</b> (<kbd>C</kbd>). The <b>Thoughts</b> tab (<kbd>T</kbd>) costs time and changes you.</li>
-<li><b>Mind the clock.</b> Exam at 17:00. Curfew at 21:00. Defiance raises <b>Watched</b>; at 100 you are arrested. There are six endings.</li></ul>
+<li><b>Mind the clock.</b> Exam at 17:00. Curfew at 21:00. Defiance raises <b>Watched</b>; at 100 you are arrested. There are six endings.</li></ol>
 <button class="cbtn" id="tut-ok">Wake up</button></div></div>
 <div id="rotate"><div><b>↻</b><p>Landscape works best.<br>Rotate your phone for the full scene.</p><button class="cbtn" id="rot-ok">Continue anyway</button></div></div>
-  <div id="daycard" class="hidden"><canvas id="dc-canvas"></canvas><div id="dc-box"><h2 id="dc-title"></h2><p id="dc-sub"></p><button class="cbtn" id="dc-go">Wake up</button></div></div>
+  <div id="daycard" class="hidden"><canvas id="dc-canvas"></canvas><div id="dc-box"><div class="kicker">The bell rings again</div><h2 id="dc-title"></h2><p id="dc-sub"></p><button class="cbtn" id="dc-go">Wake up</button></div></div>
   <div id="create" class="hidden"><div id="create-inner"></div></div>
   <div id="ending" class="hidden"><canvas id="ending-canvas"></canvas><div id="ending-summary" class="hidden"></div></div>
 </div>
