@@ -60,6 +60,23 @@ export class Sfx {
       this._noise(t, { dur: 0.9, gain: 0.6, freq: 210, freqEnd: 60, decay: 0.7 });
       this._tone(t, { freq: 100, freqEnd: 34, dur: 0.25, gain: 0.7, decay: 0.28 });
       this._noise(t + 0.2, { dur: 0.8, gain: 0.09, freq: 650, freqEnd: 200, decay: 0.7, attack: 0.04 });
+    } else if (kind === 'pistol45') {
+      this._noise(t, { dur: 0.22, gain: 0.85, freq: 3000, freqEnd: 520, decay: 0.15 });
+      this._noise(t, { dur: 0.4, gain: 0.45, freq: 240, decay: 0.28 });
+      this._tone(t, { freq: 130, freqEnd: 45, dur: 0.12, gain: 0.55, decay: 0.12 });
+    } else if (kind === 'pistol57') {
+      this._noise(t, { dur: 0.16, gain: 0.7, freq: 5200, freqEnd: 1100, decay: 0.1 });
+      this._noise(t, { dur: 0.25, gain: 0.25, freq: 380, decay: 0.16 });
+      this._tone(t, { freq: 220, freqEnd: 80, dur: 0.06, gain: 0.3, decay: 0.06 });
+    } else if (kind === 'ak74') {
+      this._noise(t, { dur: 0.24, gain: 0.95, freq: 4200, freqEnd: 700, decay: 0.15 });
+      this._noise(t, { dur: 0.4, gain: 0.5, freq: 300, decay: 0.28 });
+      this._tone(t, { freq: 150, freqEnd: 52, dur: 0.11, gain: 0.5, decay: 0.11 });
+    } else if (kind === 'fifty') {
+      this._noise(t, { dur: 0.4, gain: 1, freq: 3600, freqEnd: 300, decay: 0.28 });
+      this._noise(t, { dur: 2.2, gain: 0.9, freq: 160, freqEnd: 40, decay: 1.9 });
+      this._tone(t, { freq: 70, freqEnd: 24, dur: 0.6, gain: 1, decay: 0.7 });
+      this._noise(t + 0.3, { dur: 1.6, gain: 0.16, freq: 500, freqEnd: 160, decay: 1.5, attack: 0.06 }); // rolling echo
     } else if (kind === 'ak47') {
       this._noise(t, { dur: 0.28, gain: 0.95, freq: 3200, freqEnd: 550, decay: 0.18 });
       this._noise(t, { dur: 0.45, gain: 0.6, freq: 260, decay: 0.32 });

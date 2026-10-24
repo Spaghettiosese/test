@@ -87,6 +87,27 @@ export function weaponProp(gun, { capacity = 1, detail = 1 } = {}) {
   };
   prop.handlers.show = (bone) => show(bone, true);
   prop.handlers.hide = (bone) => show(bone, false);
+  // back to rest: every part home, the flash hidden and the loose props where they start
+  const shownAtRest = {};
+  for (const bone of gun.toggles || []) shownAtRest[bone] = (gun.toggleDefault?.[bone] ?? 1) >= 0.5;
+  for (const [bone, d] of Object.entries(gun.propsDefault || {})) shownAtRest[bone] = d.attach !== 'world';
+  prop.reset = () => {
+    R.stop();
+    for (const part of R.parts.values()) part.snap(0);
+    for (const [bone, on] of Object.entries(shownAtRest)) show(bone, on);
+  };
+  // the gun's extent at rest in its own space (the flash and parked props left out), for laying
+  // it on a table and for picking it out with a ray
+  const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+  for (const [bone, kit] of Object.entries(kits)) {
+    if (shownAtRest[bone] === false) continue;
+    const h = heads[bone];
+    for (const geos of kit.groups.values()) for (const g of geos) {
+      const v = g.positions;
+      for (let i = 0; i < v.length; i += 3) for (let a = 0; a < 3; a++) { const x = v[i + a] + h[a]; if (x < lo[a]) lo[a] = x; if (x > hi[a]) hi[a] = x; }
+    }
+  }
+  prop.bounds = { min: lo, max: hi };
 
   // holding: the right hand's grip (the prop's transform in the hand bone's frame), the
   // support hand's point, and sockets for the muzzle, ejection port and sights

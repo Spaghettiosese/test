@@ -87,108 +87,118 @@ const GUN = [
 ];
 
 // ---------------------------------------------------------------- choreography
-const GRIP_R = { attach: 'weapon', p: [-0.036, -0.052, -0.108], r: [-66, 0, 2] };
-const SUPPORT_L = { attach: 'weapon', p: [0.052, 0.006, 0.2], r: [0, -4, -70] };
-const READY = { p: [...W0], r: [0, 5, -3] };
 const SEATED = { attach: 'weapon', p: MAG_SEAT, r: [0, 0, 0] };
-const MAG_BELOW = { p: offset(MAG_SEAT, [0, -0.07, 0.014]), r: [4, 0, 0] };
-const LH_MAG = { p: [0.03, -0.25, 0.03], r: [-92, 0, 0] };
-const IN_HAND = { attach: 'hand.L', ...inFrame(LH_MAG, MAG_BELOW) };
-const LH_SLAP_MAG = { attach: 'weapon', p: [0.05, -0.26, 0.14], r: [0, 0, -90] };
-// left hand on the charging handle knob (in the handle's frame)
-const KNOB_REL = [KNOB[0], 0, 0];
-const L_HOOK = { attach: 'chargeRot', p: offset(KNOB_REL, [0.04, -0.035, -0.03]), r: [-40, 10, -30] };
-const L_ABOVE = { attach: 'chargeRot', p: offset(KNOB_REL, [0.03, 0.055, -0.03]), r: [-20, 0, -140] }; // palm raised over the handle
-const L_SLAP = { attach: 'chargeRot', p: offset(KNOB_REL, [0.03, 0.028, -0.03]), r: [-20, 0, -140] };
-const HANDLE_BACK = -0.1, HANDLE_UP = 25;
-const CH_POSE = { p: [-0.08, -0.14, 0.34], r: [-10, -4, 30] }; // rolled: the left side and handle face the eye
-const MAG_POSE = { p: [-0.075, -0.1, 0.37], r: [-24, -6, 50] };
+// The MP5's choreography as a function, so other guns built on the same anchors reuse it:
+//   o.mag: [dy, dz], where that gun's magazine bottom sits relative to this one's (the left
+//     hand and the palm slap follow it)
+//   o.support: { p, r }, the left hand's hold; o.supportPose: its finger pose there
+export function mp5Actions(o = {}) {
+  const [dy, dz] = o.mag || [0, 0];
+  const M = (p) => [p[0], p[1] + dy, p[2] + dz]; // magazine-bottom anchors move with the gun's magazine
+  const SUP = o.supportPose || HANDS.wrap;
+  const GRIP_R = { attach: 'weapon', p: [-0.036, -0.052, -0.108], r: [-66, 0, 2] };
+  const SUPPORT_L = { attach: 'weapon', p: [0.052, 0.006, 0.2], r: [0, -4, -70], ...o.support };
+  const READY = { p: [...W0], r: [0, 5, -3] };
+  const MAG_BELOW = { p: offset(MAG_SEAT, [0, -0.07, 0.014]), r: [4, 0, 0] };
+  const LH_MAG = { p: M([0.03, -0.25, 0.03]), r: [-92, 0, 0] };
+  const IN_HAND = { attach: 'hand.L', ...inFrame(LH_MAG, MAG_BELOW) };
+  const LH_SLAP_MAG = { attach: 'weapon', p: M([0.05, -0.26, 0.14]), r: [0, 0, -90] };
+  // left hand on the charging handle knob (in the handle's frame)
+  const KNOB_REL = [KNOB[0], 0, 0];
+  const L_HOOK = { attach: 'chargeRot', p: offset(KNOB_REL, [0.04, -0.035, -0.03]), r: [-40, 10, -30] };
+  const L_ABOVE = { attach: 'chargeRot', p: offset(KNOB_REL, [0.03, 0.055, -0.03]), r: [-20, 0, -140] }; // palm raised over the handle
+  const L_SLAP = { attach: 'chargeRot', p: offset(KNOB_REL, [0.03, 0.028, -0.03]), r: [-20, 0, -140] };
+  const HANDLE_BACK = -0.1, HANDLE_UP = 25;
+  const CH_POSE = { p: [-0.08, -0.14, 0.34], r: [-10, -4, 30] }; // rolled: the left side and handle face the eye
+  const MAG_POSE = { p: [-0.075, -0.1, 0.37], r: [-24, -6, 50] };
 
-const ACTIONS = {
-  Idle: {
-    duration: 3, loop: true, fps: 20,
-    weapon: (t) => { const a = (t / 3) * Math.PI * 2; return { p: [W0[0] + 0.003 * Math.sin(a), W0[1] + 0.004 * Math.sin(2 * a), W0[2] + 0.002 * Math.cos(a)], r: [0.7 * Math.sin(2 * a), 5 + 0.9 * Math.sin(a), -3 + 0.6 * Math.cos(a)] }; },
-    handR: [k(0, GRIP_R)], handL: [k(0, SUPPORT_L)],
-    fingersR: [k(0, { pose: HANDS.pistolGrip })],
-    fingersL: [k(0, { pose: HANDS.wrap }), k(1.5, { pose: { curl: [0.4, 0.62, 0.68, 0.72, 0.76], spread: 0.06 } }), k(3, { pose: HANDS.wrap })],
-  },
-  Fire: {
-    // one round of automatic fire; restarting it every 75 ms gives ~800 rounds a minute
-    duration: 0.13, fps: 60,
-    weapon: [k(0, READY), k(0.02, { p: [W0[0] + 0.002, W0[1] + 0.006, W0[2] - 0.024], r: [-2.6, 5.4, -3.4] }, 'snap'), k(0.13, READY)],
-    handR: [k(0, GRIP_R)], handL: [k(0, SUPPORT_L)],
-    fingersR: [k(0, { pose: HANDS.squeeze }), k(0.13, { pose: HANDS.squeeze })],
-    fingersL: [k(0, { pose: HANDS.wrap }), k(0.03, { pose: { curl: [0.45, 0.7, 0.74, 0.77, 0.8], spread: 0.04 } }, 'snap'), k(0.13, { pose: HANDS.wrap })],
-    toggles: { flash: [k(0, { v: 1 }), k(0.025, { v: 1 }, 'hold'), k(0.026, { v: 0 }, 'hold')] },
-    events: [{ t: 0, name: 'shot' }],
-  },
-  Reload: {
-    duration: 2.5, fps: 30,
-    weapon: [
-      k(0, READY), k(0.22, CH_POSE), k(0.4, CH_POSE),
-      k(0.58, MAG_POSE), k(1.2, MAG_POSE),
-      k(1.32, { p: offset(MAG_POSE.p, [0.004, 0.012, 0]), r: [-27, -6, 51] }, 'snap'), // magazine tapped home
-      k(1.5, CH_POSE), k(1.62, CH_POSE),
-      k(1.68, { p: offset(CH_POSE.p, [0.004, -0.012, 0.004]), r: [-7, -4, 27] }, 'snap'), // the HK slap
-      k(2.2, READY), k(2.5, READY),
-    ],
-    handR: [k(0, GRIP_R), k(1.22, GRIP_R), k(1.25, { attach: 'weapon', p: [-0.036, -0.05, -0.104], r: [-66, 0, 2] }), k(1.32, GRIP_R), k(2.5, GRIP_R)],
-    handL: [
-      k(0, SUPPORT_L),
-      k(0.16, { ...L_HOOK, p: offset(L_HOOK.p, [0.02, 0.02, 0.02]) }),
-      k(0.22, L_HOOK), k(0.36, L_HOOK), k(0.42, L_HOOK), // pull back and lock up
-      k(0.52, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0, 0.07, 0]) }), // thumb on the paddle
-      k(0.58, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0, 0.07, 0]) }),
-      k(0.66, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0.01, -0.02, 0]) }, 'out'),
-      k(0.82, { attach: 'world', p: [0.2, -0.72, 0.2], r: [-60, 30, -30] }),
-      k(0.96, { attach: 'world', p: [0.19, -0.74, 0.22], r: [-60, 30, -30] }),
-      k(1.14, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0.01, -0.06, -0.01]) }),
-      k(1.2, { attach: 'weapon', ...LH_MAG }),
-      k(1.28, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0, 0.07, 0]) }, 'in'),
-      k(1.3, { ...LH_SLAP_MAG, p: offset(LH_SLAP_MAG.p, [0, -0.04, 0]) }), k(1.32, LH_SLAP_MAG, 'snap'),
-      k(1.52, L_ABOVE), k(1.62, L_ABOVE),
-      k(1.68, L_SLAP, 'snap'),
-      k(1.78, { ...L_SLAP, p: offset(L_SLAP.p, [0.02, 0.04, 0]) }),
-      k(2.15, SUPPORT_L), k(2.5, SUPPORT_L),
-    ],
-    fingersR: [k(0, { pose: HANDS.pistolGrip }), k(1.22, { pose: HANDS.pistolGrip }), k(1.25, { pose: { curl: [0.5, 0.35, 0.82, 0.88, 0.92], spread: 0 } }), k(1.32, { pose: HANDS.pistolGrip }), k(2.5, { pose: HANDS.pistolGrip })],
-    fingersL: [k(0, { pose: HANDS.wrap }), k(0.16, { pose: HANDS.relaxed }), k(0.22, { pose: HANDS.hook }), k(0.42, { pose: HANDS.hook }), k(0.5, { pose: HANDS.grab }), k(0.7, { pose: HANDS.relaxed }), k(0.9, { pose: HANDS.grab }), k(1.28, { pose: HANDS.grab }), k(1.3, { pose: HANDS.flat }), k(1.55, { pose: HANDS.flat }), k(1.8, { pose: HANDS.relaxed }), k(2.15, { pose: HANDS.wrap }), k(2.5, { pose: HANDS.wrap })],
-    props: {
-      mag: [
-        k(0, SEATED), k(0.58, SEATED),
-        k(0.66, { attach: 'weapon', ...MAG_BELOW, p: offset(MAG_BELOW.p, [0.01, -0.02, 0]) }, 'out'),
-        k(0.7, { attach: 'weapon', ...MAG_BELOW, p: offset(MAG_BELOW.p, [0.02, -0.06, 0]), r: [10, 0, 20] }),
-        k(0.96, { attach: 'world', p: [-0.05, -1.1, 0.4], r: [120, 40, 90] }, 'in'),
-        k(0.97, HIDDEN, 'hold'), k(0.98, { ...IN_HAND }, 'hold'),
-        k(1.2, IN_HAND), k(1.28, SEATED, 'in'), k(2.5, SEATED),
-      ],
+  return {
+    Idle: {
+      duration: 3, loop: true, fps: 20,
+      weapon: (t) => { const a = (t / 3) * Math.PI * 2; return { p: [W0[0] + 0.003 * Math.sin(a), W0[1] + 0.004 * Math.sin(2 * a), W0[2] + 0.002 * Math.cos(a)], r: [0.7 * Math.sin(2 * a), 5 + 0.9 * Math.sin(a), -3 + 0.6 * Math.cos(a)] }; },
+      handR: [k(0, GRIP_R)], handL: [k(0, SUPPORT_L)],
+      fingersR: [k(0, { pose: HANDS.pistolGrip })],
+      fingersL: [k(0, { pose: SUP }), k(1.5, { pose: { curl: [0.4, 0.62, 0.68, 0.72, 0.76], spread: 0.06 } }), k(3, { pose: SUP })],
     },
-    slides: { charge: [k(0, { v: 0 }), k(0.22, { v: 0 }), k(0.34, { v: HANDLE_BACK }), k(1.66, { v: HANDLE_BACK }), k(1.7, { v: 0 }, 'snap')] },
-    spins: { chargeRot: [k(0, { v: 0 }), k(0.34, { v: 0 }), k(0.42, { v: HANDLE_UP }), k(1.64, { v: HANDLE_UP }), k(1.68, { v: 0 }, 'snap')] },
-    events: [{ t: 0.4, name: 'charge' }, { t: 0.62, name: 'magOut' }, { t: 1.28, name: 'magIn' }, { t: 1.7, name: 'boltHome' }],
-  },
-  Inspect: {
-    duration: 4.2, fps: 30,
-    weapon: [
-      k(0, READY),
-      k(0.35, { p: [-0.07, -0.16, 0.3], r: [-4, -24, 8] }),
-      k(0.75, { p: [0.0, -0.13, 0.36], r: [-8, -58, 14] }), // right side
-      k(1.5, { p: [0.004, -0.128, 0.365], r: [-10, -60, 16] }),
-      k(2.1, { p: [0.0, -0.13, 0.36], r: [-8, 40, -26] }), // left side: selector and handle
-      k(3.1, { p: [0.004, -0.13, 0.36], r: [-10, 44, -30] }),
-      k(3.6, { p: [-0.06, -0.17, 0.3], r: [4, 10, -8] }),
-      k(3.95, { p: [W0[0], W0[1] - 0.005, W0[2]], r: [1, 5, -3] }),
-      k(4.2, READY),
-    ],
-    handR: [k(0, GRIP_R), k(4.2, GRIP_R)],
-    handL: [k(0, SUPPORT_L), k(2.2, SUPPORT_L), k(2.35, L_HOOK), k(2.9, L_HOOK), k(3.1, SUPPORT_L), k(4.2, SUPPORT_L)],
-    fingersR: [k(0, { pose: HANDS.pistolGrip }), k(4.2, { pose: HANDS.pistolGrip })],
-    fingersL: [k(0, { pose: HANDS.wrap }), k(2.2, { pose: HANDS.wrap }), k(2.35, { pose: HANDS.hook }), k(2.9, { pose: HANDS.hook }), k(3.1, { pose: HANDS.wrap }), k(4.2, { pose: HANDS.wrap })],
-    // press check: the handle comes back far enough to see brass
-    slides: { charge: [k(0, { v: 0 }), k(2.4, { v: 0 }), k(2.55, { v: -0.03 }), k(2.8, { v: -0.03 }), k(2.88, { v: 0 }, 'snap')] },
-    events: [{ t: 2.88, name: 'boltHome' }],
-  },
-};
+    Fire: {
+      // one round of automatic fire; restarting it every 75 ms gives ~800 rounds a minute
+      duration: 0.13, fps: 60,
+      weapon: [k(0, READY), k(0.02, { p: [W0[0] + 0.002, W0[1] + 0.006, W0[2] - 0.024], r: [-2.6, 5.4, -3.4] }, 'snap'), k(0.13, READY)],
+      handR: [k(0, GRIP_R)], handL: [k(0, SUPPORT_L)],
+      fingersR: [k(0, { pose: HANDS.squeeze }), k(0.13, { pose: HANDS.squeeze })],
+      fingersL: [k(0, { pose: SUP }), k(0.03, { pose: { curl: [0.45, 0.7, 0.74, 0.77, 0.8], spread: 0.04 } }, 'snap'), k(0.13, { pose: SUP })],
+      toggles: { flash: [k(0, { v: 1 }), k(0.025, { v: 1 }, 'hold'), k(0.026, { v: 0 }, 'hold')] },
+      events: [{ t: 0, name: 'shot' }],
+    },
+    Reload: {
+      duration: 2.5, fps: 30,
+      weapon: [
+        k(0, READY), k(0.22, CH_POSE), k(0.4, CH_POSE),
+        k(0.58, MAG_POSE), k(1.2, MAG_POSE),
+        k(1.32, { p: offset(MAG_POSE.p, [0.004, 0.012, 0]), r: [-27, -6, 51] }, 'snap'), // magazine tapped home
+        k(1.5, CH_POSE), k(1.62, CH_POSE),
+        k(1.68, { p: offset(CH_POSE.p, [0.004, -0.012, 0.004]), r: [-7, -4, 27] }, 'snap'), // the HK slap
+        k(2.2, READY), k(2.5, READY),
+      ],
+      handR: [k(0, GRIP_R), k(1.22, GRIP_R), k(1.25, { attach: 'weapon', p: [-0.036, -0.05, -0.104], r: [-66, 0, 2] }), k(1.32, GRIP_R), k(2.5, GRIP_R)],
+      handL: [
+        k(0, SUPPORT_L),
+        k(0.16, { ...L_HOOK, p: offset(L_HOOK.p, [0.02, 0.02, 0.02]) }),
+        k(0.22, L_HOOK), k(0.36, L_HOOK), k(0.42, L_HOOK), // pull back and lock up
+        k(0.52, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0, 0.07, 0]) }), // thumb on the paddle
+        k(0.58, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0, 0.07, 0]) }),
+        k(0.66, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0.01, -0.02, 0]) }, 'out'),
+        k(0.82, { attach: 'world', p: [0.2, -0.72, 0.2], r: [-60, 30, -30] }),
+        k(0.96, { attach: 'world', p: [0.19, -0.74, 0.22], r: [-60, 30, -30] }),
+        k(1.14, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0.01, -0.06, -0.01]) }),
+        k(1.2, { attach: 'weapon', ...LH_MAG }),
+        k(1.28, { attach: 'weapon', ...LH_MAG, p: offset(LH_MAG.p, [0, 0.07, 0]) }, 'in'),
+        k(1.3, { ...LH_SLAP_MAG, p: offset(LH_SLAP_MAG.p, [0, -0.04, 0]) }), k(1.32, LH_SLAP_MAG, 'snap'),
+        k(1.52, L_ABOVE), k(1.62, L_ABOVE),
+        k(1.68, L_SLAP, 'snap'),
+        k(1.78, { ...L_SLAP, p: offset(L_SLAP.p, [0.02, 0.04, 0]) }),
+        k(2.15, SUPPORT_L), k(2.5, SUPPORT_L),
+      ],
+      fingersR: [k(0, { pose: HANDS.pistolGrip }), k(1.22, { pose: HANDS.pistolGrip }), k(1.25, { pose: { curl: [0.5, 0.35, 0.82, 0.88, 0.92], spread: 0 } }), k(1.32, { pose: HANDS.pistolGrip }), k(2.5, { pose: HANDS.pistolGrip })],
+      fingersL: [k(0, { pose: SUP }), k(0.16, { pose: HANDS.relaxed }), k(0.22, { pose: HANDS.hook }), k(0.42, { pose: HANDS.hook }), k(0.5, { pose: HANDS.grab }), k(0.7, { pose: HANDS.relaxed }), k(0.9, { pose: HANDS.grab }), k(1.28, { pose: HANDS.grab }), k(1.3, { pose: HANDS.flat }), k(1.55, { pose: HANDS.flat }), k(1.8, { pose: HANDS.relaxed }), k(2.15, { pose: SUP }), k(2.5, { pose: SUP })],
+      props: {
+        mag: [
+          k(0, SEATED), k(0.58, SEATED),
+          k(0.66, { attach: 'weapon', ...MAG_BELOW, p: offset(MAG_BELOW.p, [0.01, -0.02, 0]) }, 'out'),
+          k(0.7, { attach: 'weapon', ...MAG_BELOW, p: offset(MAG_BELOW.p, [0.02, -0.06, 0]), r: [10, 0, 20] }),
+          k(0.96, { attach: 'world', p: [-0.05, -1.1, 0.4], r: [120, 40, 90] }, 'in'),
+          k(0.97, HIDDEN, 'hold'), k(0.98, { ...IN_HAND }, 'hold'),
+          k(1.2, IN_HAND), k(1.28, SEATED, 'in'), k(2.5, SEATED),
+        ],
+      },
+      slides: { charge: [k(0, { v: 0 }), k(0.22, { v: 0 }), k(0.34, { v: HANDLE_BACK }), k(1.66, { v: HANDLE_BACK }), k(1.7, { v: 0 }, 'snap')] },
+      spins: { chargeRot: [k(0, { v: 0 }), k(0.34, { v: 0 }), k(0.42, { v: HANDLE_UP }), k(1.64, { v: HANDLE_UP }), k(1.68, { v: 0 }, 'snap')] },
+      events: [{ t: 0.4, name: 'charge' }, { t: 0.62, name: 'magOut' }, { t: 1.28, name: 'magIn' }, { t: 1.7, name: 'boltHome' }],
+    },
+    Inspect: {
+      duration: 4.2, fps: 30,
+      weapon: [
+        k(0, READY),
+        k(0.35, { p: [-0.07, -0.16, 0.3], r: [-4, -24, 8] }),
+        k(0.75, { p: [0.0, -0.13, 0.36], r: [-8, -58, 14] }), // right side
+        k(1.5, { p: [0.004, -0.128, 0.365], r: [-10, -60, 16] }),
+        k(2.1, { p: [0.0, -0.13, 0.36], r: [-8, 40, -26] }), // left side: selector and handle
+        k(3.1, { p: [0.004, -0.13, 0.36], r: [-10, 44, -30] }),
+        k(3.6, { p: [-0.06, -0.17, 0.3], r: [4, 10, -8] }),
+        k(3.95, { p: [W0[0], W0[1] - 0.005, W0[2]], r: [1, 5, -3] }),
+        k(4.2, READY),
+      ],
+      handR: [k(0, GRIP_R), k(4.2, GRIP_R)],
+      handL: [k(0, SUPPORT_L), k(2.2, SUPPORT_L), k(2.35, L_HOOK), k(2.9, L_HOOK), k(3.1, SUPPORT_L), k(4.2, SUPPORT_L)],
+      fingersR: [k(0, { pose: HANDS.pistolGrip }), k(4.2, { pose: HANDS.pistolGrip })],
+      fingersL: [k(0, { pose: SUP }), k(2.2, { pose: SUP }), k(2.35, { pose: HANDS.hook }), k(2.9, { pose: HANDS.hook }), k(3.1, { pose: SUP }), k(4.2, { pose: SUP })],
+      // press check: the handle comes back far enough to see brass
+      slides: { charge: [k(0, { v: 0 }), k(2.4, { v: 0 }), k(2.55, { v: -0.03 }), k(2.8, { v: -0.03 }), k(2.88, { v: 0 }, 'snap')] },
+      events: [{ t: 2.88, name: 'boltHome' }],
+    },
+  };
+}
+const ACTIONS = mp5Actions();
 
 export const SMG = {
   id: 'smg', name: 'MP5 SMG', W0, BORE,

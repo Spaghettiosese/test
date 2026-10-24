@@ -1,6 +1,6 @@
 # ShapeForge Range
 
-A tiny first-person sandbox built on the [ShapeForge Engine](https://github.com/Spaghettiosese/Engine): a covered firing line, three lanes and targets out to 200 m, and thirteen guns modelled, rigged and animated entirely inside the engine. It plays with a mouse and keyboard or on a phone or tablet with touch controls.
+A tiny first-person sandbox built on the [ShapeForge Engine](https://github.com/Spaghettiosese/Engine): a covered firing line, three lanes and targets out to 200 m, and forty-one guns modelled, rigged and animated entirely inside the engine, laid out on tables to pick up. It plays with a mouse and keyboard or on a phone or tablet with touch controls.
 
 ```bash
 npm start      # serves the folder on http://localhost:8080 (any static server works)
@@ -14,9 +14,10 @@ Open `index.html` through a server (ES modules don't load from `file://`) and cl
 | Action | Keys |
 | --- | --- |
 | Move · sprint · jump | WASD · Shift · Space |
-| Fire · aim down sights | Left mouse · right mouse (E toggles) |
+| Fire · aim down sights | Left mouse · right mouse (E toggles when you aren't looking at a gun) |
+| Take a gun · put it back | E · G |
 | Reload · inspect | R · F (or I) |
-| Switch weapon | 1–0 · mouse wheel · Q |
+| Switch weapon | 1–4 · mouse wheel · Q |
 | Reset targets | T |
 | Hide help | H |
 
@@ -31,10 +32,15 @@ The touch controls turn on when the device has a touch screen (or on the first t
 | Fire | Either Fire button (one for each thumb) |
 | Aim down sights | Aim (toggles) |
 | Reload · inspect · jump | Reload · Look · Jump |
+| Take a gun | Look at it, then Take (Swap when your hands are full) |
 | Switch weapon | Swap, or tap a slot in the top bar |
 | Reset targets | Reset |
 
 If the browser refuses pointer lock (some embedded frames do), drag with the mouse to look.
+
+## The tables
+
+Forty-one guns lie on the tables, each in its own spot: the handguns, SMGs and the sawed-off on the three shooting counters, pointing downrange; the rifles, shotguns, lever guns and long guns in rows on four armory tables behind the firing line (`src/armory.js` lays them out from each gun's size). Look at one within reach and it lifts and names itself; press **E** (or tap **Take**) to pick it up. You carry four: you start with the M4A1 and the Glock, and with your hands full a fifth swaps for the one you're holding, which goes back to its spot. **G** puts the gun in your hands back. A gun's first-person rig is built the first time you look at it, so the game starts fast and the pick-up doesn't stall.
 
 ## The guns
 
@@ -57,6 +63,7 @@ Every gun is a ShapeForge character: parametric shapes (extruded side profiles, 
 | **M4A1 Suppressed** (`m4a1s.js`) | The M4A1 with the birdcage swapped for a long suppressor can; same animations, a smaller flash and quiet shots | Idle, Fire, Reload, Inspect |
 | **SCAR-H** (`scar.js`) | Flat-dark-earth battle rifle: full-length top rail with flip-up sights, quad-rail handguard, slotted brake, adjustable stock, straight 20-round magazine | Idle, Fire, Reload (rock-and-lock), Inspect |
 | **Winchester 94** (`winchester.js`) | Lever-action: blued receiver with a brass loading gate, octagonal barrel over a tube magazine, buckhorn sight, walnut forend and straight stock | Idle, Fire (shot, then the lever is worked: bolt back, case thrown, bolt home), Reload (rolled to the gate, three rounds thumbed in), Inspect (lever half-worked) |
+| **25 more** (`handguns.js`, `smgs.js`, `rifles.js`, `shotguns.js`) | M1911A1, Beretta 92FS, SIG P226, HK USP .45, FN Five-seveN and a Colt Python; UZI, MAC-10, MP5SD6 and MP40; HK416, M16A2 (three-round bursts) and G36; AK-74, AKS-74U, RPK, FN FAL, M14, Thompson M1928A1 and Barrett M82A1; Mossberg 590A1, SPAS-12, a sawed-off double, AA-12 and Marlin 1895 SBL | Each is its own model built on another gun's rig anchors, so it shares that gun's choreography: the pistols the Desert Eagle's, the Python the .44's, the UZI and MAC-10 the MP7's (magazine in the grip), the MP5SD and MP40 the MP5's, the M4 family the M4's, the AK family and the battle rifles the AK's, the pump guns the 12 gauge's, the sawed-off the double's, the Marlin the Winchester's. The rigs' choreography is a function of the gun (`akActions`, `m4Actions`, `mp5Actions`, `mp7Actions`), so the left hand still meets each gun's own magazine and handguard. Stats are in `src/stats.js`. |
 | **MP5** (`smg.js`) | Stamped receiver with its side rib, cocking tube with a hooded front sight, rotary drum rear sight, slim handguard, three-lug barrel, polymer grip, retractable two-rod stock, curved 30-round 9mm magazine | Idle, Fire (one round of ~800 rpm auto), Reload (charging handle back and locked up, mag change, then the "HK slap" sends the bolt home), Inspect (both sides, press check) |
 
 ### V5 props
@@ -67,13 +74,13 @@ Every gun is also a ShapeForge Engine V5 mechanism **Prop**, built the way the e
 - the moving parts are V5 `Rig` parts (hinges and slides with springs), and every action is a `MechClip` with the same events (`shot`, `magIn`, `ping`...);
 - each Prop has `grip`, `support` and `sockets` (muzzle, ejection port, sights), so `Character.equip(prop)` can hold it, and tracks its ammunition like `makeGun()`: `fire()`, `reload()`, `ammo()`.
 
-The guns lying on the shooting counters are these Props: walk up to one and it works its reload. The first-person viewmodels keep their baked arm choreography, since V5 props carry no arms. `npm test` checks every Prop fires until empty, reloads to full and ends with its parts home.
+The guns on the tables are these Props: look at one for a moment and it works its inspect clip on its own rig. The first-person viewmodels keep their baked arm choreography, since V5 props carry no arms. `npm test` checks every Prop fires until empty, reloads to full and ends with its parts home.
 
 `tools/preview.html` renders any clip at any time from the eye or from outside; `tools/shots.cjs` and `tools/game-shots.cjs` take headless screenshots of it and of the game.
 
 ## The range
 
-`src/range.js` builds the scene: a concrete slab under a tin roof with three shooting counters (each with a display copy of a gun), distance boards, earth berms, paper bullseyes at 10, 25 and 50 m scored by ring, five hinged steel plates at 15 m, bottles and cans at 12 m that shatter or fly, a crate stack at 20 m, a steel runner on a rail at 35 m and hanging gongs at 100, 150 and 200 m.
+`src/range.js` builds the scene: a concrete slab under a tin roof with three shooting counters and four armory tables, distance boards, earth berms, paper bullseyes at 10, 25 and 50 m scored by ring, five hinged steel plates at 15 m, bottles and cans at 12 m that shatter or fly, a crate stack at 20 m, a steel runner on a rail at 35 m and hanging gongs at 100, 150 and 200 m.
 
 `src/game.js` runs the player (a physics character controller), the weapon state machines, aim down sights (the rig is turned and moved each frame so the sight line runs down the eye's axis, even mid-recoil), a scope overlay with a rangefinder, hitscan shots with spread and pellets, physics brass and shotgun hulls, bullet-hole decals, tracers, muzzle light and procedural Web Audio sound (`src/audio.js`).
 
@@ -82,9 +89,11 @@ The guns lying on the shooting counters are these Props: walk up to one and it w
 ```
 index.html            the game page and HUD
 src/game.js           player, weapons, shooting, HUD
-src/range.js          the range and its targets
+src/range.js          the range, its targets and tables
+src/armory.js         where each gun lies on the tables, and which one you're looking at
+src/stats.js          how every gun handles
 src/audio.js          synthesised sound effects
-src/weapons/          rig.js (arms, shape helpers, choreography baker), m4a1.js, sniper.js, shotgun.js, revolver.js, smg.js, double.js, garand.js, mp7.js, deagle.js
+src/weapons/          rig.js (arms, shape helpers, choreography baker), kit.js (shared parts), one file per gun or family, index.js (the armoury)
 assets/               every gun as a ShapeForge character JSON for Studio (File > Open) — regenerate with node tools/export-studio.mjs
 engine/               ShapeForge Engine V5 (vendored, unmodified)
 tools/                weapon tests, preview page, headless screenshot helpers

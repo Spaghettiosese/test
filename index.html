@@ -63,6 +63,12 @@
   /* weapon bar */
   .weapons { left: 50%; transform: translateX(-50%); top: calc(14px + env(safe-area-inset-top, 0px)); display: flex; gap: 6px; pointer-events: auto; }
   .slot { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; color: var(--bone-2); font: 600 14px var(--body); }
+  .slot.empty { opacity: .45; }
+  .prompt { left: 50%; top: calc(50% + 46px); transform: translateX(-50%); display: flex; gap: 10px; align-items: center; padding: 7px 12px; max-width: calc(100% - 32px); }
+  .prompt kbd { font-size: 13px; padding: 2px 8px; color: var(--ink); background: var(--orange); border-color: var(--orange); }
+  .prompt div { display: grid; }
+  .prompt b { font: 600 15px var(--body); color: var(--bone); }
+  .prompt small { font: 500 12px var(--mono); color: var(--brass); }
   .slot.on { color: var(--bone); border-color: var(--orange); box-shadow: inset 0 -2px 0 var(--orange); }
   .help { left: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); padding: 10px 14px; font-size: 13px; line-height: 1.9; color: var(--bone-2); }
   .help b { color: var(--bone); font-weight: 600; }
@@ -81,11 +87,9 @@
   .card h1 span { color: var(--orange); }
   .stamp { font: 700 12px var(--mono); letter-spacing: .14em; color: var(--red); border: 2px solid var(--red); padding: 4px 8px; transform: rotate(-4deg); border-radius: 3px; white-space: nowrap; }
   .card p { margin: 0; color: var(--bone-2); max-width: 60ch; font-size: 16px; }
-  .guns { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
-  .gun { padding: 10px 12px; border: 1px solid var(--line); border-radius: 5px; display: grid; gap: 2px; }
-  .gun b { font: 400 17px var(--display); letter-spacing: .03em; }
-  .gun span { font-size: 13px; color: var(--bone-2); }
-  .gun em { font: 500 11px var(--mono); font-style: normal; color: var(--brass); }
+  .armory { display: grid; gap: 6px; font-size: 13px; line-height: 1.45; color: var(--bone-2); }
+  .armory div { display: grid; grid-template-columns: 150px 1fr; gap: 12px; padding-bottom: 6px; border-bottom: 1px dashed var(--line); }
+  .armory b { font: 400 15px var(--display); letter-spacing: .03em; color: var(--bone); }
   .controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 18px; font-size: 14px; color: var(--bone-2); }
   .controls div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dashed var(--line); padding-bottom: 4px; }
   .controls div span:last-child { color: var(--bone); text-align: right; }
@@ -96,9 +100,10 @@
   label.sens { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--bone-2); }
   label.sens input { accent-color: var(--orange); width: 120px; }
   .fatal { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: var(--ink); color: var(--bone); font-size: 18px; text-align: center; z-index: 9; }
-  @media (max-width: 1100px) { .slot span { display: none; } .slot { padding: 6px 8px; } }
+  @media (max-width: 760px) { .slot span { display: none; } .slot { padding: 6px 8px; } }
   @media (max-width: 640px) {
-    .guns, .controls { grid-template-columns: 1fr; }
+    .controls { grid-template-columns: 1fr; }
+    .armory div { grid-template-columns: 1fr; gap: 2px; }
     .help { display: none; }
     .weapons { top: calc(70px + env(safe-area-inset-top, 0px)); }
     .slot span { display: none; }
@@ -117,6 +122,8 @@
   .tbtn.jump { width: 54px; height: 54px; right: calc(64px + env(safe-area-inset-right, 0px)); bottom: calc(40px + env(safe-area-inset-bottom, 0px)); }
   .tbtn.next { width: 50px; height: 50px; right: calc(26px + env(safe-area-inset-right, 0px)); bottom: calc(214px + env(safe-area-inset-bottom, 0px)); }
   .tbtn.inspect { width: 44px; height: 44px; right: calc(84px + env(safe-area-inset-right, 0px)); bottom: calc(222px + env(safe-area-inset-bottom, 0px)); }
+  .tbtn.take { left: 50%; transform: translateX(-50%); bottom: calc(26px + env(safe-area-inset-bottom, 0px)); width: 112px; height: 48px; border-radius: 24px; font-size: 14px; background: rgba(224, 102, 42, .5); border-color: var(--orange); }
+  body.touch .prompt { top: auto; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
   .tbtn.reset { width: 44px; height: 44px; left: calc(172px + env(safe-area-inset-left, 0px)); bottom: calc(118px + env(safe-area-inset-bottom, 0px)); }
   .tbtn.fire2 { width: 64px; height: 64px; left: calc(180px + env(safe-area-inset-left, 0px)); bottom: calc(40px + env(safe-area-inset-bottom, 0px)); border-color: rgba(224, 102, 42, .7); }
   body.touch .help { display: none; }
@@ -160,7 +167,8 @@
 </div>
 <div class="hud panel score"><div><small>Score</small><b id="score">0</b></div><div><small>Accuracy</small><b id="acc">–</b></div></div>
 <div class="hud feed" id="feed"></div>
-<div class="hud panel help" id="help"><b>WASD</b> move · <b>Shift</b> sprint · <b>Space</b> jump<br><b>Click</b> fire · <b>Right-click</b> aim · <kbd>R</kbd> reload · <kbd>F</kbd> inspect<br><kbd>1</kbd>–<kbd>9</kbd>·<kbd>0</kbd> or wheel: weapons · <kbd>T</kbd> reset targets · <kbd>H</kbd> hide</div>
+<div class="hud panel help" id="help"><b>WASD</b> move · <b>Shift</b> sprint · <b>Space</b> jump<br><b>Click</b> fire · <b>Right-click</b> aim · <kbd>R</kbd> reload · <kbd>F</kbd> inspect<br><kbd>E</kbd> take a gun · <kbd>G</kbd> put it back · <kbd>1</kbd>–<kbd>4</kbd> or wheel: weapons<br><kbd>T</kbd> reset targets · <kbd>H</kbd> hide</div>
+<div class="hud panel prompt" id="prompt" hidden><kbd id="promptKey">E</kbd><div><b id="promptName">Take</b><small id="promptInfo"></small></div></div>
 <div class="hud weapons" id="weapons"></div>
 <div class="hud panel ammo"><div class="name" id="wname">M4A1</div><div class="pips" id="pips"></div><div class="count"><b id="ammo">30</b><span id="ammoMax">/ 30</span></div><div class="hint" id="whint"></div></div>
 <div class="tctl" id="touch" hidden>
@@ -173,42 +181,27 @@
   <button class="tbtn next" id="tNext" type="button" aria-label="Next weapon">Swap</button>
   <button class="tbtn inspect" id="tInspect" type="button" aria-label="Inspect">Look</button>
   <button class="tbtn reset" id="tReset" type="button" aria-label="Reset targets">Reset</button>
+  <button class="tbtn take" id="tTake" type="button" aria-label="Take the gun you are looking at" hidden>Take</button>
 </div>
 <div class="menu" id="menu">
   <div class="card">
     <header><h1>ShapeForge <span>Range</span></h1><div class="stamp">RANGE IS HOT</div></header>
-    <p>Thirteen guns on a covered firing line: paper at 10, 25 and 50 m, swinging steel at 15 m, bottles and cans at 12 m, a runner at 35 m and gongs out to 200 m. Every gun, hand and animation is built from ShapeForge shapes.</p>
-    <div class="guns">
-      <div class="gun"><b>1 · M4A1</b><span>Full auto, holographic sight</span><em>30 rds · 5.56</em></div>
-      <div class="gun"><b>2 · .338 Sniper</b><span>Bolt action, 6.5° scope</span><em>5 rds · .338</em></div>
-      <div class="gun"><b>3 · Pump 12 ga</b><span>9 pellets, loads by hand</span><em>6 shells · 12 ga</em></div>
-      <div class="gun"><b>4 · .44 Magnum</b><span>Double action, speedloader</span><em>6 rds · .44</em></div>
-      <div class="gun"><b>5 · MP5</b><span>800 rpm, the HK slap</span><em>30 rds · 9mm</em></div>
-      <div class="gun"><b>6 · Double Barrel</b><span>Break action, two triggers</span><em>2 shells · 12 ga</em></div>
-      <div class="gun"><b>7 · M1 Garand</b><span>Semi-auto, en-bloc ping</span><em>8 rds · .30-06</em></div>
-      <div class="gun"><b>8 · MP7</b><span>950 rpm, mag in the grip</span><em>40 rds · 4.6mm</em></div>
-      <div class="gun"><b>9 · Desert Eagle</b><span>Slide locks back, finger-spin inspect</span><em>7 rds · .50 AE</em></div>
-      <div class="gun"><b>0 · AK-47</b><span>Full auto, banana mag</span><em>30 rds · 7.62</em></div>
-      <div class="gun"><b>Glock 17</b><span>Light, fast follow-ups</span><em>17 rds · 9mm</em></div>
-      <div class="gun"><b>UMP-45</b><span>Slow, hard-hitting SMG</span><em>25 rds · .45</em></div>
-      <div class="gun"><b>AWP</b><span>Bolt action, scoped</span><em>5 rds · .338</em></div>
-      <div class="gun"><b>M4A1 Suppressed</b><span>Quiet, no flash hider</span><em>30 rds · 5.56</em></div>
-      <div class="gun"><b>SCAR-H</b><span>Hard-hitting battle rifle</span><em>20 rds · 7.62</em></div>
-      <div class="gun"><b>Winchester 94</b><span>Lever action, loading gate</span><em>6 rds · .30-30</em></div>
-    </div>
+    <p>Forty-one guns lie on the tables: handguns and SMGs on the shooting counters, the long guns on the armory tables behind you. Look at one and take it; you carry four, and a fifth swaps for the one in your hands. Paper at 10, 25 and 50 m, swinging steel, bottles and cans, a runner and gongs out to 200 m. Every gun, hand and animation is built from ShapeForge shapes.</p>
+    <div class="armory" id="armory"></div>
     <div class="controls touch-only">
       <div><span>Move · run</span><span>Left stick (push to the rim)</span></div>
       <div><span>Look</span><span>Drag anywhere</span></div>
       <div><span>Fire · aim</span><span>Fire (either side) · Aim toggles</span></div>
       <div><span>Reload · inspect</span><span>Reload · Look</span></div>
+      <div><span>Take a gun</span><span>Look at it · Take</span></div>
       <div><span>Switch weapon</span><span>Swap · tap the top bar</span></div>
-      <div><span>Best played</span><span>In landscape</span></div>
     </div>
     <div class="controls desk-only">
       <div><span>Move · sprint · jump</span><span>WASD · Shift · Space</span></div>
-      <div><span>Fire · aim</span><span>Left · right mouse (E toggles)</span></div>
+      <div><span>Fire · aim</span><span>Left · right mouse</span></div>
+      <div><span>Take a gun · put it back</span><span>E · G</span></div>
       <div><span>Reload · inspect</span><span>R · F</span></div>
-      <div><span>Switch weapon</span><span>1–0 · wheel · Q</span></div>
+      <div><span>Switch weapon</span><span>1–4 · wheel · Q</span></div>
       <div><span>Reset targets</span><span>T</span></div>
       <div><span>Release mouse</span><span>Esc</span></div>
     </div>
