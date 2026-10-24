@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Gun Lineup</title>
+<style>html,body{margin:0;height:100%;background:#cfcac0;overflow:hidden}canvas{width:100%;height:100%;display:block}</style></head>
+<body><canvas id="c"></canvas>
+<script type="module">
+// Every gun (or ?ids=a,b,c) as its V5 prop, side by side on their left sides, seen from the left
+// in a grid: a quick contact sheet of the models.
+import * as E from '../engine/index.js';
+import { WEAPONS, makeWeaponProp } from '../src/weapons/index.js';
+const renderer = new E.Renderer(document.getElementById('c'));
+const scene = new E.Scene(), env = scene.environment;
+E.applyTimeOfDay(env, 13); env.fogDensity = 0; env.shadowRadius = 6;
+const ids = (new URLSearchParams(location.search).get('ids') || WEAPONS.map((w) => w.id).join(',')).split(',');
+const cols = Math.ceil(Math.sqrt(ids.length * 0.9)), cellW = 1.7, cellH = 0.42;
+ids.forEach((id, i) => {
+  const p = makeWeaponProp(id);
+  const { min, max } = p.bounds, c = (i % cols), r = Math.floor(i / cols);
+  // as built: its left side faces the camera out on +X, the muzzle points left in the picture
+  p.position.set([0, -r * cellH - (min[1] + max[1]) / 2, c * cellW - (min[2] + max[2]) / 2]);
+  scene.add(p);
+});
+const camera = new E.Camera(); camera.fov = 30 * E.DEG;
+const cx = ((cols - 1) * cellW) / 2, cy = -((Math.ceil(ids.length / cols) - 1) * cellH) / 2;
+const aspect = innerWidth / innerHeight, half = Math.tan(camera.fov / 2) * aspect;
+camera.position.set([(cols * cellW) / 2 / half + 0.6, cy, cx]);
+camera.target.set([0, cy, cx]);
+env.shadowCenter = [0, cy, cx];
+renderer.render(scene, camera, { background: 'sky' });
+window.ready = true;
+</script></body></html>

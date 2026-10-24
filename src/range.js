@@ -83,6 +83,18 @@ export function buildRange(scene, world) {
     for (const dx of [-1.45, 1.45]) kit.box(M.post, [x + dx, 0.45, 0.55], [0.1, 0.8, 0.5]);
     staticBox([x, 0.47, 0.55], [3.2, 0.94, 0.62], 'wood');
   }
+  // ---- armory tables behind the firing line: a felt top on a wooden frame, one for each
+  // group of long guns (the shooting counters above carry the handguns and SMGs)
+  const felt = new E.Material({ name: 'Table felt', color: '#8f8a72', roughness: 0.95, pattern: 'felt', patternScale: 60, patternColor: '#7a7560' });
+  const tables = [-5.7, 0, 5.7].map((x) => ({ kind: 'bench', center: [x, 0.935, 0.55], size: [3.1, 0.6] }));
+  for (const x of [-5.45, -1.8, 1.8, 5.45]) {
+    kit.box(M.wood, [x, 0.875, -4.35], [3.5, 0.05, 1.12], [0, 0, 0], 0.01);
+    kit.box(felt, [x, 0.904, -4.35], [3.42, 0.008, 1.04]);
+    for (const dx of [-1.62, 1.62]) for (const dz of [-0.46, 0.46]) kit.box(M.post, [x + dx, 0.43, -4.35 + dz], [0.08, 0.86, 0.08]);
+    kit.box(M.post, [x, 0.2, -4.35], [3.2, 0.05, 0.05]);
+    staticBox([x, 0.45, -4.35], [3.5, 0.9, 1.12], 'wood');
+    tables.push({ kind: 'armory', center: [x, 0.908, -4.35], size: [3.36, 1.0] });
+  }
   // lane dividers (short posts with a rail) running a few metres downrange
   for (const x of [-8.6, -2.9, 2.9, 8.6]) { kit.box(M.post, [x, 0.55, 4], [0.1, 1.1, 0.1]); kit.box(M.post, [x, 1.05, 2.6], [0.06, 0.06, 3]); }
   // sandbags at the ends of the line
@@ -206,5 +218,5 @@ export function buildRange(scene, world) {
     for (const p of plates) p.body.userData.cool -= dt;
     moverBody.userData.cool -= dt;
   }
-  return { node, targets, plates, loose, spawnLoose, resetSteel, update, materials: M, moverBody };
+  return { node, targets, plates, loose, spawnLoose, resetSteel, update, materials: M, moverBody, tables };
 }

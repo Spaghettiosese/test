@@ -4,7 +4,7 @@
 // It shares the AK-47's moving parts (magazine, right-side reciprocating charging handle,
 // muzzle flash) and so its animations: fire, a rock-and-lock reload and the inspect.
 import { P, rbox, cyl, gearTube, profile, torus, ALONG_Z, SIDE, offset, weaponDefinition, createWeapon } from './rig.js';
-import { AK47 } from './ak47.js';
+import { AK47, akActions } from './ak47.js';
 
 const { W0, bones } = AK47;
 const W = (p) => offset(W0, p);
@@ -60,6 +60,7 @@ const PARTS = [
   P('Flash Core', { type: 'cone', radius: 0.028, height: 0.12, radialSegments: 12, heightSegments: 2, capBottom: true, arc: 360 }, 'flash', { bone: 'flash' }, { position: W([0, BORE, 0.57]), rotation: [90, 0, 0], castShadow: false }),
 ];
 
-export const SCAR = { ...AK47, id: 'scar', name: 'SCAR-H', bones, materials: MATERIALS, parts: PARTS, points: SCAR_POINTS };
+// its straight 20-round magazine ends 6.6 cm higher and 14.5 cm further back than the AK's banana
+export const SCAR = { ...AK47, id: 'scar', name: 'SCAR-H', bones, materials: MATERIALS, parts: PARTS, points: SCAR_POINTS, actions: akActions({ mag: [0.066, -0.145] }) };
 export const scarDefinition = (o) => weaponDefinition(SCAR, o);
 export const createSCAR = () => createWeapon(SCAR);

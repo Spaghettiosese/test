@@ -1,9 +1,11 @@
-// ShapeForge Range: a tiny first-person sandbox. Walk the firing line, pick up the M4A1,
-// the .338 sniper or the pump shotgun, and shoot paper, steel, glass and crates. Every gun
-// is a ShapeForge character (shapes + skeleton + baked choreography clips); the game drives
-// its clips, aligns the sights for aim-down-sights, and turns shots into physics hitscans.
+// ShapeForge Range: a tiny first-person sandbox. Forty-one guns lie on the tables; pick up any
+// four and shoot paper, steel, glass and crates. Every gun is a ShapeForge character (shapes +
+// skeleton + baked choreography clips); the game drives its clips, aligns the sights for
+// aim-down-sights, and turns shots into physics hitscans.
 import * as E from '../engine/index.js';
-import { WEAPONS, makeWeaponProp } from './weapons/index.js';
+import { WEAPONS, BENCH, makeWeaponProp } from './weapons/index.js';
+import { CFG, CATEGORIES } from './stats.js';
+import { layoutTables, pickAlongRay } from './armory.js';
 import { weaponPoint, weaponPointWorld } from './weapons/rig.js';
 import { buildRange } from './range.js';
 import { Sfx } from './audio.js';
@@ -28,61 +30,54 @@ const decals = new E.Decals({ max: 400 }); scene.add(decals);
 const sfx = new Sfx();
 
 // ---------------------------------------------------------------- weapons
-const CFG = {
-  m4a1: { label: 'M4A1', mag: 30, auto: true, interval: 0.08, spread: 0.018, adsSpread: 0.0025, pellets: 1, kick: 0.9, kickAds: 0.45, adsFov: 50, relief: 0.2, impulse: 3, brass: 'rifle', ejectOnShot: true },
-  sniper: { label: '.338 Sniper', mag: 5, auto: false, interval: 1.42, spread: 0.06, adsSpread: 0, pellets: 1, kick: 4.5, kickAds: 3.2, adsFov: 6.5, relief: 0.07, impulse: 14, brass: 'magnum', scoped: true },
-  shotgun: { label: '12 Gauge Pump', mag: 6, auto: false, interval: 0.92, spread: 0.07, adsSpread: 0.05, pellets: 9, kick: 5, kickAds: 3.5, adsFov: 56, relief: 0.3, impulse: 1.6, brass: 'shell' },
-  // the revolver's shot leaves 65 ms after the click: that's the double-action pull in its Fire clip
-  revolver: { label: '.44 Magnum', mag: 6, auto: false, interval: 0.45, delay: 0.065, spread: 0.022, adsSpread: 0.002, pellets: 1, kick: 7, kickAds: 5, adsFov: 50, relief: 0.3, impulse: 6, brass: 'magnum44' },
-  double: { label: 'Double Barrel', mag: 2, auto: false, interval: 0.28, spread: 0.075, adsSpread: 0.055, pellets: 9, kick: 6.5, kickAds: 4.6, adsFov: 56, relief: 0.3, impulse: 2, brass: 'shell' },
-  garand: { label: 'M1 Garand', mag: 8, auto: false, interval: 0.18, spread: 0.03, adsSpread: 0.0015, pellets: 1, kick: 3.2, kickAds: 2.3, adsFov: 44, relief: 0.2, impulse: 7, brass: 'rifle3006', ejectOnShot: true },
-  ak47: { label: 'AK-47', mag: 30, auto: true, interval: 0.1, spread: 0.026, adsSpread: 0.0035, pellets: 1, kick: 1.4, kickAds: 0.8, adsFov: 50, relief: 0.2, impulse: 4, brass: 'ak', ejectOnShot: true },
-  glock: { label: 'Glock 17', mag: 17, auto: false, interval: 0.12, spread: 0.016, adsSpread: 0.002, pellets: 1, kick: 2.4, kickAds: 1.6, adsFov: 54, relief: 0.28, impulse: 3, brass: 'pistol', ejectOnShot: true },
-  ump: { label: 'UMP-45', mag: 25, auto: true, interval: 0.1, spread: 0.022, adsSpread: 0.004, pellets: 1, kick: 0.9, kickAds: 0.5, adsFov: 52, relief: 0.2, impulse: 3, brass: 'magnum44', ejectOnShot: true },
-  m4a1s: { label: 'M4A1 Suppressed', mag: 30, auto: true, interval: 0.08, spread: 0.016, adsSpread: 0.002, pellets: 1, kick: 0.7, kickAds: 0.35, adsFov: 50, relief: 0.2, impulse: 3, brass: 'rifle', ejectOnShot: true },
-  scar: { label: 'SCAR-H', mag: 20, auto: true, interval: 0.1, spread: 0.02, adsSpread: 0.003, pellets: 1, kick: 2.2, kickAds: 1.4, adsFov: 48, relief: 0.2, impulse: 7, brass: 'magnum', ejectOnShot: true },
-  winchester: { label: 'Winchester 94', mag: 6, auto: false, interval: 1.0, spread: 0.02, adsSpread: 0.0018, pellets: 1, kick: 4, kickAds: 2.8, adsFov: 52, relief: 0.2, impulse: 8, brass: 'ak', ejectOnShot: false },
-  awp: { label: 'AWP', mag: 5, auto: false, interval: 1.42, spread: 0.07, adsSpread: 0, pellets: 1, kick: 5, kickAds: 3.6, adsFov: 6.5, relief: 0.07, impulse: 16, brass: 'magnum', scoped: true },
-  deagle: { label: 'Desert Eagle', mag: 7, auto: false, interval: 0.3, spread: 0.02, adsSpread: 0.002, pellets: 1, kick: 8.5, kickAds: 6, adsFov: 52, relief: 0.28, impulse: 9, brass: 'ae50' },
-  mp7: { label: 'MP7', mag: 40, auto: true, interval: 0.063, spread: 0.02, adsSpread: 0.0035, pellets: 1, kick: 0.5, kickAds: 0.26, adsFov: 52, relief: 0.2, impulse: 2, brass: 'pdw', ejectOnShot: true },
-  smg: { label: 'MP5', mag: 30, auto: true, interval: 0.075, spread: 0.022, adsSpread: 0.004, pellets: 1, kick: 0.6, kickAds: 0.3, adsFov: 52, relief: 0.2, impulse: 2, brass: 'pistol', ejectOnShot: true },
-};
 const VM_SCALE = 0.55; // the viewmodel is shrunk toward the eye (same picture, far less wall clipping)
 const WORLD_FOV = 72;
-const vm = WEAPONS.map((w) => {
-  const rig = w.create();
+const MAX_CARRY = 4;
+const GUNS = new Map(WEAPONS.map((w) => [w.id, w]));
+// A gun's viewmodel (arms, clips) is built the first time it is needed: baking one takes about
+// a tenth of a second, so the 41 aren't all baked at start. Looking at a gun on a table builds
+// it early, so picking it up doesn't hitch.
+const states = new Map();
+function stateFor(id) {
+  let s = states.get(id);
+  if (s) return s;
+  const w = GUNS.get(id), rig = w.create();
   rig.springs = false; rig.visible = false;
   // the rig's matrix is set by the game every frame (camera * viewmodel FOV * aim-down-sights)
   rig.updateWorld = function (pw) { if (pw) E.mat4.multiply(this.world, pw, this.local); else this.world.set(this.local); for (const c of this.children) c.updateWorld(this.world); };
   for (const p of rig.parts) for (const m of p.meshes) m.castShadow = false;
   scene.add(rig);
-  const s = { id: w.id, rig, gun: w.gun, cfg: CFG[w.id], ammo: CFG[w.id].mag, state: 'idle', t: 0, clip: 'Idle', shellsToLoad: 0, wasEmpty: false };
+  s = { id, rig, gun: w.gun, cfg: CFG[id], ammo: CFG[id].mag, state: 'idle', t: 0, clip: 'Idle', shellsToLoad: 0, wasEmpty: false };
   rig.mixer.on((e) => onEvent(s, e));
   rig.play('Idle', { fade: 0 });
+  states.set(id, s);
   return s;
-});
-// display copies of the guns lying on their left sides on the shooting counters: each is the
-// gun as a V5 mechanism Prop (rig parts, MechClips, grip and sockets), like the engine's makeGun()
-const displays = [];
-for (const [i, w] of WEAPONS.entries()) {
-  const c = makeWeaponProp(w.id, { detail: 0.7 });
-  c.name = w.gun.name + ' (display)';
-  const q = E.quat.multiply(E.quat.create(), E.quat.fromEuler(E.quat.create(), 0, 62 + i * 8, 0), E.quat.fromEuler(E.quat.create(), 0, 0, 90));
-  const [sx, sz] = { m4a1: [-6.4, 0.5], sniper: [-0.3, 0.5], shotgun: [6.3, 0.5], revolver: [-4.7, 0.5], smg: [4.5, 0.5], double: [5.2, 0.76], garand: [-5.4, 0.78], mp7: [1.1, 0.52], deagle: [-2.6, 0.5], ak47: [2.6, 0.5], glock: [-3.4, 0.74], ump: [3.4, 0.74], awp: [0.4, 0.76], m4a1s: [-7.4, 0.76], scar: [7.4, 0.76], winchester: [-1.6, 0.78] }[w.id] ?? [0, 0.5];
-  c.rotation.set(q); c.position.set([sx, 0.935 + 0.03, sz]);
-  scene.add(c); displays.push(c);
 }
+
+// ---------------------------------------------------------------- the tables
+// Every gun has a home spot: handguns and SMGs on the shooting counters pointing downrange,
+// long guns in rows on the armory tables behind the line. Each is the gun as a V5 mechanism
+// Prop (rig parts, MechClips, grip and sockets); it leaves the table while you carry it.
+const displays = new Map();
+for (const w of WEAPONS) {
+  const prop = makeWeaponProp(w.id, { detail: 0.7 });
+  prop.name = w.gun.name + ' (on the table)';
+  scene.add(prop);
+  displays.set(w.id, { id: w.id, prop, lift: 0 });
+}
+const spots = layoutTables(WEAPONS.map((w) => ({ id: w.id, bench: BENCH.has(w.cat), bounds: displays.get(w.id).prop.bounds })), range.tables);
+for (const [id, spot] of spots) { const d = displays.get(id); Object.assign(d, spot); d.prop.rotation.set(spot.q); d.prop.position.set(spot.pos); }
 
 // ---------------------------------------------------------------- player
 // the player ignores group 4 (shell casings): brass spawns inside the capsule and would shove you backwards
 const cc = new E.CharacterController(world, { position: [0, 0.1, -2.6], radius: 0.3, height: 1.8, mask: 0xffff & ~4 });
 cc.body.userData.player = true;
 const EYE = 1.62;
-const P = { bobY: 0, recoilDebt: 0, triggerWasDown: false, cur: 0, next: null, switchT: 0, ads: 0, bob: 0, recoil: 0, kickZ: 0, kickRot: 0, sway: [0, 0], trigger: false, triggerHeld: false, aimHeld: false, aimToggle: false, cooldown: 0, score: 0, shots: 0, hits: 0, flashT: 0, lastLand: 0 };
+const P = { loadout: ['m4a1', 'glock'], burst: 0, bobY: 0, recoilDebt: 0, triggerWasDown: false, cur: 0, next: null, switchT: 0, ads: 0, bob: 0, recoil: 0, kickZ: 0, kickRot: 0, sway: [0, 0], trigger: false, triggerHeld: false, aimHeld: false, aimToggle: false, cooldown: 0, score: 0, shots: 0, hits: 0, flashT: 0, lastLand: 0 };
 const input = { keys: new Set(), yaw: 0, pitch: 0, dYaw: 0, dPitch: 0 };
 const stick = { id: null, x: 0, y: 0 }; // touch move stick, -1..1 (+x right, +y back)
 let touchMode = false;
-const W = () => vm[P.cur];
+const W = () => stateFor(P.loadout[P.cur]);
 
 // ---------------------------------------------------------------- helpers
 const casings = [], tracers = [], debris = [];
@@ -100,6 +95,7 @@ const CASE = {
   ae50: { geo: E.cylinder({ radiusTop: 0.0066, radiusBottom: 0.0066, height: 0.04, radialSegments: 8 }), mat: brassMat, half: [0.0068, 0.02, 0.0068], mass: 0.014 },
   pdw: { geo: E.cylinder({ radiusTop: 0.0042, radiusBottom: 0.0042, height: 0.03, radialSegments: 8 }), mat: brassMat, half: [0.0042, 0.015, 0.0042], mass: 0.004 },
   clip: { geo: E.box({ width: 0.03, height: 0.05, depth: 0.052 }), mat: new E.Material({ name: 'Clip', color: '#56585a', roughness: 0.35, metallic: 0.95 }), half: [0.015, 0.025, 0.026], mass: 0.02 },
+  fifty: { geo: E.cylinder({ radiusTop: 0.0105, radiusBottom: 0.0105, height: 0.099, radialSegments: 10 }), mat: brassMat, half: [0.0105, 0.05, 0.0105], mass: 0.05 },
   magnum44: { geo: E.cylinder({ radiusTop: 0.0058, radiusBottom: 0.0058, height: 0.03, radialSegments: 8 }), mat: brassMat, half: [0.006, 0.015, 0.006], mass: 0.008 },
 };
 function feed(text, cls = '') { const d = document.createElement('div'); d.textContent = text; if (cls) d.className = cls; $('feed').prepend(d); setTimeout(() => d.remove(), 3200); while ($('feed').children.length > 6) $('feed').lastChild.remove(); }
@@ -146,19 +142,50 @@ function reload() {
   const s = W();
   if (!canAct(s) || s.ammo >= s.cfg.mag || P.next !== null) return;
   s.wasEmpty = s.ammo === 0;
-  if (s.id === 'shotgun') { s.state = 'reloadStart'; play(s, 'Reload Start'); }
+  if (s.gun.firstPerson.actions.reload === 'Reload Start') { s.state = 'reloadStart'; play(s, 'Reload Start'); } // shell by shell
   else { s.state = 'reload'; play(s, 'Reload'); }
 }
 function inspect() { const s = W(); if (s.state === 'idle' && P.next === null) { s.state = 'inspect'; play(s, 'Inspect', 0.2); } }
-function switchTo(i) { if (i === P.cur || i < 0 || i >= vm.length || P.next !== null) return; P.next = i; P.switchT = 0; }
+function switchTo(i) { if (i === P.cur || i < 0 || i >= P.loadout.length || P.next !== null) return; P.next = i; P.switchT = 0; P.burst = 0; }
+const cycle = (dir) => switchTo((P.cur + dir + P.loadout.length) % P.loadout.length);
+// put the gun in hand away and bring `s` up (a pick-up or a swap)
+function raise(s) { s.state = 'idle'; s.pending = 0; play(s, 'Idle', 0); s.rig.visible = true; P.switchT = -0.3; P.burst = 0; sfx.clack(0.8); hud(true); }
+function putAway(s) { s.rig.visible = false; s.state = 'idle'; s.pending = 0; s.stopReload = false; play(s, 'Idle', 0); }
+// a gun goes back to its spot on the table, at rest
+function putBack(id) { const d = displays.get(id); d.prop.reset(); d.prop.visible = true; d.lift = 0; d.prop.position.set(d.pos); }
+function take(id) {
+  const d = displays.get(id);
+  if (!d || !d.prop.visible || P.next !== null || P.loadout.includes(id)) return;
+  const label = CFG[id].label;
+  d.prop.visible = false;
+  sfx.click(0.7, 0.35);
+  if (P.loadout.length < MAX_CARRY) {
+    P.loadout.push(id); renderBar(); switchTo(P.loadout.length - 1);
+    feed(`Took the ${label}`);
+  } else {
+    const old = W();
+    putAway(old); putBack(old.id);
+    P.loadout[P.cur] = id; renderBar(); raise(W());
+    feed(`${old.cfg.label} back on the table, took the ${label}`);
+  }
+}
+function drop() {
+  if (P.loadout.length <= 1 || P.next !== null) return;
+  const s = W();
+  putAway(s); putBack(s.id);
+  P.loadout.splice(P.cur, 1); P.cur = Math.min(P.cur, P.loadout.length - 1);
+  renderBar(); raise(W());
+  feed(`${s.cfg.label} back on the table`);
+}
 function tryFire() {
   const s = W();
   if (P.next !== null || P.switchT > 0) return;
   if (s.state === 'inspect') { s.state = 'idle'; play(s, 'Idle', 0.1); }
   if (s.state === 'insert' || s.state === 'reloadStart') { s.stopReload = true; return; }
   if (s.state !== 'idle' && !(s.state === 'firing' && s.cfg.auto) || P.cooldown > 0) return;
-  if (s.ammo <= 0) { if (!P.triggerWasDown) { sfx.empty(); reload(); } return; }
-  if (!s.cfg.auto && P.triggerWasDown) return; // semi-automatic: one shot per press
+  if (s.ammo <= 0) { P.burst = 0; if (!P.triggerWasDown) { sfx.empty(); reload(); } return; }
+  if (!s.cfg.auto && P.triggerWasDown && !(P.burst > 0)) return; // semi-automatic: one shot (or one burst) per press
+  if (s.cfg.burst) P.burst = P.burst > 0 ? P.burst - 1 : s.cfg.burst - 1;
   fire(s);
 }
 function fire(s) {
@@ -171,7 +198,7 @@ function fire(s) {
 // the round actually going off: sound, recoil, hitscan, flash, smoke, brass
 function discharge(s) {
   s.pending = 0;
-  sfx.shot(s.id);
+  sfx.shot(s.cfg.sound || s.id);
   // recoil: camera kick and a viewmodel shove
   const k = P.ads > 0.5 ? s.cfg.kickAds : s.cfg.kick;
   P.recoil += k * (0.8 + Math.random() * 0.4) * E.DEG;
@@ -186,10 +213,10 @@ function discharge(s) {
     const dir = PM.norm([f[0] + (left[0] * Math.cos(a) + up[0] * Math.sin(a)) * r, f[1] + (left[1] * Math.cos(a) + up[1] * Math.sin(a)) * r, f[2] + (left[2] * Math.cos(a) + up[2] * Math.sin(a)) * r]);
     const hit = world.raycast(eye, dir, 600, { ignore: new Set([cc.body, ...casings.map((c) => c.body)]) });
     const end = hit ? hit.point : PM.madd(eye, dir, 600);
-    if (i < 4 || Math.random() < 0.3) tracers.push({ a: muzzle, b: end, t: s.id === 'sniper' ? 0.12 : 0.05 });
+    if (i < 4 || Math.random() < 0.3) tracers.push({ a: muzzle, b: end, t: s.cfg.scoped ? 0.12 : 0.05 });
     if (hit) impact(hit, dir, s);
   }
-  flashLight.position.set(muzzle); flashLight.intensity = s.cfg.auto ? 30 : 60; P.flashT = 0.045;
+  flashLight.position.set(muzzle); flashLight.intensity = s.cfg.quiet ? 6 : s.cfg.auto ? 30 : 60; P.flashT = 0.045;
   particles.emit(muzzle, { count: s.cfg.auto ? 3 : 8, spread: 0.12, up: 0.1, size: 0.05, color: [0.8, 0.78, 0.74, 0.32], colorEnd: [0.9, 0.88, 0.85, 0.08], grow: 5, buoyancy: 0.35, life: s.cfg.auto ? 1.4 : 2.2, jitter: 0.02, vel: PM.scl(f, 0.6) });
   sparks.emit(muzzle, { count: s.cfg.pellets > 1 ? 10 : 4, spread: 0.9, up: 0.3, size: 0.012, grow: 0.4, color: [5, 3, 1.2, 1], colorEnd: [2, 0.5, 0.1, 0.5], life: 0.18, jitter: 0.01, vel: PM.scl(f, 3) });
   if (s.cfg.ejectOnShot) ejectCase(s);
@@ -286,12 +313,12 @@ function updateWeapon(dt) {
   } else if (P.switchT < 0) P.switchT = Math.min(0, P.switchT + dt);
   // triggers
   // a press is latched until the next frame, so a tap shorter than a frame still fires
-  const pulled = P.triggerHeld || P.firePress;
+  const pulled = P.triggerHeld || P.firePress || P.burst > 0;
   if (pulled) tryFire();
   P.triggerWasDown = pulled; P.firePress = false;
   // state machine
   if (s.state === 'firing' && P.cooldown <= 0 && (!s.cfg.auto || !P.triggerHeld)) {
-    if (clipDone(s) || s.cfg.auto) { s.state = 'idle'; play(s, 'Idle', s.cfg.auto ? 0.15 : 0.2, false); if (s.ammo === 0 && !s.cfg.auto) reload(); }
+    if (clipDone(s) || s.cfg.auto || P.burst > 0) { s.state = 'idle'; play(s, 'Idle', s.cfg.auto ? 0.15 : 0.2, false); if (s.ammo === 0 && !s.cfg.auto) reload(); }
   }
   if (s.state === 'firing' && s.cfg.auto && P.triggerHeld && s.ammo === 0 && P.cooldown <= 0) { s.state = 'idle'; play(s, 'Idle', 0.15, false); }
   if (s.state === 'reload' && clipDone(s)) { s.state = 'idle'; play(s, 'Idle', 0.2, false); }
@@ -307,7 +334,7 @@ function updateWeapon(dt) {
   }
   if (s.state === 'pump' && clipDone(s)) { s.state = 'idle'; play(s, 'Idle', 0.2, false); }
   // aim down sights
-  const canAim = (s.state === 'idle' || s.state === 'firing') && P.next === null && !(s.id === 'sniper' && s.state === 'firing' && s.t > 0.3);
+  const canAim = (s.state === 'idle' || s.state === 'firing') && P.next === null && !(s.cfg.bolt && s.state === 'firing' && s.t > 0.3); // a bolt gun drops out of the scope to cycle
   const wantAds = (P.aimHeld || P.aimToggle) && canAim;
   P.ads = E.clamp(P.ads + (wantAds ? dt * (s.cfg.scoped ? 4.5 : 6) : -dt * 6), 0, 1);
   s.rig.mixer.update(dt);
@@ -393,11 +420,25 @@ function updatePlayer(dt) {
 
 // ---------------------------------------------------------------- HUD
 const WEAPON_BAR = $('weapons');
-vm.forEach((s, i) => { const d = document.createElement('div'); d.className = 'slot'; d.innerHTML = `<kbd>${i + 1}</kbd><span>${s.cfg.label}</span>`; d.onclick = () => switchTo(i); WEAPON_BAR.append(d); });
 let lastHud = '';
+function renderBar() {
+  WEAPON_BAR.replaceChildren(...Array.from({ length: MAX_CARRY }, (_, i) => {
+    const id = P.loadout[i], d = document.createElement('div');
+    d.className = 'slot' + (id ? '' : ' empty');
+    d.innerHTML = `<kbd>${i + 1}</kbd><span>${id ? CFG[id].label : 'Empty'}</span>`;
+    if (id) d.onclick = () => switchTo(i);
+    return d;
+  }));
+  lastHud = '';
+}
+renderBar();
+// the start screen's list of everything on the tables
+const byCat = {};
+for (const w of WEAPONS) (byCat[w.cat] ||= []).push(CFG[w.id].label);
+$('armory').innerHTML = Object.entries(CATEGORIES).map(([c, name]) => `<div><b>${name}</b><span>${byCat[c].join(' · ')}</span></div>`).join('');
 function hud(force) {
   const s = W();
-  const txt = `${s.ammo}|${s.state}|${P.cur}|${P.score}`;
+  const txt = `${s.ammo}|${s.state}|${P.cur}|${P.score}|${s.id}`;
   if (txt === lastHud && !force) return; lastHud = txt;
   $('ammo').textContent = s.ammo;
   $('ammoMax').textContent = '/ ' + s.cfg.mag;
@@ -407,7 +448,7 @@ function hud(force) {
   [...WEAPON_BAR.children].forEach((d, i) => d.classList.toggle('on', i === P.cur));
   const hint = s.state.startsWith('reload') || s.state === 'insert' ? 'Reloading…' : s.ammo === 0 ? (touchMode ? 'Empty: tap reload' : 'Empty: press R') : s.state === 'inspect' ? 'Inspecting' : '';
   $('whint').textContent = hint;
-  $('pips').innerHTML = s.cfg.mag <= 10 ? Array.from({ length: s.cfg.mag }, (_, i) => `<i class="${i < s.ammo ? '' : 'spent'} ${s.id}"></i>`).join('') : '';
+  $('pips').innerHTML = s.cfg.mag <= 10 ? Array.from({ length: s.cfg.mag }, (_, i) => `<i class="${i < s.ammo ? '' : 'spent'} ${s.cfg.pip || s.id}"></i>`).join('') : '';
 }
 function updateCrosshair() {
   const s = W();
@@ -457,17 +498,18 @@ addEventListener('pointermove', (e) => {
   input.yaw -= dx * sens; input.pitch = E.clamp(input.pitch - dy * sens, -1.5, 1.5);
   input.dYaw += dx * 0.0004; input.dPitch += dy * 0.0004;
 });
-addEventListener('wheel', (e) => { if (started) switchTo((P.cur + (e.deltaY > 0 ? 1 : vm.length - 1)) % vm.length); });
+addEventListener('wheel', (e) => { if (started) cycle(e.deltaY > 0 ? 1 : -1); });
 addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase(); input.keys.add(k);
   if (!started) { if (k === 'enter') start(); return; }
   if (k === ' ') e.preventDefault();
   if (k === 'r') reload();
   if (k === 'f' || k === 'i') inspect();
-  if (k >= '0' && k <= '9' && k.length === 1) switchTo(k === '0' ? 9 : +k - 1);
-  if (k === 'q') switchTo((P.cur + 1) % vm.length);
+  if (k >= '1' && k <= '4' && k.length === 1) switchTo(+k - 1);
+  if (k === 'q') cycle(1);
+  if (k === 'g') drop();
   if (k === 't') { range.spawnLoose(); range.resetSteel(); decals.clear(); feed('Targets reset'); }
-  if (k === 'e') P.aimToggle = !P.aimToggle;
+  if (k === 'e') { if (pick.id) take(pick.id); else P.aimToggle = !P.aimToggle; } // take the gun you're looking at, or toggle aim
   if (k === 'h') $('help').hidden = !$('help').hidden;
 });
 addEventListener('keyup', (e) => input.keys.delete(e.key.toLowerCase()));
@@ -533,12 +575,42 @@ for (const id of ['tFire', 'tFire2']) touchButton(id, { hold: (on) => { if (on) 
 touchButton('tAim', { tap: () => { P.aimToggle = !P.aimToggle; $('tAim').classList.toggle('on', P.aimToggle); } });
 touchButton('tReload', { tap: reload });
 touchButton('tJump', { hold: (on) => { if (on) input.keys.add(' '); else input.keys.delete(' '); } });
-touchButton('tNext', { tap: () => switchTo((P.cur + 1) % vm.length) });
+touchButton('tNext', { tap: () => cycle(1) });
+touchButton('tTake', { tap: () => { if (pick.id) take(pick.id); } });
 touchButton('tInspect', { tap: inspect });
 touchButton('tReset', { tap: () => { range.spawnLoose(); range.resetSteel(); decals.clear(); feed('Targets reset'); } });
 
+// ---------------------------------------------------------------- picking guns up
+// The gun under the crosshair (within reach) lifts a little and the prompt names it; held in
+// view for a moment, its viewmodel is built ahead of the pick-up and the table gun works its
+// inspect clip on its own V5 rig.
+const pick = { id: null, t: 0 };
+function updatePick(dt) {
+  const id = started && P.next === null ? pickAlongRay(eyePos(), camBasis().f, new Map([...displays].filter(([, d]) => d.prop.visible))) : null;
+  if (id !== pick.id) {
+    if (pick.id) { const o = displays.get(pick.id); o.lift = 0; }
+    pick.id = id; pick.t = 0;
+    const box = $('prompt');
+    box.hidden = !id; $('tTake').hidden = !id;
+    if (id) {
+      const c = CFG[id], full = P.loadout.length >= MAX_CARRY;
+      $('promptKey').textContent = touchMode ? 'Take' : 'E';
+      $('promptName').textContent = full ? `Swap the ${W().cfg.label} for the ${c.label}` : `Take the ${c.label}`;
+      $('promptInfo').textContent = `${c.caliber} · ${c.mag} rds · ${c.note}`;
+      $('tTake').textContent = full ? 'Swap' : 'Take';
+    }
+  }
+  if (!id) return;
+  pick.t += dt;
+  const d = displays.get(id);
+  d.lift = Math.min(0.02, d.lift + dt * 0.12);
+  if (pick.t > 0.3 && !states.has(id)) stateFor(id);
+  if (pick.t > 0.6 && !d.shown && !d.prop.rig.playing && d.prop.clips.has('Inspect')) { d.shown = true; d.prop.play('Inspect'); }
+}
+
 // ---------------------------------------------------------------- loop
-vm[0].rig.visible = true;
+for (const id of P.loadout) displays.get(id).prop.visible = false;
+W().rig.visible = true;
 let last = performance.now(), hudT = 0;
 function step(dt) {
   if (started) { updatePlayer(dt); updateWeapon(dt); } else { input.yaw = Math.sin(performance.now() / 6000) * 0.25; W().rig.mixer.update(dt); }
@@ -551,12 +623,12 @@ function step(dt) {
   updateViewmodel(dt);
   if (P.flashT > 0) { P.flashT -= dt; if (P.flashT <= 0) flashLight.intensity = 0; }
   particles.update(dt); sparks.update(dt);
-  // walk up to a counter and its gun works its action once (V5 MechClips on the Prop's rig)
-  for (const d of displays) {
-    const near = Math.hypot(d.position[0] - cc.position[0], d.position[2] - cc.position[2]) < 1.3;
-    if (near && !d.userData.shown && !d.rig.playing) { d.userData.shown = true; d.play(d.clips.has('Reload') ? 'Reload' : 'Pump'); }
-    if (!near) d.userData.shown = false;
-    d.update(dt);
+  updatePick(dt);
+  for (const d of displays.values()) {
+    if (!d.prop.visible) continue;
+    if (d.id !== pick.id) { d.shown = false; d.lift = Math.max(0, d.lift - dt * 0.12); }
+    d.prop.position[1] = d.pos[1] + d.lift;
+    d.prop.update(dt);
   }
 }
 function render(dt) {
@@ -582,8 +654,8 @@ requestAnimationFrame(frame);
 
 // test hooks for headless checks
 window.__range = {
-  start, P, vm, input, cc, world, camera, renderer, fire: () => { P.triggerHeld = true; step(1 / 60); P.triggerHeld = false; },
+  start, P, get vm() { return P.loadout.map(stateFor); }, input, cc, world, camera, renderer, fire: () => { P.triggerHeld = true; step(1 / 60); P.triggerHeld = false; },
   simulate(sec) { for (let t = 0; t < sec; t += 1 / 60) step(1 / 60); render(1 / 60); },
   set: (o) => Object.assign(P, o), look(yaw, pitch) { input.yaw = yaw; input.pitch = pitch; },
-  reload, inspect, switchTo, keys: input.keys, displays,
+  reload, inspect, switchTo, keys: input.keys, displays, take, drop, state: () => W(), target: () => pick.id,
 };
