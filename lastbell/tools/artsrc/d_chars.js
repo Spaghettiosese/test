@@ -9,7 +9,7 @@
  * drawImage(c, -ax/SS, -ay/SS, w/SS, h/SS). Optional extra: spr.sh = {c,ax,ay,w,h} soft painted ground shadow (same units).
  */
 const SS = 2, SC = 1.22, K = SS * SC;      // SS: sprite supersample (canvas px per world px). K kept for the scene's hover ring
-const CH_PX = 0.74;                        // world px per body cm: adult ~129 px, teen ~122 px (~1.35-1.4x the old figures)
+const CH_PX = 0.68;                        // world px per body cm: adult ~120 px, teen ~113 px (~1.3x the old figures; kept just above door height)
 const CH_DK = 0.5;                         // iso foreshortening of depth (2:1 floor)
 const CH_LX = .8, CH_LY = -.6;             // key light direction (screen space, towards the light)
 const DEF_LOOK = { skin: '#d9a98a', hair: '#2a1d18', hairStyle: 'short', outfit: 'uniform', outfitColor: '#3f4d5c', accent: '#c9892f', build: 'avg', glasses: false, age: 'adult', pose: 'stand', extra: 'none' };

@@ -656,19 +656,20 @@ PROPS.tree = function (g, S, p, I) {
   const blobs = v === 1 ? 6 : 12, cx0 = bx - 4, cy0 = by - 150;
   // branches
   g.strokeStyle = css([60, 44, 34], .95); g.lineCap = 'round'; for (let i = 0; i < 5; i++) { g.lineWidth = 3.6 - i * .4; g.beginPath(); g.moveTo(bx - 2, by - 100 + i * 4); const ex = bx + r.r(-56, 56), ey = by - r.r(120, 170); g.quadraticCurveTo((bx + ex) / 2, by - 120, ex, ey); g.stroke(); }
-  for (let i = 0; i < blobs; i++) {
-    const a = r() * 6.28, d = r() * 52, x = cx0 + Math.cos(a) * d * 1.3, y = cy0 + Math.sin(a) * d * .8 - (i / blobs) * 10;
-    paintEll(g, x, y, r.r(26, 44), r.r(20, 34), mix(jit(r.p(cols), r, .1), [30, 40, 60], Math.max(0, Math.sin(a)) * .3), r, { n: 12, sw: 5, ang: r() * 3, aj: 1.5, ink: false, alt: [230, 180, 70], edge: false, jv: .18 });
+  // canopy: dark core masses, then clustered leaf dabs, lit toward the upper right, cool underneath
+  const dab = (x, y, rx, ry, c, a) => { g.fillStyle = css(c, a); g.beginPath(); g.ellipse(x, y, rx, ry, r() * 3, 0, 7); g.fill(); };
+  for (let i = 0; i < blobs; i++) { const a = r() * 6.28, d = r() * 50, x = cx0 + Math.cos(a) * d * 1.3, y = cy0 + Math.sin(a) * d * .8; const gr = g.createRadialGradient(x, y, 2, x, y, 40); const c = mix(r.p(cols), [20, 26, 40], .55); gr.addColorStop(0, css(c, .9)); gr.addColorStop(.7, css(c, .6)); gr.addColorStop(1, css(c, 0)); g.fillStyle = gr; g.beginPath(); g.ellipse(x, y, 40, 30, 0, 0, 7); g.fill(); }
+  const nd = v === 1 ? 170 : 420;
+  for (let i = 0; i < nd; i++) {
+    const a = r() * 6.28, d = Math.sqrt(r()) * 80, x = cx0 + Math.cos(a) * d * 1.25, y = cy0 + Math.sin(a) * d * .78;
+    const lit = clamp(.5 + (Math.cos(a + .9) * d / 80) * .6 - (y - cy0) / 160, 0, 1), base = r.p(cols);
+    const c = lit > .62 ? mix(base, [255, 200, 110], (lit - .6) * 1.1) : mix(base, [24, 34, 52], (1 - lit) * .55);
+    const n = 3 + (r() * 3 | 0); for (let k = 0; k < n; k++) dab(x + (r() - .5) * 7, y + (r() - .5) * 5, r.r(1.6, 3.4), r.r(1.1, 2.2), jit(c, r, .08), .85);
   }
-  const leaves = v === 1 ? 70 : 190;
-  for (let i = 0; i < leaves; i++) {
-    const a = r() * 6.28, d = Math.sqrt(r()) * 82, x = cx0 + Math.cos(a) * d * 1.2, y = cy0 + Math.sin(a) * d * .75;
-    const rim = Math.cos(a - -.8) > .5 ? 1 : 0;
-    const c = rim ? mix(r.p(cols), [255, 190, 90], .5) : mix(r.p(cols), [30, 40, 50], r() * .4);
-    bristle(g, x, y, r() * 6.28, r.r(3, 7), r.r(3.5, 6.5), c, .55, r);
-  }
+  for (let i = 0; i < 30; i++) { const a = -.9 + (r() - .5) * 1.4, d = 70 + r() * 14, x = cx0 + Math.cos(a) * d * 1.25, y = cy0 + Math.sin(a) * d * .78; dab(x, y, 2.4, 1.6, mix(r.p(cols), [255, 210, 120], .55), .9); }   // rim-lit edge leaves
+  // gaps where the sky shows through
+  for (let i = 0; i < 8; i++) { const x = cx0 + r.r(-60, 60), y = cy0 + r.r(-40, 30); dab(x, y, r.r(2, 4), r.r(1.5, 3), [30, 36, 50], .4); }
   if (v === 1) { g.strokeStyle = css([50, 40, 32], .8); g.lineWidth = 1.2; for (let i = 0; i < 10; i++) { const x = cx0 + r.r(-70, 70), y = cy0 + r.r(-50, 30); g.beginPath(); g.moveTo(x, y); g.lineTo(x + r.r(-14, 14), y - r.r(6, 16)); g.stroke(); } }
-  for (let i = 0; i < 14; i++) { g.fillStyle = css([255, 230, 160], .2); g.beginPath(); g.arc(cx0 + r.r(-60, 60), cy0 + r.r(-40, 30), r.r(1.5, 4), 0, 7); g.fill(); }
   if (autumn) for (let i = 0; i < 16; i++) { const x = bx + r.r(-60, 40), y = by + r.r(-8, 16); g.fillStyle = css(jit(r.p(cols), r, .15), .85); g.beginPath(); g.ellipse(x, y, 2.6, 1.3, r() * 3, 0, 7); g.fill(); }   // fallen leaves
 };
 PROPS.bell = function (g, S, p, I) {   // the old school bell on its timber frame
