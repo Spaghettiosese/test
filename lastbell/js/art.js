@@ -1048,10 +1048,10 @@ function vbar(g, S, r, u, v, z0, z1, wpx, col, o) {   // thin vertical post at f
 }
 function contactShadow(g, S, u0, v0, u1, v1, k) {
   k = k || 1; g.save();
-  for (let i = 0; i < 4; i++) {   // soft penumbra, pushed away from the key light (toward lower-left)
-    const e = .05 + i * .11, a = (i === 0 ? .2 : .1) * k;
+  for (let i = 0; i < 3; i++) {   // soft penumbra, pushed away from the key light (kept tight + faint: sprite alpha feeds the hover ring)
+    const e = .03 + i * .06, a = (i === 0 ? .16 : .07) * k;
     const pts = [gp(S, u0 - e - .04, v0 - e + .06, 0), gp(S, u1 + e - .04, v0 - e + .06, 0), gp(S, u1 + e - .04, v1 + e + .12, 0), gp(S, u0 - e - .04, v1 + e + .12, 0)];
-    pts.forEach(p => { p[0] -= 2 + i * 2; p[1] += .5 + i * .5; });
+    pts.forEach(p => { p[0] -= 1.5 + i * 1.2; p[1] += .5 + i * .3; });
     g.fillStyle = css([8, 4, 14], a); pathPoly(g, pts); g.fill();
   }
   // tight occlusion line hugging the footprint
@@ -2406,7 +2406,11 @@ PROPS.statue = function (g, S, p, I) {
   { const q = gp(S, cu - .2, v1 - .05, 30.5); g.strokeStyle = css([60, 70, 40]); g.lineWidth = 3; g.beginPath(); g.ellipse(q[0], q[1] - 2, 10, 4.4, 0, 0, 7); g.stroke(); for (let k = 0; k < 8; k++) { const a = k / 8 * 6.28; g.fillStyle = css(k % 2 ? [130, 40, 40] : [90, 30, 30]); g.beginPath(); g.arc(q[0] + Math.cos(a) * 10, q[1] - 2 + Math.sin(a) * 4.4, 1.8, 0, 7); g.fill(); } g.fillStyle = css([170, 30, 30]); g.fillRect(q[0] - 1, q[1] + 2, 2, 8); }
   // the figure in greatcoat, one arm raised, pointing over the yard
   const b = gp(S, cu, cv, 68), bx = b[0], by = b[1], c = stone, k = bronze ? [70, 120, 96] : [180, 178, 170];
-  const coat = [[bx - 21, by], [bx - 19, by - 30], [bx - 17, by - 56], [bx - 15, by - 78], [bx + 15, by - 78], [bx + 17, by - 56], [bx + 22, by - 20], [bx + 24, by]];
+  const cape = [[bx - 14, by - 86], [bx - 30, by - 50], [bx - 34, by - 8], [bx - 18, by - 2], [bx - 8, by - 60]];
+  paintPoly(g, cape, mul(c, .72), r, { n: 20, sw: 4, ang: 1.3, ink: true, inkw: 1.8, edge: false }); prShade(g, cape, bx - 34, 0, bx - 8, 0, [[0, [20, 30, 50], .5], [1, [255, 220, 170], .15]]);
+  const coat = [[bx - 22, by], [bx - 18, by - 28], [bx - 16, by - 56], [bx - 15, by - 78], [bx + 15, by - 78], [bx + 16, by - 58], [bx + 20, by - 26], [bx + 27, by - 2], [bx + 10, by + 2]];
+  // boots
+  for (const dx of [-10, 6]) paintPoly(g, [[bx + dx - 5, by + 1], [bx + dx + 7, by + 1], [bx + dx + 6, by - 8], [bx + dx - 4, by - 8]], mul(c, .6), r, { n: 3, ink: true, inkw: 1, edge: false });
   paintPoly(g, coat, c, r, { n: 50, sw: 4, ang: 1.5, ink: true, inkw: 2, alt: k, edge: false });
   prShade(g, coat, bx - 21, 0, bx + 24, 0, [[0, [20, 30, 50], .55], [.5, c, 0], [.75, [255, 220, 170], .35], [1, [20, 30, 50], .3]]);
   prTexFill(g, coat, bronze ? 'streak' : 'speck', 1);
@@ -4720,10 +4724,13 @@ function ch_shadow(kind, wcm) {
 
 /* ---------------------------------------------------------------- sprite cache + public API */
 function figKey(L, facing, frame, id) { const pose = L.pose || 'stand'; return lookKey(L) + '#' + (id || '') + '#' + pose + '#' + facing + '#' + ((pose === 'stand' || pose === 'slump' || pose === 'lean') ? frame : 0); }
-const _warmQ = [];
-function queueFigure(look, facing, frame, pose) { _warmQ.push([look, facing, frame, pose]); }
+const _warmQ = [], ch_pend = new Set();
+function queueFigure(look, facing, frame, pose) {
+  const L = normLook(look); if (pose) L.pose = pose; const k = figKey(L, FACE_ALIAS[facing] || facing, frame || 0, ch_idOf(look));
+  if (ch_pend.has(k) || _spr.has(k)) return; ch_pend.add(k); _warmQ.push([look, facing, frame, pose, k]);
+}
 function warmStep(maxN) {   // bake queued sprites one at a time (called with spare frame time)
-  while (maxN-- > 0 && _warmQ.length) { const q = _warmQ.shift(); getFigure(q[0], q[1], q[2], q[3]); }
+  while (maxN-- > 0 && _warmQ.length) { const q = _warmQ.shift(); ch_pend.delete(q[4]); getFigure(q[0], q[1], q[2], q[3]); }
 }
 function ch_now() { return typeof performance !== 'undefined' ? performance.now() : Date.now(); }
 /* returns a ready sprite without ever blocking on animation frames: walk frames (and the idle weight shift) fall back to
@@ -6676,7 +6683,7 @@ function gs_cloud(g, r, cx, cy, rx, ry, dark, lit, L, o) {
     const P = puffs[i % puffs.length], a = r() * 6.2832, d = Math.sqrt(r());
     const x = P[0] + Math.cos(a) * d * rx * .55 * P[2], y = P[1] + Math.sin(a) * d * ry * .5 * P[2];
     if (y > cy + ry * .38) continue;                   // flattish bottoms
-    const nx = Math.cos(a), ny = Math.sin(a), f = clamp((nx * lx + ny * ly) * d * .9 + .25 - (y - cy) / ry * .35, 0, 1);
+    const nx = Math.cos(a), ny = Math.sin(a), f = clamp((nx * lx + ny * ly) * d * .9 + .25 + (y - cy) / ry * .4 * ly, 0, 1);
     const c = mix(dark, lit, f * f);
     bristle(g, x, y, (o.ang || 0) + r.g() * .25, r.r(30, 110) * (rx / 200 + .4), r.r(6, 18) * (ry / 60 + .5), jit(c, r, .06), r.r(.16, .36) * (o.a || 1), r);
   }
@@ -6918,16 +6925,6 @@ function gs_person(g, r, x, y, H, o) {
   const toW = lie ? (p) => { const a = 1.5708 * hdir, dx = p[0] - ox, dy = p[1] - oy; return [x + dx * Math.cos(a) - dy * Math.sin(a), y - u * .42 + dx * Math.sin(a) + dy * Math.cos(a)]; } : (p) => [x - ox + p[0], y - oy + p[1]];
   return { head: toW(hd), hands: [toW(P('haL')), toW(P('haR'))], u: u, neck: toW(nk) };
 }
-GS.__figs = function (S, r) {
-  const g = S.layer(.1); g.fillStyle = '#3a4048'; g.fillRect(-30, -30, S.W + 60, S.H + 60); gs_glow(g, 200, 200, 600, [255, 160, 80], .3);
-  const L = [-.6, -.8], rim = [255, 170, 90];
-  gs_person(g, r, 120, 680, 560, { view: 'back', pose: 'pockets', L: L, rim: rim, coat: [46, 54, 66], scarf: [120, 34, 34], satchel: [80, 52, 34], coatLen: .3 });
-  gs_person(g, r, 380, 680, 560, { view: 'front', pose: 'stand', L: L, rim: rim, coat: [70, 72, 80], tie: [120, 30, 30], hs: 'short', glasses: true });
-  gs_person(g, r, 600, 680, 560, { view: 'side', pose: 'walk', dir: 1, L: L, rim: rim, coat: [90, 60, 50], hs: 'long', coatLen: .8, hair: [120, 70, 40] });
-  gs_person(g, r, 820, 680, 560, { view: 'side', pose: 'sit', dir: 1, L: L, rim: rim, coat: [120, 110, 90], hs: 'bun', hair: [180, 180, 180] });
-  gs_person(g, r, 1100, 680, 560, { view: 'side', pose: 'reach', dir: 1, L: L, rim: rim, coat: [60, 70, 60], hs: 'short' });
-  gs_person(g, r, 900, 300, 300, { view: 'side', pose: 'lie', dir: 1, L: L, rim: rim, coat: [50, 54, 70] });
-};
 /* ---------------------------------------------------------- reusable set pieces */
 /* School No. 9: facade + bell tower. returns anchor points */
 function gs_school(g, r, cx, gy, s, o) {
@@ -7045,7 +7042,7 @@ GS.title = function (S, r) {
   g.fillStyle = gs_grad(g, 0, gy, 0, H + S.M, [[0, [40, 40, 44]], [1, [10, 10, 14]]]); g.fillRect(-S.M, gy, W + 2 * S.M, H - gy + S.M * 2);
   // ---- drifting cloud banks
   const gc = S.layer(.3, { y0: -S.M, y1: gy - 60, drift: [70, 260000] });
-  for (let i = 0; i < 9; i++) { const cx = r.r(-120, W + 120), cy = y0 + r.r(70, 330) - (port ? r() * (y0 + 100) : 0), rx = r.r(160, 330); gs_cloud(gc, r, cx, cy, rx, r.r(28, 54), mix([22, 36, 48], [40, 44, 58], r()), mix([236, 134, 74], [250, 190, 120], r()), [-.7, .7], { n: Math.round(rx * .9), p: 6 }); }
+  for (let i = 0; i < 9; i++) { const cx = r.r(-120, W + 120), cy = y0 + r.r(70, 330) - (port ? r() * (y0 + 100) : 0), rx = r.r(160, 330); gs_cloud(gc, r, cx, cy, rx, r.r(28, 54), mix([26, 38, 52], [48, 50, 64], r()), mix([246, 140, 70], [255, 196, 120], r()), [-.5, .85], { n: Math.round(rx * 1.1), p: 6 }); }
   // ---- far city (haze-blue silhouettes, chimneys, a gasholder)
   const gf = S.layer(.45, { y0: gy - 330, y1: gy + 40 });
   const farWins = [];
@@ -7596,6 +7593,7 @@ GS.end_wardens_eye = function (S, r) {
   const gp = S.layer(.62, { y0: Y, y1: dY + 80 });
   const px = port ? cx - 40 : cx - 80;
   gs_person(gp, r, px, dY + 70, 420, { view: 'front', pose: 'sitPour', L: [-.5, -.8], rim: warm, coat: [104, 108, 104], shirt: [190, 186, 170], tie: [60, 60, 66], hair: [150, 146, 140], hs: 'short', amb: .5, shade: .45, collar: true, shadow: false, coatLen: 0 });
+  gs_rect(gp, r, -S.M, dY, W + 2 * S.M, 80, [96, 66, 42], [0, -1], { n: 120, sw: 6, ang: 0, ink: true, inkw: 2, rim: warm });
   const tsx = px + 70, tsy = dY - 40;
   gs_rect(gp, r, tsx - 10, tsy - 60, 26, 70, [60, 80, 70], [-.5, -.8], { n: 10, ink: true, rim: warm, rot: .5 });
   gs_cup(gp, r, px - 60, dY, 1.3, [236, 230, 214], L, warm); gs_cup(gp, r, px + 110, dY, 1.3, [236, 230, 214], L, warm);
@@ -7614,7 +7612,7 @@ GS.end_martyr = function (S, r) {
   gs_wash(g, r, -S.M, -S.M, W + 2 * S.M, fY + S.M, [[0, [70, 80, 96]], [.6, [130, 140, 150]], [1, [96, 104, 116]]], { n: 900, ang: 1.57, sl: [40, 160], sw: [10, 26] });
   // painted-over patches (fresher paint), the corner
   const cX = port ? cx + 200 : cx + 330;
-  for (let i = 0; i < 7; i++) gs_rect(g, r, cX - r.r(60, 300), Y + r.r(60, 360), r.r(60, 140), r.r(40, 110), [164, 172, 178], L, { n: 20, sw: 8, alpha: .55, edge: false });
+  for (let i = 0; i < 7; i++) { g.save(); g.globalAlpha = .35; gs_rect(g, r, cX - r.r(60, 300), Y + r.r(60, 360), r.r(60, 140), r.r(40, 110), [146, 154, 162], L, { n: 20, sw: 8, edge: false }); g.restore(); }
   g.fillStyle = gs_grad(g, cX, 0, cX + 200, 0, [[0, [60, 66, 80], .5], [1, [30, 34, 46], .8]]); g.fillRect(cX, -S.M, W + S.M - cX, fY + S.M);
   g.strokeStyle = css([40, 44, 56], .6); g.lineWidth = 3; g.beginPath(); g.moveTo(cX, -S.M); g.lineTo(cX, fY); g.stroke();
   // the small pencil writing, low in the corner
@@ -7634,7 +7632,7 @@ GS.end_martyr = function (S, r) {
   if (!port || true) {
     gs_rect(gm, r, dx, Y + 120, dw, fY - Y - 120, [80, 84, 90], L, { n: 80, sw: 8, ang: 1.57, ink: true, inkw: 2.4, rim: [230, 236, 255] });
     const hx = dx + 40, hy = Y + 220; gm.fillStyle = css([255, 190, 110]); gm.fillRect(hx, hy, 90, 50);
-    gs_person(gm, r, hx + 50, hy + 200, 230, { view: 'front', pose: 'stand', L: [0, -1], rim: [255, 200, 130], coat: [200, 196, 186], hair: [60, 40, 30], hs: 'short', amb: .3, shade: .7, shadow: false, alpha: 1 });
+    gs_person(gm, r, hx + 45, hy + 248, 230, { view: 'front', pose: 'stand', L: [0, -1], rim: [255, 200, 130], coat: [200, 196, 186], hair: [60, 40, 30], hs: 'short', amb: .3, shade: .7, shadow: false, alpha: 1 });
     gm.save(); gm.globalCompositeOperation = 'destination-over'; gm.restore();
     // mask the boy to the hatch: repaint door around hatch
     gs_rect(gm, r, dx, hy + 50, dw, fY - hy - 50, [80, 84, 90], L, { n: 60, sw: 8, ang: 1.57, ink: true, inkw: 2.4, rim: [230, 236, 255] });
@@ -7676,7 +7674,7 @@ GS.end_silenced = function (S, r) {
   gf.strokeStyle = css([214, 200, 160], .95); gf.lineWidth = 6; gf.lineCap = 'round'; gf.beginPath(); gf.moveTo(mx, my - 74); gf.lineTo(mx, my - 150); gf.moveTo(mx, my - 200); gf.lineTo(mx + 3, my - 270); gf.stroke();
   for (const [yy, d] of [[my - 150, 1], [my - 200, -1]]) for (let k = -2; k <= 2; k++) { gf.lineWidth = 2; gf.beginPath(); gf.moveTo(mx, yy); gf.lineTo(mx + k * 5, yy + d * 14); gf.stroke(); }
   // painted over once, painted again: the ghost of a grey square behind it
-  gf.save(); gf.globalAlpha = .25; gs_rect(gf, r, mx - 140, my - 200, 280, 300, [90, 84, 84], [0, -1], { n: 40, sw: 12, edge: false }); gf.restore();
+  gf.save(); gf.globalAlpha = .12; for (let i = 0; i < 40; i++) bristle(gf, mx + r.g() * 160, my - 60 + r.g() * 130, r.g() * .3, r.r(40, 120), r.r(8, 18), [90, 84, 84], .5, r); gf.restore();
   // a doorway with people and a candle
   const dX = port ? 60 : cx - 420, dYY = gy + 40;
   gf.fillStyle = css([8, 6, 8]); gf.fillRect(dX, dYY, 120, 220);
@@ -7732,6 +7730,7 @@ GS.end_exodus = function (S, r) {
   // the zinc table, the student in a coat, the apricot pastry
   const gp = S.layer(.75, { y0: Y + 60, y1: H + S.M });
   const tbX = port ? cx - 150 : cx - 220;
+  gs_chair(gp, r, tbX - 110, dY + 150, 1.15, [60, 40, 30], 1, [.8, -.5], warm);
   gs_person(gp, r, tbX - 110, dY + 150, 400, { view: 'side', pose: 'sit', dir: 1, L: [.8, -.5], rim: warm, coat: [46, 54, 66], hair: [30, 24, 20], hs: 'short', coatLen: .5, amb: .5, shade: .45, collar: true, rimA: .85 });
   gs_ell(gp, r, tbX + 60, dY + 10, 140, 18, [176, 180, 182], [0, -1], { n: 30, ink: true, inkw: 2, rim: [255, 240, 220] });
   gp.fillStyle = css([30, 26, 24]); gp.fillRect(tbX + 56, dY + 24, 8, 140);

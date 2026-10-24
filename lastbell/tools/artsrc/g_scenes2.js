@@ -414,6 +414,7 @@ GS.end_wardens_eye = function (S, r) {
   const gp = S.layer(.62, { y0: Y, y1: dY + 80 });
   const px = port ? cx - 40 : cx - 80;
   gs_person(gp, r, px, dY + 70, 420, { view: 'front', pose: 'sitPour', L: [-.5, -.8], rim: warm, coat: [104, 108, 104], shirt: [190, 186, 170], tie: [60, 60, 66], hair: [150, 146, 140], hs: 'short', amb: .5, shade: .45, collar: true, shadow: false, coatLen: 0 });
+  gs_rect(gp, r, -S.M, dY, W + 2 * S.M, 80, [96, 66, 42], [0, -1], { n: 120, sw: 6, ang: 0, ink: true, inkw: 2, rim: warm });
   const tsx = px + 70, tsy = dY - 40;
   gs_rect(gp, r, tsx - 10, tsy - 60, 26, 70, [60, 80, 70], [-.5, -.8], { n: 10, ink: true, rim: warm, rot: .5 });
   gs_cup(gp, r, px - 60, dY, 1.3, [236, 230, 214], L, warm); gs_cup(gp, r, px + 110, dY, 1.3, [236, 230, 214], L, warm);
@@ -432,7 +433,7 @@ GS.end_martyr = function (S, r) {
   gs_wash(g, r, -S.M, -S.M, W + 2 * S.M, fY + S.M, [[0, [70, 80, 96]], [.6, [130, 140, 150]], [1, [96, 104, 116]]], { n: 900, ang: 1.57, sl: [40, 160], sw: [10, 26] });
   // painted-over patches (fresher paint), the corner
   const cX = port ? cx + 200 : cx + 330;
-  for (let i = 0; i < 7; i++) gs_rect(g, r, cX - r.r(60, 300), Y + r.r(60, 360), r.r(60, 140), r.r(40, 110), [164, 172, 178], L, { n: 20, sw: 8, alpha: .55, edge: false });
+  for (let i = 0; i < 7; i++) { g.save(); g.globalAlpha = .35; gs_rect(g, r, cX - r.r(60, 300), Y + r.r(60, 360), r.r(60, 140), r.r(40, 110), [146, 154, 162], L, { n: 20, sw: 8, edge: false }); g.restore(); }
   g.fillStyle = gs_grad(g, cX, 0, cX + 200, 0, [[0, [60, 66, 80], .5], [1, [30, 34, 46], .8]]); g.fillRect(cX, -S.M, W + S.M - cX, fY + S.M);
   g.strokeStyle = css([40, 44, 56], .6); g.lineWidth = 3; g.beginPath(); g.moveTo(cX, -S.M); g.lineTo(cX, fY); g.stroke();
   // the small pencil writing, low in the corner
@@ -452,7 +453,7 @@ GS.end_martyr = function (S, r) {
   if (!port || true) {
     gs_rect(gm, r, dx, Y + 120, dw, fY - Y - 120, [80, 84, 90], L, { n: 80, sw: 8, ang: 1.57, ink: true, inkw: 2.4, rim: [230, 236, 255] });
     const hx = dx + 40, hy = Y + 220; gm.fillStyle = css([255, 190, 110]); gm.fillRect(hx, hy, 90, 50);
-    gs_person(gm, r, hx + 50, hy + 200, 230, { view: 'front', pose: 'stand', L: [0, -1], rim: [255, 200, 130], coat: [200, 196, 186], hair: [60, 40, 30], hs: 'short', amb: .3, shade: .7, shadow: false, alpha: 1 });
+    gs_person(gm, r, hx + 45, hy + 248, 230, { view: 'front', pose: 'stand', L: [0, -1], rim: [255, 200, 130], coat: [200, 196, 186], hair: [60, 40, 30], hs: 'short', amb: .3, shade: .7, shadow: false, alpha: 1 });
     gm.save(); gm.globalCompositeOperation = 'destination-over'; gm.restore();
     // mask the boy to the hatch: repaint door around hatch
     gs_rect(gm, r, dx, hy + 50, dw, fY - hy - 50, [80, 84, 90], L, { n: 60, sw: 8, ang: 1.57, ink: true, inkw: 2.4, rim: [230, 236, 255] });
@@ -494,7 +495,7 @@ GS.end_silenced = function (S, r) {
   gf.strokeStyle = css([214, 200, 160], .95); gf.lineWidth = 6; gf.lineCap = 'round'; gf.beginPath(); gf.moveTo(mx, my - 74); gf.lineTo(mx, my - 150); gf.moveTo(mx, my - 200); gf.lineTo(mx + 3, my - 270); gf.stroke();
   for (const [yy, d] of [[my - 150, 1], [my - 200, -1]]) for (let k = -2; k <= 2; k++) { gf.lineWidth = 2; gf.beginPath(); gf.moveTo(mx, yy); gf.lineTo(mx + k * 5, yy + d * 14); gf.stroke(); }
   // painted over once, painted again: the ghost of a grey square behind it
-  gf.save(); gf.globalAlpha = .25; gs_rect(gf, r, mx - 140, my - 200, 280, 300, [90, 84, 84], [0, -1], { n: 40, sw: 12, edge: false }); gf.restore();
+  gf.save(); gf.globalAlpha = .12; for (let i = 0; i < 40; i++) bristle(gf, mx + r.g() * 160, my - 60 + r.g() * 130, r.g() * .3, r.r(40, 120), r.r(8, 18), [90, 84, 84], .5, r); gf.restore();
   // a doorway with people and a candle
   const dX = port ? 60 : cx - 420, dYY = gy + 40;
   gf.fillStyle = css([8, 6, 8]); gf.fillRect(dX, dYY, 120, 220);
@@ -550,6 +551,7 @@ GS.end_exodus = function (S, r) {
   // the zinc table, the student in a coat, the apricot pastry
   const gp = S.layer(.75, { y0: Y + 60, y1: H + S.M });
   const tbX = port ? cx - 150 : cx - 220;
+  gs_chair(gp, r, tbX - 110, dY + 150, 1.15, [60, 40, 30], 1, [.8, -.5], warm);
   gs_person(gp, r, tbX - 110, dY + 150, 400, { view: 'side', pose: 'sit', dir: 1, L: [.8, -.5], rim: warm, coat: [46, 54, 66], hair: [30, 24, 20], hs: 'short', coatLen: .5, amb: .5, shade: .45, collar: true, rimA: .85 });
   gs_ell(gp, r, tbX + 60, dY + 10, 140, 18, [176, 180, 182], [0, -1], { n: 30, ink: true, inkw: 2, rim: [255, 240, 220] });
   gp.fillStyle = css([30, 26, 24]); gp.fillRect(tbX + 56, dY + 24, 8, 140);

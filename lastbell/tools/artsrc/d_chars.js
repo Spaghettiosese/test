@@ -1218,10 +1218,13 @@ function ch_shadow(kind, wcm) {
 
 /* ---------------------------------------------------------------- sprite cache + public API */
 function figKey(L, facing, frame, id) { const pose = L.pose || 'stand'; return lookKey(L) + '#' + (id || '') + '#' + pose + '#' + facing + '#' + ((pose === 'stand' || pose === 'slump' || pose === 'lean') ? frame : 0); }
-const _warmQ = [];
-function queueFigure(look, facing, frame, pose) { _warmQ.push([look, facing, frame, pose]); }
+const _warmQ = [], ch_pend = new Set();
+function queueFigure(look, facing, frame, pose) {
+  const L = normLook(look); if (pose) L.pose = pose; const k = figKey(L, FACE_ALIAS[facing] || facing, frame || 0, ch_idOf(look));
+  if (ch_pend.has(k) || _spr.has(k)) return; ch_pend.add(k); _warmQ.push([look, facing, frame, pose, k]);
+}
 function warmStep(maxN) {   // bake queued sprites one at a time (called with spare frame time)
-  while (maxN-- > 0 && _warmQ.length) { const q = _warmQ.shift(); getFigure(q[0], q[1], q[2], q[3]); }
+  while (maxN-- > 0 && _warmQ.length) { const q = _warmQ.shift(); ch_pend.delete(q[4]); getFigure(q[0], q[1], q[2], q[3]); }
 }
 function ch_now() { return typeof performance !== 'undefined' ? performance.now() : Date.now(); }
 /* returns a ready sprite without ever blocking on animation frames: walk frames (and the idle weight shift) fall back to

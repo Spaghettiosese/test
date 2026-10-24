@@ -436,7 +436,11 @@ PROPS.statue = function (g, S, p, I) {
   { const q = gp(S, cu - .2, v1 - .05, 30.5); g.strokeStyle = css([60, 70, 40]); g.lineWidth = 3; g.beginPath(); g.ellipse(q[0], q[1] - 2, 10, 4.4, 0, 0, 7); g.stroke(); for (let k = 0; k < 8; k++) { const a = k / 8 * 6.28; g.fillStyle = css(k % 2 ? [130, 40, 40] : [90, 30, 30]); g.beginPath(); g.arc(q[0] + Math.cos(a) * 10, q[1] - 2 + Math.sin(a) * 4.4, 1.8, 0, 7); g.fill(); } g.fillStyle = css([170, 30, 30]); g.fillRect(q[0] - 1, q[1] + 2, 2, 8); }
   // the figure in greatcoat, one arm raised, pointing over the yard
   const b = gp(S, cu, cv, 68), bx = b[0], by = b[1], c = stone, k = bronze ? [70, 120, 96] : [180, 178, 170];
-  const coat = [[bx - 21, by], [bx - 19, by - 30], [bx - 17, by - 56], [bx - 15, by - 78], [bx + 15, by - 78], [bx + 17, by - 56], [bx + 22, by - 20], [bx + 24, by]];
+  const cape = [[bx - 14, by - 86], [bx - 30, by - 50], [bx - 34, by - 8], [bx - 18, by - 2], [bx - 8, by - 60]];
+  paintPoly(g, cape, mul(c, .72), r, { n: 20, sw: 4, ang: 1.3, ink: true, inkw: 1.8, edge: false }); prShade(g, cape, bx - 34, 0, bx - 8, 0, [[0, [20, 30, 50], .5], [1, [255, 220, 170], .15]]);
+  const coat = [[bx - 22, by], [bx - 18, by - 28], [bx - 16, by - 56], [bx - 15, by - 78], [bx + 15, by - 78], [bx + 16, by - 58], [bx + 20, by - 26], [bx + 27, by - 2], [bx + 10, by + 2]];
+  // boots
+  for (const dx of [-10, 6]) paintPoly(g, [[bx + dx - 5, by + 1], [bx + dx + 7, by + 1], [bx + dx + 6, by - 8], [bx + dx - 4, by - 8]], mul(c, .6), r, { n: 3, ink: true, inkw: 1, edge: false });
   paintPoly(g, coat, c, r, { n: 50, sw: 4, ang: 1.5, ink: true, inkw: 2, alt: k, edge: false });
   prShade(g, coat, bx - 21, 0, bx + 24, 0, [[0, [20, 30, 50], .55], [.5, c, 0], [.75, [255, 220, 170], .35], [1, [20, 30, 50], .3]]);
   prTexFill(g, coat, bronze ? 'streak' : 'speck', 1);

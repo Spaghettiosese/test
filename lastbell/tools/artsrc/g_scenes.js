@@ -105,7 +105,7 @@ function gs_cloud(g, r, cx, cy, rx, ry, dark, lit, L, o) {
     const P = puffs[i % puffs.length], a = r() * 6.2832, d = Math.sqrt(r());
     const x = P[0] + Math.cos(a) * d * rx * .55 * P[2], y = P[1] + Math.sin(a) * d * ry * .5 * P[2];
     if (y > cy + ry * .38) continue;                   // flattish bottoms
-    const nx = Math.cos(a), ny = Math.sin(a), f = clamp((nx * lx + ny * ly) * d * .9 + .25 - (y - cy) / ry * .35, 0, 1);
+    const nx = Math.cos(a), ny = Math.sin(a), f = clamp((nx * lx + ny * ly) * d * .9 + .25 + (y - cy) / ry * .4 * ly, 0, 1);
     const c = mix(dark, lit, f * f);
     bristle(g, x, y, (o.ang || 0) + r.g() * .25, r.r(30, 110) * (rx / 200 + .4), r.r(6, 18) * (ry / 60 + .5), jit(c, r, .06), r.r(.16, .36) * (o.a || 1), r);
   }
@@ -347,16 +347,6 @@ function gs_person(g, r, x, y, H, o) {
   const toW = lie ? (p) => { const a = 1.5708 * hdir, dx = p[0] - ox, dy = p[1] - oy; return [x + dx * Math.cos(a) - dy * Math.sin(a), y - u * .42 + dx * Math.sin(a) + dy * Math.cos(a)]; } : (p) => [x - ox + p[0], y - oy + p[1]];
   return { head: toW(hd), hands: [toW(P('haL')), toW(P('haR'))], u: u, neck: toW(nk) };
 }
-GS.__figs = function (S, r) {
-  const g = S.layer(.1); g.fillStyle = '#3a4048'; g.fillRect(-30, -30, S.W + 60, S.H + 60); gs_glow(g, 200, 200, 600, [255, 160, 80], .3);
-  const L = [-.6, -.8], rim = [255, 170, 90];
-  gs_person(g, r, 120, 680, 560, { view: 'back', pose: 'pockets', L: L, rim: rim, coat: [46, 54, 66], scarf: [120, 34, 34], satchel: [80, 52, 34], coatLen: .3 });
-  gs_person(g, r, 380, 680, 560, { view: 'front', pose: 'stand', L: L, rim: rim, coat: [70, 72, 80], tie: [120, 30, 30], hs: 'short', glasses: true });
-  gs_person(g, r, 600, 680, 560, { view: 'side', pose: 'walk', dir: 1, L: L, rim: rim, coat: [90, 60, 50], hs: 'long', coatLen: .8, hair: [120, 70, 40] });
-  gs_person(g, r, 820, 680, 560, { view: 'side', pose: 'sit', dir: 1, L: L, rim: rim, coat: [120, 110, 90], hs: 'bun', hair: [180, 180, 180] });
-  gs_person(g, r, 1100, 680, 560, { view: 'side', pose: 'reach', dir: 1, L: L, rim: rim, coat: [60, 70, 60], hs: 'short' });
-  gs_person(g, r, 900, 300, 300, { view: 'side', pose: 'lie', dir: 1, L: L, rim: rim, coat: [50, 54, 70] });
-};
 /* ---------------------------------------------------------- reusable set pieces */
 /* School No. 9: facade + bell tower. returns anchor points */
 function gs_school(g, r, cx, gy, s, o) {
@@ -474,7 +464,7 @@ GS.title = function (S, r) {
   g.fillStyle = gs_grad(g, 0, gy, 0, H + S.M, [[0, [40, 40, 44]], [1, [10, 10, 14]]]); g.fillRect(-S.M, gy, W + 2 * S.M, H - gy + S.M * 2);
   // ---- drifting cloud banks
   const gc = S.layer(.3, { y0: -S.M, y1: gy - 60, drift: [70, 260000] });
-  for (let i = 0; i < 9; i++) { const cx = r.r(-120, W + 120), cy = y0 + r.r(70, 330) - (port ? r() * (y0 + 100) : 0), rx = r.r(160, 330); gs_cloud(gc, r, cx, cy, rx, r.r(28, 54), mix([22, 36, 48], [40, 44, 58], r()), mix([236, 134, 74], [250, 190, 120], r()), [-.7, .7], { n: Math.round(rx * .9), p: 6 }); }
+  for (let i = 0; i < 9; i++) { const cx = r.r(-120, W + 120), cy = y0 + r.r(70, 330) - (port ? r() * (y0 + 100) : 0), rx = r.r(160, 330); gs_cloud(gc, r, cx, cy, rx, r.r(28, 54), mix([26, 38, 52], [48, 50, 64], r()), mix([246, 140, 70], [255, 196, 120], r()), [-.5, .85], { n: Math.round(rx * 1.1), p: 6 }); }
   // ---- far city (haze-blue silhouettes, chimneys, a gasholder)
   const gf = S.layer(.45, { y0: gy - 330, y1: gy + 40 });
   const farWins = [];
